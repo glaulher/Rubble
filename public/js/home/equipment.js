@@ -54,11 +54,40 @@ async function loadEquipment(isPolling) {
   if (loading) return;
 
   if (isPolling) {
-    page = 0;
-    allLoaded = false;
-    equipment = [];
-    filteredEquipment = [];
-    document.getElementById('content').innerHTML = '';
+    loading = true;
+    try {
+      const response = await fetch(
+        `/app/api/index.php?route=equipment&limit=${limit}&offset=0&search=${encodeURIComponent(currentSearch)}`
+      );
+      const result = await response.json();
+
+      const newHash = JSON.stringify(result);
+      if (newHash === lastHomeHash) {
+        loading = false;
+        return;
+      }
+      lastHomeHash = newHash;
+
+      const newItems = result.data || [];
+      totalEquipment = result.total || 0;
+      totalOS = result.total_os || 0;
+
+      newItems.forEach((e) => {
+        recalculateEquipment(e);
+      });
+
+      equipment = newItems;
+      filteredEquipment = [...equipment];
+      allLoaded = newItems.length < limit;
+      page = 1;
+
+      syncHomeCards(newItems);
+    } catch (error) {
+      console.error('Erro ao carregar equipamentos:', error);
+    } finally {
+      loading = false;
+    }
+    return;
   }
 
   loading = true;
@@ -71,13 +100,6 @@ async function loadEquipment(isPolling) {
     );
 
     const result = await response.json();
-
-    const newHash = JSON.stringify(result);
-    if (isPolling && newHash === lastHomeHash) {
-      loading = false;
-      return;
-    }
-    lastHomeHash = newHash;
 
     const newItems = result.data || [];
 

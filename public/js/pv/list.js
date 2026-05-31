@@ -46,14 +46,39 @@ async function loadPvs(isPolling) {
   if (pvLoading) return;
 
   if (isPolling) {
-    pvPage = 0;
-    pvAllLoaded = false;
-    pvList = [];
-    var tbody = document.querySelector('#pvTable tbody');
-    if (tbody) tbody.innerHTML = '';
+    pvLoading = true;
+    try {
+      let url = `/app/api/index.php?route=pv&limit=${pvLimit}&offset=0&search=${encodeURIComponent(pvSearch)}`;
+      if (pvStatusFilter) url += `&status=${encodeURIComponent(pvStatusFilter)}`;
+      if (pvCycleFilter) url += `&ciclo=${encodeURIComponent(pvCycleFilter)}`;
+      if (pvSortBy) url += `&sort_by=${encodeURIComponent(pvSortBy)}&sort_dir=${encodeURIComponent(pvSortDir)}`;
+
+      const response = await fetch(url);
+      const result = await response.json();
+
+      const newHash = JSON.stringify(result);
+      if (newHash === lastPvHash) {
+        pvLoading = false;
+        return;
+      }
+      lastPvHash = newHash;
+
+      const newItems = result.data || [];
+      pvList = newItems;
+      pvAllLoaded = newItems.length < pvLimit;
+      pvPage = 1;
+
+      syncPvTable(newItems);
+      updatePvCounter(result.total, result.total_valor);
+    } catch (error) {
+      console.error('Erro ao carregar PVs:', error);
+    } finally {
+      pvLoading = false;
+    }
+    return;
   }
 
-  if (pvLoading || pvAllLoaded) return;
+  if (pvAllLoaded) return;
 
   pvLoading = true;
 
@@ -76,13 +101,6 @@ async function loadPvs(isPolling) {
     const response = await fetch(url);
     const result = await response.json();
 
-    var newHash = JSON.stringify(result);
-    if (isPolling && newHash === lastPvHash) {
-      pvLoading = false;
-      return;
-    }
-    lastPvHash = newHash;
-
     const newItems = result.data || [];
 
     if (newItems.length < pvLimit) {
@@ -99,6 +117,73 @@ async function loadPvs(isPolling) {
   } finally {
     pvLoading = false;
   }
+}
+
+function buildPvRowHtml(pv) {
+  const itensCount = pv.itens_count || 0;
+  const valorTotal =
+    pv.valor_total != null
+      ? parseFloat(pv.valor_total).toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        })
+      : '-';
+
+  return `
+    <td class="hidden md:table-cell w-10 px-3 py-4 text-sm">
+      <input type="checkbox" class="pv-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+        data-pv-id="${pv.id}">
+    </td>
+    <td class="px-4 py-4 text-sm font-semibold text-slate-900">${escapeHtml(pv.numero_pv)}</td>
+    <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${pv.data ? formatDate(pv.data) : '-'}</td>
+    <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">
+      <span data-action="copy-os" data-os="${escapeHtml(pv.os || '')}"
+            class="cursor-pointer hover:text-blue-600 hover:underline transition"
+            title="Clique para copiar">${escapeHtml(pv.os || '-')}</span>
+    </td>
+    <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${escapeHtml(pv.local)}</td>
+    <td class="px-4 py-4 text-sm">${getStatusBadge(pv.status)}</td>
+    <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${itensCount} ite${itensCount !== 1 ? 'ns' : 'm'}</td>
+    <td class="hidden md:table-cell px-4 py-4 text-sm font-medium text-slate-900">${valorTotal}</td>
+    <td class="px-4 py-4 text-sm text-right">
+      <div class="flex items-center justify-end gap-2">
+        <div class="relative group">
+          <button data-action="edit" data-pv-id="${pv.id}"
+            class="bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-xl transition">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+          </button>
+          <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">
+            Editar
+          </span>
+        </div>
+        <div class="relative group">
+          <button data-action="status" data-pv-id="${pv.id}" data-pv-numero="${escapeHtml(pv.numero_pv)}"
+            class="bg-amber-100 hover:bg-amber-200 text-amber-600 p-2 rounded-xl transition">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+          </button>
+          <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">
+            Alterar status
+          </span>
+        </div>
+        <div class="relative group">
+          <button data-action="delete" data-pv-id="${pv.id}"
+            class="bg-red-100 hover:bg-red-200 text-red-500 p-2 rounded-xl transition">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+          <span class="absolute bottom-full right-0 mb-2 scale-0 group-hover:scale-100 origin-bottom-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">
+            Excluir
+          </span>
+        </div>
+      </div>
+    </td>
+  `;
 }
 
 function renderPvs(list, append = false) {
@@ -124,70 +209,7 @@ function renderPvs(list, append = false) {
       'border-b border-slate-100 hover:bg-slate-100 transition cursor-pointer';
     tr.dataset.pvId = pv.id;
 
-    const itensCount = pv.itens_count || 0;
-    const valorTotal =
-      pv.valor_total != null
-        ? parseFloat(pv.valor_total).toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-          })
-        : '-';
-
-    tr.innerHTML = `
-      <td class="hidden md:table-cell w-10 px-3 py-4 text-sm">
-        <input type="checkbox" class="pv-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-          data-pv-id="${pv.id}">
-      </td>
-      <td class="px-4 py-4 text-sm font-semibold text-slate-900">${escapeHtml(pv.numero_pv)}</td>
-      <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${pv.data ? formatDate(pv.data) : '-'}</td>
-      <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">
-        <span data-action="copy-os" data-os="${escapeHtml(pv.os || '')}"
-              class="cursor-pointer hover:text-blue-600 hover:underline transition"
-              title="Clique para copiar">${escapeHtml(pv.os || '-')}</span>
-      </td>
-      <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${escapeHtml(pv.local)}</td>
-      <td class="px-4 py-4 text-sm">${getStatusBadge(pv.status)}</td>
-      <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${itensCount} ite${itensCount !== 1 ? 'ns' : 'm'}</td>
-      <td class="hidden md:table-cell px-4 py-4 text-sm font-medium text-slate-900">${valorTotal}</td>
-      <td class="px-4 py-4 text-sm text-right">
-        <div class="flex items-center justify-end gap-2">
-          <div class="relative group">
-            <button data-action="edit" data-pv-id="${pv.id}"
-              class="bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-xl transition">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-              </svg>
-            </button>
-            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">
-              Editar
-            </span>
-          </div>
-          <div class="relative group">
-            <button data-action="status" data-pv-id="${pv.id}" data-pv-numero="${escapeHtml(pv.numero_pv)}"
-              class="bg-amber-100 hover:bg-amber-200 text-amber-600 p-2 rounded-xl transition">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-              </svg>
-            </button>
-            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">
-              Alterar status
-            </span>
-          </div>
-          <div class="relative group">
-            <button data-action="delete" data-pv-id="${pv.id}"
-              class="bg-red-100 hover:bg-red-200 text-red-500 p-2 rounded-xl transition">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
-            <span class="absolute bottom-full right-0 mb-2 scale-0 group-hover:scale-100 origin-bottom-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">
-              Excluir
-            </span>
-          </div>
-        </div>
-      </td>
-    `;
+    tr.innerHTML = buildPvRowHtml(pv);
 
     tr.addEventListener('click', function (e) {
       if (e.target.closest('.pv-checkbox')) return;
@@ -217,6 +239,73 @@ function renderPvs(list, append = false) {
     });
 
     tbody.appendChild(tr);
+  });
+}
+
+function syncPvTable(newItems) {
+  const tbody = document.getElementById('pvTableBody');
+  const empty = document.getElementById('pvEmpty');
+  if (!tbody) return;
+
+  if (newItems.length === 0) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+
+  const existingRows = {};
+  tbody.querySelectorAll('tr[data-pv-id]').forEach((tr) => {
+    existingRows[tr.dataset.pvId] = tr;
+  });
+
+  const seenIds = {};
+  newItems.forEach((pv) => {
+    seenIds[pv.id] = true;
+    const existing = existingRows[pv.id];
+    if (existing) {
+      existing.innerHTML = buildPvRowHtml(pv);
+    } else {
+      const tr = document.createElement('tr');
+      tr.className =
+        'border-b border-slate-100 hover:bg-slate-100 transition cursor-pointer';
+      tr.dataset.pvId = pv.id;
+      tr.innerHTML = buildPvRowHtml(pv);
+      tr.addEventListener('click', function (e) {
+        if (e.target.closest('.pv-checkbox')) return;
+        const actionEl = e.target.closest('[data-action]');
+        if (actionEl) {
+          e.stopPropagation();
+          switch (actionEl.dataset.action) {
+            case 'copy-os':
+              copyOs(actionEl.dataset.os);
+              return;
+            case 'edit':
+              window.location.hash = '#/pvForm?id=' + actionEl.dataset.pvId;
+              return;
+            case 'status':
+              openStatusModal(
+                parseInt(actionEl.dataset.pvId),
+                actionEl.dataset.pvNumero
+              );
+              return;
+            case 'delete':
+              deletePv(parseInt(actionEl.dataset.pvId));
+              return;
+          }
+        }
+        if (e.target.closest('button') || e.target.closest('a')) return;
+        openPvItemModal(pv.id);
+      });
+      tbody.appendChild(tr);
+    }
+  });
+
+  Object.keys(existingRows).forEach((id) => {
+    if (!seenIds[id]) {
+      existingRows[id].remove();
+    }
   });
 }
 
