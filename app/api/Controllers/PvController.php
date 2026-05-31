@@ -7,6 +7,7 @@ use App\Api\Services\PvService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
+use App\Api\Helpers\Cache;
 use Exception;
 
 class PvController
@@ -53,6 +54,26 @@ class PvController
             $sortDir =
                 trim($_GET['sort_dir'] ?? '') ?: 'DESC';
 
+            /*
+            |------------------------------------------------------------------
+            | CACHE CHECK
+            |------------------------------------------------------------------
+            */
+            $cacheKey = Cache::buildKey('pv', [
+                'search' => $search,
+                'page' => $limit > 0 ? intdiv($offset, $limit) : 0,
+                'limit' => $limit,
+                'status' => $status,
+                'cycle' => $cycle,
+                'sortBy' => $sortBy,
+                'sortDir' => $sortDir,
+            ]);
+
+            $cached = Cache::get($cacheKey);
+            if ($cached !== null) {
+                Response::json($cached);
+            }
+
             $data =
                 $this->service->listAll(
                     $limit,
@@ -64,7 +85,7 @@ class PvController
                     $sortDir
                 );
 
-            Response::json([
+            $response = [
                 'success' => true,
                 'message' => 'PVs listadas com sucesso',
                 'data' => $data['items'],
@@ -72,7 +93,11 @@ class PvController
                 'total_valor' => $data['total_valor'],
                 'limit' => $limit,
                 'offset' => $offset,
-            ]);
+            ];
+
+            Cache::set($cacheKey, $response, 10);
+
+            Response::json($response);
 
         } catch (Exception $e) {
 
