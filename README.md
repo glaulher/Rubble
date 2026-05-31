@@ -19,7 +19,9 @@ HVAC equipment maintenance management SPA. PHP + Vanilla JS + MariaDB.
 - **CSV Export** — PV items export with Windows-1252 encoding
 - **PDF Report** — PV items PDF via html2canvas + jsPDF with wrapped text and Memorial de Calculo
 - **CSV Import** — OS import from CSV with UTF-8/Latin-1 detection
+- **Real-Time Polling** — 30s interval with APCu cache (file fallback), Visibility API pause/resume, incremental DOM updates
 - **Email Notifications** — Cron-based SMTP dispatch for scheduled OS
+- **Security Hardening** — CORS validation, login rate limiting (5/5min), error sanitization, CSP headers, HSTS, Apache hardening
 - **Dashboard PDF** — Full dashboard capture with smart page breaks
 
 ## Stack
@@ -29,10 +31,12 @@ HVAC equipment maintenance management SPA. PHP + Vanilla JS + MariaDB.
 | Backend | PHP 8.5 (pure, mysqli) |
 | Frontend | Vanilla JS + Tailwind CSS v4 + Chart.js |
 | Database | MariaDB 11.4, utf8mb4 |
+| Cache | APCu (Docker) / file-based fallback (local) |
 | PDF | html2canvas + jsPDF (client-side) |
 | Email | PHPMailer (SMTP) |
 | Auth | JWT HMAC-SHA256 (custom, no libs) |
 | Server | Apache 2.4 + PHP (portable via USBWebserver) |
+| Deploy | Docker Compose + Traefik (SSL) + DuckDNS |
 | PHP Tests | PHPUnit 11 + Composer |
 | JS Tests | Bun + Happy-DOM |
 
@@ -69,7 +73,10 @@ Key env vars:
 | `SMTP_*` | Gmail SMTP settings |
 | `JWT_SECRET` | 64-char hex for token signing |
 | `PV_EMAILS_ES` / `PV_EMAILS_RJ` | PV email recipients per state |
+| `PV_EMAILS_ES_CC` / `PV_EMAILS_RJ_CC` | CC recipients per state |
 | `NOTIFY_EMAILS` | Notification recipients (comma-separated) |
+| `APP_DEBUG` | Debug mode (`true`/`false`) |
+| `ALLOWED_ORIGINS` | CORS allowed origins (`*` for dev) |
 
 ### 3. Start (USBWebserver)
 
@@ -115,14 +122,14 @@ bun test
 │   ├── Services/                  # 9 services
 │   ├── Repositories/              # 9 repositories
 │   ├── Entities/                  # 4 entities
-│   ├── Helpers/                   # Response, Request, Validator, MailerFactory
+│   ├── Helpers/                   # Response, Request, Validator, MailerFactory, Cache
 │   └── Cron/check_notification.php
 ├── app/Views/                     # 11 HTML partials (fetched via SPA)
 ├── app/libs/PHPMailer/            # PHPMailer (vendored, not Composer)
 ├── public/js/
 │   ├── auth.js                    # Login, logout, token, auth guard
 │   ├── router.js                  # Hash-based SPA router
-│   ├── utils/                     # utils, csv, upload, report
+│   ├── utils/                     # utils, csv, upload, report, polling
 │   ├── components/                # modal, messagebox, pagination
 │   ├── home/                      # home-ui, equipment, form
 │   ├── pv/                        # constants, form-utils, form, list, modals
@@ -154,7 +161,7 @@ Script load order (index.html): `auth.js` → libs → utils → components → 
 | `tickets` | GET, POST, PUT, DELETE | `listByItem()`, `getById()`, `save()`, `import()`, `update()`, `delete()` |
 | `dashboard` | GET | `stats()` (equipment) |
 | `pv-dashboard` | GET | `stats()` (PV financial) |
-| `pv` | GET, POST, PUT, PATCH, DELETE | CRUD + `searchOs()`, `lookupItem()`, `searchLpuItems()`, `exportCsv()`, `sendEmail()`, `uploadFile()` |
+| `pv` | GET, POST, PUT, PATCH, DELETE | CRUD + `searchOs()`, `lookupItem()`, `searchLpuItems()`, `exportCsv()`, `sendEmail()`, `sendBatchEmail()`, `uploadFile()` |
 | `locals` | GET | `getLocals()` (autocomplete) |
 | `notify` | GET | Cron trigger |
 | `users` | GET, POST, PUT, DELETE | User CRUD (admin) |
@@ -187,7 +194,23 @@ Main tables:
 | `usuarios` | Users (auth) |
 | `civil_lpu`, `material_*_lpu`, `servico_*_lpu` | LPU price catalogs |
 | `cron_controle` | Notification execution control |
+| `login_attempts` | Rate limiting for login |
 
 ## License
 
 MIT
+
+## Deployment (Docker + Traefik)
+
+```bash
+# Clone and configure
+git clone https://github.com/glaulher/Rubble.git /opt/rubble
+cp .env.example .env  # edit with real credentials
+
+# Start (Traefik auto-provisions SSL via Let's Encrypt)
+docker compose up -d --build
+
+# phpMyAdmin via SSH tunnel
+ssh -L 8080:localhost:8080 user@vps
+# Then open http://localhost:8080
+```
