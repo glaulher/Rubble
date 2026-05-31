@@ -30,7 +30,7 @@ class PvDashboardController
                 ...$data,
             ]);
         } catch (Exception $e) {
-            Response::error($e->getMessage());
+            Response::serverError($e);
         }
     }
 }

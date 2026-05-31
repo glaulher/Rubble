@@ -2,6 +2,8 @@
 
 namespace App\Api\Helpers;
 
+use App\Config\Env;
+
 class Response
 {
     /*
@@ -108,5 +110,25 @@ class Response
     ): void {
 
         self::error($message, 401);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SERVER ERROR
+    |--------------------------------------------------------------------------
+    */
+
+    public static function serverError(
+        \Throwable $e,
+        int $status = 500
+    ): void {
+
+        error_log("API Error [{$status}]: " . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+
+        $message = Env::get('APP_DEBUG', false)
+            ? $e->getMessage()
+            : 'Erro interno do servidor';
+
+        self::error($message, $status);
     }
 }

@@ -76,9 +76,7 @@ class PvController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage()
-            );
+            Response::serverError($e);
         }
     }
 
@@ -121,10 +119,7 @@ class PvController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage(),
-                400
-            );
+            Response::serverError($e, 400);
         }
     }
 
@@ -184,10 +179,7 @@ class PvController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage(),
-                400
-            );
+            Response::serverError($e, 400);
         }
     }
 
@@ -238,10 +230,7 @@ class PvController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage(),
-                400
-            );
+            Response::serverError($e, 400);
         }
     }
 
@@ -279,10 +268,7 @@ class PvController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage(),
-                400
-            );
+            Response::serverError($e, 400);
         }
     }
 
@@ -306,9 +292,7 @@ class PvController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage()
-            );
+            Response::serverError($e);
         }
     }
 
@@ -344,10 +328,7 @@ class PvController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage(),
-                400
-            );
+            Response::serverError($e, 400);
         }
     }
 
@@ -395,10 +376,7 @@ class PvController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage(),
-                400
-            );
+            Response::serverError($e, 400);
         }
     }
 
@@ -427,7 +405,7 @@ class PvController
 
             Response::success('Resultados', $result);
         } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 
@@ -446,7 +424,7 @@ class PvController
 
             Response::success('Resultados', $result);
         } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 
@@ -483,7 +461,7 @@ class PvController
                 'total' => count($data),
             ]);
         } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 
@@ -553,7 +531,7 @@ class PvController
             ]);
 
         } catch (\Throwable $e) {
-            Response::error($e->getMessage(), 500);
+            Response::serverError($e, 500);
         }
     }
 

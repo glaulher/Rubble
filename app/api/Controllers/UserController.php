@@ -37,7 +37,7 @@ class UserController
                 'offset' => $offset,
             ]);
         } catch (Exception $e) {
-            Response::error($e->getMessage());
+            Response::serverError($e);
         }
     }
 
@@ -57,7 +57,7 @@ class UserController
             unset($data['password']);
             Response::success('Usuário encontrado', $data);
         } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 
@@ -81,7 +81,7 @@ class UserController
 
             Response::success('Usuário cadastrado com sucesso', ['id' => $id], 201);
         } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 
@@ -106,7 +106,7 @@ class UserController
 
             Response::success('Usuário atualizado com sucesso');
         } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 
@@ -124,7 +124,7 @@ class UserController
 
             Response::success('Usuário excluído com sucesso');
         } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 }

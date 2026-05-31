@@ -24,6 +24,12 @@ class AuthController
                 Response::validation('Usuário e senha são obrigatórios');
             }
 
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+            if (self::isRateLimited($ip)) {
+                Response::error('Muitas tentativas. Tente novamente em 5 minutos.', 429);
+            }
+
             $secretKey = Env::get('TURNSTILE_SECRET_KEY', '');
             if (!empty($secretKey)) {
                 $turnstileToken = $data['turnstile_token'] ?? '';
@@ -39,14 +45,19 @@ class AuthController
 
             $result = AuthService::login($username, $password, $jwtSecret);
 
+            self::logAttempt($ip, false);
+
             if (!$result) {
                 sleep(1);
                 Response::unauthorized('Usuário ou senha inválidos');
             }
 
+            self::logAttempt($ip, true);
+
             Response::success('Login realizado com sucesso', $result);
         } catch (Exception $e) {
-            Response::error($e->getMessage());
+            error_log("Login error: " . $e->getMessage());
+            Response::error('Erro interno do servidor');
         }
     }
 
@@ -85,5 +96,31 @@ class AuthController
     public function logout(): void
     {
         Response::success('Logout realizado com sucesso');
+    }
+
+    private static function isRateLimited(string $ip): bool
+    {
+        $conn = Database::connect();
+        $stmt = $conn->prepare(
+            'SELECT COUNT(*) AS attempts FROM login_attempts
+             WHERE ip_address = ? AND success = 0 AND attempted_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)'
+        );
+        $stmt->bind_param('s', $ip);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        return ($result['attempts'] ?? 0) >= 5;
+    }
+
+    private static function logAttempt(string $ip, bool $success): void
+    {
+        $conn = Database::connect();
+        $stmt = $conn->prepare(
+            'INSERT INTO login_attempts (ip_address, success) VALUES (?, ?)'
+        );
+        $stmt->bind_param('si', $ip, $success);
+        $stmt->execute();
+        $stmt->close();
     }
 }

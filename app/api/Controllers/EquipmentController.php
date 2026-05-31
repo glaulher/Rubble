@@ -85,9 +85,7 @@ class EquipmentController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage()
-            );
+            Response::serverError($e);
         }
     }
 
@@ -126,9 +124,7 @@ class EquipmentController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage()
-            );
+            Response::serverError($e);
         }
     }
 }

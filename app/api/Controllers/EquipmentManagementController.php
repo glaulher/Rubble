@@ -35,7 +35,7 @@ class EquipmentManagementController
                 'offset' => $offset,
             ]);
         } catch (Exception $e) {
-            Response::error($e->getMessage());
+            Response::serverError($e);
         }
     }
 
@@ -54,7 +54,7 @@ class EquipmentManagementController
 
             Response::success('Equipamento encontrado', $data);
         } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 
@@ -80,7 +80,7 @@ class EquipmentManagementController
 
             Response::success('Equipamento cadastrado com sucesso', ['id' => $id], 201);
         } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 
@@ -103,7 +103,7 @@ class EquipmentManagementController
 
             Response::success('Equipamento atualizado com sucesso');
         } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 
@@ -119,7 +119,7 @@ class EquipmentManagementController
 
             Response::success('Equipamento excluído com sucesso');
         } catch (Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 }

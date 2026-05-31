@@ -41,9 +41,7 @@ class DashboardController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage()
-            );
+            Response::serverError($e);
         }
     }
 }

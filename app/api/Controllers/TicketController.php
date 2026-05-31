@@ -49,9 +49,7 @@ class TicketController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage()
-            );
+            Response::serverError($e);
         }
     }
 
@@ -100,10 +98,7 @@ class TicketController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage(),
-                400
-            );
+            Response::serverError($e, 400);
         }
     }
 
@@ -144,10 +139,7 @@ class TicketController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage(),
-                400
-            );
+            Response::serverError($e, 400);
         }
     }
 
@@ -184,10 +176,7 @@ class TicketController
 
         } catch (Exception $e) {
 
-            Response::error(
-                $e->getMessage(),
-                400
-            );
+            Response::serverError($e, 400);
         }
     }
 
@@ -212,7 +201,7 @@ class TicketController
 
             Response::success($message, $result);
         } catch (\Exception $e) {
-            Response::error($e->getMessage(), 400);
+            Response::serverError($e, 400);
         }
     }
 
@@ -252,13 +241,11 @@ class TicketController
 
             $message = $e->getMessage();
             if (str_contains($message, 'foreign key constraint')) {
-                $message = 'Não é possível excluir: existem PVs vinculados a este registro. Exclua a PV primeiro.';
+                error_log("Delete FK error: " . $e->getMessage());
+                Response::error('Não é possível excluir: existem PVs vinculados a este registro. Exclua a PV primeiro.', 400);
             }
 
-            Response::error(
-                $message,
-                400
-            );
+            Response::serverError($e, 400);
         }
     }
 }
