@@ -1,0 +1,217 @@
+<div
+  style="background: linear-gradient(90deg, #c026d3, #8b5cf6, #0ea5e9, #17275c)"
+>
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-2 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">PV Dashboard</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">
+          Análise financeira de propostas de venda
+        </p>
+      </div>
+      <button
+        id="generateReportBtn"
+        onclick="generateReport()"
+        class="bg-emerald-300 hover:bg-emerald-400 text-emerald-800 px-4 py-2 rounded-xl text-sm font-medium transition"
+      >
+        Gerar Relatório
+      </button>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Filters -->
+    <div
+      id="pvFilters"
+      class="flex flex-wrap gap-4 mb-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-4"
+    >
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">
+          Período Início
+        </label>
+        <input
+          type="date"
+          id="filterPeriodStart"
+          class="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+        />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">
+          Período Fim
+        </label>
+        <input
+          type="date"
+          id="filterPeriodEnd"
+          class="border border-slate-300 rounded-lg px-3 py-2 text-sm"
+        />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1">
+          Local
+        </label>
+        <input
+          type="text"
+          id="filterLocation"
+          list="locationList"
+          autocomplete="off"
+          placeholder="Todos"
+          class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-64"
+        />
+        <datalist id="locationList"></datalist>
+      </div>
+    </div>
+
+    <!-- Status Cards Row -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-10">
+      <div
+        id="pvCardCanceladosNegados"
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 hidden"
+      >
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+          Cancelados / Negados
+        </p>
+        <p class="text-2xl font-light text-gray-600 mt-1">
+          R$
+          <span id="pvCanceladosNegadosVal">0,00</span>
+        </p>
+        <p class="text-sm text-slate-500 mt-0.5">
+          <span id="pvCanceladosNegados">0</span>
+          PVs
+        </p>
+        <div class="mt-2" style="height: 40px">
+          <canvas id="pvSparkCanceladosNegados"></canvas>
+        </div>
+      </div>
+
+      <div
+        id="pvCardScmAprovado"
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 hidden"
+      >
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+          SCM Aprovado
+        </p>
+        <p class="text-2xl font-light text-cyan-600 mt-1">
+          R$
+          <span id="pvScmAprovado">0,00</span>
+        </p>
+        <p class="text-sm text-cyan-600 mt-0.5">
+          <span id="pvScmAprovadoCount">0</span>
+          PVs
+        </p>
+        <div class="mt-2" style="height: 40px">
+          <canvas id="pvSparkScmAprovado"></canvas>
+        </div>
+      </div>
+
+      <div
+        id="pvCardSemAprovacao"
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 hidden"
+      >
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+          Sem Aprovação
+        </p>
+        <p class="text-2xl font-light text-amber-600 mt-1">
+          R$
+          <span id="pvSemAprovacao">0,00</span>
+        </p>
+        <p class="text-sm text-amber-600 mt-0.5">
+          <span id="pvSemAprovacaoCount">0</span>
+          PVs
+        </p>
+        <div class="mt-2" style="height: 40px">
+          <canvas id="pvSparkSemAprovacao"></canvas>
+        </div>
+      </div>
+
+      <div
+        id="pvCardAprovadoExec"
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 hidden"
+      >
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+          Aprovado Exec./Aq.
+        </p>
+        <p class="text-2xl font-light text-green-600 mt-1">
+          R$
+          <span id="pvAprovadoExecVal">0,00</span>
+        </p>
+        <p class="text-sm text-green-600 mt-0.5">
+          <span id="pvAprovadoExecCount">0</span>
+          PVs
+        </p>
+        <div class="mt-2" style="height: 40px">
+          <canvas id="pvSparkAprovadoExec"></canvas>
+        </div>
+      </div>
+
+      <div
+        id="pvCardTotalGeral"
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 hidden"
+      >
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+          Total Geral PVs
+        </p>
+        <p class="text-2xl font-light text-slate-800 mt-1">
+          R$
+          <span id="pvTotalGeral">0,00</span>
+        </p>
+        <p class="text-sm text-slate-500 mt-0.5">
+          <span id="pvTotalGeralCount">0</span>
+          PVs
+        </p>
+        <div class="mt-2" style="height: 40px">
+          <canvas id="pvSparkTotalGeral"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-light tracking-[0.05em] text-slate-800 mb-4">
+          Faturamento vs Previsão por Mês
+        </h2>
+        <div class="relative" style="height: 300px">
+          <canvas id="pvFinancialChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-light tracking-[0.05em] text-slate-800 mb-4">
+          Pareto — Locais que mais Faturam
+        </h2>
+        <div class="relative" style="height: 300px">
+          <canvas id="pvParetoChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-light tracking-[0.05em] text-slate-800 mb-4">
+          Materiais mais Utilizados
+        </h2>
+        <div class="relative" style="height: 400px">
+          <canvas id="pvMaterialsChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-light tracking-[0.05em] text-slate-800 mb-4">
+          Serviços mais Vendidos
+        </h2>
+        <div class="relative" style="height: 400px">
+          <canvas id="pvServicesChart"></canvas>
+        </div>
+      </div>
+
+      <div
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:col-span-2"
+      >
+        <h2 class="text-lg font-light tracking-[0.05em] text-slate-800 mb-4">
+          Equipamentos que mais Geraram PV
+        </h2>
+        <div class="relative" style="height: 300px; max-width: 700px">
+          <canvas id="pvEquipmentChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

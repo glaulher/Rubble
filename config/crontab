@@ -1,0 +1,1 @@
+0 8 * * * php /var/www/html/app/api/Cron/check_notification.php

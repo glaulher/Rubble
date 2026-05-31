@@ -1,0 +1,40 @@
+#searchInput:-webkit-autofill,
+#searchInput:-webkit-autofill:hover {
+  -webkit-box-shadow: 0 0 0 30px #1e293b inset !important;
+  -webkit-text-fill-color: #7dd3fc !important;
+  caret-color: white !important;
+}
+
+#searchInput:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px #334155 inset, 0 0 0 2px #0369a1 !important;
+  -webkit-text-fill-color: #7dd3fc !important;
+  caret-color: white !important;
+  outline: none;
+}
+
+#searchInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #0369a1;
+  background-color: #334155;
+}
+
+#loginUsername:-webkit-autofill,
+#loginPassword:-webkit-autofill,
+#loginUsername:-webkit-autofill:hover,
+#loginPassword:-webkit-autofill:hover {
+  -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+  -webkit-text-fill-color: #1e293b !important;
+  caret-color: #1e293b !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+#loginUsername:-webkit-autofill:focus,
+#loginPassword:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+  -webkit-text-fill-color: #1e293b !important;
+  caret-color: #1e293b !important;
+  outline: none;
+}
+
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }

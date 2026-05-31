@@ -1,0 +1,102 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: rubble-traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.transport.respondingTimeouts.readTimeout=120"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${LE_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - traefik-letsencrypt:/letsencrypt
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: rubble-app
+    expose:
+      - "80"
+    env_file: .env
+    volumes:
+      - os-data:/var/www/html/OS
+      - laudo-data:/var/www/html/LAUDO
+    entrypoint: >
+      sh -c "
+        chown -R www-data:www-data /var/www/html/OS /var/www/html/LAUDO &&
+        exec docker-php-entrypoint apache2-foreground
+      "
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rubble.rule=Host(`rubbleapp.duckdns.org`)"
+      - "traefik.http.routers.rubble.entrypoints=websecure"
+      - "traefik.http.routers.rubble.tls=true"
+      - "traefik.http.routers.rubble.tls.certresolver=letsencrypt"
+      - "traefik.http.services.rubble.loadbalancer.server.port=80"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mariadb:11.4
+    container_name: rubble-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?root password required}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./config/schema.sql:/docker-entrypoint-initdb.d/00-schema.sql
+    healthcheck:
+      test:
+        ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: rubble-pma
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 100M
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile.cron
+    container_name: rubble-cron
+    env_file: .env
+    volumes:
+      - os-data:/var/www/html/OS
+      - laudo-data:/var/www/html/LAUDO
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  os-data:
+  laudo-data:
+  traefik-letsencrypt:
+

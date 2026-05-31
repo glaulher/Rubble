@@ -1,0 +1,10 @@
+{
+  "name": "rubble",
+  "type": "module",
+  "scripts": {
+    "test": "bun test --preload ./tests/setup.js"
+  },
+  "dependencies": {
+    "happy-dom": "^20.9.0"
+  }
+}

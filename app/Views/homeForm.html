@@ -1,0 +1,189 @@
+<!-- CONTEÚDO -->
+<main class="max-w-3xl mx-auto p-6">
+
+    <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+
+        <!-- TOPO -->
+        <div class="bg-gradient-to-r from-sky-700 to-slate-900 px-8 py-6 text-white">
+
+            <h2 id="formTitle" class="text-3xl font-light tracking-[0.1em]">
+                Registrar
+            </h2>
+
+            <p class="text-sky-100 mt-1">
+                Preencha as informações da atividade realizada
+            </p>
+
+        </div>
+
+        <!-- FORM -->
+        <form id="ticketForm" class="p-8 space-y-6">
+
+            <!-- ID TICKET -->
+            <input type="hidden" id="ticketId">
+
+            <!-- EQUIPAMENTO -->
+            <input type="hidden" id="equipmentId" name="equipamento_id">
+
+            <!-- GRID -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- OS -->
+                <div>
+
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Número da OS
+                    </label>
+
+                    <input type="text" name="os"
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
+
+                </div>
+
+                <!-- DATA -->
+                <div>
+
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Data
+                    </label>
+
+                    <input type="date" name="data"
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
+
+                </div>
+
+                <!-- EQUIPE -->
+                <div>
+
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Equipe
+                    </label>
+
+                    <input type="text" name="equipe"
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
+
+                </div>
+
+                <!-- STATUS -->
+                <div>
+
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Status
+                    </label>
+
+                    <select name="status"
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
+
+                        <option value=""></option>
+
+                        <option value="Concluído">
+                            Concluído
+                        </option>
+
+                        <option value="Pendente">
+                            Pendente
+                        </option>
+
+                        <option value="Em andamento">
+                            Em andamento
+                        </option>
+
+                        <option value="Planejado">
+                            Planejado
+                        </option>
+
+                        <option value="Projeto Clean up">
+                            Projeto Clean up
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+            <!-- MATERIAL + DATA DE CONCLUSÃO -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div>
+
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Material
+                    </label>
+
+                    <select name="material"
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
+
+                        <option value=""></option>
+
+                        <option value="Sim">
+                            Sim
+                        </option>
+
+                        <option value="Não">
+                            Não
+                        </option>
+
+                        <option value="Necessário">
+                            Necessário
+                        </option>
+
+                        <option value="Indisponível">
+                            Indisponível
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div id="completionDateGroup" style="display:none;">
+
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Data de Conclusão
+                    </label>
+
+                    <input type="date" name="data_concluido" id="completionDateInput" disabled
+                        class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
+
+                </div>
+
+            </div>
+
+            <!-- OBS -->
+            <div>
+
+                <label class="block text-sm font-medium text-slate-700 mb-2">
+                    Observações
+                </label>
+
+                <textarea name="obs" rows="5"
+                    class="w-full rounded-xl border border-slate-300 px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+
+            </div>
+
+            <!-- BOTÕES -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-4">
+
+                <button data-role="admin supervisor coordenador" type="submit"
+                    class="flex-1 bg-emerald-200 hover:bg-emerald-300 text-emerald-800 font-semibold py-3 rounded-xl transition duration-200">
+
+                    <span id="buttonText">
+                        Salvar registro
+                    </span>
+
+                </button>
+
+                <a href="#/"
+                    class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-900 font-semibold py-3 rounded-xl transition duration-200 text-center">
+
+                    Voltar
+
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</main>

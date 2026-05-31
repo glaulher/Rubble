@@ -1,0 +1,224 @@
+<!-- CONTEÚDO -->
+<main class="max-w-4xl mx-auto p-6">
+  <div
+    class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden"
+  >
+    <div
+      class="bg-gradient-to-r from-sky-700 to-slate-900 px-8 py-6 text-white"
+    >
+      <h2 id="formTitle" class="text-3xl font-light tracking-[0.1em]">Nova PV</h2>
+
+      <p class="text-sky-100 mt-1">Preencha as informações da proposta</p>
+    </div>
+
+    <form id="pvForm" class="p-8 space-y-6">
+      <input type="hidden" id="pvId" />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 items-start gap-6">
+        <div id="numeroPvGroup" class="hidden">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">
+              Nº PV
+            </label>
+            <input
+              type="text"
+              id="numeroPv"
+              readonly
+              class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-500"
+              placeholder="Auto"
+            />
+            <p id="numeroPvHint" class="text-xs text-slate-400 mt-1">
+              Gerado automaticamente ao salvar
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-2">
+            Data
+          </label>
+          <input
+            type="date"
+            id="data"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-2">
+            Ciclo
+          </label>
+          <input
+            type="text"
+            id="ciclo"
+            list="cicloList"
+            autocomplete="off"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          />
+          <datalist id="cicloList"></datalist>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-2">
+            Local *
+          </label>
+          <input
+            type="text"
+            id="local"
+            list="localList"
+            autocomplete="off"
+            oninput="filterEquipamentos()"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          />
+          <datalist id="localList"></datalist>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-2">
+            Status
+          </label>
+          <select
+            id="status"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          ></select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-2">
+            OS
+          </label>
+          <div class="flex gap-2 items-end">
+            <div class="flex-1">
+              <input
+                type="text"
+                id="os"
+                list="osList"
+                autocomplete="off"
+                class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                placeholder="Nº OS separados por vírgula"
+              />
+              <datalist id="osList"></datalist>
+            </div>
+            <button type="button" onclick="uploadOsFile()"
+              class="bg-sky-200 hover:bg-sky-300 text-sky-800 px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap transition">
+              Upload OS
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-2">
+            RAL
+          </label>
+          <input
+            type="text"
+            id="ral"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-2">
+            Equipamento *
+          </label>
+          <select
+            id="equipamentoId"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          >
+            <option value="">Selecione...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ITENS DA PV -->
+      <div class="border-t border-slate-200 pt-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-light tracking-[0.05em] text-slate-800">Itens da Proposta</h3>
+          <button
+            type="button"
+            onclick="addItemRow()"
+            class="bg-sky-200 hover:bg-sky-300 text-sky-800 px-4 py-2 rounded-xl text-sm font-medium transition"
+          >
+            + Adicionar Item
+          </button>
+        </div>
+        <div id="pvItemsContainer" class="space-y-4"></div>
+      </div>
+
+      <!-- BOTOES -->
+      <div class="flex flex-col sm:flex-row gap-4 pt-4">
+        <button
+          type="submit"
+          class="flex-1 bg-emerald-200 hover:bg-emerald-300 text-emerald-800 font-semibold py-3 rounded-xl transition duration-200"
+        >
+          <span id="buttonText">Salvar PV</span>
+        </button>
+        <a
+          href="#/pv"
+          class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-900 font-semibold py-3 rounded-xl transition duration-200 text-center"
+        >
+          Voltar
+        </a>
+      </div>
+    </form>
+  </div>
+</main>
+
+<!-- MODAL CALCULAR FILTRO -->
+<div id="filterModal"
+  class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-[99999]">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 animate-[fadeIn_.2s_ease]">
+    <h2 class="text-2xl font-light tracking-[0.05em] text-slate-800 mb-2">Calcular Filtro</h2>
+    <p class="text-slate-500 text-sm mb-6">Informe as dimensões (valores em mm)</p>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">Tamanho do filtro (LARGURAxALTURA)</label>
+        <input type="text" id="filterTamanho" oninput="calculateFilter()"
+          class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          placeholder="ex: 850x636">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">Quantidade de peças necessárias</label>
+        <input type="number" id="filterQuantidadePecas" min="1" oninput="calculateFilter()"
+          class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          placeholder="Ex: 6">
+      </div>
+    </div>
+
+    <!-- Tabela de resultados -->
+    <div class="mt-6 overflow-x-auto">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="bg-slate-100">
+            <th class="px-3 py-2 text-left font-semibold text-slate-700 border border-slate-200">Tamanho do filtro</th>
+            <th class="px-3 py-2 text-left font-semibold text-slate-700 border border-slate-200">Qtd peças</th>
+            <th class="px-3 py-2 text-right font-semibold text-slate-700 border border-slate-200">Área da placa</th>
+            <th class="px-3 py-2 text-right font-semibold text-slate-700 border border-slate-200">Área Plana total</th>
+            <th class="px-3 py-2 text-right font-semibold text-slate-700 border border-slate-200">Qtd a cobrar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td id="filterResultTamanho" class="px-3 py-2 border border-slate-200 text-slate-600">-</td>
+            <td id="filterResultQtdPecas" class="px-3 py-2 border border-slate-200 text-slate-600">-</td>
+            <td id="filterResultAreaPlaca" class="px-3 py-2 border border-slate-200 text-right text-slate-600">-</td>
+            <td id="filterResultAreaPlana" class="px-3 py-2 border border-slate-200 text-right text-slate-600">-</td>
+            <td id="filterResultQtdCobrar" class="px-3 py-2 border border-slate-200 text-right text-slate-600 font-medium">-</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Botões -->
+    <div class="flex gap-3 mt-6">
+      <button type="button" onclick="saveFilterData()"
+        class="flex-1 bg-emerald-200 hover:bg-emerald-300 text-emerald-800 font-semibold py-3 rounded-xl transition duration-200">
+        Salvar
+      </button>
+      <button type="button" onclick="closeFilterModal()"
+        class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-900 font-semibold py-3 rounded-xl transition duration-200">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>

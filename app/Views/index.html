@@ -1,0 +1,93 @@
+<!-- TOOLBAR -->
+<div class="bg-slate-900 text-white shadow-lg">
+  <div class="max-w-7xl mx-auto px-6 py-2 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 items-center">
+    <div>
+      <h1 class="text-2xl font-light tracking-[0.1em]">Perímetro</h1>
+      <p class="text-sm text-slate-400/80 mt-0.5">
+        Gerenciamento de Equipamentos
+      </p>
+    </div>
+
+    <div class="text-center self-center">
+      <span
+        class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold"
+      >
+        <span id="machineCounter">0</span>
+
+        <span id="counterLabel" class="ml-1">máquinas cadastradas</span>
+      </span>
+    </div>
+
+    <!-- BUSCA -->
+    <div class="flex items-center gap-4 justify-self-end self-start">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Buscar ..."
+        class="px-4 py-1.5 rounded-xl bg-slate-800 border border-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-slate-700 text-blue-200 w-full sm:w-60"
+      />
+
+      <div class="relative group">
+        <button
+          onclick="generateCSVReport()"
+          class="bg-emerald-300 hover:bg-emerald-400 text-emerald-800 px-2 py-2 rounded-xl font-semibold transition"
+        >
+          <svg
+            class="w-6 h-6"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+            />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="8" y1="13" x2="16" y2="13" />
+            <line x1="8" y1="17" x2="16" y2="17" />
+            <line x1="8" y1="9" x2="10" y2="9" />
+          </svg>
+        </button>
+
+        <span
+          class="absolute right-0 top-[54px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+        >
+          Gerar relatório CSV
+        </span>
+      </div>
+
+      <div data-role="admin supervisor coordenador" class="relative group">
+        <button
+          onclick="importOS()"
+          class="bg-sky-300 hover:bg-sky-400 text-sky-800 px-2 py-2 rounded-xl font-semibold transition"
+        >
+          <svg
+            class="w-6 h-6"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        </button>
+
+        <span
+          class="absolute right-0 top-[54px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+        >
+          Importar OS
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTEÚDO -->
+<main id="content" class="max-w-7xl mx-auto p-6"></main>
+<div id="sentinel" class="h-10"></div>

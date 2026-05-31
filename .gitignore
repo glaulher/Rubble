@@ -1,0 +1,16 @@
+.env
+OS/
+LAUDO/
+*.sql
+AGENTS.md
+contexto.md
+docs/
+.opencode/
+node_modules/
+vendor/
+*.phar
+.phpunit.result.cache
+*.csv
+pv_reconcile.php
+specs.md
+_debug*.php

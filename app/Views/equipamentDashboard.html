@@ -1,0 +1,141 @@
+<div
+  style="background: linear-gradient(90deg, #17275c, #0ea5e9, #8b5cf6, #c026d3)"
+>
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-2 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">
+          Equipamentos Dashboard
+        </h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">
+          Visão geral das manutenções - Equipamentos
+        </p>
+      </div>
+      <button
+        data-role="admin supervisor coordenador"
+        id="generateReportBtn"
+        onclick="generateReport()"
+        class="bg-emerald-300 hover:bg-emerald-400 text-emerald-800 px-4 py-2 rounded-xl text-sm font-medium transition"
+      >
+        Gerar Relatório
+      </button>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div
+        id="cardPending"
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hidden"
+      >
+        <p class="text-sm font-medium text-slate-500 uppercase tracking-wide">
+          Pendente
+        </p>
+        <p class="text-3xl font-light text-red-600 mt-2">
+          <span id="pendingCount">0</span>
+          <span class="text-lg font-normal text-slate-400">
+            (
+            <span id="pendingPct">0</span>
+            %)
+          </span>
+        </p>
+      </div>
+
+      <div
+        id="cardPlanned"
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hidden"
+      >
+        <p class="text-sm font-medium text-slate-500 uppercase tracking-wide">
+          Planejado
+        </p>
+        <p class="text-3xl font-light text-yellow-600 mt-2">
+          <span id="plannedCount">0</span>
+          <span class="text-lg font-normal text-slate-400">
+            (
+            <span id="plannedPct">0</span>
+            %)
+          </span>
+        </p>
+      </div>
+
+      <div
+        id="cardCompleted"
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hidden"
+      >
+        <p class="text-sm font-medium text-slate-500 uppercase tracking-wide">
+          Concluído
+        </p>
+        <p class="text-3xl font-light text-green-600 mt-2">
+          <span id="completedCount">0</span>
+          <span class="text-lg font-normal text-slate-400">
+            (
+            <span id="completedPct">0</span>
+            %)
+          </span>
+        </p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-light tracking-[0.05em] text-slate-800 mb-4">
+          Pareto — Top 10 Locais com Problemas
+        </h2>
+        <div class="relative" style="height: 300px">
+          <canvas id="paretoChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-light tracking-[0.05em] text-slate-800 mb-4">
+          Máquinas com Mais Defeitos Recorrentes
+        </h2>
+        <div class="relative" style="height: 300px">
+          <canvas id="machinesChart"></canvas>
+        </div>
+      </div>
+
+      <div
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:col-span-2"
+      >
+        <h2 class="text-lg font-light tracking-[0.05em] text-slate-800 mb-4">
+          Técnicos com Mais Atendimentos
+        </h2>
+        <div class="relative" style="height: 300px; max-width: 700px">
+          <canvas id="techniciansChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-light tracking-[0.05em] text-slate-800 mb-4">
+          Tempo Médio de Resolução — Equipamentos
+        </h2>
+        <div class="relative" style="height: 300px">
+          <canvas id="resolutionMachineChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-light tracking-[0.05em] text-slate-800 mb-4">
+          Tempo Médio de Resolução — Mensal
+        </h2>
+        <div class="relative" style="height: 300px">
+          <canvas id="resolutionMonthChart"></canvas>
+        </div>
+      </div>
+
+      <div
+        class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:col-span-2"
+      >
+        <h2 class="text-lg font-light tracking-[0.05em] text-slate-800 mb-4">
+          Tempo Médio de Resolução — Técnicos
+        </h2>
+        <div class="relative" style="height: 300px; max-width: 700px">
+          <canvas id="resolutionTechnicianChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

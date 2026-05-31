@@ -1,0 +1,17 @@
+node_modules/
+vendor/
+tests/
+.git/
+.gitignore
+.env
+.env.example
+*.md
+composer.*
+package*
+bunfig*
+bun.lock
+phpunit.xml
+pv_reconcile.php
+specs.md
+tailwind.config.js
+.prettierrc
