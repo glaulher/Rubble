@@ -2,6 +2,7 @@
 OS/
 LAUDO/
 *.sql
+cache/
 AGENTS.md
 contexto.md
 docs/
