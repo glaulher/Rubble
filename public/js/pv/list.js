@@ -11,6 +11,7 @@ let pvSortDir = 'DESC';
 let pvEmailPvId = null;
 let pvEmailPvData = null;
 let selectedPvIds = [];
+let lastPvHash = '';
 
 function copyOs(os) {
   if (!os || os === '-') return;
@@ -41,7 +42,17 @@ function fallbackCopy(text) {
   document.body.removeChild(textarea);
 }
 
-async function loadPvs() {
+async function loadPvs(isPolling) {
+  if (pvLoading) return;
+
+  if (isPolling) {
+    pvPage = 0;
+    pvAllLoaded = false;
+    pvList = [];
+    var tbody = document.querySelector('#pvTable tbody');
+    if (tbody) tbody.innerHTML = '';
+  }
+
   if (pvLoading || pvAllLoaded) return;
 
   pvLoading = true;
@@ -64,6 +75,13 @@ async function loadPvs() {
 
     const response = await fetch(url);
     const result = await response.json();
+
+    var newHash = JSON.stringify(result);
+    if (isPolling && newHash === lastPvHash) {
+      pvLoading = false;
+      return;
+    }
+    lastPvHash = newHash;
 
     const newItems = result.data || [];
 
@@ -215,6 +233,7 @@ function resetPvState(search, status, cycle, keepSort) {
   pvAllLoaded = false;
   pvLoading = false;
   pvList = [];
+  lastPvHash = '';
 
   const tbody = document.getElementById('pvTableBody');
   if (tbody) tbody.innerHTML = '';
@@ -424,6 +443,7 @@ function initPv() {
   pvLoading = false;
   pvList = [];
   selectedPvIds = [];
+  lastPvHash = '';
 
   const tbody = document.getElementById('pvTableBody');
   if (tbody) tbody.innerHTML = '';
@@ -446,6 +466,8 @@ function initPv() {
   setupPvSort();
   setupPvInfiniteScroll();
   setupPvCheckboxes();
+
+  PollingManager.start('pv', function () { loadPvs(true); }, 30000);
 
   loadPvs();
 }

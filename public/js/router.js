@@ -15,6 +15,10 @@ async function loadPage(url) {
 }
 
 async function router() {
+  if (globalThis.PollingManager) {
+    PollingManager.stopAll();
+  }
+
   const app = document.getElementById("app");
 
   const hash = window.location.hash;

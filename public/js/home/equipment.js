@@ -7,6 +7,7 @@ let page = 0;
 let limit = 20;
 let loading = false;
 let allLoaded = false;
+let lastHomeHash = '';
 
 function recalculateEquipment(e) {
           const tickets = e.tickets || [];
@@ -49,8 +50,16 @@ function recalculateEquipment(e) {
   e.searchStatus = '';
 }
 
-async function loadEquipment() {
-  if (loading || allLoaded) return;
+async function loadEquipment(isPolling) {
+  if (loading) return;
+
+  if (isPolling) {
+    page = 0;
+    allLoaded = false;
+    equipment = [];
+    filteredEquipment = [];
+    document.getElementById('content').innerHTML = '';
+  }
 
   loading = true;
 
@@ -62,6 +71,13 @@ async function loadEquipment() {
     );
 
     const result = await response.json();
+
+    const newHash = JSON.stringify(result);
+    if (isPolling && newHash === lastHomeHash) {
+      loading = false;
+      return;
+    }
+    lastHomeHash = newHash;
 
     const newItems = result.data || [];
 

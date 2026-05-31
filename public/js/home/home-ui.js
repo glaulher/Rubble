@@ -313,6 +313,8 @@ function resetState(search) {
 
   filteredEquipment = [];
 
+  lastHomeHash = '';
+
   const content = document.getElementById('content');
 
   if (content) {
@@ -411,7 +413,9 @@ function initHome() {
 
   setupInfiniteScroll();
 
-  loadEquipment();
+  PollingManager.start('home', function () { loadEquipment(true); }, 30000);
+
+  loadEquipment(false);
 
   fetch('/app/api/index.php?route=notify')
     .then((r) => r.json())
