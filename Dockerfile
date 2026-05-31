@@ -3,6 +3,9 @@ FROM php:8.4-apache
 RUN docker-php-ext-install mysqli && \
     docker-php-ext-enable mysqli
 
+RUN pecl install apcu && \
+    docker-php-ext-enable apcu
+
 RUN a2enmod rewrite && a2enmod headers
 
 COPY config/apache/site.conf /etc/apache2/sites-available/000-default.conf
