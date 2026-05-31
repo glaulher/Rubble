@@ -358,7 +358,8 @@ function syncHomeCards(newEquipment) {
 
       existing.replaceWith(newCard);
     } else {
-      let siteGroup = content.querySelector(`.site-group[data-site="${CSS.escape(e.local)}"]`);
+      const escapedLocal = e.local.replace(/"/g, '\\"');
+      let siteGroup = content.querySelector(`.site-group[data-site="${escapedLocal}"]`);
       if (!siteGroup) {
         siteGroup = document.createElement('div');
         siteGroup.className = 'site-group mb-10';
@@ -384,7 +385,7 @@ function syncHomeCards(newEquipment) {
 
       const countEl = siteGroup.querySelector('.mb-4 p');
       if (countEl) {
-        const siteCount = content.querySelectorAll(`.site-group[data-site="${CSS.escape(e.local)}"] .card-item`).length;
+        const siteCount = content.querySelectorAll(`.site-group[data-site="${escapedLocal}"] .card-item`).length;
         countEl.textContent = siteCount + ' equipamentos';
       }
     }
@@ -502,6 +503,8 @@ function initHome() {
   equipment = [];
 
   filteredEquipment = [];
+
+  lastHomeHash = '';
 
   const content = document.getElementById('content');
 
