@@ -247,7 +247,17 @@ function uploadOsFile() {
     if (!files || files.length === 0) return;
     const osField = document.getElementById('os');
     const names = [];
-    for (const file of files) {
+    const total = files.length;
+    if (total > 1) {
+      showToast('Enviando 0/' + total + '...', 'loading');
+    }
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (total > 1) {
+        updateToastProgress(((i) / total) * 100, 'Enviando ' + i + '/' + total + ' - ' + file.name);
+      } else {
+        showToast('Enviando ' + file.name + '...', 'loading');
+      }
       const formData = new FormData();
       formData.append('file', file);
       formData.append('type', 'os');
@@ -258,7 +268,9 @@ function uploadOsFile() {
         if (data.success) {
           names.push(data.data.filename);
         } else {
+          dismissToast();
           showToast(file.name + ': ' + data.message, 'error');
+          return;
         }
       } catch (e) {
         console.error('Upload error:', e);
@@ -266,9 +278,12 @@ function uploadOsFile() {
           const text = await res.text().catch(() => '');
           console.error('Response body:', text);
         }
+        dismissToast();
         showToast('Erro de conexao ao enviar ' + file.name, 'error');
+        return;
       }
     }
+    dismissToast();
     if (names.length > 0) {
       osField.value = names.join(', ');
       showToast(names.length + ' OS anexada(s)', 'success');

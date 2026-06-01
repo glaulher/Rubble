@@ -1,4 +1,4 @@
-async function uploadFile({ accept = '.pdf', multiple = false, uploadType, onSuccess, onError }) {
+async function uploadFile({ accept = '.pdf', multiple = false, uploadType, onSuccess, onError, onProgress }) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = accept;
@@ -6,7 +6,10 @@ async function uploadFile({ accept = '.pdf', multiple = false, uploadType, onSuc
   input.onchange = async function () {
     const files = this.files;
     if (!files || files.length === 0) return;
-    for (const file of files) {
+    const total = files.length;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (onProgress) onProgress(((i) / total) * 100, file, i, total);
       const formData = new FormData();
       formData.append('file', file);
       formData.append('type', uploadType);
