@@ -241,11 +241,13 @@ async function uploadOsFile() {
   const osField = document.getElementById('os');
   const names = [];
   let uploadError = false;
-  showToast('Enviando...', 'loading');
   await uploadFile({
     accept: '.pdf',
     multiple: true,
     uploadType: 'os',
+    onStart() {
+      showToast('Enviando...', 'loading');
+    },
     onProgress(pct, file, i, total) {
       const overall = total === 1 ? pct : ((i * 100 + pct) / total);
       updateToastProgress(overall, file.name + ' ' + pct + '%');

@@ -29,7 +29,7 @@ function uploadWithProgress(url, formData, { onProgress }) {
   });
 }
 
-function uploadFile({ accept = '.pdf', multiple = false, uploadType, onSuccess, onError, onProgress }) {
+function uploadFile({ accept = '.pdf', multiple = false, uploadType, onSuccess, onError, onProgress, onStart }) {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -38,6 +38,7 @@ function uploadFile({ accept = '.pdf', multiple = false, uploadType, onSuccess, 
     input.onchange = async function () {
       const files = this.files;
       if (!files || files.length === 0) { resolve(); return; }
+      if (onStart) onStart(files.length);
       const total = files.length;
       for (let i = 0; i < files.length; i++) {
         const file = files[i];

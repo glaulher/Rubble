@@ -666,10 +666,12 @@ async function updateHeaderTotal() {
 }
 
 async function uploadReportFile(index) {
-  showToast('Enviando laudo...', 'loading');
   await uploadFile({
     accept: '.pdf',
     uploadType: 'laudo',
+    onStart() {
+      showToast('Enviando laudo...', 'loading');
+    },
     onProgress(pct) {
       updateToastProgress(pct, pct + '%');
     },
