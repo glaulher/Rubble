@@ -4,7 +4,6 @@ namespace App\Api\Controllers;
 
 use App\Api\Services\EquipmentService;
 use App\Api\Helpers\Response;
-use App\Api\Helpers\Cache;
 use Exception;
 
 class EquipmentController
@@ -47,24 +46,6 @@ class EquipmentController
 
             /*
             |------------------------------------------------------------------
-            | CACHE CHECK
-            |------------------------------------------------------------------
-            */
-            $cacheKey = Cache::buildKey('equipment', [
-                'search' => $search,
-                'page' => $limit > 0 ? intdiv($offset, $limit) : 0,
-                'limit' => $limit,
-                'location' => $location,
-                'equipamento' => $equipamento,
-            ]);
-
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null) {
-                Response::json($cached);
-            }
-
-            /*
-            |------------------------------------------------------------------
             | SERVICE
             |------------------------------------------------------------------
             */
@@ -77,29 +58,19 @@ class EquipmentController
                     $equipamento
                 );
 
-            $response = [
+            Response::json([
                 'success' => true,
-
                 'message' =>
                     'Equipamentos listados com sucesso',
-
                 'data' =>
                     $data['items'],
-
                 'total' =>
                     $data['total'],
-
                 'total_os' =>
                     $data['total_os'],
-
                 'limit' => $limit,
-
                 'offset' => $offset,
-            ];
-
-            Cache::set($cacheKey, $response, 10);
-
-            Response::json($response);
+            ]);
 
         } catch (Exception $e) {
 

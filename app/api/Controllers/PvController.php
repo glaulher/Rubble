@@ -7,7 +7,6 @@ use App\Api\Services\PvService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
-use App\Api\Helpers\Cache;
 use Exception;
 
 class PvController
@@ -54,26 +53,6 @@ class PvController
             $sortDir =
                 trim($_GET['sort_dir'] ?? '') ?: 'DESC';
 
-            /*
-            |------------------------------------------------------------------
-            | CACHE CHECK
-            |------------------------------------------------------------------
-            */
-            $cacheKey = Cache::buildKey('pv', [
-                'search' => $search,
-                'page' => $limit > 0 ? intdiv($offset, $limit) : 0,
-                'limit' => $limit,
-                'status' => $status,
-                'cycle' => $cycle,
-                'sortBy' => $sortBy,
-                'sortDir' => $sortDir,
-            ]);
-
-            $cached = Cache::get($cacheKey);
-            if ($cached !== null) {
-                Response::json($cached);
-            }
-
             $data =
                 $this->service->listAll(
                     $limit,
@@ -85,7 +64,7 @@ class PvController
                     $sortDir
                 );
 
-            $response = [
+            Response::json([
                 'success' => true,
                 'message' => 'PVs listadas com sucesso',
                 'data' => $data['items'],
@@ -93,11 +72,7 @@ class PvController
                 'total_valor' => $data['total_valor'],
                 'limit' => $limit,
                 'offset' => $offset,
-            ];
-
-            Cache::set($cacheKey, $response, 10);
-
-            Response::json($response);
+            ]);
 
         } catch (Exception $e) {
 
@@ -196,8 +171,6 @@ class PvController
                     $data
                 );
 
-            Cache::deleteByPrefix('pv_');
-
             Response::success(
                 'PV salva com sucesso',
                 ['id' => $id],
@@ -251,8 +224,6 @@ class PvController
                 $data
             );
 
-            Cache::deleteByPrefix('pv_');
-
             Response::success(
                 'PV atualizada com sucesso'
             );
@@ -290,8 +261,6 @@ class PvController
                 (int) $data['id'],
                 $data['status']
             );
-
-            Cache::deleteByPrefix('pv_');
 
             Response::success(
                 'Status atualizado com sucesso'
@@ -352,8 +321,6 @@ class PvController
             $this->service->delete(
                 (int) $data['id']
             );
-
-            Cache::deleteByPrefix('pv_');
 
             Response::success(
                 'PV excluída com sucesso'
@@ -652,7 +619,6 @@ class PvController
             if ($result['success']) {
                 $targetStatus = 'E-mail de lib. aquisição/serviço';
                 $this->service->updateStatusBatch($ids, $targetStatus);
-                Cache::deleteByPrefix('pv_');
                 Response::success($result['message']);
             } else {
                 Response::error($result['message'], 400);
