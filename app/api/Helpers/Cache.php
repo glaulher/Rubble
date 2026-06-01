@@ -54,7 +54,8 @@ class Cache
     public static function deleteByPrefix(string $prefix): void
     {
         if (self::isApcuAvailable()) {
-            $trackedKey = '_tracked:' . $prefix;
+            $normPrefix = rtrim($prefix, '_');
+            $trackedKey = '_tracked:' . $normPrefix;
             $tracked = apcu_fetch($trackedKey);
             if (is_array($tracked)) {
                 foreach ($tracked as $k) {
