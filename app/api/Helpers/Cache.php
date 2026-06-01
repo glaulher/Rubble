@@ -27,6 +27,16 @@ class Cache
     {
         if (self::isApcuAvailable()) {
             apcu_store($key, $value, $ttl);
+            $prefix = explode('_', $key)[0];
+            $trackedKey = '_tracked:' . $prefix;
+            $tracked = apcu_fetch($trackedKey);
+            if (!is_array($tracked)) {
+                $tracked = [];
+            }
+            if (!in_array($key, $tracked, true)) {
+                $tracked[] = $key;
+                apcu_store($trackedKey, $tracked, 300);
+            }
             return;
         }
         self::fileSet($key, $key, $value, $ttl);
@@ -44,12 +54,13 @@ class Cache
     public static function deleteByPrefix(string $prefix): void
     {
         if (self::isApcuAvailable()) {
-            $info = apcu_cache_info(true);
-            foreach ($info as $entry) {
-                $key = $entry['info'] ?? '';
-                if (str_starts_with($key, $prefix)) {
-                    apcu_delete($key);
+            $trackedKey = '_tracked:' . $prefix;
+            $tracked = apcu_fetch($trackedKey);
+            if (is_array($tracked)) {
+                foreach ($tracked as $k) {
+                    apcu_delete($k);
                 }
+                apcu_delete($trackedKey);
             }
             return;
         }
