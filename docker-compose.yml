@@ -8,6 +8,7 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.websecure.transport.respondingTimeouts.readTimeout=120"
+      - "--entrypoints.websecure.transport.respondingTimeouts.writeTimeout=120"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.letsencrypt.acme.email=${LE_EMAIL}"

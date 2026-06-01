@@ -204,42 +204,44 @@ function renderPvs(list, append = false) {
   empty.classList.add('hidden');
 
   list.forEach((pv) => {
-    const tr = document.createElement('tr');
-    tr.className =
-      'border-b border-slate-100 hover:bg-slate-100 transition cursor-pointer';
-    tr.dataset.pvId = pv.id;
-
-    tr.innerHTML = buildPvRowHtml(pv);
-
-    tr.addEventListener('click', function (e) {
-      if (e.target.closest('.pv-checkbox')) return;
-      const actionEl = e.target.closest('[data-action]');
-      if (actionEl) {
-        e.stopPropagation();
-        switch (actionEl.dataset.action) {
-          case 'copy-os':
-            copyOs(actionEl.dataset.os);
-            return;
-          case 'edit':
-            window.location.hash = '#/pvForm?id=' + actionEl.dataset.pvId;
-            return;
-          case 'status':
-            openStatusModal(
-              parseInt(actionEl.dataset.pvId),
-              actionEl.dataset.pvNumero
-            );
-            return;
-          case 'delete':
-            deletePv(parseInt(actionEl.dataset.pvId));
-            return;
-        }
-      }
-      if (e.target.closest('button') || e.target.closest('a')) return;
-      openPvItemModal(pv.id);
-    });
-
+    const tr = createPvRow(pv);
     tbody.appendChild(tr);
   });
+}
+
+function createPvRow(pv) {
+  const tr = document.createElement('tr');
+  tr.className =
+    'border-b border-slate-100 hover:bg-slate-100 transition cursor-pointer';
+  tr.dataset.pvId = pv.id;
+  tr.innerHTML = buildPvRowHtml(pv);
+  tr.addEventListener('click', function (e) {
+    if (e.target.closest('.pv-checkbox')) return;
+    const actionEl = e.target.closest('[data-action]');
+    if (actionEl) {
+      e.stopPropagation();
+      switch (actionEl.dataset.action) {
+        case 'copy-os':
+          copyOs(actionEl.dataset.os);
+          return;
+        case 'edit':
+          window.location.hash = '#/pvForm?id=' + actionEl.dataset.pvId;
+          return;
+        case 'status':
+          openStatusModal(
+            parseInt(actionEl.dataset.pvId),
+            actionEl.dataset.pvNumero
+          );
+          return;
+        case 'delete':
+          deletePv(parseInt(actionEl.dataset.pvId));
+          return;
+      }
+    }
+    if (e.target.closest('button') || e.target.closest('a')) return;
+    openPvItemModal(pv.id);
+  });
+  return tr;
 }
 
 function syncPvTable(newItems) {
@@ -260,53 +262,19 @@ function syncPvTable(newItems) {
     existingRows[tr.dataset.pvId] = tr;
   });
 
-  const seenIds = {};
+  const fragment = document.createDocumentFragment();
   newItems.forEach((pv) => {
-    seenIds[pv.id] = true;
     const existing = existingRows[pv.id];
     if (existing) {
       existing.innerHTML = buildPvRowHtml(pv);
+      fragment.appendChild(existing);
     } else {
-      const tr = document.createElement('tr');
-      tr.className =
-        'border-b border-slate-100 hover:bg-slate-100 transition cursor-pointer';
-      tr.dataset.pvId = pv.id;
-      tr.innerHTML = buildPvRowHtml(pv);
-      tr.addEventListener('click', function (e) {
-        if (e.target.closest('.pv-checkbox')) return;
-        const actionEl = e.target.closest('[data-action]');
-        if (actionEl) {
-          e.stopPropagation();
-          switch (actionEl.dataset.action) {
-            case 'copy-os':
-              copyOs(actionEl.dataset.os);
-              return;
-            case 'edit':
-              window.location.hash = '#/pvForm?id=' + actionEl.dataset.pvId;
-              return;
-            case 'status':
-              openStatusModal(
-                parseInt(actionEl.dataset.pvId),
-                actionEl.dataset.pvNumero
-              );
-              return;
-            case 'delete':
-              deletePv(parseInt(actionEl.dataset.pvId));
-              return;
-          }
-        }
-        if (e.target.closest('button') || e.target.closest('a')) return;
-        openPvItemModal(pv.id);
-      });
-      tbody.appendChild(tr);
+      fragment.appendChild(createPvRow(pv));
     }
   });
 
-  Object.keys(existingRows).forEach((id) => {
-    if (!seenIds[id]) {
-      existingRows[id].remove();
-    }
-  });
+  tbody.innerHTML = '';
+  tbody.appendChild(fragment);
 }
 
 function resetPvState(search, status, cycle, keepSort) {
