@@ -30,7 +30,7 @@ class AuthController
                 Response::error('Muitas tentativas. Tente novamente em 5 minutos.', 429);
             }
 
-            if (!Env::get('APP_DEBUG', false)) {
+            if (Env::get('APP_DEBUG', 'false') !== 'true') {
                 $secretKey = Env::get('TURNSTILE_SECRET_KEY', '');
                 if (!empty($secretKey)) {
                     $turnstileToken = $data['turnstile_token'] ?? '';

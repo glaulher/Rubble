@@ -272,9 +272,9 @@ class PvService
             $quantity = (float) ($item['quantidade'] ?? 0);
             $unidade = mb_strtoupper(trim($found['unidade'] ?? ''), 'UTF-8');
 
-            if (in_array($unidade, self::UNIT_MIN_ONE, true) && $quantity < 1) {
+            if (in_array($unidade, self::UNIT_MIN_ONE, true) && $quantity != (int) $quantity) {
                 throw new \RuntimeException(
-                    "Quantidade m\u{00ed}nima para unidade '{$found['unidade']}' \u{00e9} 1 (item #" . ($i + 1) . ")"
+                    "Quantidade deve ser n\u{00f3}mero inteiro para unidade '{$found['unidade']}' (item #" . ($i + 1) . ")"
                 );
             }
         }

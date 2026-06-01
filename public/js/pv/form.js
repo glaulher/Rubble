@@ -200,8 +200,8 @@ async function savePvForm() {
       return;
     }
 
-    if (isUnitMinOne(item.unidade) && item.quantidade < 1) {
-      showToast(`Quantidade mínima para unidade '${item.unidade}' é 1 (item #${data.itens.indexOf(item) + 1})`, 'error');
+    if (isUnitMinOne(item.unidade) && item.quantidade % 1 !== 0) {
+      showToast(`Quantidade deve ser número inteiro para unidade '${item.unidade}' (item #${data.itens.indexOf(item) + 1})`, 'error');
       return;
     }
 
