@@ -6,6 +6,7 @@ use App\Api\Services\EquipmentManagementService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
+use App\Api\Helpers\Cache;
 use Exception;
 
 class EquipmentManagementController
@@ -78,6 +79,8 @@ class EquipmentManagementController
 
             $id = $this->service->save($data);
 
+            Cache::deleteByPrefix('equipment_');
+
             Response::success('Equipamento cadastrado com sucesso', ['id' => $id], 201);
         } catch (Exception $e) {
             Response::serverError($e, 400);
@@ -101,6 +104,8 @@ class EquipmentManagementController
 
             $this->service->update((int)$data['id'], $data);
 
+            Cache::deleteByPrefix('equipment_');
+
             Response::success('Equipamento atualizado com sucesso');
         } catch (Exception $e) {
             Response::serverError($e, 400);
@@ -116,6 +121,8 @@ class EquipmentManagementController
             Validator::integer($data, 'id');
 
             $this->service->delete((int)$data['id']);
+
+            Cache::deleteByPrefix('equipment_');
 
             Response::success('Equipamento excluído com sucesso');
         } catch (Exception $e) {

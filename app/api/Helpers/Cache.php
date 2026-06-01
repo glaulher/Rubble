@@ -29,7 +29,7 @@ class Cache
             apcu_store($key, $value, $ttl);
             return;
         }
-        self::fileSet($key, $value, $ttl);
+        self::fileSet($key, $key, $value, $ttl);
     }
 
     public static function delete(string $key): void
@@ -39,6 +39,17 @@ class Cache
             return;
         }
         self::fileDelete($key);
+    }
+
+    public static function deleteByPrefix(string $prefix): void
+    {
+        if (self::isApcuAvailable()) {
+            apcu_delete(function ($key) use ($prefix) {
+                return str_starts_with($key, $prefix);
+            });
+            return;
+        }
+        self::fileDeleteByPrefix($prefix);
     }
 
     public static function buildKey(string $prefix, array $params): string
@@ -64,7 +75,7 @@ class Cache
         return $cached['value'];
     }
 
-    private static function fileSet(string $key, mixed $value, int $ttl): void
+    private static function fileSet(string $key, string $originalKey, mixed $value, int $ttl): void
     {
         $dir = self::fileDir();
         if (!is_dir($dir)) {
@@ -72,6 +83,7 @@ class Cache
         }
         $data = json_encode([
             'expires' => time() + $ttl,
+            'key' => $originalKey,
             'value' => $value,
         ]);
         if ($data !== false) {
@@ -84,6 +96,22 @@ class Cache
         $path = self::filePath($key);
         if (file_exists($path)) {
             @unlink($path);
+        }
+    }
+
+    private static function fileDeleteByPrefix(string $prefix): void
+    {
+        $dir = self::fileDir();
+        $files = glob($dir . '/*.cache');
+        if (!$files) return;
+        foreach ($files as $path) {
+            $data = @file_get_contents($path);
+            if ($data === false) continue;
+            $cached = json_decode($data, true);
+            if (!$cached || !isset($cached['key'])) continue;
+            if (str_starts_with($cached['key'], $prefix)) {
+                @unlink($path);
+            }
         }
     }
 

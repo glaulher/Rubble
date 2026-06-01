@@ -239,6 +239,24 @@ function initLogin() {
     }
   });
 
+  var toggleBtn = document.getElementById('togglePassword');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function () {
+      var pwd = document.getElementById('loginPassword');
+      var eyeOpen = document.getElementById('eyeOpen');
+      var eyeClosed = document.getElementById('eyeClosed');
+      if (pwd.type === 'password') {
+        pwd.type = 'text';
+        eyeOpen.classList.add('hidden');
+        eyeClosed.classList.remove('hidden');
+      } else {
+        pwd.type = 'password';
+        eyeClosed.classList.add('hidden');
+        eyeOpen.classList.remove('hidden');
+      }
+    });
+  }
+
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
@@ -271,6 +289,14 @@ function initLogin() {
       }
       if (turnstileWidgetId !== null) {
         turnstile.reset(turnstileWidgetId);
+      }
+      var pwd = document.getElementById('loginPassword');
+      var eyeOpen = document.getElementById('eyeOpen');
+      var eyeClosed = document.getElementById('eyeClosed');
+      if (pwd && pwd.type === 'text') {
+        pwd.type = 'password';
+        eyeOpen.classList.remove('hidden');
+        eyeClosed.classList.add('hidden');
       }
     } finally {
       submitBtn.disabled = false;
