@@ -237,59 +237,30 @@ async function savePvForm() {
   }
 }
 
-function uploadOsFile() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.pdf';
-  input.multiple = true;
-  input.onchange = async function () {
-    const files = this.files;
-    if (!files || files.length === 0) return;
-    const osField = document.getElementById('os');
-    const names = [];
-    const total = files.length;
-    if (total > 1) {
-      showToast('Enviando 0/' + total + '...', 'loading');
-    }
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (total > 1) {
-        updateToastProgress(((i) / total) * 100, 'Enviando ' + i + '/' + total + ' - ' + file.name);
-      } else {
-        showToast('Enviando ' + file.name + '...', 'loading');
-      }
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', 'os');
-      let res;
-      try {
-        res = await fetch('/app/api/index.php?route=pv&action=upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-          names.push(data.data.filename);
-        } else {
-          dismissToast();
-          showToast(file.name + ': ' + data.message, 'error');
-          return;
-        }
-      } catch (e) {
-        console.error('Upload error:', e);
-        if (res) {
-          const text = await res.text().catch(() => '');
-          console.error('Response body:', text);
-        }
-        dismissToast();
-        showToast('Erro de conexao ao enviar ' + file.name, 'error');
-        return;
-      }
-    }
-    dismissToast();
-    if (names.length > 0) {
-      osField.value = names.join(', ');
-      showToast(names.length + ' OS anexada(s)', 'success');
-    }
-  };
-  input.click();
+async function uploadOsFile() {
+  const osField = document.getElementById('os');
+  const names = [];
+  showToast('Enviando...', 'loading');
+  await uploadFile({
+    accept: '.pdf',
+    multiple: true,
+    uploadType: 'os',
+    onProgress(pct, file, i, total) {
+      const overall = total === 1 ? pct : ((i * 100 + pct) / total);
+      updateToastProgress(overall, file.name + ' ' + pct + '%');
+    },
+    onSuccess(filename) {
+      names.push(filename);
+    },
+    onError(msg) {
+      showToast(msg, 'error');
+    },
+  });
+  dismissToast();
+  if (names.length > 0) {
+    osField.value = names.join(', ');
+    showToast(names.length + ' OS anexada(s)', 'success');
+  }
 }
 
 function setupItemRowDelegation() {
