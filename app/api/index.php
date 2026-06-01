@@ -387,6 +387,9 @@ try {
             }
 
             $siteKey = Env::get('TURNSTILE_SITE_KEY', '');
+            if (Env::get('APP_DEBUG', false)) {
+                $siteKey = '';
+            }
             Response::success('', ['turnstile_site_key' => $siteKey]);
 
             break;

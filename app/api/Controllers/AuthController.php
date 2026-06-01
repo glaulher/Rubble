@@ -30,11 +30,13 @@ class AuthController
                 Response::error('Muitas tentativas. Tente novamente em 5 minutos.', 429);
             }
 
-            $secretKey = Env::get('TURNSTILE_SECRET_KEY', '');
-            if (!empty($secretKey)) {
-                $turnstileToken = $data['turnstile_token'] ?? '';
-                if (empty($turnstileToken) || !TurnstileHelper::verify($turnstileToken, $secretKey)) {
-                    Response::error('Falha na verificação de segurança', 403);
+            if (!Env::get('APP_DEBUG', false)) {
+                $secretKey = Env::get('TURNSTILE_SECRET_KEY', '');
+                if (!empty($secretKey)) {
+                    $turnstileToken = $data['turnstile_token'] ?? '';
+                    if (empty($turnstileToken) || !TurnstileHelper::verify($turnstileToken, $secretKey)) {
+                        Response::error('Falha na verificação de segurança', 403);
+                    }
                 }
             }
 

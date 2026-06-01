@@ -11,6 +11,12 @@ class PvService
         '26' => 145, // 2026: skip 001-144 (pre-existing PVs before system deployment)
     ];
 
+    private const UNIT_MIN_ONE = [
+        'CONJUNTO', 'CV', 'DIARIA', 'HH', 'HORA', 'KIT', 'Locação Mensal',
+        'MENSAL', 'PAR', 'PÇ', 'PEÇA', 'PONTO', 'PROJETO', 'SACO', 'SERV.',
+        'TR', 'UN.', 'UNIDADE', 'Un', 'UN', 'un', 'Unit',
+    ];
+
     private PvRepository $repository;
     private TicketService $ticketService;
 
@@ -260,6 +266,15 @@ class PvService
             if ($found === null) {
                 throw new \RuntimeException(
                     "Item LPU n\u{00e3}o encontrado: {$lpuOrigin} / {$itemNumber}"
+                );
+            }
+
+            $quantity = (float) ($item['quantidade'] ?? 0);
+            $unidade = strtoupper(trim($found['unidade'] ?? ''));
+
+            if (in_array($unidade, self::UNIT_MIN_ONE, true) && $quantity < 1) {
+                throw new \RuntimeException(
+                    "Quantidade m\u{00ed}nima para unidade '{$found['unidade']}' \u{00e9} 1 (item #" . ($i + 1) . ")"
                 );
             }
         }

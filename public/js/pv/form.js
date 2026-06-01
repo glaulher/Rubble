@@ -134,7 +134,10 @@ function getFormData() {
   itemRows.forEach((row) => {
     const index = parseInt(row.dataset.itemIndex);
     const data = getItemData(index);
-    if (data) itens.push(data);
+    if (data) {
+      data.unidade = row.dataset.unit || '';
+      itens.push(data);
+    }
   });
 
   return {
@@ -194,6 +197,11 @@ async function savePvForm() {
     }
     if (!item.quantidade || item.quantidade <= 0) {
       showToast('Informe a quantidade para todos os itens', 'error');
+      return;
+    }
+
+    if (isUnitMinOne(item.unidade) && item.quantidade < 1) {
+      showToast(`Quantidade mínima para unidade '${item.unidade}' é 1 (item #${data.itens.indexOf(item) + 1})`, 'error');
       return;
     }
 

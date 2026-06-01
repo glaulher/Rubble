@@ -48,3 +48,21 @@ const LPU_OPTIONS_CLIMA = [
 
 let pvItemCounter = 0;
 let currentLpuOptions = LPU_OPTIONS_ALL;
+
+const UNIT_MIN_ONE = [
+  'CONJUNTO', 'CV', 'DIARIA', 'HH', 'HORA', 'KIT', 'Locação Mensal',
+  'MENSAL', 'PAR', 'PÇ', 'PEÇA', 'PONTO', 'PROJETO', 'SACO', 'SERV.',
+  'TR', 'UN.', 'UNIDADE', 'Un', 'UN', 'un', 'Unit',
+];
+
+function isUnitMinOne(unidade) {
+  if (!unidade) return false;
+  return UNIT_MIN_ONE.includes(unidade.trim());
+}
+
+function getQuantityAttrs(unidade) {
+  if (isUnitMinOne(unidade)) {
+    return 'step="1" min="1"';
+  }
+  return 'step="0.01" min="0"';
+}

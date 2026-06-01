@@ -1,3 +1,16 @@
+function updateItemUnit(row, unidade) {
+  if (!row) return;
+  row.dataset.unit = unidade || '';
+  const qtyInput = row.querySelector('.item-quantidade');
+  if (qtyInput) {
+    const attrs = getQuantityAttrs(unidade);
+    const stepMatch = attrs.match(/step="([^"]+)"/);
+    const minMatch = attrs.match(/min="([^"]+)"/);
+    if (stepMatch) qtyInput.step = stepMatch[1];
+    if (minMatch) qtyInput.min = minMatch[1];
+  }
+}
+
 function getLpuOptionsForLocal(local) {
   if (!local || local === '' || local.toLowerCase() === 'fornecimento')
     return 'all';
@@ -196,8 +209,11 @@ function getItemRowHtml(index, data, lpuOptions) {
     )
     .join('');
 
+  const unit = d.unidade || '';
+  const qtyAttrs = getQuantityAttrs(unit);
+
   return `
-    <div class="item-row bg-slate-50 rounded-2xl border border-slate-200 p-4" data-item-index="${index}">
+    <div class="item-row bg-slate-50 rounded-2xl border border-slate-200 p-4" data-item-index="${index}" data-unit="${escapeHtml(unit)}">
       <div class="flex items-center justify-between mb-3">
         <span class="text-sm font-semibold text-slate-700">Item #${index + 1}</span>
         <button type="button" data-action="remove-item" data-item-index="${index}"
@@ -265,7 +281,7 @@ function getItemRowHtml(index, data, lpuOptions) {
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-900 mb-1">Quantidade</label>
-          <input type="number" step="0.01" class="item-quantidade w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+          <input type="number" ${qtyAttrs} class="item-quantidade w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
             value="${escapeHtml(d.quantidade || '')}" data-index="${index}">
         </div>
         <div>
@@ -399,6 +415,7 @@ function setupLpuDescriptionAutocomplete(index) {
         input.value = item.descricao;
         numeroItemInput.value = item.numero_item;
         valorInput.value = item.valor;
+        updateItemUnit(row, item.unidade);
         hide();
         calculateItemTotal(index);
       });
@@ -467,6 +484,7 @@ function setupLpuDescriptionAutocomplete(index) {
         input.value = item.descricao;
         numeroItemInput.value = item.numero_item;
         valorInput.value = item.valor;
+        updateItemUnit(row, item.unidade);
         hide();
         calculateItemTotal(index);
       }
@@ -598,9 +616,11 @@ async function lookupItemRow(index) {
       row.querySelector('.item-descricao-lpu').value =
         result.data.descricao || '';
       row.querySelector('.item-valor').value = result.data.valor || 0;
+      updateItemUnit(row, result.data.unidade);
     } else {
       row.querySelector('.item-descricao-lpu').value = '';
       row.querySelector('.item-valor').value = 0;
+      updateItemUnit(row, '');
     }
 
     calculateItemTotal(index);

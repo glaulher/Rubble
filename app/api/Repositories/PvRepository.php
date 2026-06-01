@@ -30,10 +30,10 @@ class PvRepository extends BaseRepository
         $types = '';
 
         if ($search !== '') {
-            $conditions[] = "(pv.numero_pv LIKE ? OR pv.local LIKE ? OR pv.ral LIKE ? OR EXISTS (SELECT 1 FROM pv_os po JOIN registros r ON r.id = po.registro_id WHERE po.pv_id = pv.id AND r.os LIKE ?))";
+            $conditions[] = "(pv.numero_pv LIKE ? OR pv.local LIKE ? OR pv.ral LIKE ? OR EXISTS (SELECT 1 FROM pv_os po JOIN registros r ON r.id = po.registro_id WHERE po.pv_id = pv.id AND r.os LIKE ?) OR EXISTS (SELECT 1 FROM pv_item pi WHERE pi.pv_id = pv.id AND pi.laudo LIKE ?))";
             $param = "%{$search}%";
-            $params = [$param, $param, $param, $param];
-            $types = 'ssss';
+            $params = [$param, $param, $param, $param, $param];
+            $types = 'sssss';
         }
 
         if ($status !== null && $status !== '') {
@@ -103,10 +103,11 @@ class PvRepository extends BaseRepository
                 OR pv.ral LIKE ?
                 OR EXISTS (SELECT 1 FROM pv_os po JOIN registros r ON r.id = po.registro_id WHERE po.pv_id = pv.id AND r.os LIKE ?)
                 OR pi.scm LIKE ?
+                OR EXISTS (SELECT 1 FROM pv_item pi2 WHERE pi2.pv_id = pv.id AND pi2.laudo LIKE ?)
             )";
             $param = "%{$search}%";
-            $params = [$param, $param, $param, $param, $param];
-            $types = 'sssss';
+            $params = [$param, $param, $param, $param, $param, $param];
+            $types = 'ssssss';
         }
 
         if ($status !== null && $status !== '') {
@@ -354,7 +355,7 @@ class PvRepository extends BaseRepository
         }
 
         $sql = "
-            SELECT descricao, valor
+            SELECT descricao, valor, unidade
             FROM {$table}
             WHERE numero_item = ?
             LIMIT 1
@@ -493,7 +494,7 @@ class PvRepository extends BaseRepository
         }
 
         $sql = "
-            SELECT numero_item, descricao, valor
+            SELECT numero_item, descricao, valor, unidade
             FROM {$table}
             WHERE descricao LIKE ?
             ORDER BY numero_item
