@@ -30,8 +30,13 @@ async function confirmDelete() {
     }
 
     showToast(result.message, 'success');
-    resetPvState(pvSearch, pvStatusFilter, pvCycleFilter, true);
-    await loadPvs();
+
+    const row = document.querySelector(`tr[data-pv-id="${id}"]`);
+    if (row) row.remove();
+
+    pvList = pvList.filter(p => p.id != id);
+
+    updateHeaderTotal();
   } catch (err) {
     console.error(err);
     showToast('Erro ao excluir PV', 'error');
