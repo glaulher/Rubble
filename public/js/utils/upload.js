@@ -11,9 +11,13 @@ function uploadWithProgress(url, formData, { onProgress }) {
     xhr.onload = () => {
       try {
         const data = JSON.parse(xhr.responseText);
-        resolve(data);
+        if (xhr.status < 200 || xhr.status >= 300) {
+          reject(new Error(data.message || 'Erro no upload'));
+        } else {
+          resolve(data);
+        }
       } catch {
-        reject(new Error('Resposta invalida do servidor'));
+        reject(new Error(xhr.status >= 400 ? 'Erro no upload' : 'Resposta invalida do servidor'));
       }
     };
     xhr.onerror = () => reject(new Error('Erro de conexao'));

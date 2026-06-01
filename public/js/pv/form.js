@@ -240,6 +240,7 @@ async function savePvForm() {
 async function uploadOsFile() {
   const osField = document.getElementById('os');
   const names = [];
+  let uploadError = false;
   showToast('Enviando...', 'loading');
   await uploadFile({
     accept: '.pdf',
@@ -253,13 +254,16 @@ async function uploadOsFile() {
       names.push(filename);
     },
     onError(msg) {
+      uploadError = true;
       showToast(msg, 'error');
     },
   });
-  dismissToast();
-  if (names.length > 0) {
-    osField.value = names.join(', ');
-    showToast(names.length + ' OS anexada(s)', 'success');
+  if (!uploadError) {
+    dismissToast();
+    if (names.length > 0) {
+      osField.value = names.join(', ');
+      showToast(names.length + ' OS anexada(s)', 'success');
+    }
   }
 }
 

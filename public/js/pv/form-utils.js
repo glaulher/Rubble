@@ -666,9 +666,13 @@ async function updateHeaderTotal() {
 }
 
 async function uploadReportFile(index) {
-  uploadFile({
+  showToast('Enviando laudo...', 'loading');
+  await uploadFile({
     accept: '.pdf',
     uploadType: 'laudo',
+    onProgress(pct) {
+      updateToastProgress(pct, pct + '%');
+    },
     onSuccess(filename) {
       const laudoInput = document.querySelector(
         `.item-row[data-item-index="${index}"] .item-laudo`
@@ -676,6 +680,7 @@ async function uploadReportFile(index) {
       if (laudoInput) {
         laudoInput.value = filename;
       }
+      dismissToast();
       showToast('Laudo anexado: ' + filename, 'success');
     },
     onError(msg) {
