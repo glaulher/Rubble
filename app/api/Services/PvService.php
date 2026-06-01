@@ -12,9 +12,9 @@ class PvService
     ];
 
     private const UNIT_MIN_ONE = [
-        'CONJUNTO', 'CV', 'DIARIA', 'HH', 'HORA', 'KIT', 'Locação Mensal',
+        'CONJUNTO', 'CV', 'DIARIA', 'HH', 'HORA', 'KIT', 'LOCAÇÃO MENSAL',
         'MENSAL', 'PAR', 'PÇ', 'PEÇA', 'PONTO', 'PROJETO', 'SACO', 'SERV.',
-        'TR', 'UN.', 'UNIDADE', 'Un', 'UN', 'un', 'Unit',
+        'TR', 'UN.', 'UNIDADE', 'UNIT.',
     ];
 
     private PvRepository $repository;
@@ -270,7 +270,7 @@ class PvService
             }
 
             $quantity = (float) ($item['quantidade'] ?? 0);
-            $unidade = strtoupper(trim($found['unidade'] ?? ''));
+            $unidade = mb_strtoupper(trim($found['unidade'] ?? ''), 'UTF-8');
 
             if (in_array($unidade, self::UNIT_MIN_ONE, true) && $quantity < 1) {
                 throw new \RuntimeException(

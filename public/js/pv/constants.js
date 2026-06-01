@@ -50,14 +50,14 @@ let pvItemCounter = 0;
 let currentLpuOptions = LPU_OPTIONS_ALL;
 
 const UNIT_MIN_ONE = [
-  'CONJUNTO', 'CV', 'DIARIA', 'HH', 'HORA', 'KIT', 'Locação Mensal',
+  'CONJUNTO', 'CV', 'DIARIA', 'HH', 'HORA', 'KIT', 'LOCAÇÃO MENSAL',
   'MENSAL', 'PAR', 'PÇ', 'PEÇA', 'PONTO', 'PROJETO', 'SACO', 'SERV.',
-  'TR', 'UN.', 'UNIDADE', 'Un', 'UN', 'un', 'Unit',
+  'TR', 'UN.', 'UNIDADE', 'UNIT.',
 ];
 
 function isUnitMinOne(unidade) {
   if (!unidade) return false;
-  return UNIT_MIN_ONE.includes(unidade.trim());
+  return UNIT_MIN_ONE.includes(unidade.trim().toUpperCase());
 }
 
 function getQuantityAttrs(unidade) {
