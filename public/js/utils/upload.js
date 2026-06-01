@@ -3,6 +3,10 @@ function uploadWithProgress(url, formData, { onProgress }) {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', url);
     xhr.responseType = 'text';
+    const token = typeof getToken === 'function' ? getToken() : null;
+    if (token) {
+      xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+    }
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) {
         onProgress(Math.round((e.loaded / e.total) * 100));
