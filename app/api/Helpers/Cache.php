@@ -44,9 +44,13 @@ class Cache
     public static function deleteByPrefix(string $prefix): void
     {
         if (self::isApcuAvailable()) {
-            apcu_delete(function ($key) use ($prefix) {
-                return str_starts_with($key, $prefix);
-            });
+            $info = apcu_cache_info(true);
+            foreach ($info as $entry) {
+                $key = $entry['info'] ?? '';
+                if (str_starts_with($key, $prefix)) {
+                    apcu_delete($key);
+                }
+            }
             return;
         }
         self::fileDeleteByPrefix($prefix);
