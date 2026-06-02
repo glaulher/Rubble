@@ -24,26 +24,25 @@ const pvGradientLegendPlugin = {
     const pluginOpt = chart.config.options.plugins?.pvGradientLegend;
     if (!pluginOpt) return;
 
-    const legendItems = chart.legend?.legendItems;
-    if (!legendItems || legendItems.length === 0) return;
+    const datasets = chart.data.datasets;
+    if (!datasets || datasets.length === 0) return;
 
     const { ctx } = chart;
     const boxWidth = 15;
     const boxHeight = 15;
-    const padding = 10;
+    const gap = 20;
 
     let x = chart.chartArea.left;
     const y = chart.chartArea.top - 30;
 
     ctx.save();
-    legendItems.forEach((item, i) => {
-      const dataset = chart.data.datasets[i];
-      if (!dataset) return;
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
 
+    datasets.forEach((dataset, i) => {
       const bg = dataset.backgroundColor;
       if (typeof bg === 'function') {
-        const fakeArea = { top: y + boxHeight, bottom: y, left: x, right: x + boxWidth };
-        const grad = ctx.createLinearGradient(0, fakeArea.bottom, 0, fakeArea.top);
+        const grad = ctx.createLinearGradient(0, y + boxHeight, 0, y);
         if (i === 0) {
           grad.addColorStop(0, '#17275c');
           grad.addColorStop(1, '#0ea5e9');
@@ -58,10 +57,8 @@ const pvGradientLegendPlugin = {
 
       ctx.fillRect(x, y, boxWidth, boxHeight);
       ctx.fillStyle = '#475569';
-      ctx.font = '12px system-ui, sans-serif';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(item.text, x + boxWidth + 6, y + boxHeight / 2);
-      x += boxWidth + ctx.measureText(item.text).width + padding * 2;
+      ctx.fillText(dataset.label || '', x + boxWidth + 6, y + boxHeight / 2);
+      x += boxWidth + ctx.measureText(dataset.label || '').width + gap;
     });
     ctx.restore();
   },
