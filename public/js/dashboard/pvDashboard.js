@@ -209,10 +209,10 @@ function renderPvFinancialChart(data) {
           data: faturado,
           backgroundColor: function(context) {
             const c = context.chart;
-            if (!c.chartArea) return '#0ea5e9';
+            if (!c.chartArea) return '#163369';
             const g = c.ctx.createLinearGradient(0, c.chartArea.bottom, 0, c.chartArea.top);
             g.addColorStop(0, '#17275c');
-            g.addColorStop(1, '#0ea5e9');
+            g.addColorStop(1, '#163369');
             return g;
           },
           borderRadius: 4,
@@ -244,7 +244,7 @@ function renderPvFinancialChart(data) {
             boxHeight: 12,
             generateLabels: (chart) => {
               return [
-                { text: 'Faturado', fillStyle: '#0ea5e9', strokeStyle: '#0ea5e9', lineWidth: 0, datasetIndex: 0 },
+                { text: 'Faturado', fillStyle: '#163369', strokeStyle: '#163369', lineWidth: 0, datasetIndex: 0 },
                 { text: 'Previsão', fillStyle: '#8b5cf6', strokeStyle: '#8b5cf6', lineWidth: 0, datasetIndex: 1 },
               ];
             },
