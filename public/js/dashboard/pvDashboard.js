@@ -209,10 +209,10 @@ function renderPvFinancialChart(data) {
           data: faturado,
           backgroundColor: function(context) {
             const c = context.chart;
-            if (!c.chartArea) return '#163369';
+            if (!c.chartArea) return '#0ea5e9';
             const g = c.ctx.createLinearGradient(0, c.chartArea.bottom, 0, c.chartArea.top);
             g.addColorStop(0, '#17275c');
-            g.addColorStop(1, '#163369');
+            g.addColorStop(1, '#0ea5e9');
             return g;
           },
           borderRadius: 4,
