@@ -88,7 +88,7 @@ function renderParetoChart(data) {
       labels,
       datasets: [
         {
-          label: 'Problemas',
+          label: 'Ocorrências',
           data: values,
           backgroundColor: function(context) {
             const chart = context.chart;
@@ -124,7 +124,7 @@ function renderParetoChart(data) {
         tooltip: {
           callbacks: {
             label: (ctx) => {
-              if (ctx.datasetIndex === 0) return `Problemas: ${ctx.parsed.y}`;
+              if (ctx.datasetIndex === 0) return `Ocorrências: ${ctx.parsed.y}`;
               return `% Acumulado: ${ctx.parsed.y}%`;
             },
           },
@@ -133,7 +133,7 @@ function renderParetoChart(data) {
       scales: {
         y: {
           beginAtZero: true,
-          title: { display: true, text: 'Problemas' },
+          title: { display: true, text: 'Ocorrências' },
           grid: { color: 'rgba(0,0,0,0.05)' },
         },
         y1: {
