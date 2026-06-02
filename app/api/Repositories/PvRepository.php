@@ -37,7 +37,7 @@ class PvRepository extends BaseRepository
         }
 
         if ($status !== null && $status !== '') {
-            $conditions[] = "pv.status = ?";
+            $conditions[] = "EXISTS (SELECT 1 FROM pv_item pi WHERE pi.pv_id = pv.id AND pi.status = ?)";
             $params[] = $status;
             $types .= 's';
         }
@@ -76,7 +76,7 @@ class PvRepository extends BaseRepository
 
     public function listAll(int $limit = 20, int $offset = 0, string $search = '', ?string $status = null, ?string $cycle = null, string $sortBy = 'pv.id', string $sortDir = 'DESC'): array
     {
-        $allowedSort = ['pv.numero_pv', 'pv.data', 'pv.local', 'pv.status', 'itens_count', 'valor_total'];
+        $allowedSort = ['pv.numero_pv', 'pv.data', 'pv.local', 'worst_status', 'itens_count', 'valor_total'];
         $sortBy = in_array($sortBy, $allowedSort) ? $sortBy : 'pv.id';
         $sortDir = strtoupper($sortDir) === 'ASC' ? 'ASC' : 'DESC';
 
@@ -85,7 +85,8 @@ class PvRepository extends BaseRepository
                 e.equipamento, e.capacidade, e.localidade, en.uf, en.local_do_endereco,
                 COALESCE(SUM(pi.valor_total), 0) as valor_total,
                 COUNT(pi.id) as itens_count,
-                (SELECT GROUP_CONCAT(r.os ORDER BY r.id SEPARATOR ', ') FROM pv_os po JOIN registros r ON r.id = po.registro_id WHERE po.pv_id = pv.id) as `os`
+                (SELECT GROUP_CONCAT(r.os ORDER BY r.id SEPARATOR ', ') FROM pv_os po JOIN registros r ON r.id = po.registro_id WHERE po.pv_id = pv.id) as `os`,
+                (SELECT pi2.status FROM pv_item pi2 WHERE pi2.pv_id = pv.id ORDER BY FIELD(pi2.status, 'SCM negado', 'Aguardando envio', 'Aprovado serv.', 'E-mail de lib. aquisição/serviço', 'Aprovado aquisição/serviço', 'E-mail de aprov. serv. realizado', 'SCM enviado', 'SCM aprovado', 'Cancelado') LIMIT 1) as worst_status
             FROM pv
             LEFT JOIN pv_item pi ON pi.pv_id = pv.id
             LEFT JOIN equipamentos e ON e.id = pv.equipamento_id
@@ -111,7 +112,7 @@ class PvRepository extends BaseRepository
         }
 
         if ($status !== null && $status !== '') {
-            $sql .= " AND pv.status = ?";
+            $sql .= " AND EXISTS (SELECT 1 FROM pv_item pi WHERE pi.pv_id = pv.id AND pi.status = ?)";
             $params[] = $status;
             $types .= 's';
         }
@@ -374,9 +375,9 @@ class PvRepository extends BaseRepository
     {
         $sql = "
             INSERT INTO pv (
-                numero_pv, `data`, ciclo, local, status, ral,
+                numero_pv, `data`, ciclo, local, ral,
                 equipamento_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?)
         ";
 
         $stmt = $this->conn->prepare($sql);
@@ -384,16 +385,14 @@ class PvRepository extends BaseRepository
         $vDate = $data['data'] ?? null;
         $vCycle = $data['ciclo'] ?? null;
         $vLocation = $data['local'];
-        $vStatus = $data['status'];
         $vRal = $data['ral'] ?? null;
         $vEquipmentId = (int) $data['equipamento_id'];
         $stmt->bind_param(
-            'ssssssi',
+            'sssssi',
             $vNumberPv,
             $vDate,
             $vCycle,
             $vLocation,
-            $vStatus,
             $vRal,
             $vEquipmentId
         );
@@ -408,14 +407,16 @@ class PvRepository extends BaseRepository
             INSERT INTO pv_item (
                 pv_id, lpu_origem, descricao_lpu, descricao, numero_item,
                 quantidade, valor, valor_total, bdi, valor_flpu,
-                fatura, scm, laudo, filtro_data
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                fatura, scm, laudo, status, orcamento, filtro_data
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ";
 
         $stmt = $this->conn->prepare($sql);
         $filtroData = $data['filtro_data'] ?? null;
+        $status = $data['status'] ?? 'Aguardando envio';
+        $orcamento = $data['orcamento'] ?? null;
         $stmt->bind_param(
-            'isssidddddssss',
+            'isssidddddssssss',
             $data['pv_id'],
             $data['lpu_origem'],
             $data['descricao_lpu'],
@@ -429,6 +430,8 @@ class PvRepository extends BaseRepository
             $data['fatura'],
             $data['scm'],
             $data['laudo'],
+            $status,
+            $orcamento,
             $filtroData
         );
         $stmt->execute();
@@ -447,7 +450,7 @@ class PvRepository extends BaseRepository
     {
         $sql = "
             UPDATE pv
-            SET `data` = ?, ciclo = ?, local = ?, status = ?, ral = ?,
+            SET `data` = ?, ciclo = ?, local = ?, ral = ?,
                 equipamento_id = ?
             WHERE id = ?
         ";
@@ -456,27 +459,48 @@ class PvRepository extends BaseRepository
         $vDate = $data['data'] ?? null;
         $vCycle = $data['ciclo'] ?? null;
         $vLocation = $data['local'];
-        $vStatus = $data['status'];
         $vRal = $data['ral'] ?? null;
         $vEquipmentId = (int) $data['equipamento_id'];
         $vId = $data['id'];
         return $stmt->bind_param(
-            'sssssii',
+            'ssssii',
             $vDate,
             $vCycle,
             $vLocation,
-            $vStatus,
             $vRal,
             $vEquipmentId,
             $vId
         ) && $stmt->execute();
     }
 
-    public function updateStatus(int $id, string $status): bool
+    public function updateItemsByWorstStatus(int $pvId, string $newStatus): bool
     {
-        $sql = "UPDATE pv SET status = ? WHERE id = ?";
+        $worstStatus = $this->getWorstStatus($pvId);
+        if ($worstStatus === null) {
+            return false;
+        }
+
+        $sql = "UPDATE pv_item SET status = ? WHERE pv_id = ? AND status = ?";
         $stmt = $this->conn->prepare($sql);
-        return $stmt->bind_param('si', $status, $id) && $stmt->execute();
+        return $stmt->bind_param('sis', $newStatus, $pvId, $worstStatus) && $stmt->execute();
+    }
+
+    public function getWorstStatus(int $pvId): ?string
+    {
+        $sql = "
+            SELECT status FROM pv_item
+            WHERE pv_id = ?
+            ORDER BY FIELD(status, 'SCM negado', 'Aguardando envio', 'Aprovado serv.', 'E-mail de lib. aquisição/serviço', 'Aprovado aquisição/serviço', 'E-mail de aprov. serv. realizado', 'SCM enviado', 'SCM aprovado', 'Cancelado')
+            LIMIT 1
+        ";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param('i', $pvId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+
+        return $row['status'] ?? null;
     }
 
     public function delete(int $id): bool

@@ -9,7 +9,6 @@ class Pv
     public ?string $date;
     public ?string $cycle;
     public string $location;
-    public string $status;
     public ?string $ral;
     public ?string $uf;
     public int $equipmentId;
@@ -25,6 +24,7 @@ class Pv
     public ?string $computedOs = null;
     public ?float $totalValue = null;
     public ?int $itemsCount = null;
+    public ?string $worstStatus = null;
 
     public function __construct(array $data)
     {
@@ -33,7 +33,6 @@ class Pv
         $this->date = $data['data'] ?? null;
         $this->cycle = $data['ciclo'] ?? null;
         $this->location = $data['local'];
-        $this->status = $data['status'];
         $this->ral = $data['ral'] ?? null;
         $this->uf = $data['uf'] ?? null;
         $this->equipmentId = (int) $data['equipamento_id'];
@@ -47,6 +46,7 @@ class Pv
         $this->updatedAt = $data['updated_at'] ?? null;
         $this->totalValue = isset($data['valor_total']) ? (float) $data['valor_total'] : null;
         $this->itemsCount = isset($data['itens_count']) ? (int) $data['itens_count'] : null;
+        $this->worstStatus = $data['worst_status'] ?? null;
     }
 
     public function toArray(): array
@@ -63,7 +63,7 @@ class Pv
             'data' => $this->date,
             'ciclo' => $this->cycle,
             'local' => $this->location,
-            'status' => $this->status,
+            'worst_status' => $this->worstStatus,
             'os' => $osStr,
             'ral' => $this->ral,
             'uf' => $this->uf,

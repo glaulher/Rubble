@@ -142,7 +142,7 @@ function buildPvRowHtml(pv) {
             title="Clique para copiar">${escapeHtml(pv.os || '-')}</span>
     </td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${escapeHtml(pv.local)}</td>
-    <td class="px-4 py-4 text-sm">${getStatusBadge(pv.status)}</td>
+    <td class="px-4 py-4 text-sm">${getStatusBadge(pv.worst_status)}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${itensCount} ite${itensCount !== 1 ? 'ns' : 'm'}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm font-medium text-slate-900">${valorTotal}</td>
     <td class="px-4 py-4 text-sm text-right">

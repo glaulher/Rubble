@@ -72,6 +72,21 @@ class PvEmailService
             }
         }
 
+        $orcamentoPaths = [];
+        foreach ($items as $item) {
+            $orcamento = $item['orcamento'] ?? null;
+            if ($orcamento) {
+                $files = array_map('trim', explode(',', $orcamento));
+                foreach ($files as $file) {
+                    if (empty($file)) continue;
+                    $path = PvRepository::LAUDO_DIR . '/' . $file . '.pdf';
+                    if (file_exists($path)) {
+                        $orcamentoPaths[] = $path;
+                    }
+                }
+            }
+        }
+
         $body = $this->buildBody($pv, $items, $subjectKey, false);
 
         try {
@@ -103,6 +118,10 @@ class PvEmailService
 
             foreach ($reportPaths as $lp) {
                 $mail->addAttachment($lp);
+            }
+
+            foreach ($orcamentoPaths as $orc) {
+                $mail->addAttachment($orc);
             }
 
             $mail->send();
@@ -193,6 +212,21 @@ class PvEmailService
             }
         }
 
+        $orcamentoPaths = [];
+        foreach ($items as $item) {
+            $orcamento = $item['orcamento'] ?? null;
+            if ($orcamento) {
+                $files = array_map('trim', explode(',', $orcamento));
+                foreach ($files as $file) {
+                    if (empty($file)) continue;
+                    $path = PvRepository::LAUDO_DIR . '/' . $file . '.pdf';
+                    if (file_exists($path)) {
+                        $orcamentoPaths[] = $path;
+                    }
+                }
+            }
+        }
+
         // Build body with isBatch=true
         $body = $this->buildBody($firstPv, $items, $subjectKey, true);
 
@@ -224,6 +258,10 @@ class PvEmailService
             }
             foreach ($reportPaths as $lp) {
                 $mail->addAttachment($lp);
+            }
+
+            foreach ($orcamentoPaths as $orc) {
+                $mail->addAttachment($orc);
             }
 
             $mail->send();

@@ -138,7 +138,6 @@ class PvController
 
             Validator::required($data, [
                 'local',
-                'status',
                 'equipamento_id',
             ]);
 
@@ -248,17 +247,17 @@ class PvController
                 Request::body();
 
             Validator::required($data, [
-                'id',
+                'pv_id',
                 'status',
             ]);
 
             Validator::integer(
                 $data,
-                'id'
+                'pv_id'
             );
 
-            $this->service->updateStatus(
-                (int) $data['id'],
+            $this->service->updateItemsByWorstStatus(
+                (int) $data['pv_id'],
                 $data['status']
             );
 
@@ -476,8 +475,8 @@ class PvController
         try {
             $type = $_POST['type'] ?? '';
 
-            if (!in_array($type, ['os', 'laudo'], true)) {
-                Response::error('Tipo inválido. Use "os" ou "laudo"', 400);
+            if (!in_array($type, ['os', 'laudo', 'orcamento'], true)) {
+                Response::error('Tipo inválido. Use "os", "laudo" ou "orcamento"', 400);
             }
 
             if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
@@ -635,7 +634,7 @@ class PvController
 
             if ($result['success']) {
                 $targetStatus = 'E-mail de lib. aquisição/serviço';
-                $this->service->updateStatusBatch($ids, $targetStatus);
+                $this->service->updateItemsByWorstStatusBatch($ids, $targetStatus);
                 Response::success($result['message']);
             } else {
                 Response::error($result['message'], 400);

@@ -49,8 +49,6 @@ async function loadPvForm() {
       document.getElementById('ral').value = pv.ral || '';
       document.getElementById('os').value = pv.os || '';
 
-      populateStatusSelect('status', pv.status);
-
       await Promise.all([loadLocals(), loadOsList()]);
       await loadEquipamentos(pv.local || null);
       if (pv.equipamento_id) {
@@ -78,7 +76,6 @@ async function loadPvForm() {
       showToast('Erro ao carregar PV', 'error');
     }
   } else {
-    populateStatusSelect('status');
     await Promise.all([loadLocals(), loadEquipamentos(), loadOsList()]);
     addItemRow(LPU_OPTIONS_ALL);
   }
@@ -146,7 +143,6 @@ function getFormData() {
     data: document.getElementById('data').value || null,
     ciclo: document.getElementById('ciclo').value || null,
     local: document.getElementById('local').value.trim(),
-    status: document.getElementById('status').value,
     os: document.getElementById('os').value.trim(),
     ral: document.getElementById('ral').value.trim(),
     equipamento_id: document.getElementById('equipamentoId').value,
@@ -159,11 +155,6 @@ async function savePvForm() {
 
   if (!data.local) {
     showToast('Informe o local', 'error');
-    return;
-  }
-
-  if (!data.status) {
-    showToast('Selecione o status', 'error');
     return;
   }
 
@@ -291,6 +282,8 @@ function setupItemRowDelegation() {
       if (itemIndex !== null) removeItemRow(parseInt(itemIndex));
     } else if (action === 'upload-report') {
       if (itemIndex !== null) uploadReportFile(parseInt(itemIndex));
+    } else if (action === 'upload-orcamento') {
+      if (itemIndex !== null) uploadOrcamentoFile(parseInt(itemIndex));
     } else if (action === 'remove-filter') {
       if (itemIndex !== null) removeFilterData(parseInt(itemIndex));
     } else if (target.classList.contains('item-filter-btn')) {

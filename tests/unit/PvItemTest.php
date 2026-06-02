@@ -99,6 +99,8 @@ class PvItemTest extends TestCase
             'scm' => null,
             'laudo' => null,
             'filtro_data' => null,
+            'status' => null,
+            'orcamento' => null,
         ];
 
         $this->assertSame($expected, $result);

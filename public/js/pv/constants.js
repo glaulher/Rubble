@@ -1,8 +1,6 @@
 const PV_STATUSES = [
-  'Aguardando doc.',
-  'Aguardando orientação',
+  'Aguardando envio',
   'Aprovado serv.',
-  'Enviado para o gerente',
   'E-mail de lib. aquisição/serviço',
   'Aprovado aquisição/serviço',
   'E-mail de aprov. serv. realizado',
@@ -13,10 +11,8 @@ const PV_STATUSES = [
 ];
 
 const PV_STATUS_COLORS = {
-  'Aguardando doc.': 'bg-slate-100 text-slate-700',
-  'Aguardando orientação': 'bg-amber-100 text-amber-700',
+  'Aguardando envio': 'bg-amber-100 text-amber-700',
   'Aprovado serv.': 'bg-emerald-100 text-emerald-700',
-  'Enviado para o gerente': 'bg-blue-100 text-blue-700',
   'E-mail de lib. aquisição/serviço': 'bg-indigo-100 text-indigo-700',
   'Aprovado aquisição/serviço': 'bg-green-100 text-green-700',
   'E-mail de aprov. serv. realizado': 'bg-teal-100 text-teal-700',
@@ -24,6 +20,18 @@ const PV_STATUS_COLORS = {
   'SCM negado': 'bg-red-100 text-red-700',
   'SCM enviado': 'bg-purple-100 text-purple-700',
   'Cancelado': 'bg-gray-100 text-gray-700',
+};
+
+const PV_STATUS_PRIORITY = {
+  'SCM negado': 1,
+  'Aguardando envio': 2,
+  'Aprovado serv.': 3,
+  'E-mail de lib. aquisição/serviço': 4,
+  'Aprovado aquisição/serviço': 5,
+  'E-mail de aprov. serv. realizado': 6,
+  'SCM enviado': 7,
+  'SCM aprovado': 8,
+  'Cancelado': 9,
 };
 
 const LPU_OPTIONS_ALL = [

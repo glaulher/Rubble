@@ -15,7 +15,6 @@ class PvTest extends TestCase
             'data' => '2026-05-17',
             'ciclo' => '2026-05',
             'local' => 'Sala A',
-            'status' => 'Aprovado serv.',
             'ral' => 'RAL-001',
             'uf' => 'RJ',
             'equipamento_id' => '5',
@@ -25,6 +24,7 @@ class PvTest extends TestCase
             'updated_at' => '2026-05-17 11:00:00',
             'valor_total' => '1500.50',
             'itens_count' => '3',
+            'worst_status' => 'Aprovado serv.',
         ];
 
         $pv = new Pv($data);
@@ -34,7 +34,6 @@ class PvTest extends TestCase
         $this->assertSame('2026-05-17', $pv->date);
         $this->assertSame('2026-05', $pv->cycle);
         $this->assertSame('Sala A', $pv->location);
-        $this->assertSame('Aprovado serv.', $pv->status);
         $this->assertSame('RAL-001', $pv->ral);
         $this->assertSame('RJ', $pv->uf);
         $this->assertSame(5, $pv->equipmentId);
@@ -44,6 +43,7 @@ class PvTest extends TestCase
         $this->assertSame('2026-05-17 11:00:00', $pv->updatedAt);
         $this->assertSame(1500.50, $pv->totalValue);
         $this->assertSame(3, $pv->itemsCount);
+        $this->assertSame('Aprovado serv.', $pv->worstStatus);
     }
 
     public function testConstructSetsDefaultsForMissingFields(): void
@@ -52,7 +52,6 @@ class PvTest extends TestCase
             'id' => '1',
             'numero_pv' => '26001',
             'local' => 'Sala A',
-            'status' => 'Cancelado',
             'equipamento_id' => '0',
         ];
 
@@ -67,6 +66,7 @@ class PvTest extends TestCase
         $this->assertNull($pv->locality);
         $this->assertNull($pv->totalValue);
         $this->assertNull($pv->itemsCount);
+        $this->assertNull($pv->worstStatus);
     }
 
     public function testToArrayReturnsAllFields(): void
@@ -77,7 +77,7 @@ class PvTest extends TestCase
             'data' => '2026-05-18',
             'ciclo' => '2026-06',
             'local' => 'Sala B',
-            'status' => 'SCM aprovado',
+            'worst_status' => 'SCM aprovado',
             'ral' => 'RAL-002',
             'uf' => 'ES',
             'equipamento_id' => '10',
@@ -93,7 +93,7 @@ class PvTest extends TestCase
             'data' => '2026-05-18',
             'ciclo' => '2026-06',
             'local' => 'Sala B',
-            'status' => 'SCM aprovado',
+            'worst_status' => 'SCM aprovado',
             'os' => '',
             'ral' => 'RAL-002',
             'uf' => 'ES',
@@ -112,7 +112,7 @@ class PvTest extends TestCase
 
     public function testToArrayWithTickets(): void
     {
-        $data = ['id' => '3', 'numero_pv' => '26003', 'local' => 'Sala C', 'status' => 'ativo', 'equipamento_id' => '5'];
+        $data = ['id' => '3', 'numero_pv' => '26003', 'local' => 'Sala C', 'equipamento_id' => '5'];
         $pv = new Pv($data);
         $pv->tickets = [['id' => 1, 'os' => '123456'], ['id' => 2, 'os' => '789012']];
 
@@ -124,7 +124,7 @@ class PvTest extends TestCase
 
     public function testToArrayIncludesItemsWhenPresent(): void
     {
-        $data = ['id' => '1', 'numero_pv' => '26001', 'local' => 'Sala A', 'status' => 'ativo', 'equipamento_id' => '5'];
+        $data = ['id' => '1', 'numero_pv' => '26001', 'local' => 'Sala A', 'equipamento_id' => '5'];
 
         $pv = new Pv($data);
         $pv->items = [
@@ -140,7 +140,7 @@ class PvTest extends TestCase
 
     public function testToArrayIncludesTotalValueWhenPresent(): void
     {
-        $data = ['id' => '1', 'numero_pv' => '26001', 'local' => 'Sala A', 'status' => 'ativo', 'equipamento_id' => '5'];
+        $data = ['id' => '1', 'numero_pv' => '26001', 'local' => 'Sala A', 'equipamento_id' => '5'];
         $pv = new Pv($data);
 
         $result = $pv->toArray();
@@ -153,7 +153,7 @@ class PvTest extends TestCase
 
     public function testFromRowCreatesPvWithItems(): void
     {
-        $row = ['id' => '1', 'numero_pv' => '26001', 'local' => 'Sala A', 'status' => 'ativo', 'equipamento_id' => '5'];
+        $row = ['id' => '1', 'numero_pv' => '26001', 'local' => 'Sala A', 'equipamento_id' => '5'];
         $itens = [
             new \App\Api\Entities\PvItem(['id' => '1', 'pv_id' => '1', 'fatura' => 'lpu']),
         ];

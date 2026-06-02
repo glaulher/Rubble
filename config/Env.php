@@ -30,6 +30,10 @@ class Env
             $key = trim($parts[0]);
             $value = trim($parts[1]);
 
+            if (!str_starts_with($value, '"') && !str_starts_with($value, "'")) {
+                $value = preg_replace('/\s+#.*$/', '', $value);
+            }
+
             $value = preg_replace('/^["\'](.*)["\']$/', '$1', $value);
 
             self::$loaded[$key] = $value;

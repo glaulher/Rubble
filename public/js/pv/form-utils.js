@@ -212,6 +212,8 @@ function getItemRowHtml(index, data, lpuOptions) {
   const unit = d.unidade || '';
   const qtyAttrs = getQuantityAttrs(unit);
 
+  const itemStatus = d.status || 'Aguardando envio';
+
   return `
     <div class="item-row bg-slate-50 rounded-2xl border border-slate-200 p-4" data-item-index="${index}" data-unit="${escapeHtml(unit)}">
       <div class="flex items-center justify-between mb-3">
@@ -220,6 +222,14 @@ function getItemRowHtml(index, data, lpuOptions) {
           class="text-red-500 hover:text-red-700 text-sm font-medium">Remover</button>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-start gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-900 mb-1">Status</label>
+          <div class="autocomplete-wrap relative">
+            <input type="text" class="item-status w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+              data-index="${index}" value="${escapeHtml(itemStatus)}" autocomplete="off">
+            <div class="status-dropdown autocomplete-dropdown absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto hidden"></div>
+          </div>
+        </div>
         <div>
           <label class="block text-xs font-semibold text-slate-900 mb-1">Fatura</label>
           <select class="item-fatura w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
@@ -302,6 +312,20 @@ function getItemRowHtml(index, data, lpuOptions) {
                 value="${escapeHtml(d.laudo || 'N/A')}" data-index="${index}">
             </div>
             <button type="button" data-action="upload-report" data-item-index="${index}"
+              class="bg-sky-200 hover:bg-sky-300 text-sky-800 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition">
+              Upload
+            </button>
+          </div>
+        </div>
+        <div class="item-orcamento-group-${index} ${d.fatura === 'flpu' ? '' : 'hidden'} md:col-span-2 lg:col-span-3">
+          <label class="block text-xs font-semibold text-slate-900 mb-1">Orçamento</label>
+          <div class="flex gap-2 items-end">
+            <div class="flex-1">
+              <input type="text" maxlength="250" class="item-orcamento w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                value="${escapeHtml(d.orcamento || '')}" data-index="${index}"
+                placeholder="Arquivos separados por vírgula">
+            </div>
+            <button type="button" data-action="upload-orcamento" data-item-index="${index}"
               class="bg-sky-200 hover:bg-sky-300 text-sky-800 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition">
               Upload
             </button>
@@ -501,6 +525,115 @@ function setupLpuDescriptionAutocomplete(index) {
   });
 }
 
+function setupStatusAutocomplete(index) {
+  const row = document.querySelector(`.item-row[data-item-index="${index}"]`);
+  if (!row) return;
+
+  const input = row.querySelector('.item-status');
+  const dropdown = row.querySelector('.status-dropdown');
+  if (!input || !dropdown) return;
+
+  let activeIndex = -1;
+  let filtered = [];
+  let lastValid = input.value;
+
+  function hide() {
+    dropdown.classList.add('hidden');
+    activeIndex = -1;
+  }
+
+  function render() {
+    dropdown.innerHTML = '';
+    if (filtered.length === 0) {
+      dropdown.classList.add('hidden');
+      return;
+    }
+    dropdown.classList.remove('hidden');
+    filtered.forEach((status, i) => {
+      const div = document.createElement('div');
+      div.className = `px-3 py-2 text-sm cursor-pointer ${i === activeIndex ? 'bg-sky-100 text-sky-900 font-medium' : 'text-slate-700 hover:bg-slate-100'}`;
+      div.textContent = status;
+      div.dataset.value = status;
+
+      div.addEventListener('mouseenter', () => {
+        if (activeIndex >= 0 && dropdown.children[activeIndex]) {
+          dropdown.children[activeIndex].classList.remove('bg-sky-100', 'text-sky-900', 'font-medium');
+          dropdown.children[activeIndex].classList.add('text-slate-700', 'hover:bg-slate-100');
+        }
+        activeIndex = i;
+        div.classList.remove('text-slate-700', 'hover:bg-slate-100');
+        div.classList.add('bg-sky-100', 'text-sky-900', 'font-medium');
+      });
+
+      div.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        input.value = status;
+        lastValid = status;
+        hide();
+      });
+
+      dropdown.appendChild(div);
+    });
+  }
+
+  function filterStatuses(query) {
+    if (!query) {
+      filtered = [...PV_STATUSES];
+    } else {
+      const q = query.toLowerCase();
+      filtered = PV_STATUSES.filter((s) => s.toLowerCase().includes(q));
+    }
+    activeIndex = -1;
+    render();
+  }
+
+  input.addEventListener('input', () => {
+    filterStatuses(input.value);
+  });
+
+  input.addEventListener('focus', () => {
+    filterStatuses(input.value);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (dropdown.classList.contains('hidden')) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
+      render();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = Math.max(activeIndex - 1, 0);
+      render();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIndex >= 0 && filtered[activeIndex]) {
+        input.value = filtered[activeIndex];
+        lastValid = filtered[activeIndex];
+      } else if (filtered.length > 0) {
+        input.value = filtered[0];
+        lastValid = filtered[0];
+      }
+      hide();
+    } else if (e.key === 'Escape') {
+      hide();
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    setTimeout(() => {
+      const val = input.value.trim();
+      if (PV_STATUSES.includes(val)) {
+        lastValid = val;
+      } else {
+        input.value = lastValid;
+      }
+      hide();
+    }, 200);
+  });
+}
+
 function addItemRow(data, lpuOptions) {
   const container = document.getElementById('pvItemsContainer');
   const index = pvItemCounter++;
@@ -523,6 +656,7 @@ function addItemRow(data, lpuOptions) {
   faturaSelect.addEventListener('change', () => toggleItemInvoice(index));
 
   setupLpuDescriptionAutocomplete(index);
+  setupStatusAutocomplete(index);
 }
 
 async function removeItemRow(index) {
@@ -566,6 +700,8 @@ function getItemData(index) {
         : null,
     scm: row.querySelector('.item-scm').value.trim() || null,
     laudo: (() => { const v = row.querySelector('.item-laudo').value.trim(); return (!v || v === 'N/A') ? null : v; })(),
+    status: (() => { const v = row.querySelector('.item-status')?.value?.trim(); return PV_STATUSES.includes(v) ? v : 'Aguardando envio'; })(),
+    orcamento: (() => { const v = row.querySelector('.item-orcamento')?.value?.trim(); return v || null; })(),
     filtro_data: row.querySelector('.item-filtro-data').value || null,
   };
 }
@@ -635,6 +771,7 @@ function toggleItemInvoice(index) {
 
   const fatura = row.querySelector('.item-fatura').value;
   const flpuGroups = row.querySelectorAll(`.item-flpu-group-${index}`);
+  const orcamentoGroup = row.querySelector(`.item-orcamento-group-${index}`);
 
   const lpuOrigem = row.querySelector('.item-lpu-origem');
   const numeroItem = row.querySelector('.item-numero-item');
@@ -643,6 +780,7 @@ function toggleItemInvoice(index) {
 
   if (fatura === 'flpu') {
     flpuGroups.forEach((el) => el.classList.remove('hidden'));
+    if (orcamentoGroup) orcamentoGroup.classList.remove('hidden');
     lpuOrigem.disabled = true;
     lpuOrigem.value = '';
     numeroItem.disabled = true;
@@ -653,6 +791,7 @@ function toggleItemInvoice(index) {
     valorCatalogo.value = 0;
   } else {
     flpuGroups.forEach((el) => el.classList.add('hidden'));
+    if (orcamentoGroup) orcamentoGroup.classList.add('hidden');
     lpuOrigem.disabled = false;
     numeroItem.disabled = false;
     descricaoLpu.disabled = false;
@@ -704,6 +843,33 @@ async function uploadReportFile(index) {
       }
       dismissToast();
       showToast('Laudo anexado: ' + filename, 'success');
+    },
+    onError(msg) {
+      showToast(msg, 'error');
+    },
+  });
+}
+
+async function uploadOrcamentoFile(index) {
+  await uploadFile({
+    accept: '.pdf',
+    uploadType: 'orcamento',
+    onStart() {
+      showToast('Enviando orçamento...', 'loading');
+    },
+    onProgress(pct) {
+      updateToastProgress(pct, pct + '%');
+    },
+    onSuccess(filename) {
+      const orcamentoInput = document.querySelector(
+        `.item-row[data-item-index="${index}"] .item-orcamento`
+      );
+      if (orcamentoInput) {
+        const current = orcamentoInput.value.trim();
+        orcamentoInput.value = current ? current + ', ' + filename : filename;
+      }
+      dismissToast();
+      showToast('Orçamento anexado: ' + filename, 'success');
     },
     onError(msg) {
       showToast(msg, 'error');

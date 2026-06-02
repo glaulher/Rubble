@@ -58,11 +58,11 @@ class PvDashboardRepository extends BaseRepository
     {
         [$filter, $params, $types] = $this->buildFilterParams($periodStart, $periodEnd, $location);
         $sql = "
-            SELECT pv.status, COUNT(DISTINCT pv.id) as count, COALESCE(SUM(pi.valor_total), 0) as totalValue
+            SELECT pi.status, COUNT(DISTINCT pv.id) as count, COALESCE(SUM(pi.valor_total), 0) as totalValue
             FROM pv
-            LEFT JOIN pv_item pi ON pi.pv_id = pv.id
+            JOIN pv_item pi ON pi.pv_id = pv.id
             WHERE 1=1 {$filter}
-            GROUP BY pv.status
+            GROUP BY pi.status
             ORDER BY totalValue DESC
         ";
         $result = $this->executePreparedQuery($sql, $params, $types);
@@ -74,10 +74,10 @@ class PvDashboardRepository extends BaseRepository
         [$filter, $params, $types] = $this->buildFilterParams($periodStart, $periodEnd, $location);
         $sql = "
             SELECT DATE_FORMAT(pv.data, '%Y-%m') as mes,
-                COALESCE(SUM(CASE WHEN pv.status = 'SCM aprovado' THEN pi.valor_total ELSE 0 END), 0) as faturado,
-                COALESCE(SUM(CASE WHEN pv.status != 'SCM aprovado' AND pv.status != 'Cancelado' THEN pi.valor_total ELSE 0 END), 0) as previsao
+                COALESCE(SUM(CASE WHEN pi.status = 'SCM aprovado' THEN pi.valor_total ELSE 0 END), 0) as faturado,
+                COALESCE(SUM(CASE WHEN pi.status != 'SCM aprovado' AND pi.status != 'Cancelado' THEN pi.valor_total ELSE 0 END), 0) as previsao
             FROM pv
-            LEFT JOIN pv_item pi ON pi.pv_id = pv.id
+            JOIN pv_item pi ON pi.pv_id = pv.id
             WHERE pv.data IS NOT NULL {$filter}
             GROUP BY DATE_FORMAT(pv.data, '%Y-%m')
             ORDER BY mes ASC
@@ -92,8 +92,8 @@ class PvDashboardRepository extends BaseRepository
         $sql = "
             SELECT pv.local, COALESCE(SUM(pi.valor_total), 0) as totalValue, COUNT(DISTINCT pv.id) as pvCount
             FROM pv
-            LEFT JOIN pv_item pi ON pi.pv_id = pv.id
-            WHERE pv.status = 'SCM aprovado' {$filter}
+            JOIN pv_item pi ON pi.pv_id = pv.id
+            WHERE EXISTS (SELECT 1 FROM pv_item pi2 WHERE pi2.pv_id = pv.id AND pi2.status = 'SCM aprovado') {$filter}
             GROUP BY pv.local
             ORDER BY totalValue DESC
             LIMIT 10

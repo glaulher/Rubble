@@ -66,7 +66,7 @@ function closeStatusModal() {
 }
 
 async function confirmStatusChange() {
-  const id = document.getElementById('statusPvId').value;
+  const pvId = document.getElementById('statusPvId').value;
   const status = document.getElementById('statusSelect').value;
 
   if (!status) {
@@ -78,7 +78,7 @@ async function confirmStatusChange() {
     const response = await fetch('/app/api/index.php?route=pv', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: parseInt(id), status }),
+      body: JSON.stringify({ pv_id: parseInt(pvId), status }),
     });
 
     const result = await response.json();
@@ -623,7 +623,7 @@ async function sendPvEmail() {
         const statusRes = await fetch('/app/api/index.php?route=pv', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: pvEmailPvId, status: 'E-mail de lib. aquisi\u00e7\u00e3o/servi\u00e7o' }),
+          body: JSON.stringify({ pv_id: pvEmailPvId, status: 'E-mail de lib. aquisi\u00e7\u00e3o/servi\u00e7o' }),
         });
         if (!statusRes.ok) {
           showToast('E-mail enviado, mas falha ao atualizar status', 'error');
@@ -701,7 +701,7 @@ async function generatePvCSV() {
               sanitizeCSV(pv.data),
               sanitizeCSV(pv.ciclo),
               sanitizeCSV(pv.local),
-              sanitizeCSV(pv.status),
+              sanitizeCSV(pv.worst_status),
               sanitizeCSV(pv.os),
               sanitizeCSV(pv.ral),
               sanitizeCSV(pv.equipamento),
@@ -715,7 +715,7 @@ async function generatePvCSV() {
               sanitizeCSV(pv.data),
               sanitizeCSV(pv.ciclo),
               sanitizeCSV(pv.local),
-              sanitizeCSV(pv.status),
+              sanitizeCSV(pv.worst_status),
               sanitizeCSV(pv.os),
               sanitizeCSV(pv.ral),
               sanitizeCSV(pv.equipamento),

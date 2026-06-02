@@ -19,6 +19,8 @@ class PvItem
     public ?string $scm;
     public ?string $report;
     public ?string $filterData;
+    public ?string $status;
+    public ?string $orcamento;
 
     public function __construct(array $data)
     {
@@ -37,6 +39,8 @@ class PvItem
         $this->scm = $data['scm'] ?? null;
         $this->report = $data['laudo'] ?? null;
         $this->filterData = $data['filtro_data'] ?? null;
+        $this->status = $data['status'] ?? null;
+        $this->orcamento = $data['orcamento'] ?? null;
     }
 
     public function toArray(): array
@@ -57,6 +61,8 @@ class PvItem
             'scm' => $this->scm,
             'laudo' => $this->report,
             'filtro_data' => $this->filterData,
+            'status' => $this->status,
+            'orcamento' => $this->orcamento,
         ];
     }
 }

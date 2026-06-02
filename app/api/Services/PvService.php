@@ -153,13 +153,6 @@ class PvService
             $data['equipamento_id'] = $this->getFornecimentoId();
         }
 
-        $data['ticket_ids'] = $this->resolveOsToTicketIds(
-            $data['os'] ?? '',
-            $data['data'] ?? null,
-            isset($data['equipamento_id']) ? (int) $data['equipamento_id'] : null,
-            $data['status'] ?? null
-        );
-
         $pvId = $this->repository->save($data);
 
         if (!empty($data['itens']) && is_array($data['itens'])) {
@@ -168,6 +161,16 @@ class PvService
                 $item['valor_total'] = $this->calculateItemTotalValue($item);
                 $this->repository->saveItem($item);
             }
+        }
+
+        if (!empty($data['itens'])) {
+            $worstStatus = $this->repository->getWorstStatus($pvId);
+            $data['ticket_ids'] = $this->resolveOsToTicketIds(
+                $data['os'] ?? '',
+                $data['data'] ?? null,
+                isset($data['equipamento_id']) ? (int) $data['equipamento_id'] : null,
+                $worstStatus
+            );
         }
 
         if (!empty($data['ticket_ids'])) {
@@ -185,13 +188,6 @@ class PvService
             $data['equipamento_id'] = $this->getFornecimentoId();
         }
 
-        $data['ticket_ids'] = $this->resolveOsToTicketIds(
-            $data['os'] ?? '',
-            $data['data'] ?? null,
-            isset($data['equipamento_id']) ? (int) $data['equipamento_id'] : null,
-            $data['status'] ?? null
-        );
-
         $result = $this->repository->update($data);
 
         if (isset($data['itens']) && is_array($data['itens'])) {
@@ -203,6 +199,14 @@ class PvService
                 $this->repository->saveItem($item);
             }
         }
+
+        $worstStatus = $this->repository->getWorstStatus((int) $data['id']);
+        $data['ticket_ids'] = $this->resolveOsToTicketIds(
+            $data['os'] ?? '',
+            $data['data'] ?? null,
+            isset($data['equipamento_id']) ? (int) $data['equipamento_id'] : null,
+            $worstStatus
+        );
 
         $this->repository->deleteOsLinks((int) $data['id']);
         if (!empty($data['ticket_ids'])) {
@@ -217,16 +221,16 @@ class PvService
         return $this->repository->searchTicketsByOs($query);
     }
 
-    public function updateStatus(int $id, string $status): bool
+    public function updateItemsByWorstStatus(int $pvId, string $status): bool
     {
-        return $this->repository->updateStatus($id, $status);
+        return $this->repository->updateItemsByWorstStatus($pvId, $status);
     }
 
-    public function updateStatusBatch(array $ids, string $status): bool
+    public function updateItemsByWorstStatusBatch(array $ids, string $status): bool
     {
         $allOk = true;
         foreach ($ids as $id) {
-            if (!$this->repository->updateStatus((int) $id, $status)) {
+            if (!$this->repository->updateItemsByWorstStatus((int) $id, $status)) {
                 $allOk = false;
             }
         }

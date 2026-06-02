@@ -69,7 +69,7 @@ class PvDashboardServiceTest extends TestCase
             ['status' => 'cancelado', 'count' => 2, 'totalValue' => '0.00'],
             ['status' => 'scm negado', 'count' => 1, 'totalValue' => '0.00'],
             ['status' => 'aprovado aquisição/serviço', 'count' => 3, 'totalValue' => '20000.00'],
-            ['status' => 'aguardando orientação', 'count' => 4, 'totalValue' => '8000.00'],
+            ['status' => 'aguardando envio', 'count' => 4, 'totalValue' => '8000.00'],
         ]);
         $repo->method('financialByMonth')->willReturn([]);
         $repo->method('topLocations')->willReturn([]);

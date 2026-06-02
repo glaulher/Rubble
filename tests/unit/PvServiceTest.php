@@ -332,15 +332,15 @@ class PvServiceTest extends TestCase
         $service->update($data);
     }
 
-    // --- updateStatus ---
+    // --- updateItemsByWorstStatus ---
 
-    public function testUpdateStatusDelegatesToRepository(): void
+    public function testUpdateItemsByWorstStatusDelegatesToRepository(): void
     {
         $repo = $this->createMockRepo();
-        $repo->method('updateStatus')->willReturn(true);
+        $repo->method('updateItemsByWorstStatus')->willReturn(true);
 
         $service = $this->createService($repo);
-        $this->assertTrue($service->updateStatus(1, 'cancelado'));
+        $this->assertTrue($service->updateItemsByWorstStatus(1, 'cancelado'));
     }
 
     // --- listLocations ---

@@ -203,7 +203,7 @@ class EquipmentRepository extends BaseRepository
                 GROUP BY po.pv_id
             ) os_list ON os_list.pv_id = pv.id
             WHERE pv.equipamento_id IN ({$placeholders})
-            AND pv.status != 'SCM aprovado'
+            AND EXISTS (SELECT 1 FROM pv_item pi WHERE pi.pv_id = pv.id AND pi.status != 'SCM aprovado')
             GROUP BY pv.equipamento_id
         ";
 

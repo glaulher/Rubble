@@ -27,9 +27,7 @@ class PvDashboardService
         'sem_aprovacao' => [
             'label' => 'Sem Aprovação',
             'statuses' => [
-                'Aguardando doc.',
-                'Aguardando orientação',
-                'Enviado para o gerente',
+                'Aguardando envio',
                 'E-mail de lib. aquisição/serviço',
                 'E-mail de aprov. serv. realizado',
                 'E-mail de aprov. serv.',
