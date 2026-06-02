@@ -89,8 +89,8 @@ class AuthService
                 'write' => ['equipment', 'tickets'],
             ],
             'coordenador' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management'],
-                'write' => ['equipment', 'tickets', 'pv', 'equipment-management'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm'],
+                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm'],
             ],
             'cliente' => [
                 'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify'],
@@ -110,6 +110,9 @@ class AuthService
                 return $role === 'admin';
             }
             if ($method === 'DELETE' && $route === 'equipment-management') {
+                return $role === 'admin';
+            }
+            if ($method === 'DELETE' && $route === 'scm') {
                 return $role === 'admin';
             }
             if ($route === 'auth' && $method === 'POST') {

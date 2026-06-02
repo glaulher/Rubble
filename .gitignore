@@ -15,3 +15,4 @@ vendor/
 pv_reconcile.php
 specs.md
 _debug*.php
+check_scm_db.php

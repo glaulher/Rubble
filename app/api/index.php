@@ -11,6 +11,7 @@ use App\Api\Controllers\DashboardController;
 use App\Api\Controllers\PvDashboardController;
 use App\Api\Controllers\PvController;
 use App\Api\Controllers\UserController;
+use App\Api\Controllers\ScmController;
 use App\Api\Auth\AuthService;
 use App\Api\Helpers\Response;
 
@@ -472,6 +473,47 @@ try {
                 case 'PUT':
 
                     $ctrl->update();
+
+                    break;
+
+                case 'DELETE':
+
+                    $ctrl->delete();
+
+                    break;
+
+                default:
+
+                    Response::error('Método não permitido', 405);
+            }
+
+            break;
+
+            /*
+            |--------------------------------------------------------------------------
+            | SCM
+            |--------------------------------------------------------------------------
+            */
+
+        case 'scm':
+
+            $ctrl = new ScmController($user);
+
+            switch ($method) {
+
+                case 'GET':
+
+                    if (isset($_GET['action']) && $_GET['action'] === 'getById') {
+                        $ctrl->getById();
+                    } else {
+                        $ctrl->listAll();
+                    }
+
+                    break;
+
+                case 'POST':
+
+                    $ctrl->import();
 
                     break;
 

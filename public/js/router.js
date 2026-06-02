@@ -101,6 +101,13 @@ async function router() {
   |--------------------------------------------------------------------------
   */
     html = await loadPage("/app/Views/equipmentManager.html?v=" + Date.now());
+  } else if (hash === "#/scm") {
+    /*
+  |--------------------------------------------------------------------------
+  | SCM
+  |--------------------------------------------------------------------------
+  */
+    html = await loadPage("/app/Views/scm.html?v=" + Date.now());
   } else if (hash === "#/login") {
     html = await loadPage("/app/Views/login.html?v=" + Date.now());
   } else {
@@ -157,6 +164,10 @@ async function router() {
     } else if (hash === "#/equipment-manager" || hash.startsWith("#/equipment-manager?")) {
       if (typeof initEquipmentManager === "function") {
         initEquipmentManager();
+      }
+    } else if (hash === "#/scm") {
+      if (typeof initScm === "function") {
+        initScm();
       }
     } else if (hash === "#/login") {
       if (typeof initLogin === "function") {

@@ -71,7 +71,50 @@ CREATE TABLE `equipamentos` (
   `equipamento` varchar(100) DEFAULT NULL,
   `capacidade` decimal(10,2) DEFAULT NULL,
   `localidade` varchar(255) DEFAULT NULL,
-  `endereco_id` int(11) DEFAULT NULL
+  `endereco_id` int(11) DEFAULT NULL,
+  `local_scm` varchar(100) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `scm`
+--
+
+CREATE TABLE `scm` (
+  `id` int(11) NOT NULL,
+  `scm` varchar(100) NOT NULL,
+  `data` date DEFAULT NULL,
+  `atividade` text DEFAULT NULL,
+  `site` varchar(100) DEFAULT NULL,
+  `cidade` varchar(100) DEFAULT NULL,
+  `abertura` varchar(100) DEFAULT NULL,
+  `status` varchar(50) DEFAULT NULL,
+  `data_execucao` date DEFAULT NULL,
+  `data_validacao` date DEFAULT NULL,
+  `medicao` varchar(100) DEFAULT NULL,
+  `origem` varchar(100) DEFAULT NULL,
+  `segmento` varchar(100) DEFAULT NULL,
+  `obs` text DEFAULT NULL,
+  `equipamento_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `scm_items`
+--
+
+CREATE TABLE `scm_items` (
+  `id` int(11) NOT NULL,
+  `scm_id` int(11) NOT NULL,
+  `servico` text DEFAULT NULL,
+  `unidade` varchar(50) DEFAULT NULL,
+  `valor` decimal(12,2) DEFAULT NULL,
+  `qtde_execucao` decimal(12,3) DEFAULT NULL,
+  `subtotal_execucao` decimal(12,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -450,6 +493,48 @@ ALTER TABLE `pv_item`
 ALTER TABLE `pv_os`
   ADD CONSTRAINT `fk_pv_os_pv` FOREIGN KEY (`pv_id`) REFERENCES `pv` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_pv_os_registro` FOREIGN KEY (`registro_id`) REFERENCES `registros` (`id`);
+
+--
+-- Índices de tabela `scm`
+--
+ALTER TABLE `scm`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_scm_code` (`scm`),
+  ADD KEY `idx_scm_equipamento` (`equipamento_id`),
+  ADD KEY `idx_scm_status` (`status`),
+  ADD KEY `idx_scm_site` (`site`);
+
+--
+-- AUTO_INCREMENT de tabela `scm`
+--
+ALTER TABLE `scm`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Restrições para tabelas `scm`
+--
+ALTER TABLE `scm`
+  ADD CONSTRAINT `fk_scm_equipamento` FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`);
+
+--
+-- Índices de tabela `scm_items`
+--
+ALTER TABLE `scm_items`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_scm_items_scm_id` (`scm_id`);
+
+--
+-- AUTO_INCREMENT de tabela `scm_items`
+--
+ALTER TABLE `scm_items`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Restrições para tabelas `scm_items`
+--
+ALTER TABLE `scm_items`
+  ADD CONSTRAINT `fk_scm_items_scm` FOREIGN KEY (`scm_id`) REFERENCES `scm` (`id`) ON DELETE CASCADE;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
