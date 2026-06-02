@@ -18,54 +18,6 @@ function pvHbarGradient(ctx, chartArea) {
   return gradient;
 }
 
-const pvGradientLegendPlugin = {
-  id: 'pvGradientLegend',
-  afterDraw(chart) {
-    const pluginOpt = chart.config.options.plugins?.pvGradientLegend;
-    if (!pluginOpt) return;
-
-    const datasets = chart.data.datasets;
-    if (!datasets || datasets.length === 0) return;
-
-    const { ctx } = chart;
-    const boxWidth = 15;
-    const boxHeight = 15;
-    const gap = 20;
-
-    let x = chart.chartArea.left;
-    const y = chart.chartArea.top - 30;
-
-    ctx.save();
-    ctx.font = '12px system-ui, sans-serif';
-    ctx.textBaseline = 'middle';
-
-    datasets.forEach((dataset, i) => {
-      const bg = dataset.backgroundColor;
-      if (typeof bg === 'function') {
-        const grad = ctx.createLinearGradient(0, y + boxHeight, 0, y);
-        if (i === 0) {
-          grad.addColorStop(0, '#17275c');
-          grad.addColorStop(1, '#0ea5e9');
-        } else {
-          grad.addColorStop(0, '#8b5cf6');
-          grad.addColorStop(1, '#c026d3');
-        }
-        ctx.fillStyle = grad;
-      } else {
-        ctx.fillStyle = bg || '#ccc';
-      }
-
-      ctx.fillRect(x, y, boxWidth, boxHeight);
-      ctx.fillStyle = '#475569';
-      ctx.fillText(dataset.label || '', x + boxWidth + 6, y + boxHeight / 2);
-      x += boxWidth + ctx.measureText(dataset.label || '').width + gap;
-    });
-    ctx.restore();
-  },
-};
-
-if (typeof Chart !== 'undefined') Chart.register(pvGradientLegendPlugin);
-
 let pvCharts = [];
 let pvMiniCharts = [];
 
@@ -284,8 +236,19 @@ function renderPvFinancialChart(data) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
-        pvGradientLegend: true,
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'rectRounded',
+            generateLabels: (chart) => {
+              return [
+                { text: 'Faturado', fillStyle: '#0ea5e9', strokeStyle: '#0ea5e9', lineWidth: 0, datasetIndex: 0 },
+                { text: 'Previsão', fillStyle: '#8b5cf6', strokeStyle: '#8b5cf6', lineWidth: 0, datasetIndex: 1 },
+              ];
+            },
+          },
+        },
         tooltip: {
           callbacks: {
             label: (ctx) => ctx.dataset.label + ': R$ ' + pvFormatCurrency(ctx.parsed.y),
