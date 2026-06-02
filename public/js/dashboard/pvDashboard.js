@@ -18,6 +18,57 @@ function pvHbarGradient(ctx, chartArea) {
   return gradient;
 }
 
+const pvGradientLegendPlugin = {
+  id: 'pvGradientLegend',
+  afterDraw(chart) {
+    const pluginOpt = chart.config.options.plugins?.pvGradientLegend;
+    if (!pluginOpt) return;
+
+    const legendItems = chart.legend?.legendItems;
+    if (!legendItems || legendItems.length === 0) return;
+
+    const { ctx } = chart;
+    const boxWidth = 15;
+    const boxHeight = 15;
+    const padding = 10;
+
+    let x = chart.chartArea.left;
+    const y = chart.chartArea.top - 30;
+
+    ctx.save();
+    legendItems.forEach((item, i) => {
+      const dataset = chart.data.datasets[i];
+      if (!dataset) return;
+
+      const bg = dataset.backgroundColor;
+      if (typeof bg === 'function') {
+        const fakeArea = { top: y + boxHeight, bottom: y, left: x, right: x + boxWidth };
+        const grad = ctx.createLinearGradient(0, fakeArea.bottom, 0, fakeArea.top);
+        if (i === 0) {
+          grad.addColorStop(0, '#17275c');
+          grad.addColorStop(1, '#0ea5e9');
+        } else {
+          grad.addColorStop(0, '#8b5cf6');
+          grad.addColorStop(1, '#c026d3');
+        }
+        ctx.fillStyle = grad;
+      } else {
+        ctx.fillStyle = bg || '#ccc';
+      }
+
+      ctx.fillRect(x, y, boxWidth, boxHeight);
+      ctx.fillStyle = '#475569';
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(item.text, x + boxWidth + 6, y + boxHeight / 2);
+      x += boxWidth + ctx.measureText(item.text).width + padding * 2;
+    });
+    ctx.restore();
+  },
+};
+
+if (typeof Chart !== 'undefined') Chart.register(pvGradientLegendPlugin);
+
 let pvCharts = [];
 let pvMiniCharts = [];
 
@@ -236,7 +287,8 @@ function renderPvFinancialChart(data) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'top' },
+        legend: { display: false },
+        pvGradientLegend: true,
         tooltip: {
           callbacks: {
             label: (ctx) => ctx.dataset.label + ': R$ ' + pvFormatCurrency(ctx.parsed.y),
