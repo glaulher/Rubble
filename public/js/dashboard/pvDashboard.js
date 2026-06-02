@@ -240,11 +240,11 @@ function renderPvFinancialChart(data) {
           position: 'top',
           labels: {
             usePointStyle: true,
-            pointStyle: 'rectRounded',
+            pointStyle: 'rect',
             generateLabels: (chart) => {
               return [
-                { text: 'Faturado', fillStyle: '#0ea5e9', strokeStyle: '#0ea5e9', lineWidth: 0, datasetIndex: 0 },
-                { text: 'Previsão', fillStyle: '#8b5cf6', strokeStyle: '#8b5cf6', lineWidth: 0, datasetIndex: 1 },
+                { text: 'Faturado', fillStyle: '#0ea5e9', strokeStyle: '#0ea5e9', lineWidth: 0, datasetIndex: 0, pointStyle: 'rect' },
+                { text: 'Previsão', fillStyle: '#8b5cf6', strokeStyle: '#8b5cf6', lineWidth: 0, datasetIndex: 1, pointStyle: 'rect' },
               ];
             },
           },
