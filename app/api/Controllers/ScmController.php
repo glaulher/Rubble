@@ -27,8 +27,11 @@ class ScmController
         $limit = (int) ($_GET['limit'] ?? 20);
         $offset = (int) ($_GET['offset'] ?? 0);
         $search = trim($_GET['search'] ?? '');
+        $dateFrom = trim($_GET['date_from'] ?? '');
+        $dateTo = trim($_GET['date_to'] ?? '');
+        $segmento = trim($_GET['segmento'] ?? '');
 
-        $data = $this->service->listAll($limit, $offset, $search);
+        $data = $this->service->listAll($limit, $offset, $search, $dateFrom ?: null, $dateTo ?: null, $segmento ?: null);
 
         Response::json([
             'success'     => true,
@@ -82,6 +85,16 @@ class ScmController
             'skipped'   => $result['skipped'],
             'errors'    => $result['errors'],
         ]);
+    }
+
+    public function segments(): void
+    {
+        try {
+            $segments = $this->service->segments();
+            Response::json(['success' => true, 'data' => $segments]);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
     }
 
     public function delete(): void

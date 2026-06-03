@@ -21,14 +21,19 @@ class ScmService
         $this->repository = new ScmRepository();
     }
 
-    public function listAll(int $limit, int $offset, string $search = ''): array
+    public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, ?string $segmento = null): array
     {
-        $items = $this->repository->listAll($limit, $offset, $search);
+        $items = $this->repository->listAll($limit, $offset, $search, $dateFrom, $dateTo, $segmento);
         return [
             'items'       => $items,
-            'total'       => $this->repository->count($search),
-            'total_valor' => $this->repository->getTotalValue($search),
+            'total'       => $this->repository->count($search, $dateFrom, $dateTo, $segmento),
+            'total_valor' => $this->repository->getTotalValue($search, $dateFrom, $dateTo, $segmento),
         ];
+    }
+
+    public function segments(): array
+    {
+        return $this->repository->segments();
     }
 
     public function getById(int $id): ?array

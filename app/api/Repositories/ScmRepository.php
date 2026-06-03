@@ -11,9 +11,9 @@ class ScmRepository extends BaseRepository
         $this->conn = Database::connect();
     }
 
-    public function listAll(int $limit, int $offset, string $search = ''): array
+    public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, ?string $segmento = null): array
     {
-        [$where, $types, $params] = $this->buildFilterClause($search);
+        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segmento);
 
         $sql = "SELECT s.*, 
                        e.equipamento, e.capacidade, e.local, e.localidade,
@@ -45,9 +45,9 @@ class ScmRepository extends BaseRepository
         return $items;
     }
 
-    public function count(string $search = ''): int
+    public function count(string $search = '', ?string $dateFrom = null, ?string $dateTo = null, ?string $segmento = null): int
     {
-        [$where, $types, $params] = $this->buildFilterClause($search);
+        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segmento);
 
         $sql = "SELECT COUNT(*) as total FROM scm s
                 LEFT JOIN equipamentos e ON e.id = s.equipamento_id
@@ -61,9 +61,9 @@ class ScmRepository extends BaseRepository
         return (int) $stmt->get_result()->fetch_assoc()['total'];
     }
 
-    public function getTotalValue(string $search = ''): float
+    public function getTotalValue(string $search = '', ?string $dateFrom = null, ?string $dateTo = null, ?string $segmento = null): float
     {
-        [$where, $types, $params] = $this->buildFilterClause($search);
+        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segmento);
 
         $sql = "SELECT COALESCE(SUM(si.subtotal_execucao), 0) as total_valor 
                 FROM scm s
@@ -206,6 +206,19 @@ class ScmRepository extends BaseRepository
         return null;
     }
 
+    public function segments(): array
+    {
+        $sql = "SELECT DISTINCT segmento FROM scm
+                WHERE segmento IS NOT NULL AND segmento != ''
+                ORDER BY segmento";
+        $result = $this->conn->query($sql);
+        $segments = [];
+        while ($row = $result->fetch_assoc()) {
+            $segments[] = $row['segmento'];
+        }
+        return $segments;
+    }
+
     public function delete(int $id): bool
     {
         $sql = "DELETE FROM scm WHERE id = ?";
@@ -214,7 +227,7 @@ class ScmRepository extends BaseRepository
         return $stmt->execute();
     }
 
-    private function buildFilterClause(string $search): array
+    private function buildFilterClause(string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $segmento = null): array
     {
         $conditions = [];
         $types = '';
@@ -223,10 +236,28 @@ class ScmRepository extends BaseRepository
         if ($search !== '') {
             $conditions[] = "(s.scm LIKE ? OR s.site LIKE ? OR s.cidade LIKE ?
                 OR s.atividade LIKE ? OR s.obs LIKE ?
-                OR s.origem LIKE ? OR s.segmento LIKE ?)";
+                OR s.origem LIKE ? OR s.segmento LIKE ? OR e.mercado LIKE ?)";
             $like = "%{$search}%";
-            $params = array_merge($params, [$like, $like, $like, $like, $like, $like, $like]);
-            $types .= str_repeat('s', 7);
+            $params = array_merge($params, [$like, $like, $like, $like, $like, $like, $like, $like]);
+            $types .= str_repeat('s', 8);
+        }
+
+        if ($dateFrom !== null && $dateFrom !== '') {
+            $conditions[] = 's.data >= ?';
+            $params[] = $dateFrom;
+            $types .= 's';
+        }
+
+        if ($dateTo !== null && $dateTo !== '') {
+            $conditions[] = 's.data <= ?';
+            $params[] = $dateTo;
+            $types .= 's';
+        }
+
+        if ($segmento !== null && $segmento !== '') {
+            $conditions[] = 's.segmento LIKE ?';
+            $params[] = "%{$segmento}%";
+            $types .= 's';
         }
 
         $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';

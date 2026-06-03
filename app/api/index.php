@@ -505,6 +505,8 @@ try {
 
                     if (isset($_GET['action']) && $_GET['action'] === 'getById') {
                         $ctrl->getById();
+                    } elseif (isset($_GET['action']) && $_GET['action'] === 'segments') {
+                        $ctrl->segments();
                     } else {
                         $ctrl->listAll();
                     }
