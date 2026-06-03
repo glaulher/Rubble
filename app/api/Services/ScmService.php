@@ -56,7 +56,7 @@ class ScmService
                 $items = $group['items'];
 
                 $statusUpper = mb_strtoupper(trim($first['STATUS'] ?? ''));
-                if ($statusUpper === 'EM ABERTO') {
+                if (str_contains($statusUpper, 'ABERTO')) {
                     $skipped += count($items);
                     continue;
                 }

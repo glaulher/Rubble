@@ -69,9 +69,9 @@ function parseScmCSV(text) {
             row[h] = values[idx] || '';
         });
 
-        // Skip EM ABERTO
+        // Skip EM ABERTO / ABERTO
         const status = (row['STATUS'] || '').toUpperCase().trim();
-        if (status === 'EM ABERTO') continue;
+        if (status.includes('ABERTO')) continue;
 
         // Skip empty SCM
         if (!row['SCM'] || !row['SCM'].trim()) continue;
