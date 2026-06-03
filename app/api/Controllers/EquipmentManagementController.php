@@ -65,7 +65,7 @@ class EquipmentManagementController
 
             Validator::required($data, [
                 'equipamento', 'local', 'localidade',
-                'local_do_endereco', 'endereco', 'uf',
+                'local_do_endereco', 'endereco', 'uf', 'mercado',
             ]);
 
             if (!empty($data['capacidade'])) {
@@ -91,7 +91,7 @@ class EquipmentManagementController
 
             Validator::required($data, [
                 'id', 'equipamento', 'local', 'localidade',
-                'local_do_endereco', 'endereco', 'uf',
+                'local_do_endereco', 'endereco', 'uf', 'mercado',
             ]);
             Validator::integer($data, 'id');
 

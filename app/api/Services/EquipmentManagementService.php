@@ -7,6 +7,8 @@ use Exception;
 
 class EquipmentManagementService
 {
+    private const ALLOWED_MERCADOS = ['Residencial', 'Empresarial', 'Pessoal'];
+
     private EquipmentManagementRepository $repository;
 
     public function __construct()
@@ -32,8 +34,7 @@ class EquipmentManagementService
         if ($mercado === '') {
             throw new \InvalidArgumentException('Mercado é obrigatório');
         }
-        $allowedMercados = ['Residencial', 'Empresarial', 'Pessoal'];
-        if (!in_array($mercado, $allowedMercados, true)) {
+        if (!in_array($mercado, self::ALLOWED_MERCADOS, true)) {
             throw new \InvalidArgumentException('Mercado inválido');
         }
 
@@ -50,8 +51,7 @@ class EquipmentManagementService
     public function update(int $id, array $data): void
     {
         if (isset($data['mercado'])) {
-            $allowedMercados = ['Residencial', 'Empresarial', 'Pessoal'];
-            if (!in_array($data['mercado'], $allowedMercados, true)) {
+            if (!in_array($data['mercado'], self::ALLOWED_MERCADOS, true)) {
                 throw new \InvalidArgumentException('Mercado inválido');
             }
         }
