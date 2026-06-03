@@ -11,9 +11,10 @@ UPDATE equipamentos SET mercado = 'Residencial' WHERE local IN (
     'PAV11DTC','BGU02DTC','PAV71DTC','SCZ16DTC','NITB9DTC','VTA OCT','VTA ARB'
 );
 
--- Empresarial
+-- Empresarial (com e sem hífen)
 UPDATE equipamentos SET mercado = 'Empresarial' WHERE local IN (
-    'VTA-JM','RJO-GS','RJOEN','RJO-CRT','RJO-TP','MCE-BC','CPS-CL','TNG-BR'
+    'VTA-JM','VTAJM','RJO-GS','RJOGS','RJOEN','RJO-CRT','RJOCRT',
+    'RJO-TP','RJOTP','MCE-BC','MCEBC','CPS-CL','CPSCL','TNG-BR','TNGBR'
 );
 
 -- Pessoal

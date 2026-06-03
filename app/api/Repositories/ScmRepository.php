@@ -18,15 +18,14 @@ class ScmRepository extends BaseRepository
         $sql = "SELECT s.*, 
                        e.equipamento, e.capacidade, e.local, e.localidade, e.mercado,
                        pv.numero_pv,
-                       (SELECT COALESCE(SUM(si.subtotal_execucao), 0) FROM scm_items si WHERE si.scm_id = s.id) as total_valor,
-                       (SELECT si.data_execucao FROM scm_items si WHERE si.scm_id = s.id ORDER BY si.id ASC LIMIT 1) as data_execucao
+                       (SELECT COALESCE(SUM(si.subtotal_execucao), 0) FROM scm_items si WHERE si.scm_id = s.id) as total_valor
                 FROM scm s
                 LEFT JOIN equipamentos e ON e.id = s.equipamento_id
                 LEFT JOIN pv_item pi ON pi.scm = s.scm
                 LEFT JOIN pv ON pv.id = pi.pv_id
                 {$where}
                 GROUP BY s.id
-                ORDER BY s.scm ASC
+                ORDER BY s.scm DESC
                 LIMIT ? OFFSET ?";
 
         $types .= 'ii';

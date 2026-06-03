@@ -222,8 +222,8 @@ function buildScmCardHtml(s) {
             <h3 class="font-bold text-slate-900">${escapeHtml(s.scm)}</h3>
             <span class="text-slate-400">—</span>
             <span class="text-sm text-slate-600">${escapeHtml(s.localidade || s.cidade || '')}</span>
-            ${dataDisplay ? `<span class="text-xs text-slate-400">${dataDisplay}</span>` : ''}
-            ${dataExecDisplay ? `<span class="text-xs text-slate-400">${dataExecDisplay}</span>` : ''}
+            ${dataDisplay ? `<span class="text-xs text-slate-400">Criação: ${dataDisplay}</span>` : ''}
+            ${dataExecDisplay ? `<span class="text-xs text-slate-400">Execução: ${dataExecDisplay}</span>` : ''}
             <div class="ml-auto flex items-center gap-2">
                 ${pvDisplay ? `<span class="bg-violet-100 text-violet-800 px-2 py-0.5 rounded-xl text-xs">${pvDisplay}</span>` : ''}
                 ${totalDisplay ? `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-xl text-xs">${totalDisplay}</span>` : ''}
@@ -381,32 +381,46 @@ async function loadScmDetails(id) {
         let html = '';
 
         if (s.obs) {
-            html += `<div class="mb-2 text-sm text-slate-600"><strong>Obs:</strong> ${escapeHtml(s.obs)}</div>`;
+            html += `<div class="bg-slate-50 rounded-xl p-3 border border-slate-200 mb-3">`;
+            html += `<span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Observação</span>`;
+            html += `<p class="text-sm text-slate-700 mt-1">${escapeHtml(s.obs)}</p>`;
+            html += `</div>`;
         }
 
         if (items.length > 0) {
+            html += `<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">`;
             html += `<div class="overflow-x-auto">`;
-            html += `<table class="w-full text-sm">`;
-            html += `<thead><tr class="border-b border-slate-200">`;
-            html += `<th class="text-left py-1 px-2 text-slate-500">SERVIÇO</th>`;
-            html += `<th class="text-left py-1 px-2 text-slate-500">UNIDADE</th>`;
-            html += `<th class="text-right py-1 px-2 text-slate-500">VALOR</th>`;
-            html += `<th class="text-right py-1 px-2 text-slate-500">Qtd.</th>`;
-            html += `<th class="text-right py-1 px-2 text-slate-500">SUBTOTAL</th>`;
+            html += `<table class="w-full">`;
+            html += `<thead><tr class="bg-slate-50 border-b border-slate-200">`;
+            html += `<th class="text-left px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Serviço</th>`;
+            html += `<th class="text-left px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Unidade</th>`;
+            html += `<th class="text-right px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Valor</th>`;
+            html += `<th class="text-right px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Qtd.</th>`;
+            html += `<th class="text-right px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Subtotal</th>`;
             html += `</tr></thead><tbody>`;
+
+            let totalGeral = 0;
             items.forEach(item => {
-                html += `<tr class="border-b border-slate-100">`;
-                html += `<td class="py-1 px-2">${escapeHtml(item.servico || '')}</td>`;
-                html += `<td class="py-1 px-2">${escapeHtml(item.unidade || '')}</td>`;
-                html += `<td class="py-1 px-2 text-right">${formatCurrency(item.valor)}</td>`;
-                html += `<td class="py-1 px-2 text-right">${parseFloat(item.qtde_execucao || 0).toFixed(3)}</td>`;
-                html += `<td class="py-1 px-2 text-right">${formatCurrency(item.subtotal_execucao)}</td>`;
+                const subtotal = parseFloat(item.subtotal_execucao) || 0;
+                totalGeral += subtotal;
+                html += `<tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">`;
+                html += `<td class="px-4 py-2.5 text-sm text-slate-700">${escapeHtml(item.servico || '')}</td>`;
+                html += `<td class="px-4 py-2.5 text-sm text-slate-700">${escapeHtml(item.unidade || '')}</td>`;
+                html += `<td class="px-4 py-2.5 text-sm text-right font-medium text-slate-900">${formatCurrency(item.valor)}</td>`;
+                html += `<td class="px-4 py-2.5 text-sm text-right text-slate-700">${parseFloat(item.qtde_execucao || 0).toFixed(3)}</td>`;
+                html += `<td class="px-4 py-2.5 text-sm text-right font-medium text-slate-900">${formatCurrency(subtotal)}</td>`;
                 html += `</tr>`;
             });
-            html += `</tbody></table>`;
-            html += `</div>`;
+
+            html += `</tbody>`;
+            html += `<tfoot><tr class="border-t-2 border-slate-200 bg-slate-50">`;
+            html += `<td colspan="4" class="px-4 py-2.5 text-sm font-bold text-slate-900">Total</td>`;
+            html += `<td class="px-4 py-2.5 text-sm text-right font-bold text-slate-900">${formatCurrency(totalGeral)}</td>`;
+            html += `</tr></tfoot>`;
+            html += `</table>`;
+            html += `</div></div>`;
         } else {
-            html += `<div class="text-sm text-slate-400 italic">Nenhum item registrado</div>`;
+            html += `<div class="text-sm text-slate-400 italic text-center py-4">Nenhum item registrado</div>`;
         }
 
         details.innerHTML = html;
