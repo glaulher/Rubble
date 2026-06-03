@@ -15,18 +15,21 @@
     </div>
 
     <div class="text-right flex items-center justify-end gap-2">
-      <button
-        id="importScmBtn"
-        class="flex items-center gap-2 bg-sky-200 hover:bg-sky-300 text-sky-800 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors"
-        data-role="admin coordenador"
-      >
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="17 8 12 3 7 8"></polyline>
-          <line x1="12" y1="3" x2="12" y2="15"></line>
-        </svg>
-        Importar CSV
-      </button>
+      <div class="relative group">
+        <button
+          id="importScmBtn"
+          class="flex items-center gap-2 bg-sky-200 hover:bg-sky-300 text-sky-800 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors"
+          data-role="admin coordenador"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Importar CSV
+        </button>
+        <span class="absolute bottom-full right-0 mb-2 scale-0 group-hover:scale-100 origin-bottom-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Importar planilha SCM</span>
+      </div>
     </div>
   </div>
 </div>
