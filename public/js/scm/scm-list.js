@@ -6,6 +6,9 @@ let scmAllLoaded = false;
 let scmLoading = false;
 let lastScmHash = '';
 let currentScmSearch = '';
+let scmDateFrom = '';
+let scmDateTo = '';
+let scmSegmentFilter = '';
 
 function initScm() {
     scmList = [];
@@ -14,10 +17,16 @@ function initScm() {
     scmLoading = false;
     lastScmHash = '';
     currentScmSearch = '';
+    scmDateFrom = '';
+    scmDateTo = '';
+    scmSegmentFilter = '';
 
     const content = document.getElementById('scmContent');
     const searchInput = document.getElementById('searchInputScm');
     const importBtn = document.getElementById('importScmBtn');
+    const dateFromInput = document.getElementById('scmDateFrom');
+    const dateToInput = document.getElementById('scmDateTo');
+    const segmentInput = document.getElementById('scmSegmentFilter');
 
     if (content) content.innerHTML = '';
 
@@ -38,6 +47,52 @@ function initScm() {
             }
         });
     }
+
+    if (dateFromInput) {
+        dateFromInput.addEventListener('change', () => {
+            scmDateFrom = dateFromInput.value;
+            resetScmState();
+            loadScm();
+        });
+    }
+
+    if (dateToInput) {
+        dateToInput.addEventListener('change', () => {
+            scmDateTo = dateToInput.value;
+            resetScmState();
+            loadScm();
+        });
+    }
+
+    let segmentDebounce;
+    if (segmentInput) {
+        segmentInput.addEventListener('input', () => {
+            clearTimeout(segmentDebounce);
+            segmentDebounce = setTimeout(() => {
+                scmSegmentFilter = segmentInput.value;
+                resetScmState();
+                loadScm();
+            }, 500);
+        });
+    }
+
+    document.getElementById('scmDateFrom').value = scmDateFrom;
+    document.getElementById('scmDateTo').value = scmDateTo;
+    document.getElementById('scmSegmentFilter').value = scmSegmentFilter;
+
+    fetch('/app/api/index.php?route=scm&action=segments')
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                const datalist = document.getElementById('segmentoList');
+                datalist.innerHTML = '';
+                res.data.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    datalist.appendChild(opt);
+                });
+            }
+        });
 
     if (importBtn) {
         importBtn.addEventListener('click', () => importScm());
@@ -68,7 +123,10 @@ async function loadScm(isPolling = false) {
 
     try {
         const offset = isPolling ? 0 : scmPage * 20;
-        const url = `/app/api/index.php?route=scm&limit=20&offset=${offset}&search=${encodeURIComponent(currentScmSearch)}`;
+        let url = `/app/api/index.php?route=scm&limit=20&offset=${offset}&search=${encodeURIComponent(currentScmSearch)}`;
+        if (scmDateFrom) url += `&date_from=${encodeURIComponent(scmDateFrom)}`;
+        if (scmDateTo) url += `&date_to=${encodeURIComponent(scmDateTo)}`;
+        if (scmSegmentFilter) url += `&segmento=${encodeURIComponent(scmSegmentFilter)}`;
         const response = await fetch(url);
         const result = await response.json();
 

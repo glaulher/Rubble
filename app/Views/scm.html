@@ -15,12 +15,6 @@
     </div>
 
     <div class="text-right flex items-center justify-end gap-2">
-      <input
-        type="text"
-        id="searchInputScm"
-        placeholder="Buscar SCM..."
-        class="bg-slate-800 text-white text-sm rounded-lg px-3 py-1.5 border border-slate-700 focus:outline-none focus:border-blue-500 w-48"
-      />
       <button
         id="importScmBtn"
         class="bg-sky-200 hover:bg-sky-300 text-sky-800 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors"
@@ -29,6 +23,30 @@
         Importar CSV
       </button>
     </div>
+  </div>
+</div>
+
+<div id="scmFilters" class="px-6 py-3 flex flex-wrap gap-4 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 -mt-3">
+  <div class="flex flex-col">
+    <label class="text-xs text-slate-500 mb-1">Data Início</label>
+    <input type="date" id="scmDateFrom"
+      class="bg-white text-sm rounded-lg px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40" />
+  </div>
+  <div class="flex flex-col">
+    <label class="text-xs text-slate-500 mb-1">Data Fim</label>
+    <input type="date" id="scmDateTo"
+      class="bg-white text-sm rounded-lg px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40" />
+  </div>
+  <div class="flex flex-col">
+    <label class="text-xs text-slate-500 mb-1">Segmento</label>
+    <input type="text" id="scmSegmentFilter" list="segmentoList" placeholder="Todos"
+      class="bg-white text-sm rounded-lg px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-48" />
+    <datalist id="segmentoList"></datalist>
+  </div>
+  <div class="flex flex-col flex-1">
+    <label class="text-xs text-slate-500 mb-1">Buscar</label>
+    <input type="text" id="searchInputScm" placeholder="Buscar SCM, mercado..."
+      class="bg-white text-sm rounded-lg px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500" />
   </div>
 </div>
 
