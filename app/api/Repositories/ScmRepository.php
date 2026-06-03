@@ -16,7 +16,7 @@ class ScmRepository extends BaseRepository
         [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segmento);
 
         $sql = "SELECT s.*, 
-                       e.equipamento, e.capacidade, e.local, e.localidade,
+                       e.equipamento, e.capacidade, e.local, e.localidade, e.mercado,
                        pv.numero_pv,
                        (SELECT COALESCE(SUM(si.subtotal_execucao), 0) FROM scm_items si WHERE si.scm_id = s.id) as total_valor,
                        (SELECT si.data_execucao FROM scm_items si WHERE si.scm_id = s.id ORDER BY si.id ASC LIMIT 1) as data_execucao
@@ -83,7 +83,7 @@ class ScmRepository extends BaseRepository
     public function getById(int $id): ?array
     {
         $sql = "SELECT s.*, 
-                       e.equipamento, e.capacidade, e.local, e.localidade
+                       e.equipamento, e.capacidade, e.local, e.localidade, e.mercado
                 FROM scm s
                 LEFT JOIN equipamentos e ON e.id = s.equipamento_id
                 WHERE s.id = ?";

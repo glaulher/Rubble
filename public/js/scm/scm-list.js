@@ -203,12 +203,27 @@ function buildScmCardHtml(s) {
     const capDisplay = s.capacidade ? `${s.capacidade} TR` : '';
     const totalDisplay = s.total_valor ? formatCurrency(s.total_valor) : '';
 
+    let mercadoBadge = '';
+    if (s.origem && s.mercado) {
+        const match = s.origem.toLowerCase() === s.mercado.toLowerCase();
+        if (match) {
+            mercadoBadge = `<span class="inline-flex items-center bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full">${escapeHtml(s.mercado)}</span>`;
+        } else {
+            mercadoBadge = `<span class="inline-flex items-center bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">Erro no mercado</span>`;
+        }
+    }
+
+    const dataDisplay = s.data ? formatDateBr(s.data) : '';
+    const dataExecDisplay = s.data_execucao ? formatDateBr(s.data_execucao) : '';
+
     return `
     <div class="card-item bg-white rounded-xl border border-slate-200 p-4" data-scm-id="${s.id}">
         <div class="flex items-center gap-2">
             <h3 class="font-bold text-slate-900">${escapeHtml(s.scm)}</h3>
             <span class="text-slate-400">—</span>
             <span class="text-sm text-slate-600">${escapeHtml(s.localidade || s.cidade || '')}</span>
+            ${dataDisplay ? `<span class="text-xs text-slate-400">${dataDisplay}</span>` : ''}
+            ${dataExecDisplay ? `<span class="text-xs text-slate-400">${dataExecDisplay}</span>` : ''}
             <div class="ml-auto flex items-center gap-2">
                 ${pvDisplay ? `<span class="bg-violet-100 text-violet-800 px-2 py-0.5 rounded-xl text-xs">${pvDisplay}</span>` : ''}
                 ${totalDisplay ? `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-xl text-xs">${totalDisplay}</span>` : ''}
@@ -228,6 +243,7 @@ function buildScmCardHtml(s) {
         <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
             ${equipDisplay ? `<span>${equipDisplay}</span>` : ''}
             ${capDisplay ? `<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-xl text-xs">${capDisplay}</span>` : ''}
+            ${mercadoBadge}
         </div>
         <div class="mt-3 flex gap-3">
             <button class="scm-toggle-btn bg-slate-200 hover:bg-slate-300 text-slate-900 px-3 py-1 rounded-xl text-sm transition-colors" data-toggle-id="${s.id}">
