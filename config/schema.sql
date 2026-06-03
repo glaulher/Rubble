@@ -72,7 +72,8 @@ CREATE TABLE `equipamentos` (
   `capacidade` decimal(10,2) DEFAULT NULL,
   `localidade` varchar(255) DEFAULT NULL,
   `endereco_id` int(11) DEFAULT NULL,
-  `local_scm` varchar(100) DEFAULT NULL
+  `local_scm` varchar(100) DEFAULT NULL,
+  `mercado` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
