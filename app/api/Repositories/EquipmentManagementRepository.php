@@ -73,15 +73,16 @@ class EquipmentManagementRepository extends BaseRepository
     public function insert(array $data): int
     {
         $stmt = $this->conn->prepare(
-            "INSERT INTO equipamentos (equipamento, capacidade, local, localidade, endereco_id) VALUES (?, ?, ?, ?, ?)"
+            "INSERT INTO equipamentos (equipamento, capacidade, local, localidade, endereco_id, mercado) VALUES (?, ?, ?, ?, ?, ?)"
         );
         $stmt->bind_param(
-            'sdssi',
+            'sdssis',
             $data['equipamento'],
             $data['capacidade'],
             $data['local'],
             $data['localidade'],
-            $data['endereco_id']
+            $data['endereco_id'],
+            $data['mercado']
         );
         $stmt->execute();
         $id = $stmt->insert_id;
@@ -119,6 +120,11 @@ class EquipmentManagementRepository extends BaseRepository
             $fields[] = 'endereco_id = ?';
             $types .= 'i';
             $values[] = $data['endereco_id'];
+        }
+        if (isset($data['mercado'])) {
+            $fields[] = 'mercado = ?';
+            $types .= 's';
+            $values[] = $data['mercado'];
         }
 
         if (empty($fields)) {

@@ -110,6 +110,7 @@ function renderEquipments() {
       '<td class="hidden md:table-cell px-6 py-4 text-slate-600">' + capacidade + '</td>' +
       '<td class="hidden md:table-cell px-6 py-4 text-slate-600">' + escapeHtml(eq.local || '-') + '</td>' +
       '<td class="px-6 py-4 text-slate-600">' + escapeHtml(eq.localidade || '-') + '</td>' +
+      '<td class="hidden md:table-cell px-6 py-4 text-slate-600">' + escapeHtml(eq.mercado || '-') + '</td>' +
       '<td class="hidden md:table-cell px-6 py-4 text-slate-600 max-w-xs truncate">' + escapeHtml(enderecoCompleto) + '</td>' +
       '<td class="px-6 py-4 text-right">' + actions + '</td>' +
       '</tr>';

@@ -28,6 +28,15 @@ class EquipmentManagementService
 
     public function save(array $data): int
     {
+        $mercado = $data['mercado'] ?? '';
+        if ($mercado === '') {
+            throw new \InvalidArgumentException('Mercado é obrigatório');
+        }
+        $allowedMercados = ['Residencial', 'Empresarial', 'Pessoal'];
+        if (!in_array($mercado, $allowedMercados, true)) {
+            throw new \InvalidArgumentException('Mercado inválido');
+        }
+
         $enderecoId = $this->repository->findOrCreateEndereco(
             $data['local_do_endereco'],
             $data['endereco'],
@@ -40,6 +49,13 @@ class EquipmentManagementService
 
     public function update(int $id, array $data): void
     {
+        if (isset($data['mercado'])) {
+            $allowedMercados = ['Residencial', 'Empresarial', 'Pessoal'];
+            if (!in_array($data['mercado'], $allowedMercados, true)) {
+                throw new \InvalidArgumentException('Mercado inválido');
+            }
+        }
+
         $enderecoId = $this->repository->findOrCreateEndereco(
             $data['local_do_endereco'],
             $data['endereco'],

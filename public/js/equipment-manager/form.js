@@ -15,6 +15,7 @@ async function loadEquipmentForm() {
   document.getElementById('eqLocalEndereco').value = '';
   document.getElementById('eqEndereco').value = '';
   document.getElementById('eqUf').value = '';
+  document.getElementById('mercado').value = '';
 
   if (editId) {
     document.getElementById('equipmentFormTitle').textContent = 'Editar Equipamento';
@@ -38,6 +39,7 @@ async function loadEquipmentForm() {
       document.getElementById('eqLocalEndereco').value = eq.local_do_endereco || '';
       document.getElementById('eqEndereco').value = eq.endereco_completo || '';
       document.getElementById('eqUf').value = eq.uf || '';
+      document.getElementById('mercado').value = eq.mercado || '';
     } catch (e) {
       showToast('Erro ao carregar equipamento', 'error');
       return;
@@ -59,6 +61,7 @@ function saveEquipmentForm(e) {
   const localEndereco = document.getElementById('eqLocalEndereco').value.trim();
   const endereco = document.getElementById('eqEndereco').value.trim();
   const uf = document.getElementById('eqUf').value.trim().toUpperCase();
+  const mercado = document.getElementById('mercado').value;
 
   if (!equipamento) { showToast('Informe o equipamento', 'error'); return; }
   if (!local) { showToast('Informe o local', 'error'); return; }
@@ -66,6 +69,7 @@ function saveEquipmentForm(e) {
   if (!localEndereco) { showToast('Informe o local do endereço', 'error'); return; }
   if (!endereco) { showToast('Informe o endereço', 'error'); return; }
   if (!uf || uf.length !== 2) { showToast('Informe a UF (2 caracteres)', 'error'); return; }
+  if (!mercado) { showToast('Informe o mercado', 'error'); return; }
 
   var method = id ? 'PUT' : 'POST';
   var body = {
@@ -76,6 +80,7 @@ function saveEquipmentForm(e) {
     local_do_endereco: localEndereco,
     endereco: endereco,
     uf: uf,
+    mercado: mercado,
   };
   if (id) body.id = parseInt(id);
 
