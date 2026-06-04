@@ -136,6 +136,11 @@ body {
 /* Gradient backgrounds (dark variant) */
 .dark .dm-bg-base { background: var(--bg-base) !important; }
 
+/* Dark mode purple gradient for views */
+.dark .dark-gradient {
+  background: linear-gradient(90deg, #0f1117, #1c013c, #28005b) !important;
+}
+
 /* ============================================
    Search input autofill (light mode)
    ============================================ */
