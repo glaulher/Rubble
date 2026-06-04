@@ -258,9 +258,10 @@ function renderPvFinancialChart(data) {
             boxHeight: 12,
             color: pvChartColors().label,
             generateLabels: (chart) => {
+              const c = pvChartColors();
               return [
-                { text: 'Faturado', fillStyle: '#163369', strokeStyle: '#163369', lineWidth: 0, datasetIndex: 0 },
-                { text: 'Previsão', fillStyle: '#8b5cf6', strokeStyle: '#8b5cf6', lineWidth: 0, datasetIndex: 1 },
+                { text: 'Faturado', fillStyle: '#163369', strokeStyle: '#163369', lineWidth: 0, datasetIndex: 0, fontColor: c.label },
+                { text: 'Previsão', fillStyle: '#8b5cf6', strokeStyle: '#8b5cf6', lineWidth: 0, datasetIndex: 1, fontColor: c.label },
               ];
             },
           },
