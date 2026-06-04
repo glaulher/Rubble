@@ -14,6 +14,7 @@ use App\Api\Controllers\UserController;
 use App\Api\Controllers\ScmController;
 use App\Api\Auth\AuthService;
 use App\Api\Helpers\Response;
+use App\Api\Helpers\RateLimiter;
 
 Env::load(__DIR__ . '/../../.env');
 
@@ -90,6 +91,31 @@ try {
 
         if (!AuthService::requireRole($user, $route, $method, $action)) {
             Response::error('Permissão negada', 403);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RATE LIMITING MIDDLEWARE
+    |--------------------------------------------------------------------------
+    */
+
+    $rateLimits = [
+        'pv'                    => ['POST' => 30, 'PUT' => 30, 'PATCH' => 30, 'DELETE' => 10],
+        'tickets'               => ['POST' => 10, 'PUT' => 10, 'DELETE' => 10],
+        'users'                 => ['POST' => 10, 'PUT' => 10, 'DELETE' => 10],
+        'equipment-management'  => ['POST' => 10, 'PUT' => 10, 'DELETE' => 10],
+        'scm'                   => ['POST' => 5, 'DELETE' => 10],
+    ];
+
+    if (isset($rateLimits[$route][$method])) {
+        $rawIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+        $ip = trim(explode(',', $rawIp)[0]);
+        $endpoint = $route . ':' . $method;
+        $maxAttempts = $rateLimits[$route][$method];
+
+        if (RateLimiter::isLimited($ip, $endpoint, $maxAttempts, 60)) {
+            Response::error('Muitas requisições. Aguarde um momento.', 429);
         }
     }
 

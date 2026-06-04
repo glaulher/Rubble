@@ -3,6 +3,7 @@
 namespace App\Api\Auth;
 
 use App\Config\Database;
+use App\Api\Helpers\Cache;
 
 class AuthService
 {
@@ -73,6 +74,15 @@ class AuthService
         }
 
         return JwtHelper::decode($token, $jwtSecret);
+    }
+
+    public static function blacklistToken(object $payload): void
+    {
+        if (!isset($payload->jti) || !isset($payload->exp)) {
+            return;
+        }
+        $ttl = max((int)$payload->exp - time(), 1);
+        Cache::set('revoked:' . $payload->jti, true, $ttl);
     }
 
     public static function requireRole(object $user, string $route, string $method, ?string $action): bool

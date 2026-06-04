@@ -44,11 +44,26 @@
     <input type="date" id="scmDateTo"
       class="bg-white text-sm rounded-lg px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40" />
   </div>
-  <div class="flex flex-col">
+  <div class="flex flex-col relative" id="scmSegmentContainer">
     <label class="text-xs text-slate-500 mb-1">Segmento</label>
-    <input type="text" id="scmSegmentFilter" list="segmentoList" placeholder="Todos"
-      class="bg-white text-sm rounded-lg px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-48" />
-    <datalist id="segmentoList"></datalist>
+    <button type="button" id="scmSegmentBtn"
+      class="bg-white text-sm rounded-lg px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-48 text-left flex items-center justify-between gap-2">
+      <span id="scmSegmentLabel" class="truncate">Todos</span>
+      <svg class="w-4 h-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <div id="scmSegmentDropdown" class="hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+    </div>
+  </div>
+  <div class="flex flex-col">
+    <label class="text-xs text-slate-500 mb-1">Status</label>
+    <select id="scmStatusFilter"
+      class="bg-white text-sm rounded-lg px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-44">
+      <option value="">Todos</option>
+      <option value="SCM Aprovado">SCM Aprovado</option>
+      <option value="SCM Negado">SCM Negado</option>
+      <option value="SCM Verificado">SCM Verificado</option>
+      <option value="SCM Enviado">SCM Enviado</option>
+    </select>
   </div>
   <div class="flex flex-col flex-1">
     <label class="text-xs text-slate-500 mb-1">Buscar</label>

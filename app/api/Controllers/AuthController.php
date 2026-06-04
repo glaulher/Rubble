@@ -6,8 +6,8 @@ use App\Api\Auth\AuthService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\TurnstileHelper;
+use App\Api\Helpers\RateLimiter;
 use App\Config\Env;
-use App\Config\Database;
 use Exception;
 
 class AuthController
@@ -24,9 +24,10 @@ class AuthController
                 Response::validation('Usuário e senha são obrigatórios');
             }
 
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+            $rawIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+            $ip = trim(explode(',', $rawIp)[0]);
 
-            if (self::isRateLimited($ip)) {
+            if (RateLimiter::isLimited($ip, 'auth:login', 5, 300)) {
                 Response::error('Muitas tentativas. Tente novamente em 5 minutos.', 429);
             }
 
@@ -42,19 +43,16 @@ class AuthController
 
             $jwtSecret = Env::get('JWT_SECRET', '');
             if (empty($jwtSecret)) {
-                Response::error('Erro interno: JWT_SECRET não configurado', 500);
+                Response::error('Erro interno do servidor', 500);
             }
 
             $result = AuthService::login($username, $password, $jwtSecret);
 
-            self::logAttempt($ip, false);
-
             if (!$result) {
+                RateLimiter::hit($ip, 'auth:login');
                 sleep(1);
                 Response::unauthorized('Usuário ou senha inválidos');
             }
-
-            self::logAttempt($ip, true);
 
             Response::success('Login realizado com sucesso', $result);
         } catch (Exception $e) {
@@ -77,7 +75,7 @@ class AuthController
 
         $jwtSecret = Env::get('JWT_SECRET', '');
         if (empty($jwtSecret)) {
-            Response::error('Erro interno: JWT_SECRET não configurado', 500);
+            Response::error('Erro interno do servidor', 500);
         }
         $user = AuthService::validateToken($parts[1], $jwtSecret);
 
@@ -97,32 +95,19 @@ class AuthController
 
     public function logout(): void
     {
+        $authHeader = AuthService::getAuthHeader();
+        if (!empty($authHeader)) {
+            $parts = explode(' ', $authHeader);
+            if (count($parts) === 2 && $parts[0] === 'Bearer') {
+                $jwtSecret = Env::get('JWT_SECRET', '');
+                if (!empty($jwtSecret)) {
+                    $payload = AuthService::validateToken($parts[1], $jwtSecret);
+                    if ($payload) {
+                        AuthService::blacklistToken($payload);
+                    }
+                }
+            }
+        }
         Response::success('Logout realizado com sucesso');
-    }
-
-    private static function isRateLimited(string $ip): bool
-    {
-        $conn = Database::connect();
-        $stmt = $conn->prepare(
-            'SELECT COUNT(*) AS attempts FROM login_attempts
-             WHERE ip_address = ? AND success = 0 AND attempted_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)'
-        );
-        $stmt->bind_param('s', $ip);
-        $stmt->execute();
-        $result = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-
-        return ($result['attempts'] ?? 0) >= 5;
-    }
-
-    private static function logAttempt(string $ip, bool $success): void
-    {
-        $conn = Database::connect();
-        $stmt = $conn->prepare(
-            'INSERT INTO login_attempts (ip_address, success) VALUES (?, ?)'
-        );
-        $stmt->bind_param('si', $ip, $success);
-        $stmt->execute();
-        $stmt->close();
     }
 }

@@ -2,11 +2,14 @@
 
 namespace App\Api\Auth;
 
+use App\Api\Helpers\Cache;
+
 class JwtHelper
 {
     public static function encode(array $payload, string $secret, int $ttl = 43200): string
     {
         $header = ['typ' => 'JWT', 'alg' => 'HS256'];
+        $payload['jti'] = bin2hex(random_bytes(16));
         $payload['iat'] = time();
         $payload['exp'] = time() + $ttl;
 
@@ -34,6 +37,11 @@ class JwtHelper
 
         [$headerB64, $payloadB64, $signatureB64] = $parts;
 
+        $header = json_decode(self::base64urlDecode($headerB64));
+        if (!$header || ($header->alg ?? '') !== 'HS256') {
+            return null;
+        }
+
         $signingInput = "$headerB64.$payloadB64";
         $signature = self::base64urlDecode($signatureB64);
 
@@ -52,6 +60,10 @@ class JwtHelper
         }
 
         if (isset($payload->exp) && $payload->exp < time()) {
+            return null;
+        }
+
+        if (isset($payload->jti) && Cache::has('revoked:' . $payload->jti)) {
             return null;
         }
 

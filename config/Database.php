@@ -22,10 +22,8 @@ class Database
         self::$instance = new mysqli($host, $user, $pass, $name);
 
         if (self::$instance->connect_errno) {
-            throw new \RuntimeException(
-                'Erro de conexão com o banco de dados: ' .
-                self::$instance->connect_error
-            );
+            error_log('DB connection failed: ' . self::$instance->connect_error);
+            throw new \RuntimeException('Erro de conexão com o banco de dados');
         }
 
         self::$instance->set_charset('utf8mb4');

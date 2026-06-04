@@ -29,9 +29,11 @@ class ScmController
         $search = trim($_GET['search'] ?? '');
         $dateFrom = trim($_GET['date_from'] ?? '');
         $dateTo = trim($_GET['date_to'] ?? '');
-        $segmento = trim($_GET['segmento'] ?? '');
+        $segmentoRaw = trim($_GET['segmento'] ?? '');
+        $segments = $segmentoRaw !== '' ? array_filter(array_map('trim', explode(',', $segmentoRaw))) : [];
+        $status = trim($_GET['status'] ?? '');
 
-        $data = $this->service->listAll($limit, $offset, $search, $dateFrom ?: null, $dateTo ?: null, $segmento ?: null);
+        $data = $this->service->listAll($limit, $offset, $search, $dateFrom ?: null, $dateTo ?: null, $segments, $status ?: null);
 
         Response::json([
             'success'     => true,

@@ -51,6 +51,24 @@ class Cache
         self::fileDelete($key);
     }
 
+    public static function has(string $key): bool
+    {
+        if (self::isApcuAvailable()) {
+            $cached = apcu_fetch($key);
+            return $cached !== false;
+        }
+        $path = self::filePath($key);
+        if (!file_exists($path)) {
+            return false;
+        }
+        $data = @file_get_contents($path);
+        if ($data === false) {
+            return false;
+        }
+        $cached = json_decode($data, true);
+        return $cached && isset($cached['expires']) && $cached['expires'] >= time();
+    }
+
     public static function deleteByPrefix(string $prefix): void
     {
         if (self::isApcuAvailable()) {
@@ -95,7 +113,7 @@ class Cache
     {
         $dir = self::fileDir();
         if (!is_dir($dir)) {
-            @mkdir($dir, 0777, true);
+            @mkdir($dir, 0750, true);
         }
         $data = json_encode([
             'expires' => time() + $ttl,
@@ -135,7 +153,7 @@ class Cache
     {
         $dir = __DIR__ . '/../../../cache';
         if (!is_dir($dir)) {
-            @mkdir($dir, 0777, true);
+            @mkdir($dir, 0750, true);
         }
         return realpath($dir) ?: $dir;
     }

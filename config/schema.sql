@@ -262,7 +262,7 @@ CREATE TABLE `usuarios` (
   `nome` varchar(100) NOT NULL,
   `role` enum('admin','supervisor','coordenador','cliente') NOT NULL DEFAULT 'cliente',
   `created_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Índices para tabelas despejadas
@@ -515,7 +515,7 @@ ALTER TABLE `scm`
 -- Restrições para tabelas `scm`
 --
 ALTER TABLE `scm`
-  ADD CONSTRAINT `fk_scm_equipamento` FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`);
+  ADD CONSTRAINT `fk_scm_equipamento` FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`) ON DELETE SET NULL;
 
 --
 -- Índices de tabela `scm_items`
@@ -535,6 +535,33 @@ ALTER TABLE `scm_items`
 --
 ALTER TABLE `scm_items`
   ADD CONSTRAINT `fk_scm_items_scm` FOREIGN KEY (`scm_id`) REFERENCES `scm` (`id`) ON DELETE CASCADE;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `rate_limits`
+--
+
+CREATE TABLE `rate_limits` (
+  `id` int(11) NOT NULL,
+  `ip_address` varchar(45) NOT NULL,
+  `endpoint` varchar(100) NOT NULL,
+  `window_start` datetime NOT NULL,
+  `attempt_count` int(11) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Índices de tabela `rate_limits`
+--
+ALTER TABLE `rate_limits`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_rate_limit` (`ip_address`, `endpoint`, `window_start`);
+
+--
+-- AUTO_INCREMENT de tabela `rate_limits`
+--
+ALTER TABLE `rate_limits`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 COMMIT;
 

@@ -33,6 +33,10 @@ class UserService
             throw new Exception('Este e-mail já está em uso');
         }
 
+        if (strlen($data['password']) < 6) {
+            throw new Exception('Senha deve ter pelo menos 6 caracteres');
+        }
+
         $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
 
         return $this->repository->insert($data);
@@ -43,6 +47,10 @@ class UserService
         $existing = $this->repository->findByUsername($data['username']);
         if ($existing && (int)$existing['id'] !== $id) {
             throw new Exception('Este e-mail já está em uso');
+        }
+
+        if (strlen($data['password']) < 6) {
+            throw new Exception('Senha deve ter pelo menos 6 caracteres');
         }
 
         $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);

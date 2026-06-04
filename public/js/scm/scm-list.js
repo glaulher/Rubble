@@ -8,7 +8,9 @@ let lastScmHash = '';
 let currentScmSearch = '';
 let scmDateFrom = '';
 let scmDateTo = '';
-let scmSegmentFilter = '';
+let scmSegmentFilter = new Set();
+let scmStatusFilter = '';
+let scmAllSegments = [];
 
 function initScm() {
     scmList = [];
@@ -19,14 +21,16 @@ function initScm() {
     currentScmSearch = '';
     scmDateFrom = '';
     scmDateTo = '';
-    scmSegmentFilter = '';
+    scmSegmentFilter = new Set();
+    scmStatusFilter = '';
+    scmAllSegments = [];
 
     const content = document.getElementById('scmContent');
     const searchInput = document.getElementById('searchInputScm');
     const importBtn = document.getElementById('importScmBtn');
     const dateFromInput = document.getElementById('scmDateFrom');
     const dateToInput = document.getElementById('scmDateTo');
-    const segmentInput = document.getElementById('scmSegmentFilter');
+    const statusSelect = document.getElementById('scmStatusFilter');
 
     if (content) content.innerHTML = '';
 
@@ -64,35 +68,19 @@ function initScm() {
         });
     }
 
-    let segmentDebounce;
-    if (segmentInput) {
-        segmentInput.addEventListener('input', () => {
-            clearTimeout(segmentDebounce);
-            segmentDebounce = setTimeout(() => {
-                scmSegmentFilter = segmentInput.value;
-                resetScmState();
-                loadScm();
-            }, 500);
+    if (statusSelect) {
+        statusSelect.value = scmStatusFilter;
+        statusSelect.addEventListener('change', () => {
+            scmStatusFilter = statusSelect.value;
+            resetScmState();
+            loadScm();
         });
     }
 
     document.getElementById('scmDateFrom').value = scmDateFrom;
     document.getElementById('scmDateTo').value = scmDateTo;
-    document.getElementById('scmSegmentFilter').value = scmSegmentFilter;
 
-    fetch('/app/api/index.php?route=scm&action=segments')
-        .then(r => r.json())
-        .then(res => {
-            if (res.success) {
-                const datalist = document.getElementById('segmentoList');
-                datalist.innerHTML = '';
-                res.data.forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s;
-                    datalist.appendChild(opt);
-                });
-            }
-        });
+    initSegmentMultiSelect();
 
     if (importBtn) {
         importBtn.addEventListener('click', () => importScm());
@@ -106,6 +94,90 @@ function initScm() {
 
     PollingManager.start('scm', () => loadScm(true), 30000);
     loadScm();
+}
+
+function initSegmentMultiSelect() {
+    const btn = document.getElementById('scmSegmentBtn');
+    const dropdown = document.getElementById('scmSegmentDropdown');
+    const label = document.getElementById('scmSegmentLabel');
+    if (!btn || !dropdown) return;
+
+    fetch('/app/api/index.php?route=scm&action=segments')
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                scmAllSegments = res.data || [];
+                renderSegmentDropdown();
+            }
+        });
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    updateSegmentLabel();
+}
+
+function renderSegmentDropdown() {
+    const dropdown = document.getElementById('scmSegmentDropdown');
+    if (!dropdown) return;
+
+    let html = '';
+
+    html += `<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100">
+        <input type="checkbox" class="segment-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="__all__">
+        <span class="text-sm text-slate-700 font-medium">Todos</span>
+    </label>`;
+
+    scmAllSegments.forEach(seg => {
+        const checked = scmSegmentFilter.has(seg) ? 'checked' : '';
+        html += `<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">
+            <input type="checkbox" class="segment-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="${escapeHtml(seg)}" ${checked}>
+            <span class="text-sm text-slate-700">${escapeHtml(seg)}</span>
+        </label>`;
+    });
+
+    dropdown.innerHTML = html;
+
+    dropdown.querySelectorAll('.segment-check').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const val = cb.dataset.value;
+            if (val === '__all__') {
+                if (cb.checked) {
+                    scmSegmentFilter.clear();
+                }
+            } else {
+                if (cb.checked) {
+                    scmSegmentFilter.add(val);
+                } else {
+                    scmSegmentFilter.delete(val);
+                }
+            }
+            renderSegmentDropdown();
+            updateSegmentLabel();
+            resetScmState();
+            loadScm();
+        });
+    });
+}
+
+function updateSegmentLabel() {
+    const label = document.getElementById('scmSegmentLabel');
+    if (!label) return;
+    if (scmSegmentFilter.size === 0) {
+        label.textContent = 'Todos';
+        label.classList.remove('text-blue-600');
+    } else {
+        label.textContent = `${scmSegmentFilter.size} selecionado(s)`;
+        label.classList.add('text-blue-600');
+    }
 }
 
 function resetScmState() {
@@ -126,7 +198,8 @@ async function loadScm(isPolling = false) {
         let url = `/app/api/index.php?route=scm&limit=20&offset=${offset}&search=${encodeURIComponent(currentScmSearch)}`;
         if (scmDateFrom) url += `&date_from=${encodeURIComponent(scmDateFrom)}`;
         if (scmDateTo) url += `&date_to=${encodeURIComponent(scmDateTo)}`;
-        if (scmSegmentFilter) url += `&segmento=${encodeURIComponent(scmSegmentFilter)}`;
+        if (scmSegmentFilter.size > 0) url += `&segmento=${encodeURIComponent([...scmSegmentFilter].join(','))}`;
+        if (scmStatusFilter) url += `&status=${encodeURIComponent(scmStatusFilter)}`;
         const response = await fetch(url);
         const result = await response.json();
 

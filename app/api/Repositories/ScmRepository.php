@@ -11,9 +11,9 @@ class ScmRepository extends BaseRepository
         $this->conn = Database::connect();
     }
 
-    public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, ?string $segmento = null): array
+    public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null): array
     {
-        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segmento);
+        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status);
 
         $sql = "SELECT s.*, 
                        e.equipamento, e.capacidade, e.local, e.localidade, e.mercado,
@@ -45,9 +45,9 @@ class ScmRepository extends BaseRepository
         return $items;
     }
 
-    public function count(string $search = '', ?string $dateFrom = null, ?string $dateTo = null, ?string $segmento = null): int
+    public function count(string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null): int
     {
-        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segmento);
+        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status);
 
         $sql = "SELECT COUNT(*) as total FROM scm s
                 LEFT JOIN equipamentos e ON e.id = s.equipamento_id
@@ -61,9 +61,9 @@ class ScmRepository extends BaseRepository
         return (int) $stmt->get_result()->fetch_assoc()['total'];
     }
 
-    public function getTotalValue(string $search = '', ?string $dateFrom = null, ?string $dateTo = null, ?string $segmento = null): float
+    public function getTotalValue(string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null): float
     {
-        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segmento);
+        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status);
 
         $sql = "SELECT COALESCE(SUM(si.subtotal_execucao), 0) as total_valor 
                 FROM scm s
@@ -227,7 +227,7 @@ class ScmRepository extends BaseRepository
         return $stmt->execute();
     }
 
-    private function buildFilterClause(string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $segmento = null): array
+    private function buildFilterClause(string $search, ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null): array
     {
         $conditions = [];
         $types = '';
@@ -254,9 +254,16 @@ class ScmRepository extends BaseRepository
             $types .= 's';
         }
 
-        if ($segmento !== null && $segmento !== '') {
-            $conditions[] = 's.segmento LIKE ?';
-            $params[] = "%{$segmento}%";
+        if (!empty($segments)) {
+            $placeholders = implode(',', array_fill(0, count($segments), '?'));
+            $conditions[] = "s.segmento IN ({$placeholders})";
+            $params = array_merge($params, array_values($segments));
+            $types .= str_repeat('s', count($segments));
+        }
+
+        if ($status !== null && $status !== '') {
+            $conditions[] = 's.status = ?';
+            $params[] = $status;
             $types .= 's';
         }
 

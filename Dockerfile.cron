@@ -1,7 +1,9 @@
-FROM php:8.3-cli
+FROM php:8.4-cli
 
 RUN docker-php-ext-install mysqli && \
     docker-php-ext-enable mysqli
+
+RUN adduser --disabled-password --gecos '' appuser
 
 ADD https://github.com/aptible/supercronic/releases/latest/download/supercronic-linux-amd64 /usr/local/bin/supercronic
 RUN chmod +x /usr/local/bin/supercronic
@@ -21,13 +23,19 @@ RUN rm -rf \
     /var/www/html/README.md \
     /var/www/html/AGENTS.md \
     /var/www/html/contexto.md \
-    /var/www/html/.env.example
+    /var/www/html/.env.example \
+    /var/www/html/docs \
+    /var/www/html/.opencode \
+    /var/www/html/cache
 
-RUN mkdir -p /var/www/html/OS /var/www/html/LAUDO && \
-    touch /var/www/html/.env
+RUN mkdir -p /var/www/html/OS /var/www/html/LAUDO /var/www/html/cache && \
+    touch /var/www/html/.env && \
+    chown -R appuser:appuser /var/www/html && \
+    chmod 600 /var/www/html/.env
 
 COPY config/crontab /etc/crontab
 
+USER appuser
 WORKDIR /var/www/html
 
 CMD ["supercronic", "/etc/crontab"]
