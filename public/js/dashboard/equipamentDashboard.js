@@ -18,6 +18,20 @@ function hbarGradient(ctx, chartArea) {
   return gradient;
 }
 
+function isDarkMode() {
+  return document.documentElement.classList.contains('dark');
+}
+
+function chartColors() {
+  const dark = isDarkMode();
+  return {
+    grid: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+    tick: dark ? '#94a3b8' : '#64748b',
+    title: dark ? '#cbd5e1' : '#475569',
+    label: dark ? '#e2e8f0' : '#334155',
+  };
+}
+
 let dashboardCharts = [];
 
 function destroyCharts() {
@@ -133,22 +147,24 @@ function renderParetoChart(data) {
       scales: {
         y: {
           beginAtZero: true,
-          title: { display: true, text: 'Ocorrências' },
-          grid: { color: 'rgba(0,0,0,0.05)' },
+          title: { display: true, text: 'Ocorrências', color: chartColors().title },
+          grid: { color: chartColors().grid },
+          ticks: { color: chartColors().tick },
         },
         y1: {
           beginAtZero: true,
           max: 100,
           position: 'right',
-          title: { display: true, text: '% Acumulado' },
+          title: { display: true, text: '% Acumulado', color: chartColors().title },
           grid: { drawOnChartArea: false },
           ticks: {
             callback: (v) => v + '%',
+            color: chartColors().tick,
           },
         },
         x: {
           grid: { display: false },
-          ticks: { maxRotation: 45 },
+          ticks: { maxRotation: 45, color: chartColors().tick },
         },
       },
       layout: {
@@ -198,11 +214,13 @@ function renderHorizontalBarChart(ctxId, data, getLabel, getValue, xTitle, toolt
       scales: {
         x: {
           beginAtZero: true,
-          title: { display: true, text: xTitle },
-          grid: { color: 'rgba(0,0,0,0.05)' },
+          title: { display: true, text: xTitle, color: chartColors().title },
+          grid: { color: chartColors().grid },
+          ticks: { color: chartColors().tick },
         },
         y: {
           grid: { display: false },
+          ticks: { color: chartColors().tick },
         },
       },
     },
@@ -292,12 +310,13 @@ function renderResolutionByMonth(data) {
       scales: {
         y: {
           beginAtZero: true,
-          title: { display: true, text: 'Dias' },
-          grid: { color: 'rgba(0,0,0,0.05)' },
+          title: { display: true, text: 'Dias', color: chartColors().title },
+          grid: { color: chartColors().grid },
+          ticks: { color: chartColors().tick },
         },
         x: {
           grid: { display: false },
-          ticks: { maxRotation: 45 },
+          ticks: { maxRotation: 45, color: chartColors().tick },
         },
       },
     },

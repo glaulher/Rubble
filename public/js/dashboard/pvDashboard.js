@@ -18,6 +18,20 @@ function pvHbarGradient(ctx, chartArea) {
   return gradient;
 }
 
+function isDarkMode() {
+  return document.documentElement.classList.contains('dark');
+}
+
+function pvChartColors() {
+  const dark = isDarkMode();
+  return {
+    grid: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+    tick: dark ? '#94a3b8' : '#64748b',
+    title: dark ? '#cbd5e1' : '#475569',
+    label: dark ? '#e2e8f0' : '#334155',
+  };
+}
+
 let pvCharts = [];
 let pvMiniCharts = [];
 
@@ -242,6 +256,7 @@ function renderPvFinancialChart(data) {
             usePointStyle: false,
             boxWidth: 20,
             boxHeight: 12,
+            color: pvChartColors().label,
             generateLabels: (chart) => {
               return [
                 { text: 'Faturado', fillStyle: '#163369', strokeStyle: '#163369', lineWidth: 0, datasetIndex: 0 },
@@ -259,15 +274,16 @@ function renderPvFinancialChart(data) {
       scales: {
         y: {
           beginAtZero: true,
-          title: { display: true, text: 'Valor (R$)' },
-          grid: { color: 'rgba(0,0,0,0.05)' },
+          title: { display: true, text: 'Valor (R$)', color: pvChartColors().title },
+          grid: { color: pvChartColors().grid },
           ticks: {
             callback: (v) => 'R$ ' + pvFormatCurrency(v),
+            color: pvChartColors().tick,
           },
         },
         x: {
           grid: { display: false },
-          ticks: { maxRotation: 45 },
+          ticks: { maxRotation: 45, color: pvChartColors().tick },
         },
       },
     },
@@ -342,25 +358,27 @@ function renderPvParetoChart(data) {
       scales: {
         y: {
           beginAtZero: true,
-          title: { display: true, text: 'Valor (R$)' },
-          grid: { color: 'rgba(0,0,0,0.05)' },
+          title: { display: true, text: 'Valor (R$)', color: pvChartColors().title },
+          grid: { color: pvChartColors().grid },
           ticks: {
             callback: (v) => 'R$ ' + pvFormatCurrency(v),
+            color: pvChartColors().tick,
           },
         },
         y1: {
           beginAtZero: true,
           max: 100,
           position: 'right',
-          title: { display: true, text: '% Acumulado' },
+          title: { display: true, text: '% Acumulado', color: pvChartColors().title },
           grid: { drawOnChartArea: false },
           ticks: {
             callback: (v) => v + '%',
+            color: pvChartColors().tick,
           },
         },
         x: {
           grid: { display: false },
-          ticks: { maxRotation: 45 },
+          ticks: { maxRotation: 45, color: pvChartColors().tick },
         },
       },
       layout: {
@@ -416,14 +434,16 @@ function renderPvHorizontalChart(ctxId, data, getLabel, getValue, xTitle, getQua
       scales: {
         x: {
           beginAtZero: true,
-          title: { display: true, text: xTitle },
-          grid: { color: 'rgba(0,0,0,0.05)' },
+          title: { display: true, text: xTitle, color: pvChartColors().title },
+          grid: { color: pvChartColors().grid },
           ticks: {
             callback: (v) => 'R$ ' + pvFormatCurrency(v),
+            color: pvChartColors().tick,
           },
         },
         y: {
           grid: { display: false },
+          ticks: { color: pvChartColors().tick },
         },
       },
     },
@@ -439,7 +459,7 @@ function renderPvHorizontalChart(ctxId, data, getLabel, getValue, xTitle, getQua
         meta.data.forEach((bar, i) => {
           const q = quantities[i];
           if (q <= 0) return;
-          ctx.fillStyle = '#1e293b';
+          ctx.fillStyle = pvChartColors().label;
           const x = bar.x + 12;
           const y = bar.y;
           ctx.fillText(parseInt(q), x, y);

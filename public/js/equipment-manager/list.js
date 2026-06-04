@@ -106,13 +106,13 @@ function renderEquipments() {
     actions += '</div>';
 
     return '<tr data-equipment-id="' + eq.id + '">' +
-      '<td class="px-6 py-4 text-slate-900 font-medium">' + escapeHtml(eq.equipamento || '-') + '</td>' +
-      '<td class="hidden md:table-cell px-6 py-4 text-slate-600">' + capacidade + '</td>' +
-      '<td class="hidden md:table-cell px-6 py-4 text-slate-600">' + escapeHtml(eq.local || '-') + '</td>' +
-      '<td class="px-6 py-4 text-slate-600">' + escapeHtml(eq.localidade || '-') + '</td>' +
-      '<td class="hidden md:table-cell px-6 py-4 text-slate-600">' + escapeHtml(eq.mercado || '-') + '</td>' +
-      '<td class="hidden md:table-cell px-6 py-4 text-slate-600 max-w-xs truncate">' + escapeHtml(enderecoCompleto) + '</td>' +
-      '<td class="px-6 py-4 text-right">' + actions + '</td>' +
+      '<td class="px-3 py-3 text-slate-900 font-medium whitespace-nowrap">' + escapeHtml(eq.equipamento || '-') + '</td>' +
+      '<td class="hidden lg:table-cell px-3 py-3 text-slate-600 whitespace-nowrap">' + capacidade + '</td>' +
+      '<td class="hidden lg:table-cell px-3 py-3 text-slate-600">' + escapeHtml(eq.local || '-') + '</td>' +
+      '<td class="px-3 py-3 text-slate-600">' + escapeHtml(eq.localidade || '-') + '</td>' +
+      '<td class="hidden xl:table-cell px-3 py-3 text-slate-600">' + escapeHtml(eq.mercado || '-') + '</td>' +
+      '<td class="hidden xl:table-cell px-3 py-3 text-slate-600 max-w-[200px] truncate">' + escapeHtml(enderecoCompleto) + '</td>' +
+      '<td class="px-3 py-3 text-right">' + actions + '</td>' +
       '</tr>';
   }).join('');
 
