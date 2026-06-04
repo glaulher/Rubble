@@ -513,6 +513,7 @@
 
       if (toggle) {
         toggle.addEventListener('click', function() {
+          if (window.location.hash === '#/login') return;
           document.documentElement.classList.toggle('dark');
           var isDark = document.documentElement.classList.contains('dark');
           localStorage.setItem('theme', isDark ? 'dark' : 'light');

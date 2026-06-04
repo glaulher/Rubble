@@ -121,6 +121,11 @@ async function router() {
   }
 
   app.innerHTML = html;
+
+  if (hash === '#/login') {
+    document.documentElement.classList.remove('dark');
+  }
+
   applyRoleVisibility();
 
   /*

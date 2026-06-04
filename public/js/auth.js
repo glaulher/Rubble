@@ -312,6 +312,10 @@ function updateUserDisplay() {
 
   toggleSidebar(!!user && !isLoginPage);
 
+  if (!isLoginPage && localStorage.getItem('theme') === 'dark') {
+    document.documentElement.classList.add('dark');
+  }
+
   if (displayEl) {
     if (user) {
       const roleLabels = {
