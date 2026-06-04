@@ -337,38 +337,3 @@ button:disabled { cursor: not-allowed; }
 .dark .pagination-btn { background-color: #1a1f2e !important; color: #94a3b8 !important; border-color: #2d3548 !important; }
 .dark .pagination-btn:hover { background-color: #222838 !important; color: #e2e8f0 !important; }
 .dark .pagination-btn.active { background-color: #3b82f6 !important; color: white !important; }
-
-/* ============================================
-   Login page: keep light-mode colors in dark mode
-   (placed last to win !important cascade)
-   ============================================ */
-
-.dark .login-page input[type="text"],
-.dark .login-page input[type="password"] {
-  color: #1e293b !important;
-  caret-color: #1e293b !important;
-  background-color: transparent !important;
-}
-
-.dark .login-page input::placeholder {
-  color: rgba(30, 41, 59, 0.6) !important;
-}
-
-.dark .login-page input:-webkit-autofill,
-.dark .login-page input:-webkit-autofill:hover,
-.dark .login-page input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #1e293b !important;
-  caret-color: #1e293b !important;
-}
-
-.dark .login-page svg {
-  fill: #1e293b !important;
-}
-
-.dark .login-page h1 {
-  color: #1e293b !important;
-}
-
-.dark .login-page .border-b-2 {
-  border-color: #1e293b !important;
-}
