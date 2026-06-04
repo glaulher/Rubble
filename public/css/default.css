@@ -213,6 +213,40 @@ body {
 }
 
 /* ============================================
+   Login page: keep light-mode colors in dark mode
+   ============================================ */
+
+.dark .login-page input[type="text"],
+.dark .login-page input[type="password"] {
+  color: #1e293b !important;
+  caret-color: #1e293b !important;
+  background-color: transparent !important;
+}
+
+.dark .login-page input::placeholder {
+  color: rgba(30, 41, 59, 0.6) !important;
+}
+
+.dark .login-page input:-webkit-autofill,
+.dark .login-page input:-webkit-autofill:hover,
+.dark .login-page input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1e293b !important;
+  caret-color: #1e293b !important;
+}
+
+.dark .login-page svg {
+  fill: #1e293b !important;
+}
+
+.dark .login-page h1 {
+  color: #1e293b !important;
+}
+
+.dark .login-page .border-b-2 {
+  border-color: #1e293b !important;
+}
+
+/* ============================================
    Button cursor
    ============================================ */
 
