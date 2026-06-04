@@ -141,6 +141,17 @@ body {
   background: linear-gradient(90deg, #0f1117, #1c013c, #28005b) !important;
 }
 
+/* Dashboard text on dark gradient backgrounds */
+.dark [style*="linear-gradient"] .text-slate-500,
+.dark [style*="linear-gradient"] .text-slate-400,
+.dark [style*="linear-gradient"] .text-slate-400\/80 {
+  color: #cbd5e1 !important;
+}
+.dark [style*="linear-gradient"] .text-slate-800,
+.dark [style*="linear-gradient"] .text-gray-600 {
+  color: #f1f5f9 !important;
+}
+
 /* ============================================
    Search input autofill (light mode)
    ============================================ */
