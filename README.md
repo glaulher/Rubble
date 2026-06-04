@@ -22,13 +22,14 @@ HVAC equipment maintenance management SPA. PHP + Vanilla JS + MariaDB.
 - **Real-Time Polling** — 30s interval with APCu cache (file fallback), Visibility API pause/resume, incremental DOM updates
 - **Email Notifications** — Cron-based SMTP dispatch for scheduled OS
 - **Security Hardening** — CORS validation, login rate limiting (5/5min), error sanitization, CSP headers, HSTS, Apache hardening
+- **Dark Mode** — Toggle with localStorage persistence, prefers-color-scheme fallback, login page immune (always light), CSS variable system
 - **Dashboard PDF** — Full dashboard capture with smart page breaks
 
 ## Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | PHP 8.5 (pure, mysqli) |
+| Backend | PHP 8.4 (pure, mysqli) |
 | Frontend | Vanilla JS + Tailwind CSS v4 + Chart.js |
 | Database | MariaDB 11.4, utf8mb4 |
 | Cache | APCu (Docker) / file-based fallback (local) |
@@ -44,7 +45,7 @@ HVAC equipment maintenance management SPA. PHP + Vanilla JS + MariaDB.
 
 ### Prerequisites
 
-- PHP 8.0+ or bundled `php/` binary
+- PHP 8.4+ or bundled `php/` binary
 - MySQL / MariaDB
 - [Bun](https://bun.sh) (for JS tests)
 
@@ -122,7 +123,7 @@ bun test
 │   ├── Services/                  # 9 services
 │   ├── Repositories/              # 9 repositories
 │   ├── Entities/                  # 4 entities
-│   ├── Helpers/                   # Response, Request, Validator, MailerFactory, Cache
+│   ├── Helpers/                   # Response, Request, Validator, MailerFactory, Cache, RateLimiter
 │   └── Cron/check_notification.php
 ├── app/Views/                     # 11 HTML partials (fetched via SPA)
 ├── app/libs/PHPMailer/            # PHPMailer (vendored, not Composer)
@@ -136,6 +137,7 @@ bun test
 │   ├── dashboard/                 # equipamentDashboard, pvDashboard
 │   ├── user/                      # list, form (admin)
 │   ├── equipment-manager/         # list, form (admin/coordenador)
+│   ├── scm/                       # scm-list, scm-import (admin/coordenador)
 │   └── lib/                       # chart.umd.min, html2canvas.min, jspdf.umd.min
 ├── public/css/                    # default.css, fonts.css
 ├── public/fonts/Montserrat.woff2
@@ -166,6 +168,7 @@ Script load order (index.html): `auth.js` → libs → utils → components → 
 | `notify` | GET | Cron trigger |
 | `users` | GET, POST, PUT, DELETE | User CRUD (admin) |
 | `equipment-management` | GET, POST, PUT, DELETE | Equipment CRUD (admin/coordenador) |
+| `scm` | GET, POST, DELETE | SCM list, import, delete (admin/coordenador) |
 
 All routes (except `auth`) require JWT Bearer token. Access controlled by role.
 
@@ -178,6 +181,7 @@ All routes (except `auth`) require JWT Bearer token. Access controlled by role.
 | PV + PV Dashboard | CRUD | no | CRUD (no delete) | no |
 | Manage Users | yes | no | no | no |
 | Manage Equipment | CRUD | no | CRUD (no delete) | no |
+| SCM Status | CRUD | no | CRUD (no delete) | no |
 
 ## Database
 
@@ -195,6 +199,9 @@ Main tables:
 | `civil_lpu`, `material_*_lpu`, `servico_*_lpu` | LPU price catalogs |
 | `cron_controle` | Notification execution control |
 | `login_attempts` | Rate limiting for login |
+| `scm` | SCM status tracking |
+| `scm_items` | SCM line items (FK to scm) |
+| `rate_limits` | Generic rate limiting |
 
 ## License
 
