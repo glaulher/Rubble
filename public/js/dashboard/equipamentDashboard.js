@@ -26,9 +26,9 @@ function chartColors() {
   const dark = isDarkMode();
   return {
     grid: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-    tick: dark ? '#94a3b8' : '#64748b',
-    title: dark ? '#cbd5e1' : '#475569',
-    label: dark ? '#e2e8f0' : '#334155',
+    tick: dark ? '#cbd5e1' : '#64748b',
+    title: dark ? '#e2e8f0' : '#475569',
+    label: dark ? '#f1f5f9' : '#334155',
   };
 }
 

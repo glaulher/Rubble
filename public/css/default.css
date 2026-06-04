@@ -313,6 +313,9 @@ button:disabled { cursor: not-allowed; }
   border-color: #3b4459 !important;
   color: #e2e8f0 !important;
 }
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}
 .dark input::placeholder,
 .dark textarea::placeholder {
   color: #64748b !important;
