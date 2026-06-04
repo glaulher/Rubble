@@ -198,19 +198,7 @@ body {
   outline: none;
 }
 
-.dark #loginUsername:-webkit-autofill,
-.dark #loginPassword:-webkit-autofill,
-.dark #loginUsername:-webkit-autofill:hover,
-.dark #loginPassword:-webkit-autofill:hover {
-  -webkit-text-fill-color: #e2e8f0 !important;
-  caret-color: #e2e8f0 !important;
-}
-
-.dark #loginUsername:-webkit-autofill:focus,
-.dark #loginPassword:-webkit-autofill:focus {
-  -webkit-text-fill-color: #e2e8f0 !important;
-  caret-color: #e2e8f0 !important;
-}
+/* Login autofill dark override moved to EOF — see .login-page rules */
 
 /* ============================================
    Button cursor
@@ -337,3 +325,37 @@ button:disabled { cursor: not-allowed; }
 .dark .pagination-btn { background-color: #1a1f2e !important; color: #94a3b8 !important; border-color: #2d3548 !important; }
 .dark .pagination-btn:hover { background-color: #222838 !important; color: #e2e8f0 !important; }
 .dark .pagination-btn.active { background-color: #3b82f6 !important; color: white !important; }
+
+/* ============================================
+   Login page — ALWAYS light mode, immune to dark
+   Placed at EOF to win cascade (same specificity + !important = last wins)
+   ============================================ */
+
+.dark .login-page,
+.dark .login-page * {
+  color: #1e293b !important;
+  background-color: transparent !important;
+  border-color: #1e293b !important;
+}
+
+.dark .login-page svg {
+  fill: #1e293b !important;
+}
+
+.dark .login-page input::placeholder {
+  color: rgba(30, 41, 59, 0.6) !important;
+}
+
+.dark .login-page input:-webkit-autofill,
+.dark .login-page input:-webkit-autofill:hover,
+.dark .login-page input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1e293b !important;
+  -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+  caret-color: #1e293b !important;
+  background-color: transparent !important;
+}
+
+.dark .login-page button#loginSubmitBtn {
+  background-color: #0f172a !important;
+  color: white !important;
+}
