@@ -1,3 +1,145 @@
+/* ============================================
+   RUBBLE — CSS Variables + Dark Mode
+   ============================================ */
+
+:root {
+  /* Backgrounds */
+  --bg-base: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);
+  --bg-surface: #ffffff;
+  --bg-surface-alt: #f8fafc;
+  --bg-elevated: #ffffff;
+  --bg-input: #ffffff;
+
+  /* Text */
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-on-dark: #ffffff;
+
+  /* Borders */
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.06);
+  --shadow-elevated: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+
+  /* Scrollbar */
+  --scrollbar-bg: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+}
+
+.dark {
+  /* Backgrounds */
+  --bg-base: #0f1117;
+  --bg-surface: #1a1f2e;
+  --bg-surface-alt: #151922;
+  --bg-elevated: #222838;
+  --bg-input: #1a1f2e;
+
+  /* Text */
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-on-dark: #e2e8f0;
+
+  /* Borders */
+  --border: #2d3548;
+  --border-strong: #3b4459;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.3), 0 1px 2px -1px rgba(0,0,0,0.25);
+  --shadow-elevated: 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -4px rgba(0,0,0,0.3);
+
+  /* Scrollbar */
+  --scrollbar-bg: #151922;
+  --scrollbar-thumb: #3b4459;
+}
+
+/* ============================================
+   Base styles using variables
+   ============================================ */
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-bg); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ============================================
+   Dark mode utility classes
+   ============================================ */
+
+/* Card / Surface */
+.dm-surface {
+  background-color: var(--bg-surface);
+  border-color: var(--border);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
+}
+.dm-surface-alt {
+  background-color: var(--bg-surface-alt);
+  color: var(--text-primary);
+}
+.dm-elevated {
+  background-color: var(--bg-elevated);
+  border-color: var(--border);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-elevated);
+}
+.dm-input {
+  background-color: var(--bg-input);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+.dm-input::placeholder { color: var(--text-muted); }
+
+/* Text */
+.dm-text { color: var(--text-primary); }
+.dm-text-secondary { color: var(--text-secondary); }
+.dm-text-muted { color: var(--text-muted); }
+
+/* Borders */
+.dm-border { border-color: var(--border); }
+.dm-border-strong { border-color: var(--border-strong); }
+
+/* ============================================
+   Badge utilities for dark mode
+   ============================================ */
+
+.dark .dm-badge-emerald { background-color: rgba(6,95,70,0.4); color: #6ee7b7; }
+.dark .dm-badge-red { background-color: rgba(153,27,27,0.4); color: #fca5a5; }
+.dark .dm-badge-sky { background-color: rgba(12,74,110,0.4); color: #7dd3fc; }
+.dark .dm-badge-blue { background-color: rgba(30,64,175,0.4); color: #93c5fd; }
+.dark .dm-badge-amber { background-color: rgba(146,64,14,0.4); color: #fcd34d; }
+.dark .dm-badge-purple { background-color: rgba(107,33,168,0.4); color: #c4b5fd; }
+.dark .dm-badge-violet { background-color: rgba(109,40,217,0.4); color: #c4b5fd; }
+.dark .dm-badge-green { background-color: rgba(21,128,61,0.4); color: #86efac; }
+.dark .dm-badge-gray { background-color: rgba(55,65,81,0.5); color: #d1d5db; }
+.dark .dm-badge-teal { background-color: rgba(19,78,74,0.4); color: #5eead4; }
+.dark .dm-badge-indigo { background-color: rgba(49,46,129,0.4); color: #a5b4fc; }
+.dark .dm-badge-slate { background-color: rgba(51,65,85,0.5); color: #e2e8f0; }
+.dark .dm-badge-cyan { background-color: rgba(22,78,99,0.4); color: #67e8f9; }
+.dark .dm-badge-pink { background-color: rgba(157,23,77,0.4); color: #f9a8d4; }
+
+/* Gradient sub-headers (dark variant) */
+.dark .dm-gradient-header {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+}
+
+/* Gradient backgrounds (dark variant) */
+.dark .dm-bg-base { background: var(--bg-base) !important; }
+
+/* ============================================
+   Search input autofill (light mode)
+   ============================================ */
+
 #searchInput:-webkit-autofill,
 #searchInput:-webkit-autofill:hover {
   -webkit-box-shadow: 0 0 0 30px #1e293b inset !important;
@@ -18,6 +160,10 @@
   background-color: #334155;
 }
 
+/* ============================================
+   Login autofill (light mode)
+   ============================================ */
+
 #loginUsername:-webkit-autofill,
 #loginPassword:-webkit-autofill,
 #loginUsername:-webkit-autofill:hover,
@@ -36,5 +182,139 @@
   outline: none;
 }
 
+.dark #loginUsername:-webkit-autofill,
+.dark #loginPassword:-webkit-autofill,
+.dark #loginUsername:-webkit-autofill:hover,
+.dark #loginPassword:-webkit-autofill:hover {
+  -webkit-text-fill-color: #e2e8f0 !important;
+  caret-color: #e2e8f0 !important;
+}
+
+.dark #loginUsername:-webkit-autofill:focus,
+.dark #loginPassword:-webkit-autofill:focus {
+  -webkit-text-fill-color: #e2e8f0 !important;
+  caret-color: #e2e8f0 !important;
+}
+
+/* ============================================
+   Button cursor
+   ============================================ */
+
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
+
+/* ============================================
+   Dark mode toggle button
+   ============================================ */
+
+#themeToggle {
+  transition: transform 0.3s ease;
+}
+#themeToggle:hover {
+  transform: scale(1.1);
+}
+
+/* ============================================
+   Dark mode Tailwind overrides (high specificity)
+   ============================================ */
+
+/* Card / surface backgrounds */
+.dark body .bg-white,
+.dark .bg-white { background-color: #1a1f2e !important; }
+.dark body .bg-gray-100,
+.dark .bg-gray-100 { background-color: #0f1117 !important; }
+.dark body .bg-slate-50,
+.dark .bg-slate-50 { background-color: #151922 !important; }
+.dark body .bg-slate-100,
+.dark .bg-slate-100 { background-color: #1e2536 !important; }
+
+/* Button backgrounds */
+.dark .bg-slate-200 { background-color: #334155 !important; }
+.dark .bg-slate-200:hover { background-color: #475569 !important; }
+
+/* Icon button backgrounds */
+.dark .bg-blue-100 { background-color: rgba(30,64,175,0.3) !important; }
+.dark .bg-blue-100:hover { background-color: rgba(30,64,175,0.5) !important; }
+.dark .bg-red-100 { background-color: rgba(153,27,27,0.3) !important; }
+.dark .bg-red-100:hover { background-color: rgba(153,27,27,0.5) !important; }
+.dark .bg-amber-100 { background-color: rgba(146,64,14,0.3) !important; }
+.dark .bg-amber-100:hover { background-color: rgba(146,64,14,0.5) !important; }
+.dark .bg-emerald-100 { background-color: rgba(6,95,70,0.3) !important; }
+.dark .bg-green-100 { background-color: rgba(21,128,61,0.3) !important; }
+.dark .bg-purple-100 { background-color: rgba(107,33,168,0.3) !important; }
+.dark .bg-violet-100 { background-color: rgba(109,40,217,0.3) !important; }
+.dark .bg-cyan-100 { background-color: rgba(22,78,99,0.3) !important; }
+.dark .bg-indigo-100 { background-color: rgba(49,46,129,0.3) !important; }
+.dark .bg-teal-100 { background-color: rgba(19,78,74,0.3) !important; }
+.dark .bg-yellow-100 { background-color: rgba(146,64,14,0.3) !important; }
+.dark .bg-gray-100 { background-color: rgba(55,65,81,0.4) !important; }
+.dark .bg-pink-100 { background-color: rgba(157,23,77,0.3) !important; }
+
+/* Badge text colors (invert for dark bg) */
+.dark .bg-emerald-100, .dark .bg-emerald-100.text-emerald-700 { color: #6ee7b7 !important; }
+.dark .bg-red-100, .dark .bg-red-100.text-red-700 { color: #fca5a5 !important; }
+.dark .bg-blue-100, .dark .bg-blue-100.text-blue-700, .dark .bg-blue-100.text-blue-800 { color: #93c5fd !important; }
+.dark .bg-sky-100, .dark .bg-sky-100.text-sky-700 { color: #7dd3fc !important; }
+.dark .bg-amber-100, .dark .bg-amber-100.text-amber-700, .dark .bg-amber-100.text-amber-800 { color: #fcd34d !important; }
+.dark .bg-purple-100, .dark .bg-purple-100.text-purple-700 { color: #c4b5fd !important; }
+.dark .bg-violet-100, .dark .bg-violet-100.text-violet-800 { color: #c4b5fd !important; }
+.dark .bg-green-100, .dark .bg-green-100.text-green-700 { color: #86efac !important; }
+.dark .bg-cyan-100, .dark .bg-cyan-100.text-cyan-700 { color: #67e8f9 !important; }
+.dark .bg-indigo-100, .dark .bg-indigo-100.text-indigo-700 { color: #a5b4fc !important; }
+.dark .bg-teal-100, .dark .bg-teal-100.text-teal-700 { color: #5eead4 !important; }
+.dark .bg-yellow-100, .dark .bg-yellow-100.text-yellow-700 { color: #fcd34d !important; }
+.dark .bg-gray-100, .dark .bg-gray-100.text-gray-700 { color: #d1d5db !important; }
+.dark .bg-pink-100, .dark .bg-pink-100.text-pink-700 { color: #f9a8d4 !important; }
+.dark .bg-slate-100, .dark .bg-slate-100.text-slate-700, .dark .bg-slate-100.text-slate-600 { color: #e2e8f0 !important; }
+
+/* Text colors */
+.dark .text-slate-900 { color: #e2e8f0 !important; }
+.dark .text-slate-800 { color: #e2e8f0 !important; }
+.dark .text-slate-700 { color: #cbd5e1 !important; }
+.dark .text-slate-600 { color: #94a3b8 !important; }
+.dark .text-slate-500 { color: #64748b !important; }
+
+/* Border colors */
+.dark .border-slate-200 { border-color: #2d3548 !important; }
+.dark .border-slate-100 { border-color: #252d3d !important; }
+.dark .border-slate-300 { border-color: #3b4459 !important; }
+
+/* Hover states */
+.dark .hover\:bg-slate-100:hover { background-color: #1e2536 !important; }
+.dark .hover\:bg-slate-50:hover { background-color: #1e2536 !important; }
+.dark .hover\:bg-slate-300:hover { background-color: #475569 !important; }
+.dark .hover\:bg-white:hover { background-color: #222838 !important; }
+
+/* Input fields */
+.dark input[type="text"],
+.dark input[type="date"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark select,
+.dark textarea {
+  background-color: #1a1f2e !important;
+  border-color: #3b4459 !important;
+  color: #e2e8f0 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.3) !important;
+}
+
+/* Tables */
+.dark table { color: #e2e8f0 !important; }
+.dark thead { background-color: #151922 !important; }
+.dark tbody tr { border-color: #252d3d !important; }
+.dark tfoot { background-color: #151922 !important; border-color: #2d3548 !important; }
+
+/* Pagination */
+.dark .pagination-btn { background-color: #1a1f2e !important; color: #94a3b8 !important; border-color: #2d3548 !important; }
+.dark .pagination-btn:hover { background-color: #222838 !important; color: #e2e8f0 !important; }
+.dark .pagination-btn.active { background-color: #3b82f6 !important; color: white !important; }
