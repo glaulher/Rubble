@@ -30,10 +30,10 @@ class PvRepository extends BaseRepository
         $types = '';
 
         if ($search !== '') {
-            $conditions[] = "(pv.numero_pv LIKE ? OR pv.local LIKE ? OR pv.ral LIKE ? OR EXISTS (SELECT 1 FROM pv_os po JOIN registros r ON r.id = po.registro_id WHERE po.pv_id = pv.id AND r.os LIKE ?) OR EXISTS (SELECT 1 FROM pv_item pi WHERE pi.pv_id = pv.id AND pi.laudo LIKE ?))";
+            $conditions[] = "(pv.numero_pv LIKE ? OR pv.local LIKE ? OR pv.ral LIKE ? OR EXISTS (SELECT 1 FROM pv_os po JOIN registros r ON r.id = po.registro_id WHERE po.pv_id = pv.id AND r.os LIKE ?) OR EXISTS (SELECT 1 FROM pv_item pi WHERE pi.pv_id = pv.id AND pi.laudo LIKE ?) OR EXISTS (SELECT 1 FROM pv_item pi WHERE pi.pv_id = pv.id AND pi.scm LIKE ?) OR EXISTS (SELECT 1 FROM pv_item pi WHERE pi.pv_id = pv.id AND (pi.descricao_lpu LIKE ? OR pi.descricao LIKE ?)))";
             $param = "%{$search}%";
-            $params = [$param, $param, $param, $param, $param];
-            $types = 'sssss';
+            $params = [$param, $param, $param, $param, $param, $param, $param, $param];
+            $types = 'ssssssss';
         }
 
         if ($status !== null && $status !== '') {
@@ -105,10 +105,11 @@ class PvRepository extends BaseRepository
                 OR EXISTS (SELECT 1 FROM pv_os po JOIN registros r ON r.id = po.registro_id WHERE po.pv_id = pv.id AND r.os LIKE ?)
                 OR pi.scm LIKE ?
                 OR EXISTS (SELECT 1 FROM pv_item pi2 WHERE pi2.pv_id = pv.id AND pi2.laudo LIKE ?)
+                OR EXISTS (SELECT 1 FROM pv_item pi3 WHERE pi3.pv_id = pv.id AND (pi3.descricao_lpu LIKE ? OR pi3.descricao LIKE ?))
             )";
             $param = "%{$search}%";
-            $params = [$param, $param, $param, $param, $param, $param];
-            $types = 'ssssss';
+            $params = [$param, $param, $param, $param, $param, $param, $param, $param];
+            $types = 'ssssssss';
         }
 
         if ($status !== null && $status !== '') {
