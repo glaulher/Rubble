@@ -71,6 +71,10 @@ async function loadHomeForm() {
 
         document.querySelector('[name="data_concluido"]').value = r.data_concluido || '';
 
+        document.querySelector('[name="data_planejada"]').value = r.data_planejada || '';
+
+        togglePlannedDate(r.status || '');
+
         document.querySelector('[name="material"]').value = r.material || '';
 
         document.querySelector('[name="obs"]').value = r.obs || '';
@@ -106,7 +110,20 @@ async function loadHomeForm() {
     } else {
       group.style.display = 'none';
       input.disabled = true;
-      input.value = '';
+    }
+  }
+
+  function togglePlannedDate(status) {
+    const group = document.getElementById('plannedDateGroup');
+    const input = document.getElementById('plannedDateInput');
+    if (!group || !input) return;
+
+    if (status === 'Planejado') {
+      group.style.display = 'block';
+      input.disabled = false;
+    } else {
+      group.style.display = 'none';
+      input.disabled = true;
     }
   }
 
@@ -114,6 +131,7 @@ async function loadHomeForm() {
   if (statusSelect) {
     statusSelect.addEventListener('change', function () {
       toggleCompletionDate(this.value);
+      togglePlannedDate(this.value);
     });
   }
 
@@ -143,6 +161,8 @@ async function loadHomeForm() {
       status: document.querySelector('[name="status"]').value,
 
       data_concluido: document.querySelector('[name="data_concluido"]').value || null,
+
+      data_planejada: document.querySelector('[name="data_planejada"]').value || null,
 
       material: document.querySelector('[name="material"]').value,
 
