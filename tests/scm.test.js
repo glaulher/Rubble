@@ -2,6 +2,25 @@
 import { describe, it, expect } from 'bun:test';
 
 // Include parseScmCSV function directly for testing
+function parseCsvLine(line, delimiter) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+            inQuotes = !inQuotes;
+        } else if (ch === delimiter && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += ch;
+        }
+    }
+    result.push(current);
+    return result;
+}
+
 function parseScmCSV(text) {
     // Remove BOM
     if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
@@ -13,11 +32,11 @@ function parseScmCSV(text) {
     const firstLine = lines[0];
     const delimiter = firstLine.includes(';') ? ';' : ',';
 
-    const headers = firstLine.split(delimiter).map(h => h.trim().toUpperCase());
+    const headers = parseCsvLine(firstLine, delimiter).map(h => h.trim().toUpperCase());
     const rows = [];
 
     for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(delimiter).map(v => v.trim());
+        const values = parseCsvLine(lines[i], delimiter).map(v => v.trim());
         if (values.length < headers.length) continue;
 
         const row = {};
@@ -88,6 +107,14 @@ describe('parseScmCSV', () => {
         const csv = 'SCM;STATUS\nSCM001;GERADO\nSCM002;NEGADO\nSCM003;EXECUTADO';
         const rows = parseScmCSV(csv);
         expect(rows.length).toBe(3);
+    });
+
+    it('should preserve quoted fields with semicolons', () => {
+        const csv = 'SCM;STATUS;OBS\nSCM001;GERADO;"Obs com; ponto e; virgula"';
+        const rows = parseScmCSV(csv);
+        expect(rows.length).toBe(1);
+        expect(rows[0]['OBS']).toBe('Obs com; ponto e; virgula');
+        expect(rows[0]['STATUS']).toBe('GERADO');
     });
 });
 
