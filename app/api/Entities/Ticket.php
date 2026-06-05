@@ -13,6 +13,7 @@ class Ticket
     public ?string $material;
     public ?string $notes;
     public ?string $completionDate;
+    public ?string $plannedDate;
     public ?int $notificationSent;
     public ?string $local;
     public ?string $equipment;
@@ -28,6 +29,7 @@ class Ticket
         $this->material = $data['material'] ?? null;
         $this->notes = $data['obs'] ?? null;
         $this->completionDate = $data['data_concluido'] ?? null;
+        $this->plannedDate = $data['data_planejada'] ?? null;
         $this->notificationSent = isset($data['notificacao_enviada']) ? (int) $data['notificacao_enviada'] : null;
         $this->local = $data['local'] ?? null;
         $this->equipment = $data['equipamento'] ?? null;
@@ -45,6 +47,7 @@ class Ticket
             'material' => $this->material,
             'obs' => $this->notes,
             'data_concluido' => $this->completionDate,
+            'data_planejada' => $this->plannedDate,
             'notificacao_enviada' => $this->notificationSent,
             'local' => $this->local,
             'equipamento' => $this->equipment,
