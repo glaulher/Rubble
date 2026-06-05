@@ -120,7 +120,7 @@ function getItemRowHtml(index, data, lpuOptions) {
             </button>
           </div>
         </div>
-        <div class="item-orcamento-group-${index} ${d.fatura === 'flpu' ? '' : 'hidden'} md:col-span-2 lg:col-span-3">
+        <div class="item-orcamento-group-${index} ${d.fatura === 'flpu' ? '' : 'hidden'}">
           <label class="block text-xs font-semibold text-slate-900 mb-1">Or\u00e7amento</label>
           <div class="flex gap-2 items-end">
             <div class="flex-1">
