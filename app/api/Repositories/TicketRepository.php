@@ -74,20 +74,22 @@ class TicketRepository extends BaseRepository
     {
         $sql = "
             INSERT INTO registros (
-                equipamento_id, os, data, equipe, status, data_concluido, material, obs
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                equipamento_id, os, data, equipe, status, data_concluido, data_planejada, material, obs
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ";
 
         $stmt = $this->conn->prepare($sql);
         $completionDate = $data['data_concluido'] ?? null;
+        $plannedDate = $data['data_planejada'] ?? null;
         $stmt->bind_param(
-            'isssssss',
+            'issssssss',
             $data['equipamento_id'],
             $data['os'],
             $data['data'],
             $data['equipe'],
             $data['status'],
             $completionDate,
+            $plannedDate,
             $data['material'],
             $data['obs']
         );
@@ -100,19 +102,21 @@ class TicketRepository extends BaseRepository
     {
         $sql = "
             UPDATE registros
-            SET os = ?, data = ?, equipe = ?, status = ?, data_concluido = ?, material = ?, obs = ?
+            SET os = ?, data = ?, equipe = ?, status = ?, data_concluido = ?, data_planejada = ?, material = ?, obs = ?
             WHERE id = ?
         ";
 
         $stmt = $this->conn->prepare($sql);
         $completionDate = $data['data_concluido'] ?? null;
+        $plannedDate = $data['data_planejada'] ?? null;
         $stmt->bind_param(
-            'sssssssi',
+            'ssssssssi',
             $data['os'],
             $data['data'],
             $data['equipe'],
             $data['status'],
             $completionDate,
+            $plannedDate,
             $data['material'],
             $data['obs'],
             $data['id']
