@@ -298,7 +298,7 @@ async function generateCSVReport() {
       return;
     }
 
-    const header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_CONCLUSAO;MATERIAL;OBSERVACAO';
+    const header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_CONCLUSAO;DATA_PLANEJADA;MATERIAL;OBSERVACAO';
 
     downloadCSV(
       currentSearch && currentSearch.trim() !== ''
@@ -315,7 +315,7 @@ async function generateCSVReport() {
               sanitizeCSV(e.localidade),
               sanitizeCSV(e.equipamento),
               sanitizeCSV(e.capacidade != null ? e.capacidade + ' TR' : ''),
-              '', '', '', '', '',
+              '', '', '', '', '', '',
             ]);
             return;
           }
@@ -330,6 +330,7 @@ async function generateCSVReport() {
               sanitizeCSV(r.os),
               sanitizeCSV(r.data),
               sanitizeCSV(r.data_concluido),
+              sanitizeCSV(r.data_planejada),
               sanitizeCSV(r.material),
               sanitizeCSV(r.obs),
             ]);
