@@ -36,6 +36,27 @@ function buildEquipmentCardHtml(e, canEdit) {
               </span>
 
               ${
+                (() => {
+                  const tickets = e.tickets || [];
+                  const planejados = tickets.filter(t => (t.status || '').toLowerCase() === 'planejado');
+                  if (planejados.length > 0) {
+                    const dates = planejados
+                      .map(t => t.data_planejada)
+                      .filter(d => d)
+                      .sort();
+                    if (dates.length > 0) {
+                      const menorData = dates[0];
+                      const [y, m, d] = menorData.split('-');
+                      return `<span class="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-sm font-semibold">
+                        📅 Data planejada: ${d}/${m}/${y}
+                      </span>`;
+                    }
+                  }
+                  return '';
+                })()
+              }
+
+              ${
                 e.pvs_pendentes_count > 0
                   ? `<button
                       data-pv-toggle-id="${e.id}"
