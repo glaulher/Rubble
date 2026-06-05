@@ -147,6 +147,12 @@ class TicketService
                 foreach ($matchedEquipments as $equipment) {
                     $existing = $this->ticketRepository->findByOs($row['tarefa']);
 
+                    if ($existing && mb_strtolower($existing->status, 'UTF-8') === 'planejado') {
+                        $skipped++;
+                        $errors[] = ['linha' => $index + 1, 'motivo' => 'OS com status Planejado ignorada na importação'];
+                        continue;
+                    }
+
                     $ticketData = [
                         'equipamento_id' => $equipment->id,
                         'os' => $row['tarefa'],
@@ -154,6 +160,7 @@ class TicketService
                         'equipe' => $row['tecnico'] ?? '',
                         'status' => $status,
                         'data_concluido' => $completionDate,
+                        'data_planejada' => null,
                         'material' => $material,
                         'obs' => $obs,
                     ];
