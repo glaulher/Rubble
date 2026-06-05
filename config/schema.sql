@@ -217,6 +217,7 @@ CREATE TABLE `registros` (
   `material` varchar(50) DEFAULT NULL,
   `status` varchar(50) DEFAULT NULL,
   `data_concluido` date DEFAULT NULL,
+  `data_planejada` date DEFAULT NULL,
   `equipamento_id` int(11) DEFAULT NULL,
   `notificacao_enviada` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
