@@ -113,6 +113,14 @@ function buildEquipmentCardHtml(e, canEdit) {
                               ? 'bg-purple-100 text-purple-700'
                               : 'bg-blue-100 text-blue-700';
 
+                    let dateInfo = '';
+                    const st = (r.status || '').toLowerCase();
+                    if (st === 'planejado' && r.data_planejada) {
+                      dateInfo = `📅 ${formatDate(r.data_planejada)}`;
+                    } else if ((st === 'concluído' || st === 'concluido') && r.data_concluido) {
+                      dateInfo = `📅 ${formatDate(r.data_concluido)}`;
+                    }
+
                     return `
                       <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-3">
 
@@ -147,6 +155,8 @@ function buildEquipmentCardHtml(e, canEdit) {
                           </div>
 
                           <div class="shrink-0 flex items-center gap-2">
+
+                            ${dateInfo ? `<span class="text-slate-500 text-sm">${dateInfo}</span>` : ''}
 
                             <span class="${statusColor} px-3 py-1 rounded-full text-sm font-semibold">
                               ${escapeHtml(r.status)}
