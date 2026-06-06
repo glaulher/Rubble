@@ -128,13 +128,49 @@ class EquipmentPriceRepository extends BaseRepository
         $rules = $this->getActiveRules();
 
         if (empty($rules)) {
-            return $this->sumValueFallback();
+            return 0.0;
         }
 
-        $equipmentResult = $this->conn->query(
-            "SELECT e.equipamento, e.local, e.capacidade, e.mercado
-             FROM equipamentos e WHERE e.equipamento != 'N/A'"
-        );
+        $conditions = ["e.equipamento != 'N/A'"];
+        $params = [];
+        $types = '';
+
+        if ($location !== null && $location !== '') {
+            $conditions[] = "e.local = ?";
+            $params[] = $location;
+            $types .= 's';
+        }
+
+        if ($search !== '') {
+            $conditions[] = "(
+                e.local LIKE ?
+                OR e.equipamento LIKE ?
+                OR en.local_do_endereco LIKE ?
+                OR en.endereco LIKE ?
+                OR EXISTS (
+                    SELECT 1 FROM registros r
+                    WHERE r.equipamento_id = e.id
+                    AND (r.status LIKE ? OR r.obs LIKE ? OR r.material LIKE ? OR r.os LIKE ?)
+                )
+            )";
+            $param = "%{$search}%";
+            $params = array_merge($params, [$param, $param, $param, $param, $param, $param, $param, $param]);
+            $types .= 'ssssssss';
+        }
+
+        $sql = "SELECT e.equipamento, e.local, e.capacidade, e.mercado
+                FROM equipamentos e
+                LEFT JOIN enderecos en ON en.id = e.endereco_id
+                WHERE " . implode(" AND ", $conditions);
+
+        if (!empty($params)) {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $equipmentResult = $stmt->get_result();
+        } else {
+            $equipmentResult = $this->conn->query($sql);
+        }
 
         if (!$equipmentResult) {
             return 0.0;
@@ -185,17 +221,5 @@ class EquipmentPriceRepository extends BaseRepository
         }
 
         return 0.0;
-    }
-
-    private function sumValueFallback(): float
-    {
-        $result = $this->conn->query(
-            "SELECT SUM(capacidade) as total FROM equipamentos WHERE equipamento != 'N/A'"
-        );
-        if (!$result) {
-            return 0.0;
-        }
-        $row = $result->fetch_assoc();
-        return round((float) ($row['total'] ?? 0), 2);
     }
 }
