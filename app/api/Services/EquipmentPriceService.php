@@ -53,9 +53,14 @@ class EquipmentPriceService
         return $this->repository->delete($id);
     }
 
-    public function resolvePrice(string $equipamento, ?string $local, ?float $capacidade): float
+    public function getActiveRules(): array
     {
-        return $this->repository->resolvePrice($equipamento, $local, $capacidade);
+        return $this->repository->getActiveRules();
+    }
+
+    public function resolvePrice(string $equipamento, ?string $local, ?float $capacidade, ?array $rules = null, ?string $mercadoEquipamento = null): float
+    {
+        return $this->repository->resolvePrice($equipamento, $local, $capacidade, $rules, $mercadoEquipamento);
     }
 
     private function validate(array $data): void

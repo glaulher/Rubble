@@ -31,6 +31,7 @@ class EquipmentService
         $ids = array_map(fn($e) => $e->id, $equipments);
         $ticketsByEquipment = $this->ticketRepository->listByItems($ids, TicketService::STATUS_PRIORITY);
         $pendingPvsByEquipment = $this->equipmentRepository->getPendingPvCountByEquipmentIds($ids) ?? [];
+        $priceRules = $this->priceRepository->getActiveRules();
 
         $items = [];
         foreach ($equipments as $e) {
@@ -109,7 +110,9 @@ class EquipmentService
             $item['valor_tr'] = $this->priceRepository->resolvePrice(
                 $e->equipment,
                 $e->location,
-                $e->capacity
+                $e->capacity,
+                $priceRules,
+                $e->mercado
             );
 
             $items[] = $item;

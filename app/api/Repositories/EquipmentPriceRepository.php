@@ -87,90 +87,9 @@ class EquipmentPriceRepository extends BaseRepository
         return $stmt->affected_rows > 0;
     }
 
-    public function resolvePrice(string $equipamento, ?string $local, ?float $capacidade): float
+    public function getActiveRules(): array
     {
-        $sql = "SELECT nome, equipamento_pattern, locais_especiais, mercado, valor
-                FROM equipamento_precos
-                WHERE ativo = 1
-                ORDER BY
-                    CASE nome
-                        WHEN 'chiller_especial' THEN 1
-                        WHEN 'chiller' THEN 2
-                        WHEN 'tr' THEN 3
-                        ELSE 4
-                    END";
-
-        $result = $this->conn->query($sql);
-
-        if (!$result) {
-            error_log('EquipmentPriceRepository resolvePrice error: ' . $this->conn->error);
-            $trValue = (float) Env::get('TR_VALUE', '94');
-            return round(($capacidade ?? 0) * $trValue, 2);
-        }
-
-        $equipamentoLower = strtolower($equipamento);
-
-        while ($row = $result->fetch_assoc()) {
-            $pattern = $row['equipamento_pattern'];
-            $locais = $row['locais_especiais'];
-            $mercadoRegra = $row['mercado'];
-            $valor = (float) $row['valor'];
-
-            if ($mercadoRegra !== null && $mercadoRegra !== '') {
-                if ($local !== null && $local !== '' && $equipamento !== null && $equipamento !== '') {
-                    $sqlMercado = "SELECT mercado FROM equipamentos
-                                   WHERE equipamento = ? AND local = ? LIMIT 1";
-                    $stmtMercado = $this->conn->prepare($sqlMercado);
-                    $stmtMercado->bind_param('ss', $equipamento, $local);
-                    $stmtMercado->execute();
-                    $resultMercado = $stmtMercado->get_result()->fetch_assoc();
-
-                    if (!$resultMercado || strtolower($resultMercado['mercado']) !== strtolower($mercadoRegra)) {
-                        continue;
-                    }
-                } else {
-                    continue;
-                }
-            }
-
-            if ($pattern !== null && $pattern !== '') {
-                if ($local !== null && $local !== '') {
-                    $sqlCheck = "SELECT COUNT(*) as cnt FROM equipamentos
-                                 WHERE LOWER(equipamento) LIKE ? AND local = ?";
-                    $stmtCheck = $this->conn->prepare($sqlCheck);
-                    $stmtCheck->bind_param('ss', $pattern, $local);
-                    $stmtCheck->execute();
-                    $cnt = (int) $stmtCheck->get_result()->fetch_assoc()['cnt'];
-
-                    if ($cnt === 0) {
-                        continue;
-                    }
-                } else {
-                    continue;
-                }
-            }
-
-            if ($locais !== null && $locais !== '') {
-                $locaisArray = array_map('trim', explode(',', $locais));
-                if (!in_array($local, $locaisArray, true)) {
-                    continue;
-                }
-            }
-
-            if ($row['nome'] === 'tr') {
-                return round(($capacidade ?? 0) * $valor, 2);
-            }
-
-            return $valor;
-        }
-
-        $trValue = (float) Env::get('TR_VALUE', '94');
-        return round(($capacidade ?? 0) * $trValue, 2);
-    }
-
-    public function sumValueByFilter(string $search = '', ?string $location = null): float
-    {
-        $rulesResult = $this->conn->query(
+        $result = $this->conn->query(
             "SELECT nome, equipamento_pattern, locais_especiais, mercado, valor
              FROM equipamento_precos WHERE ativo = 1
              ORDER BY CASE nome
@@ -181,14 +100,36 @@ class EquipmentPriceRepository extends BaseRepository
              END"
         );
 
-        if (!$rulesResult) {
-            $trValue = (float) Env::get('TR_VALUE', '94');
-            return $this->sumValueFallback();
+        if (!$result) {
+            return [];
         }
 
         $rules = [];
-        while ($row = $rulesResult->fetch_assoc()) {
+        while ($row = $result->fetch_assoc()) {
             $rules[] = $row;
+        }
+
+        return $rules;
+    }
+
+    public function resolvePrice(string $equipamento, ?string $local, ?float $capacidade, ?array $rules = null, ?string $mercadoEquipamento = null): float
+    {
+        $rules ??= $this->getActiveRules();
+
+        if (empty($rules)) {
+            $trValue = (float) Env::get('TR_VALUE', '94');
+            return round(($capacidade ?? 0) * $trValue, 2);
+        }
+
+        return $this->matchRule($rules, $equipamento, $local, $mercadoEquipamento, $capacidade ?? 0.0);
+    }
+
+    public function sumValueByFilter(string $search = '', ?string $location = null): float
+    {
+        $rules = $this->getActiveRules();
+
+        if (empty($rules)) {
+            return $this->sumValueFallback();
         }
 
         $equipmentResult = $this->conn->query(
