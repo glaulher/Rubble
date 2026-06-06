@@ -20,6 +20,7 @@ async function loadPriceForm() {
     document.getElementById('priceNome').value = currentPrice.nome;
     document.getElementById('pricePattern').value = currentPrice.equipamento_pattern || '';
     document.getElementById('priceLocais').value = currentPrice.locais_especiais || '';
+    document.getElementById('priceMercado').value = currentPrice.mercado || '';
     document.getElementById('priceValor').value = currentPrice.valor;
     document.getElementById('priceAtivo').value = currentPrice.ativo ? '1' : '0';
   } else {
@@ -47,6 +48,7 @@ async function savePrice(e) {
     nome: document.getElementById('priceNome').value,
     equipamento_pattern: document.getElementById('pricePattern').value || null,
     locais_especiais: document.getElementById('priceLocais').value || null,
+    mercado: document.getElementById('priceMercado').value || null,
     valor: parseFloat(document.getElementById('priceValor').value),
     ativo: parseInt(document.getElementById('priceAtivo').value),
   };

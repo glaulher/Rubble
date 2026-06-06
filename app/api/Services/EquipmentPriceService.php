@@ -26,15 +26,25 @@ class EquipmentPriceService
         return $item ? $item->toArray() : null;
     }
 
+    private const ALLOWED_MERCADOS = ['Residencial', 'Empresarial', 'Pessoal'];
+
     public function save(array $data): int
     {
         $this->validate($data);
+        $data['mercado'] = !empty($data['mercado']) ? $data['mercado'] : null;
+        if ($data['mercado'] !== null && !in_array($data['mercado'], self::ALLOWED_MERCADOS, true)) {
+            throw new \InvalidArgumentException('Mercado inválido: ' . $data['mercado']);
+        }
         return $this->repository->save($data);
     }
 
     public function update(int $id, array $data): bool
     {
         $this->validate($data);
+        $data['mercado'] = !empty($data['mercado']) ? $data['mercado'] : null;
+        if ($data['mercado'] !== null && !in_array($data['mercado'], self::ALLOWED_MERCADOS, true)) {
+            throw new \InvalidArgumentException('Mercado inválido: ' . $data['mercado']);
+        }
         return $this->repository->update($id, $data);
     }
 

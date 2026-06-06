@@ -43,6 +43,9 @@ function renderPrices() {
       <td class="px-6 py-4 text-slate-600">
         ${p.locais_especiais ? escapeHtml(p.locais_especiais) : '<span class="text-slate-400">—</span>'}
       </td>
+      <td class="px-6 py-4 text-slate-600">
+        ${p.mercado ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">${escapeHtml(p.mercado)}</span>` : '<span class="text-slate-400">Todos</span>'}
+      </td>
       <td class="px-6 py-4 text-right font-medium text-slate-900">
         R$ ${p.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
       </td>

@@ -37,15 +37,16 @@ class EquipmentPriceRepository extends BaseRepository
 
     public function save(array $data): int
     {
-        $sql = "INSERT INTO equipamento_precos (nome, equipamento_pattern, locais_especiais, valor, ativo)
-                VALUES (?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO equipamento_precos (nome, equipamento_pattern, locais_especiais, mercado, valor, ativo)
+                VALUES (?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param(
-            'sssdi',
+            'ssssdi',
             $data['nome'],
             $data['equipamento_pattern'],
             $data['locais_especiais'],
+            $data['mercado'],
             $data['valor'],
             $data['ativo']
         );
@@ -57,15 +58,16 @@ class EquipmentPriceRepository extends BaseRepository
     public function update(int $id, array $data): bool
     {
         $sql = "UPDATE equipamento_precos
-                SET nome = ?, equipamento_pattern = ?, locais_especiais = ?, valor = ?, ativo = ?
+                SET nome = ?, equipamento_pattern = ?, locais_especiais = ?, mercado = ?, valor = ?, ativo = ?
                 WHERE id = ?";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param(
-            'sssdoi',
+            'ssssdoi',
             $data['nome'],
             $data['equipamento_pattern'],
             $data['locais_especiais'],
+            $data['mercado'],
             $data['valor'],
             $data['ativo'],
             $id
@@ -87,7 +89,7 @@ class EquipmentPriceRepository extends BaseRepository
 
     public function resolvePrice(string $equipamento, ?string $local, ?float $capacidade): float
     {
-        $sql = "SELECT nome, equipamento_pattern, locais_especiais, valor
+        $sql = "SELECT nome, equipamento_pattern, locais_especiais, mercado, valor
                 FROM equipamento_precos
                 WHERE ativo = 1
                 ORDER BY
@@ -111,7 +113,25 @@ class EquipmentPriceRepository extends BaseRepository
         while ($row = $result->fetch_assoc()) {
             $pattern = $row['equipamento_pattern'];
             $locais = $row['locais_especiais'];
+            $mercadoRegra = $row['mercado'];
             $valor = (float) $row['valor'];
+
+            if ($mercadoRegra !== null && $mercadoRegra !== '') {
+                if ($local !== null && $local !== '' && $equipamento !== null && $equipamento !== '') {
+                    $sqlMercado = "SELECT mercado FROM equipamentos
+                                   WHERE equipamento = ? AND local = ? LIMIT 1";
+                    $stmtMercado = $this->conn->prepare($sqlMercado);
+                    $stmtMercado->bind_param('ss', $equipamento, $local);
+                    $stmtMercado->execute();
+                    $resultMercado = $stmtMercado->get_result()->fetch_assoc();
+
+                    if (!$resultMercado || strtolower($resultMercado['mercado']) !== strtolower($mercadoRegra)) {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+            }
 
             if ($pattern !== null && $pattern !== '') {
                 if ($local !== null && $local !== '') {

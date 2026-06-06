@@ -8,6 +8,7 @@ class EquipmentPrice
     public string $nome;
     public ?string $equipamentoPattern;
     public ?string $locaisEspeciais;
+    public ?string $mercado;
     public float $valor;
     public bool $ativo;
     public ?string $createdAt;
@@ -19,6 +20,7 @@ class EquipmentPrice
         $this->nome = $data['nome'] ?? '';
         $this->equipamentoPattern = $data['equipamento_pattern'] ?? null;
         $this->locaisEspeciais = $data['locais_especiais'] ?? null;
+        $this->mercado = $data['mercado'] ?? null;
         $this->valor = (float) ($data['valor'] ?? 0);
         $this->ativo = (bool) ($data['ativo'] ?? 1);
         $this->createdAt = $data['created_at'] ?? null;
@@ -32,6 +34,7 @@ class EquipmentPrice
             'nome' => $this->nome,
             'equipamento_pattern' => $this->equipamentoPattern,
             'locais_especiais' => $this->locaisEspeciais,
+            'mercado' => $this->mercado,
             'valor' => $this->valor,
             'ativo' => $this->ativo,
             'created_at' => $this->createdAt,
