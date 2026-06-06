@@ -62,18 +62,13 @@ $router->addRoute('pv-dashboard', 'GET', fn () => (new PvDashboardController())-
 // Notifications
 $router->addRoute('notify', 'GET', function () {
     try {
-        $result = require_once __DIR__ . '/Cron/check_notification.php';
-        echo json_encode([
-            'success' => true,
+        $result = require __DIR__ . '/Cron/check_notification.php';
+        Response::success($result['message'] ?? 'Notificação processada', [
             'sent' => $result['sent'] ?? 0,
-            'message' => $result['message'] ?? 'Notificação processada'
         ]);
     } catch (\Throwable $e) {
         error_log("Erro na notificação: " . $e->getMessage());
-        echo json_encode([
-            'success' => false,
-            'message' => 'Falha ao enviar e-mail de notificação'
-        ]);
+        Response::error('Falha ao enviar e-mail de notificação', 500);
     }
 });
 

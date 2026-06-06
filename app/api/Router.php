@@ -36,6 +36,7 @@ class Router
 
         if (!isset($this->routes[$route][$method])) {
             Response::error('Método não permitido', 405);
+            return;
         }
 
         ($this->routes[$route][$method])();
