@@ -9,6 +9,7 @@ spl_autoload_register(function (string $class): void {
         'App\\Api\\Helpers\\' => __DIR__ . '/../app/api/Helpers/',
         'App\\Api\\Auth\\' => __DIR__ . '/../app/api/Auth/',
         'App\\Api\\Cron\\' => __DIR__ . '/../app/api/Cron/',
+        'App\\Api\\Middleware\\' => __DIR__ . '/../app/api/Middleware/',
         'App\\Config\\' => __DIR__ . '/',
         'PHPMailer\\PHPMailer\\' => __DIR__ . '/../app/libs/PHPMailer/src/',
     ];
