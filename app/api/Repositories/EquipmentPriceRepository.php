@@ -63,7 +63,7 @@ class EquipmentPriceRepository extends BaseRepository
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param(
-            'ssssdoi',
+            'ssssdi',
             $data['nome'],
             $data['equipamento_pattern'],
             $data['locais_especiais'],
