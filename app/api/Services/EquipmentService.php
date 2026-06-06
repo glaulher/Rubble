@@ -5,6 +5,7 @@ namespace App\Api\Services;
 use App\Api\Repositories\EquipmentRepository;
 use App\Api\Repositories\TicketRepository;
 use App\Api\Entities\Ticket;
+use App\Config\Env;
 
 class EquipmentService
 {
@@ -100,6 +101,9 @@ class EquipmentService
 
             $item['pvs_pendentes_count'] = $pendingPv['total'];
             $item['pvs_pendentes'] = $pendingPv['pvs'];
+
+            $trValue = (float) Env::get('TR_VALUE', '94');
+            $item['valor_tr'] = round(($e->capacity ?? 0) * $trValue, 2);
 
             $items[] = $item;
         }

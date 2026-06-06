@@ -36,6 +36,15 @@ function buildEquipmentCardHtml(e, canEdit) {
               </span>
 
               ${
+                e.valor_tr
+                  ? `<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-sm font-semibold"
+                       data-role="admin coordenador">
+                      R$ ${e.valor_tr.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                    </span>`
+                  : ''
+              }
+
+              ${
                 (() => {
                   const tickets = e.tickets || [];
                   const planejados = tickets.filter(t => (t.status || '').toLowerCase() === 'planejado');
