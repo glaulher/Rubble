@@ -73,7 +73,7 @@ function calculateFilter() {
 
   const areaPlaca = (width / 1000) * (height / 1000);
   const areaPlanaTotal = areaPlaca * qtdPecas;
-  const qtdCobrar = Math.round(areaPlanaTotal * 2);
+  const qtdCobrar = Math.max(1, Math.round(areaPlanaTotal * 2));
 
   elTamanho.textContent = tamanho;
   elQtd.textContent = qtdPecas;
@@ -113,7 +113,7 @@ function saveFilterData() {
   const tamanho = width + 'x' + height + 'mm';
   const areaPlaca = (width / 1000) * (height / 1000);
   const areaPlanaTotal = areaPlaca * qtdPecas;
-  const qtdCobrar = Math.round(areaPlanaTotal * 2);
+  const qtdCobrar = Math.max(1, Math.round(areaPlanaTotal * 2));
 
   const filtroData = JSON.stringify({
     tamanho: tamanho,
