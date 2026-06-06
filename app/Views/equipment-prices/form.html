@@ -1,0 +1,78 @@
+<div class="min-h-screen dark-gradient" style="background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);">
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-2 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">
+          <span id="formTitle">Novo Preço</span>
+        </h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Configurar regra de precificação</p>
+      </div>
+      <a href="#/equipment-prices"
+        class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+        ← Voltar
+      </a>
+    </div>
+  </div>
+
+  <div class="p-6 max-w-2xl mx-auto">
+    <form id="priceForm" class="bg-white rounded-3xl shadow-xl border border-slate-200 p-6 space-y-6">
+      <input type="hidden" id="priceId" />
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Nome *</label>
+        <select id="priceNome"
+          class="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required>
+          <option value="">Selecione...</option>
+          <option value="tr">TR (Técnico Referência)</option>
+          <option value="chiller">Chiller (Padrão)</option>
+          <option value="chiller_especial">Chiller (Especial)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Padrão Equipamento</label>
+        <input type="text" id="pricePattern"
+          class="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Ex: %chiller% (deixe vazio para TR)" />
+        <p class="text-xs text-slate-400 mt-1">Pattern LIKE para matching no campo equipamento. Use % como wildcard.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Locais Especiais</label>
+        <input type="text" id="priceLocais"
+          class="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Ex: MCEBC,RJDQC91,TNGBR,CPSCL" />
+        <p class="text-xs text-slate-400 mt-1">Separados por vírgula. Deixe vazio para aplicar a todos os locais.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Valor (R$) *</label>
+        <input type="number" id="priceValor" step="0.01" min="0"
+          class="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="94.00" required />
+        <p class="text-xs text-slate-400 mt-1">Para TR: valor por hora. Para Chiller: valor fixo.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Status</label>
+        <select id="priceAtivo"
+          class="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="1">Ativo</option>
+          <option value="0">Inativo</option>
+        </select>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
+        <a href="#/equipment-prices"
+          class="bg-slate-200 hover:bg-slate-300 text-slate-900 px-5 py-2 rounded-xl font-medium transition">
+          Cancelar
+        </a>
+        <button type="submit"
+          class="bg-emerald-200 hover:bg-emerald-300 text-emerald-800 px-5 py-2 rounded-xl font-medium transition">
+          Salvar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

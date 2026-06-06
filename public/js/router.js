@@ -101,6 +101,20 @@ async function router() {
   |--------------------------------------------------------------------------
   */
     html = await loadPage("/app/Views/equipment/list.html?v=" + Date.now());
+  } else if (hash.startsWith("#/equipment-prices-form")) {
+    /*
+  |--------------------------------------------------------------------------
+  | EQUIPMENT PRICES FORM
+  |--------------------------------------------------------------------------
+  */
+    html = await loadPage("/app/Views/equipment-prices/form.html?v=" + Date.now());
+  } else if (hash === "#/equipment-prices" || hash.startsWith("#/equipment-prices?")) {
+    /*
+  |--------------------------------------------------------------------------
+  | EQUIPMENT PRICES
+  |--------------------------------------------------------------------------
+  */
+    html = await loadPage("/app/Views/equipment-prices/list.html?v=" + Date.now());
   } else if (hash === "#/scm") {
     /*
   |--------------------------------------------------------------------------
@@ -169,6 +183,14 @@ async function router() {
     } else if (hash === "#/equipment-manager" || hash.startsWith("#/equipment-manager?")) {
       if (typeof initEquipmentManager === "function") {
         initEquipmentManager();
+      }
+    } else if (hash.startsWith("#/equipment-prices-form")) {
+      if (typeof initPriceForm === "function") {
+        initPriceForm();
+      }
+    } else if (hash === "#/equipment-prices" || hash.startsWith("#/equipment-prices?")) {
+      if (typeof initPriceList === "function") {
+        initPriceList();
       }
     } else if (hash === "#/scm") {
       if (typeof initScm === "function") {

@@ -6,7 +6,7 @@ use App\Config\Env;
 use App\Api\Middleware\{CorsMiddleware, AuthMiddleware, RateLimitMiddleware};
 use App\Api\Router;
 use App\Api\Helpers\Response;
-use App\Api\Controllers\{AuthController, EquipmentController, EquipmentManagementController};
+use App\Api\Controllers\{AuthController, EquipmentController, EquipmentManagementController, EquipmentPriceController};
 use App\Api\Controllers\{TicketController, DashboardController, PvDashboardController};
 use App\Api\Controllers\{PvController, UserController, ScmController};
 
@@ -168,6 +168,19 @@ $router->addRoute('equipment-management', 'GET', function () {
 $router->addRoute('equipment-management', 'POST', fn () => (new EquipmentManagementController())->save());
 $router->addRoute('equipment-management', 'PUT', fn () => (new EquipmentManagementController())->update());
 $router->addRoute('equipment-management', 'DELETE', fn () => (new EquipmentManagementController())->delete());
+
+// Equipment Prices
+$router->addRoute('equipment-prices', 'GET', function () {
+    $ctrl = new EquipmentPriceController();
+    if (isset($_GET['id'])) {
+        $ctrl->getById();
+    } else {
+        $ctrl->listAll();
+    }
+});
+$router->addRoute('equipment-prices', 'POST', fn () => (new EquipmentPriceController())->save());
+$router->addRoute('equipment-prices', 'PUT', fn () => (new EquipmentPriceController())->update());
+$router->addRoute('equipment-prices', 'DELETE', fn () => (new EquipmentPriceController())->delete());
 
 // SCM
 $router->addRoute('scm', 'GET', function () use ($auth) {

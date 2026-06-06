@@ -3,6 +3,7 @@
 namespace App\Api\Services;
 
 use App\Api\Repositories\EquipmentRepository;
+use App\Api\Repositories\EquipmentPriceRepository;
 use App\Api\Repositories\TicketRepository;
 use App\Api\Entities\Ticket;
 use App\Config\Env;
@@ -11,13 +12,16 @@ class EquipmentService
 {
     private EquipmentRepository $equipmentRepository;
     private TicketRepository $ticketRepository;
+    private EquipmentPriceRepository $priceRepository;
 
     public function __construct(
         ?EquipmentRepository $equipmentRepository = null,
-        ?TicketRepository $ticketRepository = null
+        ?TicketRepository $ticketRepository = null,
+        ?EquipmentPriceRepository $priceRepository = null
     ) {
         $this->equipmentRepository = $equipmentRepository ?? new EquipmentRepository();
         $this->ticketRepository = $ticketRepository ?? new TicketRepository();
+        $this->priceRepository = $priceRepository ?? new EquipmentPriceRepository();
     }
 
     public function listAll(int $limit = 20, int $offset = 0, string $search = '', ?string $location = null, ?string $exactName = null): array
@@ -102,8 +106,11 @@ class EquipmentService
             $item['pvs_pendentes_count'] = $pendingPv['total'];
             $item['pvs_pendentes'] = $pendingPv['pvs'];
 
-            $trValue = (float) Env::get('TR_VALUE', '94');
-            $item['valor_tr'] = round(($e->capacity ?? 0) * $trValue, 2);
+            $item['valor_tr'] = $this->priceRepository->resolvePrice(
+                $e->equipment,
+                $e->location,
+                $e->capacity
+            );
 
             $items[] = $item;
         }
@@ -112,7 +119,7 @@ class EquipmentService
             'items' => $items,
             'total' => $this->equipmentRepository->count($search, $location, $exactName),
             'total_os' => $this->equipmentRepository->countOS($search),
-            'total_valor' => $this->equipmentRepository->sumValueByFilter($search, $location),
+            'total_valor' => $this->priceRepository->sumValueByFilter($search, $location),
         ];
     }
 
