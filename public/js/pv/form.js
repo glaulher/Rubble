@@ -7,15 +7,6 @@ async function loadPvForm() {
     currentDateEl.textContent = new Date().toLocaleDateString('pt-BR');
   }
 
-  const cicloList = document.getElementById('cicloList');
-  if (cicloList) {
-    generateCicloOptions().forEach((c) => {
-      const opt = document.createElement('option');
-      opt.value = c;
-      cicloList.appendChild(opt);
-    });
-  }
-
   const hash = window.location.hash;
   const queryString = hash.split('?')[1];
   const params = new URLSearchParams(queryString);
@@ -50,6 +41,9 @@ async function loadPvForm() {
       document.getElementById('os').value = pv.os || '';
 
       await Promise.all([loadLocals(), loadOsList()]);
+      setupLocalAutocomplete();
+      setupOsAutocomplete();
+      setupCicloAutocomplete();
       await loadEquipamentos(pv.local || null);
       if (pv.equipamento_id) {
         document.getElementById('equipamentoId').value = pv.equipamento_id;
@@ -77,17 +71,10 @@ async function loadPvForm() {
     }
   } else {
     await Promise.all([loadLocals(), loadEquipamentos(), loadOsList()]);
+    setupLocalAutocomplete();
+    setupOsAutocomplete();
+    setupCicloAutocomplete();
     addItemRow(LPU_OPTIONS_ALL);
-  }
-
-  const cicloInput = document.getElementById('ciclo');
-  if (cicloInput) {
-    cicloInput.addEventListener('blur', function () {
-      const match = this.value.trim().match(/^(\d{4})-(\d)$/);
-      if (match) {
-        this.value = match[1] + '-0' + match[2];
-      }
-    });
   }
 
   setupItemRowDelegation();

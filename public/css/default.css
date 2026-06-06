@@ -225,12 +225,17 @@ button:disabled { cursor: not-allowed; }
 /* Card / surface backgrounds */
 .dark body .bg-white,
 .dark .bg-white { background-color: #1a1f2e !important; }
+.dark .autocomplete-dropdown,
+.dark .status-dropdown,
+.dark [id*="Dropdown"] { background-color: #1a1f2e !important; border-color: #2d3548 !important; }
 .dark body .bg-gray-100,
 .dark .bg-gray-100 { background-color: #0f1117 !important; }
 .dark body .bg-slate-50,
 .dark .bg-slate-50 { background-color: #151922 !important; }
 .dark body .bg-slate-100,
 .dark .bg-slate-100 { background-color: #1e2536 !important; }
+.dark body .bg-red-50,
+.dark .bg-red-50 { background-color: #1e1a2a !important; }
 
 /* Button backgrounds */
 .dark .bg-slate-200 { background-color: #334155 !important; }
@@ -253,12 +258,14 @@ button:disabled { cursor: not-allowed; }
 .dark .bg-yellow-100 { background-color: rgba(146,64,14,0.3) !important; }
 .dark .bg-gray-100 { background-color: rgba(55,65,81,0.4) !important; }
 .dark .bg-pink-100 { background-color: rgba(157,23,77,0.3) !important; }
+.dark .bg-sky-100 { background-color: rgba(14,116,144,0.3) !important; }
 
 /* Badge text colors (invert for dark bg) */
 .dark .bg-emerald-100, .dark .bg-emerald-100.text-emerald-700 { color: #6ee7b7 !important; }
 .dark .bg-red-100, .dark .bg-red-100.text-red-700 { color: #fca5a5 !important; }
 .dark .bg-blue-100, .dark .bg-blue-100.text-blue-700, .dark .bg-blue-100.text-blue-800 { color: #93c5fd !important; }
 .dark .bg-sky-100, .dark .bg-sky-100.text-sky-700 { color: #7dd3fc !important; }
+.dark .text-sky-900 { color: #7dd3fc !important; }
 .dark .bg-amber-100, .dark .bg-amber-100.text-amber-700, .dark .bg-amber-100.text-amber-800 { color: #fcd34d !important; }
 .dark .bg-purple-100, .dark .bg-purple-100.text-purple-700 { color: #c4b5fd !important; }
 .dark .bg-violet-100, .dark .bg-violet-100.text-violet-800 { color: #c4b5fd !important; }
@@ -276,12 +283,14 @@ button:disabled { cursor: not-allowed; }
 .dark .text-slate-800 { color: #e2e8f0 !important; }
 .dark .text-slate-700 { color: #cbd5e1 !important; }
 .dark .text-slate-600 { color: #94a3b8 !important; }
+.dark .text-red-700 { color: #fca5a5 !important; }
 .dark .text-slate-500 { color: #64748b !important; }
 
 /* Border colors */
 .dark .border-slate-200 { border-color: #2d3548 !important; }
 .dark .border-slate-100 { border-color: #252d3d !important; }
 .dark .border-slate-300 { border-color: #3b4459 !important; }
+.dark .border-red-200 { border-color: #3a2d3d !important; }
 
 /* Hover states */
 .dark .hover\:bg-slate-100:hover { background-color: #1e2536 !important; }

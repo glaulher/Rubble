@@ -10,6 +10,16 @@ const sessionStorageMock = {
 };
 Object.defineProperty(global, 'sessionStorage', { value: sessionStorageMock });
 
+// Mock localStorage
+const localStore = {};
+const localStorageMock = {
+  getItem: (key) => localStore[key] ?? null,
+  setItem: (key, value) => { localStore[key] = value; },
+  removeItem: (key) => { delete localStore[key]; },
+  clear: () => { Object.keys(localStore).forEach(k => delete localStore[k]); },
+};
+Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+
 // Mock fetch
 global.fetch = async (url, opts) => {
   if (url.includes('route=auth') && opts?.method === 'POST') {

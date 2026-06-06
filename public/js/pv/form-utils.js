@@ -94,23 +94,19 @@ function populateStatusSelect(selectId, selected) {
   });
 }
 
+let pvLocalOptions = [];
+let pvOsOptions = [];
+
 async function loadLocals() {
   try {
     const response = await fetch('/app/api/index.php?route=locals');
     const result = await response.json();
-    const items = result.data || [];
-
-    const datalist = document.getElementById('localList');
-    if (!datalist) return;
-
-    datalist.innerHTML = '';
-    items.forEach((local) => {
-      const opt = document.createElement('option');
-      opt.value = local;
-      datalist.appendChild(opt);
-    });
+    pvLocalOptions = result.data || [];
+    return pvLocalOptions;
   } catch (err) {
     console.error('Erro ao carregar locais:', err);
+    pvLocalOptions = [];
+    return pvLocalOptions;
   }
 }
 
@@ -121,20 +117,12 @@ async function loadOsList() {
     );
     const result = await response.json();
     const items = result.data || [];
-
-    const datalist = document.getElementById('osList');
-    if (!datalist) return;
-
-    datalist.innerHTML = '';
-    items.forEach((r) => {
-      if (r.os) {
-        const opt = document.createElement('option');
-        opt.value = r.os;
-        datalist.appendChild(opt);
-      }
-    });
+    pvOsOptions = items.filter((r) => r.os).map((r) => r.os);
+    return pvOsOptions;
   } catch (err) {
     console.error('Erro ao carregar lista de OS:', err);
+    pvOsOptions = [];
+    return pvOsOptions;
   }
 }
 

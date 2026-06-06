@@ -184,13 +184,14 @@ class TicketServiceTest extends TestCase
         $ticketRepo->method('findByOs')->with('TASK-001')->willReturn(null);
         $ticketRepo->method('save')->willReturn(42);
 
-        $equipRepo->method('listByLocal')->with('RSDDTC')->willReturn([
+        $equipRepo->method('listByLocal')->with('RSD')->willReturn([
             new Equipment([
                 'id' => '10',
-                'local' => 'RSDDTC',
+                'local' => 'RSD',
                 'equipamento' => 'SELF 01',
             ]),
         ]);
+        $equipRepo->method('listByLocalLike')->with('RSD')->willReturn([]);
 
         $service = new TicketService($ticketRepo, $equipRepo);
 
@@ -228,13 +229,14 @@ class TicketServiceTest extends TestCase
         );
         $ticketRepo->method('update')->willReturn(true);
 
-        $equipRepo->method('listByLocal')->with('RSDDTC')->willReturn([
+        $equipRepo->method('listByLocal')->with('RSD')->willReturn([
             new Equipment([
                 'id' => '10',
-                'local' => 'RSDDTC',
+                'local' => 'RSD',
                 'equipamento' => 'SELF 01',
             ]),
         ]);
+        $equipRepo->method('listByLocalLike')->with('RSD')->willReturn([]);
 
         $service = new TicketService($ticketRepo, $equipRepo);
 
@@ -269,11 +271,12 @@ class TicketServiceTest extends TestCase
         $ticketRepo->method('findByOs')->willReturn(null);
         $ticketRepo->method('save')->willReturn(1);
 
-        $equipRepo->method('listByLocal')->with('RSDDTC')->willReturn([
-            new Equipment(['id' => '1', 'local' => 'RSDDTC', 'equipamento' => 'STULZ 01']),
-            new Equipment(['id' => '2', 'local' => 'RSDDTC', 'equipamento' => 'STULZ 02']),
-            new Equipment(['id' => '3', 'local' => 'RSDDTC', 'equipamento' => 'STULZ 03']),
+        $equipRepo->method('listByLocal')->with('RSD')->willReturn([
+            new Equipment(['id' => '1', 'local' => 'RSD', 'equipamento' => 'STULZ 01']),
+            new Equipment(['id' => '2', 'local' => 'RSD', 'equipamento' => 'STULZ 02']),
+            new Equipment(['id' => '3', 'local' => 'RSD', 'equipamento' => 'STULZ 03']),
         ]);
+        $equipRepo->method('listByLocalLike')->with('RSD')->willReturn([]);
 
         $service = new TicketService($ticketRepo, $equipRepo);
 
@@ -304,9 +307,10 @@ class TicketServiceTest extends TestCase
         $ticketRepo = $this->createMockRepo();
         $equipRepo = $this->createMockEquipmentRepo();
 
-        $equipRepo->method('listByLocal')->with('RSDDTC')->willReturn([
-            new Equipment(['id' => '1', 'local' => 'RSDDTC', 'equipamento' => 'STULZ 01']),
+        $equipRepo->method('listByLocal')->with('RSD')->willReturn([
+            new Equipment(['id' => '1', 'local' => 'RSD', 'equipamento' => 'STULZ 01']),
         ]);
+        $equipRepo->method('listByLocalLike')->with('RSD')->willReturn([]);
 
         $service = new TicketService($ticketRepo, $equipRepo);
 

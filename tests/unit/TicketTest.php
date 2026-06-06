@@ -91,6 +91,7 @@ class TicketTest extends TestCase
             'material' => 'Teclado',
             'obs' => 'Troca de teclado',
             'data_concluido' => null,
+            'data_planejada' => null,
             'notificacao_enviada' => 0,
             'local' => 'Sala B',
             'equipamento' => 'Desktop',
