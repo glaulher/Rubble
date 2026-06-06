@@ -286,6 +286,15 @@ function buildScmCardHtml(s) {
         }
     }
 
+    let segmentoBadge = '';
+    const atividadeLower = (s.atividade || '').toLowerCase();
+    const segmentoLower = (s.segmento || '').toLowerCase();
+    const isCorretiva = atividadeLower.includes('manutenção corretiva') || atividadeLower.includes('corretiva de chiller');
+    const isPreventiva = segmentoLower.includes('preventiva on going') || segmentoLower.includes('preventiva sob demanda');
+    if (isCorretiva && isPreventiva) {
+        segmentoBadge = `<span class="inline-flex items-center bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">Erro no segmento</span>`;
+    }
+
     const dataDisplay = s.data ? formatDateBr(s.data) : '';
     const dataExecDisplay = s.data_execucao ? formatDateBr(s.data_execucao) : '';
 
@@ -317,6 +326,7 @@ function buildScmCardHtml(s) {
             ${equipDisplay ? `<span>${equipDisplay}</span>` : ''}
             ${capDisplay ? `<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-xl text-xs">${capDisplay}</span>` : ''}
             ${mercadoBadge}
+            ${segmentoBadge}
         </div>
         <div class="mt-3 flex gap-3">
             <button class="scm-toggle-btn bg-slate-200 hover:bg-slate-300 text-slate-900 px-3 py-1 rounded-xl text-sm transition-colors" data-toggle-id="${s.id}">

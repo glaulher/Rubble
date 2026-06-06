@@ -166,6 +166,15 @@ function buildScmCardHtml(s) {
         }
     }
 
+    let segmentoBadge = '';
+    const atividadeLower = (s.atividade || '').toLowerCase();
+    const segmentoLower = (s.segmento || '').toLowerCase();
+    const isCorretiva = atividadeLower.includes('manutenção corretiva') || atividadeLower.includes('corretiva de chiller');
+    const isPreventiva = segmentoLower.includes('preventiva on going') || segmentoLower.includes('preventiva sob demanda');
+    if (isCorretiva && isPreventiva) {
+        segmentoBadge = `<span class="inline-flex items-center bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">Erro no segmento</span>`;
+    }
+
     const dataDisplay = s.data ? formatDateBr(s.data) : '';
     const dataExecDisplay = s.data_execucao ? formatDateBr(s.data_execucao) : '';
 
@@ -197,6 +206,7 @@ function buildScmCardHtml(s) {
             ${equipDisplay ? `<span>${equipDisplay}</span>` : ''}
             ${capDisplay ? `<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-xl text-xs">${capDisplay}</span>` : ''}
             ${mercadoBadge}
+            ${segmentoBadge}
         </div>
         <div class="mt-3 flex gap-3">
             <button class="scm-toggle-btn bg-slate-200 hover:bg-slate-300 text-slate-900 px-3 py-1 rounded-xl text-sm transition-colors" data-toggle-id="${s.id}">
@@ -260,6 +270,47 @@ describe('buildScmCardHtml', () => {
         const html = buildScmCardHtml({ ...base, origem: null, mercado: null });
         expect(html).not.toContain('Erro no mercado');
         expect(html).not.toContain('inline-flex items-center bg-emerald-100 text-emerald-700');
+    });
+
+    it('should render Erro no segmento when atividade is corretiva and segmento is preventiva', () => {
+        const html = buildScmCardHtml({ ...base, atividade: 'MANUTENÇÃO CORRETIVA', segmento: 'PREVENTIVA ON GOING' });
+        expect(html).toContain('Erro no segmento');
+        expect(html).toContain('bg-red-100 text-red-700');
+    });
+
+    it('should render Erro no segmento for corretiva de chiller + preventiva sob demanda', () => {
+        const html = buildScmCardHtml({ ...base, atividade: 'CORRETIVA DE CHILLER', segmento: 'PREVENTIVA SOB DEMANDA' });
+        expect(html).toContain('Erro no segmento');
+    });
+
+    it('should render Erro no segmento case-insensitive', () => {
+        const html = buildScmCardHtml({ ...base, atividade: 'manutenção corretiva', segmento: 'preventiva on going' });
+        expect(html).toContain('Erro no segmento');
+    });
+
+    it('should not render segmento badge when atividade is not corretiva', () => {
+        const html = buildScmCardHtml({ ...base, atividade: 'MANUTENÇÃO PREVENTIVA', segmento: 'PREVENTIVA ON GOING' });
+        expect(html).not.toContain('Erro no segmento');
+    });
+
+    it('should not render segmento badge when segmento is not preventiva', () => {
+        const html = buildScmCardHtml({ ...base, atividade: 'MANUTENÇÃO CORRETIVA', segmento: 'CORRETIVO' });
+        expect(html).not.toContain('Erro no segmento');
+    });
+
+    it('should not render segmento badge when atividade is empty', () => {
+        const html = buildScmCardHtml({ ...base, atividade: '', segmento: 'PREVENTIVA ON GOING' });
+        expect(html).not.toContain('Erro no segmento');
+    });
+
+    it('should not render segmento badge when segmento is empty', () => {
+        const html = buildScmCardHtml({ ...base, atividade: 'MANUTENÇÃO CORRETIVA', segmento: '' });
+        expect(html).not.toContain('Erro no segmento');
+    });
+
+    it('should not render segmento badge when both are null', () => {
+        const html = buildScmCardHtml({ ...base, atividade: null, segmento: null });
+        expect(html).not.toContain('Erro no segmento');
     });
 
     it('should format data as DD/MM/YYYY', () => {
