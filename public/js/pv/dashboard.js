@@ -72,6 +72,9 @@ function getPvFilters() {
 async function initPvDashboard() {
   destroyPvCharts();
 
+  document.querySelector('[data-action="generate-report"]')
+    ?.addEventListener('click', generateReport);
+
   try {
     const filters = getPvFilters();
     const params = new URLSearchParams();

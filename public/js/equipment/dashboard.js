@@ -42,6 +42,9 @@ function destroyCharts() {
 async function initEquipamentDashboard() {
   destroyCharts();
 
+  document.querySelector('[data-action="generate-report"]')
+    ?.addEventListener('click', generateReport);
+
   try {
     const response = await fetch('/app/api/index.php?route=dashboard');
     const json = await response.json();

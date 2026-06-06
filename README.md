@@ -125,7 +125,7 @@ bun test
 │   ├── Entities/                  # 4 entities
 │   ├── Helpers/                   # Response, Request, Validator, MailerFactory, Cache, RateLimiter
 │   └── Cron/check_notification.php
-├── app/Views/                     # 11 HTML partials (fetched via SPA)
+├── app/Views/                     # HTML parciais organizados por módulo (fetched via SPA)
 ├── app/libs/PHPMailer/            # PHPMailer (vendored, not Composer)
 ├── public/js/
 │   ├── auth.js                    # Login, logout, token, auth guard
@@ -133,15 +133,14 @@ bun test
 │   ├── utils/                     # utils, csv, upload, report, polling
 │   ├── components/                # modal, messagebox, pagination
 │   ├── home/                      # home-ui, equipment, form
-│   ├── pv/                        # constants, form-utils, form, list, modals
-│   ├── dashboard/                 # equipamentDashboard, pvDashboard
+│   ├── pv/                        # constants, form-utils, form, list, modals, dashboard
 │   ├── user/                      # list, form (admin)
-│   ├── equipment-manager/         # list, form (admin/coordenador)
+│   ├── equipment/                 # list, form, dashboard (admin/coordenador)
 │   ├── scm/                       # scm-list, scm-import (admin/coordenador)
 │   └── lib/                       # chart.umd.min, html2canvas.min, jspdf.umd.min
 ├── public/css/                    # default.css, fonts.css
 ├── public/fonts/Montserrat.woff2
-├── public/style.js                # Tailwind v4 CDN build
+├── public/tailwindcss.js          # Tailwind v4 local fallback
 ├── tests/                         # PHPUnit + Bun tests
 ├── composer.json / composer.lock  # PHP dev deps
 ├── package.json / bun.lock        # JS dev deps
@@ -152,7 +151,7 @@ bun test
 └── OS/ / LAUDO/                   # Upload dirs (local, not versioned)
 ```
 
-Script load order (index.html): `auth.js` → libs → utils → components → home → dashboard → pv → user → equipment-manager → `router.js`
+Script load order (index.html): `auth.js` → libs → utils → components → home → pv → user → equipment → scm → `router.js`
 
 ## API Routes
 

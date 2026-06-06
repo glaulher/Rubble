@@ -37,6 +37,9 @@ async function loadUserForm() {
     }
   }
 
+  document.querySelector('[data-action="navigate-users"]')
+    ?.addEventListener('click', function () { window.location.hash = '#/users'; });
+
   form.addEventListener('submit', saveUserForm);
 }
 

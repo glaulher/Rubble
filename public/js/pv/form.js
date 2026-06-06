@@ -79,6 +79,18 @@ async function loadPvForm() {
 
   setupItemRowDelegation();
 
+  document.querySelector('[data-action="upload-os"]')
+    ?.addEventListener('click', uploadOsFile);
+  document.querySelector('[data-action="add-item"]')
+    ?.addEventListener('click', addItemRow);
+  document.querySelector('[data-action="save-filter"]')
+    ?.addEventListener('click', saveFilterData);
+  document.querySelector('[data-action="close-filter-modal"]')
+    ?.addEventListener('click', closeFilterModal);
+  document.querySelectorAll('[data-action="calculate-filter"]').forEach(function (el) {
+    el.addEventListener('input', calculateFilter);
+  });
+
   if (form._submitController) {
     form._submitController.abort();
   }

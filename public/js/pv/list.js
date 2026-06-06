@@ -524,6 +524,29 @@ function initPv() {
   setupPvInfiniteScroll();
   setupPvCheckboxes();
 
+  document.querySelector('[data-action="navigate-pv-form"]')
+    ?.addEventListener('click', function () { window.location.hash = '#/pvForm'; });
+  document.querySelector('[data-action="confirm-delete"]')
+    ?.addEventListener('click', confirmDelete);
+  document.querySelector('[data-action="close-delete-modal"]')
+    ?.addEventListener('click', closeDeleteModal);
+  document.querySelector('[data-action="generate-pv-csv"]')
+    ?.addEventListener('click', generatePvCSV);
+  document.querySelector('[data-action="download-pv-pdf"]')
+    ?.addEventListener('click', downloadPvPdf);
+  document.querySelector('[data-action="open-email-modal"]')
+    ?.addEventListener('click', function () { openPvEmailModal(); });
+  document.querySelector('[data-action="close-pv-item-modal"]')
+    ?.addEventListener('click', closePvItemModal);
+  document.querySelector('[data-action="send-pv-email"]')
+    ?.addEventListener('click', sendPvEmail);
+  document.querySelector('[data-action="close-email-modal"]')
+    ?.addEventListener('click', closePvEmailModal);
+  document.querySelector('[data-action="confirm-status"]')
+    ?.addEventListener('click', confirmStatusChange);
+  document.querySelector('[data-action="close-status-modal"]')
+    ?.addEventListener('click', closeStatusModal);
+
   PollingManager.start('pv', function () { loadPvs(true); }, 30000);
 
   loadPvs();

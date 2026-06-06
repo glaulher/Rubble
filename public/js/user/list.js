@@ -5,6 +5,8 @@ async function initUsers() {
   userSearch = '';
   const input = document.getElementById('userSearchInput');
   if (input) input.value = '';
+  document.querySelector('[data-action="navigate-user-form"]')
+    ?.addEventListener('click', function () { window.location.hash = '#/usersForm'; });
   await loadUsers();
   setupUserSearch();
 }

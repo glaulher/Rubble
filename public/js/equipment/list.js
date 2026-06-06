@@ -13,6 +13,8 @@ async function initEquipmentManager() {
   equipmentSearch = '';
   const input = document.getElementById('equipmentSearchInput');
   if (input) input.value = '';
+  document.querySelector('[data-action="navigate-equipment-form"]')
+    ?.addEventListener('click', function () { window.location.hash = '#/equipmentForm'; });
   await loadEquipments();
   setupEquipmentSearch();
   setupEquipmentScroll();

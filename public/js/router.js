@@ -37,79 +37,79 @@ async function router() {
   |--------------------------------------------------------------------------
   */
   if (hash === "" || hash === "#/" || hash === "#/home") {
-    html = await loadPage("/app/Views/index.html?v=" + Date.now());
+    html = await loadPage("/app/Views/home/index.html?v=" + Date.now());
   } else if (hash.startsWith("#/equipament-dashboard")) {
     /*
   |--------------------------------------------------------------------------
   | EQUIPAMENT DASHBOARD
   |--------------------------------------------------------------------------
   */
-    html = await loadPage("/app/Views/equipamentDashboard.html?v=" + Date.now());
+    html = await loadPage("/app/Views/equipment/dashboard.html?v=" + Date.now());
   } else if (hash.startsWith("#/pv-dashboard")) {
     /*
   |--------------------------------------------------------------------------
   | PV DASHBOARD
   |--------------------------------------------------------------------------
   */
-    html = await loadPage("/app/Views/pvDashboard.html?v=" + Date.now());
+    html = await loadPage("/app/Views/pv/dashboard.html?v=" + Date.now());
   } else if (hash.startsWith("#/form")) {
     /*
   |--------------------------------------------------------------------------
   | FORM
   |--------------------------------------------------------------------------
   */
-    html = await loadPage("/app/Views/homeForm.html?v=" + Date.now());
+    html = await loadPage("/app/Views/home/form.html?v=" + Date.now());
   } else if (hash.startsWith("#/pvForm")) {
     /*
   |--------------------------------------------------------------------------
   | PV FORM
   |--------------------------------------------------------------------------
   */
-    html = await loadPage("/app/Views/pvForm.html?v=" + Date.now());
+    html = await loadPage("/app/Views/pv/form.html?v=" + Date.now());
   } else if (hash === "#/pv" || hash.startsWith("#/pv?")) {
     /*
   |--------------------------------------------------------------------------
   | PV (PROPOSTA DE VENDA)
   |--------------------------------------------------------------------------
   */
-    html = await loadPage("/app/Views/pv.html?v=" + Date.now());
+    html = await loadPage("/app/Views/pv/list.html?v=" + Date.now());
   } else if (hash.startsWith("#/usersForm")) {
     /*
   |--------------------------------------------------------------------------
   | USER FORM
   |--------------------------------------------------------------------------
   */
-    html = await loadPage("/app/Views/userForm.html?v=" + Date.now());
+    html = await loadPage("/app/Views/user/form.html?v=" + Date.now());
   } else if (hash === "#/users" || hash.startsWith("#/users?")) {
     /*
   |--------------------------------------------------------------------------
   | USERS
   |--------------------------------------------------------------------------
   */
-    html = await loadPage("/app/Views/users.html?v=" + Date.now());
+    html = await loadPage("/app/Views/user/list.html?v=" + Date.now());
   } else if (hash.startsWith("#/equipmentForm")) {
     /*
   |--------------------------------------------------------------------------
   | EQUIPMENT FORM
   |--------------------------------------------------------------------------
   */
-    html = await loadPage("/app/Views/equipmentManagerForm.html?v=" + Date.now());
+    html = await loadPage("/app/Views/equipment/form.html?v=" + Date.now());
   } else if (hash === "#/equipment-manager" || hash.startsWith("#/equipment-manager?")) {
     /*
   |--------------------------------------------------------------------------
   | EQUIPMENT MANAGER
   |--------------------------------------------------------------------------
   */
-    html = await loadPage("/app/Views/equipmentManager.html?v=" + Date.now());
+    html = await loadPage("/app/Views/equipment/list.html?v=" + Date.now());
   } else if (hash === "#/scm") {
     /*
   |--------------------------------------------------------------------------
   | SCM
   |--------------------------------------------------------------------------
   */
-    html = await loadPage("/app/Views/scm.html?v=" + Date.now());
+    html = await loadPage("/app/Views/scm/scm.html?v=" + Date.now());
   } else if (hash === "#/login") {
-    html = await loadPage("/app/Views/login.html?v=" + Date.now());
+    html = await loadPage("/app/Views/auth/login.html?v=" + Date.now());
   } else {
     html = `
       <div class="p-10 text-center">

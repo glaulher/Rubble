@@ -545,6 +545,11 @@ function initHome() {
     content.addEventListener('click', handleContentClick);
   }
 
+  document.querySelector('[data-action="generate-csv"]')
+    ?.addEventListener('click', generateCSVReport);
+  document.querySelector('[data-action="import-os"]')
+    ?.addEventListener('click', importOS);
+
   const searchInput = document.getElementById('searchInput');
 
   if (searchInput) {

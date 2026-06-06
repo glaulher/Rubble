@@ -33,7 +33,7 @@
           Enviar E-mail
         </button>
         <button
-          onclick="window.location.hash = '#/pvForm'"
+          data-action="navigate-pv-form"
           class="bg-emerald-300 hover:bg-emerald-400 text-emerald-800 px-4 py-2 rounded-xl text-sm font-medium transition"
         >
           + Nova PV
@@ -78,13 +78,13 @@
         <input type="hidden" id="deletePvId" />
         <div class="flex gap-3">
           <button
-            onclick="confirmDelete()"
+            data-action="confirm-delete"
             class="flex-1 bg-red-200 hover:bg-red-300 text-red-800 py-3 rounded-xl font-medium transition"
           >
             Excluir
           </button>
           <button
-            onclick="closeDeleteModal()"
+            data-action="close-delete-modal"
             class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-900 py-3 rounded-xl font-medium transition"
           >
             Cancelar
@@ -123,7 +123,7 @@
       <datalist id="cicloFilterList"></datalist>
       <div class="relative group">
         <button
-          onclick="generatePvCSV()"
+            data-action="generate-pv-csv"
           class="bg-emerald-200 hover:bg-emerald-300 text-emerald-800 px-3 py-2.5 rounded-xl font-semibold transition"
         >
           <svg
@@ -316,7 +316,7 @@
         <div class="flex gap-3 mt-4">
           <div class="relative group">
             <button
-              onclick="downloadPvPdf()"
+              data-action="download-pv-pdf"
               class="bg-emerald-200 hover:bg-emerald-300 text-emerald-800 px-2 py-2 rounded-xl font-semibold transition"
             >
               <svg
@@ -344,13 +344,13 @@
             </span>
           </div>
           <button
-            onclick="openPvEmailModal()"
+            data-action="open-email-modal"
             class="flex-1 bg-sky-300 hover:bg-sky-400 text-sky-800 py-3 rounded-xl font-medium transition"
           >
             Enviar PV
           </button>
           <button
-            onclick="closePvItemModal()"
+            data-action="close-pv-item-modal"
             class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-900 py-3 rounded-xl font-medium transition"
           >
             Fechar
@@ -449,13 +449,13 @@
         <div class="flex gap-3">
           <button
             id="btnSendPvEmail"
-            onclick="sendPvEmail()"
+            data-action="send-pv-email"
             class="flex-1 bg-sky-200 hover:bg-sky-300 text-sky-800 py-3 rounded-xl font-medium transition"
           >
             Enviar
           </button>
           <button
-            onclick="closePvEmailModal()"
+            data-action="close-email-modal"
             class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-900 py-3 rounded-xl font-medium transition"
           >
             Cancelar
@@ -484,13 +484,13 @@
       ></select>
       <div class="flex gap-3">
         <button
-          onclick="confirmStatusChange()"
+          data-action="confirm-status"
           class="flex-1 bg-sky-200 hover:bg-sky-300 text-sky-800 py-3 rounded-xl font-medium transition"
         >
           Confirmar
         </button>
         <button
-          onclick="closeStatusModal()"
+          data-action="close-status-modal"
           class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-900 py-3 rounded-xl font-medium transition"
         >
           Cancelar

@@ -17,6 +17,9 @@ async function loadEquipmentForm() {
   document.getElementById('eqUf').value = '';
   document.getElementById('mercado').value = '';
 
+  document.querySelector('[data-action="navigate-equipment-manager"]')
+    ?.addEventListener('click', function () { window.location.hash = '#/equipment-manager'; });
+
   if (editId) {
     document.getElementById('equipmentFormTitle').textContent = 'Editar Equipamento';
     document.getElementById('equipmentFormSubmit').textContent = 'Atualizar';
