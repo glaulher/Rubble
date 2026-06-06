@@ -8,7 +8,7 @@ use App\Api\Helpers\Response;
 
 class AuthMiddleware
 {
-    private ?array $user = null;
+    private ?object $user = null;
 
     public function handle(string $route, string $method): void
     {
@@ -51,7 +51,7 @@ class AuthMiddleware
         $this->user = $user;
     }
 
-    public function getUser(): ?array
+    public function getUser(): ?object
     {
         return $this->user;
     }
