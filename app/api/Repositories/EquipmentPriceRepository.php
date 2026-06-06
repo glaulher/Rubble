@@ -117,8 +117,7 @@ class EquipmentPriceRepository extends BaseRepository
         $rules ??= $this->getActiveRules();
 
         if (empty($rules)) {
-            $trValue = (float) Env::get('TR_VALUE', '94');
-            return round(($capacidade ?? 0) * $trValue, 2);
+            return 0.0;
         }
 
         return $this->matchRule($rules, $equipamento, $local, $mercadoEquipamento, $capacidade ?? 0.0);
@@ -185,8 +184,7 @@ class EquipmentPriceRepository extends BaseRepository
             return (float) $rule['valor'];
         }
 
-        $trValue = (float) Env::get('TR_VALUE', '94');
-        return round($capacidade * $trValue, 2);
+        return 0.0;
     }
 
     private function sumValueFallback(): float
@@ -198,7 +196,6 @@ class EquipmentPriceRepository extends BaseRepository
             return 0.0;
         }
         $row = $result->fetch_assoc();
-        $trValue = (float) Env::get('TR_VALUE', '94');
-        return round(((float) ($row['total'] ?? 0)) * $trValue, 2);
+        return round((float) ($row['total'] ?? 0), 2);
     }
 }
