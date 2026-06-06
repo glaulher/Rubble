@@ -68,6 +68,8 @@ class EquipmentController
                     $data['total'],
                 'total_os' =>
                     $data['total_os'],
+                'total_valor' =>
+                    $data['total_valor'],
                 'limit' => $limit,
                 'offset' => $offset,
             ]);
