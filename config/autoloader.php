@@ -3,6 +3,7 @@
 spl_autoload_register(function (string $class): void {
     $map = [
         'App\\Api\\Controllers\\' => __DIR__ . '/../app/api/Controllers/',
+        'App\\Api\\' => __DIR__ . '/../app/api/',
         'App\\Api\\Services\\' => __DIR__ . '/../app/api/Services/',
         'App\\Api\\Repositories\\' => __DIR__ . '/../app/api/Repositories/',
         'App\\Api\\Entities\\' => __DIR__ . '/../app/api/Entities/',
