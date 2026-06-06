@@ -262,6 +262,7 @@ function render(list, append = false) {
 
   const counter = document.getElementById('machineCounter');
   const label = document.getElementById('counterLabel');
+  const valueEl = document.getElementById('counterValue');
 
   if (counter && label) {
     const statusKeywords = [
@@ -278,9 +279,24 @@ function render(list, append = false) {
     if (isStatusSearch) {
       counter.textContent = totalOS;
       label.textContent = 'OS cadastradas';
+      if (valueEl) {
+        valueEl.textContent = '';
+        valueEl.style.display = 'none';
+      }
     } else {
       counter.textContent = totalEquipment;
       label.textContent = 'máquinas cadastradas';
+
+      if (valueEl) {
+        const isAdminOrCoord = userRole === 'admin' || userRole === 'coordenador';
+        if (isAdminOrCoord && totalValor > 0) {
+          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+          valueEl.style.display = '';
+        } else {
+          valueEl.textContent = '';
+          valueEl.style.display = 'none';
+        }
+      }
     }
   }
 
@@ -354,15 +370,31 @@ function syncHomeCards(newEquipment) {
 
   const counter = document.getElementById('machineCounter');
   const label = document.getElementById('counterLabel');
+  const valueEl = document.getElementById('counterValue');
   if (counter && label) {
     const statusKeywords = ['pendente', 'conclu', 'planej', 'andamento', 'clean'];
     const isStatusSearch = currentSearch !== '' && statusKeywords.some((kw) => currentSearch.includes(kw));
     if (isStatusSearch) {
       counter.textContent = totalOS;
       label.textContent = 'OS cadastradas';
+      if (valueEl) {
+        valueEl.textContent = '';
+        valueEl.style.display = 'none';
+      }
     } else {
       counter.textContent = totalEquipment;
       label.textContent = 'máquinas cadastradas';
+
+      if (valueEl) {
+        const isAdminOrCoord = userRole === 'admin' || userRole === 'coordenador';
+        if (isAdminOrCoord && totalValor > 0) {
+          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+          valueEl.style.display = '';
+        } else {
+          valueEl.textContent = '';
+          valueEl.style.display = 'none';
+        }
+      }
     }
   }
 

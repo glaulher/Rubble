@@ -2,6 +2,7 @@ let equipment = [];
 let filteredEquipment = [];
 let totalEquipment = 0;
 let totalOS = 0;
+let totalValor = 0;
 let currentSearch = '';
 let page = 0;
 let limit = 20;
@@ -71,6 +72,7 @@ async function loadEquipment(isPolling) {
       const newItems = result.data || [];
       totalEquipment = result.total || 0;
       totalOS = result.total_os || 0;
+      totalValor = result.total_valor || 0;
 
       newItems.forEach((e) => {
         recalculateEquipment(e);
@@ -105,6 +107,7 @@ async function loadEquipment(isPolling) {
 
     totalEquipment = result.total || 0;
     totalOS = result.total_os || 0;
+    totalValor = result.total_valor || 0;
 
     if (newItems.length < limit) {
       allLoaded = true;

@@ -3,6 +3,7 @@
 namespace App\Api\Repositories;
 
 use App\Api\Entities\Equipment;
+use App\Config\Env;
 
 class EquipmentRepository extends BaseRepository
 {
@@ -111,6 +112,27 @@ class EquipmentRepository extends BaseRepository
         $stmt->bind_param($types, $param, $param, $param, $param, $param, $param, $param, $param);
         $stmt->execute();
         return (int) $stmt->get_result()->fetch_assoc()['total'];
+    }
+
+    public function sumValueByFilter(string $search = '', ?string $location = null): float
+    {
+        [$conditions, $types, $params] = $this->buildFilterClause($search, $location);
+
+        $trValue = (float) Env::get('TR_VALUE', '94');
+
+        $sql = "
+            SELECT COALESCE(SUM(e.capacidade * ?), 0) as total_valor
+            FROM equipamentos e
+            LEFT JOIN enderecos en ON en.id = e.endereco_id
+            WHERE " . implode(" AND ", $conditions);
+
+        array_unshift($params, $trValue);
+        $types = 'd' . $types;
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        return (float) $stmt->get_result()->fetch_assoc()['total_valor'];
     }
 
     public function listAll(int $limit = 20, int $offset = 0, string $search = '', ?string $location = null, ?string $exactName = null): array

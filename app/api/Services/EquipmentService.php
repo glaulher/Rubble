@@ -112,6 +112,7 @@ class EquipmentService
             'items' => $items,
             'total' => $this->equipmentRepository->count($search, $location, $exactName),
             'total_os' => $this->equipmentRepository->countOS($search),
+            'total_valor' => $this->equipmentRepository->sumValueByFilter($search, $location),
         ];
     }
 
