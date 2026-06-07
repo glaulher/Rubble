@@ -16,7 +16,7 @@ HVAC equipment maintenance management SPA. PHP + Vanilla JS + MariaDB.
 - **Equipment Dashboard** — Pareto charts (locations, machines, technicians), resolution time analysis
 - **User Management** — Admin CRUD with password hashing, role assignment, self-delete prevention
 - **Equipment Management (Admin)** — Admin/coordenador CRUD with address find-or-create, integrity check on delete
-- **CSV Export** — PV items export with Windows-1252 encoding
+- **CSV Export** — Equipment + ticket rows filtered by search term, per-ticket status in each row; PV items export with Windows-1252 encoding
 - **PDF Report** — PV items PDF via html2canvas + jsPDF with wrapped text and Memorial de Calculo
 - **CSV Import** — OS import from CSV with UTF-8/Latin-1 detection
 - **Real-Time Polling** — 30s interval with APCu cache (file fallback), Visibility API pause/resume, incremental DOM updates
@@ -158,7 +158,7 @@ Script load order (index.html): `auth.js` → libs → utils → components → 
 | Route | Methods | Actions |
 |-------|---------|---------|
 | `auth` | POST, GET | `login()`, `me()`, `logout()` |
-| `equipment` | GET | `listAll()`, `checkChiller()` |
+| `equipment` | GET | `listAll()`, `checkChiller()`, `ticketsByEquipment()`, `sumValue()`, `ticketsByIds()` |
 | `tickets` | GET, POST, PUT, DELETE | `listByItem()`, `getById()`, `save()`, `import()`, `update()`, `delete()` |
 | `dashboard` | GET | `stats()` (equipment) |
 | `pv-dashboard` | GET | `stats()` (PV financial) |
