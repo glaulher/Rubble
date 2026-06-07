@@ -1,3 +1,12 @@
+function hubRecase(str) {
+  if (!str || str !== str.toUpperCase()) return str;
+  const u = str.toUpperCase();
+  if (u.startsWith('HUB ') || u.startsWith('HEADEND ')) {
+    return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return str;
+}
+
 function formatPvDisplay(pvEntry) {
   const parts = pvEntry.split('|');
   const pvNum = parts[0];
@@ -202,6 +211,17 @@ function render(list, append = false) {
 
             ${escapeHtml(site)}
 
+            <span class="text-base font-medium text-slate-600 mx-1">-</span>
+            <span class="text-base font-medium text-slate-600">
+              ${escapeHtml(hubRecase(localEquipment[0].local_scm ?? ''))}
+            </span>
+
+            <span class="text-base font-medium text-slate-600 mx-1">&mdash;</span>
+            <span class="text-base font-medium text-slate-600">
+              ${escapeHtml(localEquipment[0].localidade ?? '')}
+            </span>
+
+            <span class="text-base font-medium text-slate-600 mx-1">-</span>
             <span class="text-base font-medium text-slate-600">
               ${escapeHtml(localEquipment[0].local_do_endereco ?? '')}
             </span>
@@ -325,6 +345,11 @@ function syncHomeCards(newEquipment) {
           <div class="mb-4">
             <h2 class="text-2xl font-medium tracking-[0.05em] text-slate-800">
               ${escapeHtml(e.local)}
+              <span class="text-base font-medium text-slate-600 mx-1">-</span>
+              <span class="text-base font-medium text-slate-600">${escapeHtml(hubRecase(e.local_scm ?? ''))}</span>
+              <span class="text-base font-medium text-slate-600 mx-1">&mdash;</span>
+              <span class="text-base font-medium text-slate-600">${escapeHtml(e.localidade ?? '')}</span>
+              <span class="text-base font-medium text-slate-600 mx-1">-</span>
               <span class="text-base font-medium text-slate-600">${escapeHtml(e.local_do_endereco ?? '')}</span>
               <span class="hidden md:inline text-base font-normal text-slate-600">${escapeHtml(formatAddress(e.endereco ? '- ' + e.endereco : ''))}</span>
             </h2>

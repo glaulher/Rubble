@@ -14,6 +14,7 @@ class Equipment
     public ?float $capacity;
     public ?string $locality;
     public ?string $mercado;
+    public ?string $localScm;
 
     public function __construct(array $data)
     {
@@ -27,6 +28,7 @@ class Equipment
         $this->capacity = isset($data['capacidade']) ? (float) $data['capacidade'] : null;
         $this->locality = $data['localidade'] ?? null;
         $this->mercado = $data['mercado'] ?? null;
+        $this->localScm = $data['local_scm'] ?? null;
     }
 
     public function toArray(): array
@@ -42,6 +44,7 @@ class Equipment
             'capacidade' => $this->capacity,
             'localidade' => $this->locality,
             'mercado' => $this->mercado,
+            'local_scm' => $this->localScm,
         ];
     }
 }

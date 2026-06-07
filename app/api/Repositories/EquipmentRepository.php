@@ -31,6 +31,7 @@ class EquipmentRepository extends BaseRepository
         if ($search !== '') {
             $conditions[] = "(
                 e.local LIKE ?
+                OR e.local_scm LIKE ?
                 OR e.equipamento LIKE ?
                 OR en.local_do_endereco LIKE ?
                 OR en.endereco LIKE ?
@@ -47,8 +48,8 @@ class EquipmentRepository extends BaseRepository
                 )
             )";
             $param = "%{$search}%";
-            $params = array_merge($params, [$param, $param, $param, $param, $param, $param, $param, $param]);
-            $types .= 'ssssssss';
+            $params = array_merge($params, [$param, $param, $param, $param, $param, $param, $param, $param, $param]);
+            $types .= 'sssssssss';
         }
 
         return [$conditions, $types, $params];
@@ -96,6 +97,7 @@ class EquipmentRepository extends BaseRepository
             LEFT JOIN enderecos en ON en.id = e.endereco_id
             WHERE (
                 e.local LIKE ?
+                OR e.local_scm LIKE ?
                 OR e.equipamento LIKE ?
                 OR en.local_do_endereco LIKE ?
                 OR en.endereco LIKE ?
@@ -107,8 +109,8 @@ class EquipmentRepository extends BaseRepository
         ";
 
         $stmt = $this->conn->prepare($sql);
-        $types = 'ssssssss';
-        $stmt->bind_param($types, $param, $param, $param, $param, $param, $param, $param, $param);
+        $types = 'sssssssss';
+        $stmt->bind_param($types, $param, $param, $param, $param, $param, $param, $param, $param, $param);
         $stmt->execute();
         return (int) $stmt->get_result()->fetch_assoc()['total'];
     }
