@@ -198,6 +198,7 @@ function renderPvs(list, append = false) {
 
   if (pvList.length === 0 && !append) {
     empty.classList.remove('hidden');
+    updateBatchButton();
     return;
   }
 
@@ -207,6 +208,7 @@ function renderPvs(list, append = false) {
     const tr = createPvRow(pv);
     tbody.appendChild(tr);
   });
+  updateBatchButton();
 }
 
 function createPvRow(pv) {
@@ -252,6 +254,7 @@ function syncPvTable(newItems) {
   if (newItems.length === 0) {
     tbody.innerHTML = '';
     empty.classList.remove('hidden');
+    updateBatchButton();
     return;
   }
 
@@ -275,6 +278,7 @@ function syncPvTable(newItems) {
 
   tbody.innerHTML = '';
   tbody.appendChild(fragment);
+  updateBatchButton();
 }
 
 function resetPvState(search, status, cycle, keepSort) {
@@ -427,22 +431,25 @@ function setupPvSort() {
   });
 }
 
+function updateBatchButton() {
+  const batchBtn = document.getElementById('batchEmailBtn');
+  const selectedCountEl = document.getElementById('selectedCount');
+  if (!batchBtn || !selectedCountEl) return;
+  const count = selectedPvIds.length;
+  if (count > 0) {
+    batchBtn.classList.remove('hidden');
+    selectedCountEl.textContent = count;
+  } else {
+    batchBtn.classList.add('hidden');
+  }
+}
+
 function setupPvCheckboxes() {
   const selectAll = document.getElementById('selectAllPv');
   const batchBtn = document.getElementById('batchEmailBtn');
   const pvTableBody = document.getElementById('pvTableBody');
   const selectedCountEl = document.getElementById('selectedCount');
   if (!selectAll || !batchBtn || !pvTableBody || !selectedCountEl) return;
-
-  function updateBatchButton() {
-    const count = selectedPvIds.length;
-    if (count > 0) {
-      batchBtn.classList.remove('hidden');
-      selectedCountEl.textContent = count;
-    } else {
-      batchBtn.classList.add('hidden');
-    }
-  }
 
   pvTableBody.addEventListener('change', function (e) {
     const cb = e.target.closest('.pv-checkbox');
@@ -492,6 +499,8 @@ function setupPvCheckboxes() {
       console.error(err);
     }
   });
+
+  updateBatchButton();
 }
 
 function initPv() {
