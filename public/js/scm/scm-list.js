@@ -264,10 +264,10 @@ function renderScm(items, append = false) {
 
 function buildScmCardHtml(s) {
     const statusColors = {
-        'SCM Aprovado': 'bg-emerald-100 text-emerald-700',
-        'SCM Negado': 'bg-red-100 text-red-700',
-        'SCM Verificado': 'bg-blue-100 text-blue-800',
-        'SCM Enviado': 'bg-purple-100 text-purple-700',
+        'SCM aprovado': 'bg-emerald-100 text-emerald-700',
+        'SCM negado': 'bg-red-100 text-red-700',
+        'SCM verificado': 'bg-blue-100 text-blue-800',
+        'SCM enviado': 'bg-purple-100 text-purple-700',
     };
     const statusClass = statusColors[s.status] || 'bg-slate-100 text-slate-700';
 

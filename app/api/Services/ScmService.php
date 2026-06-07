@@ -9,12 +9,14 @@ class ScmService
     private ScmRepository $repository;
 
     private const STATUS_MAP = [
-        'GERADO'    => 'SCM Aprovado',
-        'NEGADO'    => 'SCM Negado',
-        'CONFERIDO' => 'SCM Verificado',
-        'VALIDADO'  => 'SCM Verificado',
-        'EXECUTADO' => 'SCM Enviado',
+        'GERADO'    => 'SCM aprovado',
+        'NEGADO'    => 'SCM negado',
+        'CONFERIDO' => 'SCM verificado',
+        'VALIDADO'  => 'SCM verificado',
+        'EXECUTADO' => 'SCM enviado',
     ];
+
+    private const PV_SYNC_STATUSES = ['SCM aprovado', 'SCM negado', 'SCM enviado'];
 
     public function __construct()
     {
@@ -106,6 +108,10 @@ class ScmService
                 }
 
                 $this->repository->upsertItems($scmId, $itemRows);
+
+                if (in_array($mappedStatus, self::PV_SYNC_STATUSES, true)) {
+                    $this->repository->updatePvItemStatusByScm($parentData['scm'], $mappedStatus);
+                }
 
                 if ($existing) {
                     $updated++;

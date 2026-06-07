@@ -219,6 +219,15 @@ class ScmRepository extends BaseRepository
         return $segments;
     }
 
+    public function updatePvItemStatusByScm(string $scmCode, string $status): int
+    {
+        $sql = "UPDATE pv_item SET status = ? WHERE scm = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param('ss', $status, $scmCode);
+        $stmt->execute();
+        return $stmt->affected_rows;
+    }
+
     public function delete(int $id): bool
     {
         $sql = "DELETE FROM scm WHERE id = ?";
