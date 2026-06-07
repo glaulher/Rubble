@@ -33,10 +33,6 @@ async function loadEquipment(isPolling) {
       totalOS = result.total_os || 0;
       totalValor = result.total_valor || 0;
 
-      newItems.forEach((e) => {
-        recalculateEquipment(e);
-      });
-
       equipment = newItems;
       filteredEquipment = [...equipment];
       allLoaded = newItems.length < limit;
