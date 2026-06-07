@@ -368,3 +368,14 @@ button:disabled { cursor: not-allowed; }
   background-color: #0f172a !important;
   color: white !important;
 }
+
+/* ============================================
+   Virtual Scrolling — render only visible site groups
+   content-visibility: auto lets the browser skip
+   rendering of off-screen groups, reducing DOM
+   cost from O(n) to O(viewport) for 10k+ items.
+   ============================================ */
+.site-group {
+  content-visibility: auto;
+  contain-intrinsic-size: 500px;
+}

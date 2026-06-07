@@ -286,14 +286,19 @@ ALTER TABLE `cron_controle`
 -- Índices de tabela `enderecos`
 --
 ALTER TABLE `enderecos`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_enderecos_local_do_endereco` (`local_do_endereco`);
 
 --
 -- Índices de tabela `equipamentos`
 --
 ALTER TABLE `equipamentos`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_equipamentos_endereco` (`endereco_id`);
+  ADD KEY `fk_equipamentos_endereco` (`endereco_id`),
+  ADD KEY `idx_equipamentos_local_equipamento` (`local`, `equipamento`),
+  ADD KEY `idx_equipamentos_local_scm` (`local_scm`),
+  ADD KEY `idx_equipamentos_mercado` (`mercado`),
+  ADD FULLTEXT KEY `ft_equipamentos_search` (`local`, `equipamento`, `localidade`);
 
 --
 -- Índices de tabela `material_chiller_lpu`
@@ -342,7 +347,8 @@ ALTER TABLE `registros`
   ADD UNIQUE KEY `idx_registros_os` (`os`),
   ADD KEY `idx_registros_equipamento_id` (`equipamento_id`),
   ADD KEY `idx_registros_status` (`status`),
-  ADD KEY `idx_registros_data` (`data`);
+  ADD KEY `idx_registros_data` (`data`),
+  ADD KEY `idx_registros_equipamento_search` (`equipamento_id`, `status`, `os`);
 
 --
 -- Índices de tabela `servico_chiller_lpu`

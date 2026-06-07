@@ -196,11 +196,13 @@ class EquipmentController
             }
 
             $priceRepo = new \App\Api\Repositories\EquipmentPriceRepository();
-            $total = $priceRepo->sumValueByFilter($search, $location);
+            $totalValor = $priceRepo->sumValueByFilter($search, $location);
+            $totalEquipment = $priceRepo->countByFilter($search, $location);
 
             $response = [
                 'success' => true,
-                'total_valor' => $total,
+                'total_valor' => $totalValor,
+                'total_equipment' => $totalEquipment,
             ];
 
             Cache::set($cacheKey, $response, 30);

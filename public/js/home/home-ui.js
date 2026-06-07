@@ -558,6 +558,40 @@ function buildTicketHtml(r, canEdit) {
   `;
 }
 
+async function loadEquipmentSummary() {
+  const search = currentSearch || '';
+  const statusKeywords = ['pendente', 'conclu', 'planej', 'andamento', 'clean'];
+  const isStatusSearch = search !== '' && statusKeywords.some((kw) => search.includes(kw));
+  if (isStatusSearch) return;
+  try {
+    const resp = await fetch(`/app/api/index.php?route=equipment&action=sum-value&search=${encodeURIComponent(search)}`);
+    const result = await resp.json();
+    if (!result.success) return;
+
+    if (result.total_equipment !== undefined) {
+      document.getElementById('machineCounter').textContent = result.total_equipment;
+    }
+    if (result.total_valor !== undefined) {
+      totalValor = result.total_valor;
+      const valueEl = document.getElementById('counterValue');
+      if (valueEl) {
+        const currentUser = getUser();
+        const userRole = currentUser ? currentUser.role : '';
+        const isAdminOrCoord = userRole === 'admin' || userRole === 'coordenador';
+        if (isAdminOrCoord && totalValor > 0) {
+          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+          valueEl.style.display = '';
+        } else {
+          valueEl.textContent = '';
+          valueEl.style.display = 'none';
+        }
+      }
+    }
+  } catch (err) {
+    // silent — badge polling failures are non-critical
+  }
+}
+
 function initHome() {
   page = 0;
 
@@ -594,7 +628,10 @@ function initHome() {
 
   setupInfiniteScroll();
 
-  PollingManager.start('home', function () { loadEquipment(true); }, 30000);
+  PollingManager.start('home', function () { loadEquipment(true); }, 60000);
+
+  PollingManager.start('home-badge', function () { loadEquipmentSummary(); }, 30000);
+  loadEquipmentSummary();
 
   loadEquipment(false);
 

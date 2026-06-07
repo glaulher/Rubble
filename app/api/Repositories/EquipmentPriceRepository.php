@@ -184,6 +184,59 @@ class EquipmentPriceRepository extends BaseRepository
         return round((float) ($row['total'] ?? 0), 2);
     }
 
+    public function countByFilter(string $search = '', ?string $location = null): int
+    {
+        $conditions = ["e.equipamento != 'N/A'"];
+        $params = [];
+        $types = '';
+
+        if ($location !== null && $location !== '') {
+            $conditions[] = "e.local = ?";
+            $params[] = $location;
+            $types .= 's';
+        }
+
+        if ($search !== '') {
+            $conditions[] = "(
+                e.local LIKE ?
+                OR e.equipamento LIKE ?
+                OR en.local_do_endereco LIKE ?
+                OR en.endereco LIKE ?
+                OR EXISTS (
+                    SELECT 1 FROM registros r
+                    WHERE r.equipamento_id = e.id
+                    AND (r.status LIKE ? OR r.obs LIKE ? OR r.material LIKE ? OR r.os LIKE ?)
+                )
+            )";
+            $param = "%{$search}%";
+            $params = array_merge($params, [$param, $param, $param, $param, $param, $param, $param, $param]);
+            $types .= 'ssssssss';
+        }
+
+        $where = implode(' AND ', $conditions);
+
+        $sql = "SELECT COUNT(*) AS cnt
+                FROM equipamentos e
+                LEFT JOIN enderecos en ON en.id = e.endereco_id
+                WHERE {$where}";
+
+        if (!empty($params)) {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $result = $stmt->get_result();
+        } else {
+            $result = $this->conn->query($sql);
+        }
+
+        if (!$result) {
+            return 0;
+        }
+
+        $row = $result->fetch_assoc();
+        return (int) ($row['cnt'] ?? 0);
+    }
+
     private function matchRule(array $rules, string $equipamento, ?string $local, ?string $mercadoEquipamento, float $capacidade): float
     {
         foreach ($rules as $rule) {
