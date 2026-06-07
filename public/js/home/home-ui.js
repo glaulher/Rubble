@@ -613,10 +613,16 @@ function initHome() {
     content.addEventListener('click', handleContentClick);
   }
 
-  document.querySelector('[data-action="generate-csv"]')
-    ?.addEventListener('click', generateCSVReport);
-  document.querySelector('[data-action="import-os"]')
-    ?.addEventListener('click', importOS);
+  const csvBtn = document.querySelector('[data-action="generate-csv"]');
+  if (csvBtn) {
+    csvBtn.removeEventListener('click', generateCSVReport);
+    csvBtn.addEventListener('click', generateCSVReport);
+  }
+  const importBtn = document.querySelector('[data-action="import-os"]');
+  if (importBtn) {
+    importBtn.removeEventListener('click', importOS);
+    importBtn.addEventListener('click', importOS);
+  }
 
   const searchInput = document.getElementById('searchInput');
 

@@ -252,7 +252,7 @@ async function generateCSVReport() {
       return;
     }
 
-    const header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_CONCLUSAO;DATA_PLANEJADA;MATERIAL;OBSERVACAO';
+    const header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS';
 
     downloadCSV(
       currentSearch && currentSearch.trim() !== ''
@@ -261,34 +261,13 @@ async function generateCSVReport() {
       header,
       (addRow) => {
         list.forEach((e) => {
-  const tickets = e.tickets || [];
-
-          if (tickets.length === 0) {
-            addRow([
-              sanitizeCSV(e.local),
-              sanitizeCSV(e.localidade),
-              sanitizeCSV(e.equipamento),
-              sanitizeCSV(e.capacidade != null ? e.capacidade + ' TR' : ''),
-              '', '', '', '', '', '',
-            ]);
-            return;
-          }
-
-          tickets.forEach((r) => {
-            addRow([
-              sanitizeCSV(e.local),
-              sanitizeCSV(e.localidade),
-              sanitizeCSV(e.equipamento),
-              sanitizeCSV(e.capacidade != null ? e.capacidade + ' TR' : ''),
-              sanitizeCSV(r.status),
-              sanitizeCSV(r.os),
-              sanitizeCSV(r.data),
-              sanitizeCSV(r.data_concluido),
-              sanitizeCSV(r.data_planejada),
-              sanitizeCSV(r.material),
-              sanitizeCSV(r.obs),
-            ]);
-          });
+          addRow([
+            sanitizeCSV(e.local),
+            sanitizeCSV(e.localidade),
+            sanitizeCSV(e.equipamento),
+            sanitizeCSV(e.capacidade != null ? e.capacidade + ' TR' : ''),
+            sanitizeCSV(e.searchStatus || ''),
+          ]);
         });
       }
     );
