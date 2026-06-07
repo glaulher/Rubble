@@ -56,10 +56,25 @@ if (dashToggle && dashSubmenu) {
   });
 }
 
-// Fechar submenu ao clicar fora
+// Equip submenu toggle
+const equipToggle = document.getElementById('equipMenuToggle');
+const equipSubmenu = document.getElementById('equipSubmenu');
+
+if (equipToggle && equipSubmenu) {
+  equipToggle.addEventListener('click', function (e) {
+    e.preventDefault();
+    equipSubmenu.classList.toggle('hidden');
+  });
+}
+
+// Fechar submenus ao clicar fora
 document.addEventListener('click', function (e) {
-  const container = document.getElementById('dashboardMenuContainer');
-  if (dashSubmenu && container && !container.contains(e.target)) {
+  const dashContainer = document.getElementById('dashboardMenuContainer');
+  if (dashSubmenu && dashContainer && !dashContainer.contains(e.target)) {
     dashSubmenu.classList.add('hidden');
+  }
+  const equipContainer = document.getElementById('equipMenuContainer');
+  if (equipSubmenu && equipContainer && !equipContainer.contains(e.target)) {
+    equipSubmenu.classList.add('hidden');
   }
 });

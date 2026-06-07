@@ -66,7 +66,7 @@
     <header class="fixed top-0 left-0 right-0 bg-slate-900 z-50 h-14">
       <div class="flex items-center justify-between h-full px-6">
         <div class="flex items-center gap-3">
-          <img src="/image/Monster.png" class="w-10 h-10 object-contain" />
+          <img src="/image/Monster.png" width="40" height="40" class="w-10 h-10 object-contain" />
           <div>
             <div class="text-white font-semibold tracking-wide -mb-0.5">
               Rubble
@@ -108,7 +108,7 @@
     <!-- SIDEBAR -->
     <aside
       id="sidebar"
-      class="fixed left-0 bg-slate-900 flex flex-col z-0 transition-all duration-300"
+      class="fixed left-0 bg-slate-900 flex flex-col z-10 transition-all duration-300"
       data-collapsed="true"
       style="top: 56px; bottom: 0; width: 56px; display: none"
     >
@@ -301,66 +301,85 @@
             </a>
           </div>
         </div>
-        <a
-          href="#/equipment-manager"
+        <!-- Equip. with submenu -->
+        <div
           data-role="admin coordenador"
-          class="sidebar-link flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white font-medium transition whitespace-nowrap relative group"
+          class="relative group"
+          id="equipMenuContainer"
         >
-          <svg
-            class="w-5 h-5 shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+          <a
+            href="#"
+            class="sidebar-link flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white font-medium transition whitespace-nowrap relative"
+            id="equipMenuToggle"
           >
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-            <line x1="6" y1="6" x2="6.01" y2="6"></line>
-            <line x1="6" y1="18" x2="6.01" y2="18"></line>
-          </svg>
-          <span
-            class="sidebar-label transition-opacity duration-300"
-            style="display: none; opacity: 0"
+            <svg
+              class="w-5 h-5 shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+              <line x1="6" y1="6" x2="6.01" y2="6"></line>
+              <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </svg>
+            <span
+              class="sidebar-label transition-opacity duration-300"
+              style="display: none; opacity: 0"
+            >
+              Equip.
+            </span>
+          </a>
+          <!-- Submenu -->
+          <div
+            id="equipSubmenu"
+            class="hidden group-hover:block absolute left-full top-0 bg-slate-900 text-white rounded-xl shadow-lg border border-slate-600 z-50 py-2 px-1 min-w-[180px]"
           >
-            Equip.
-          </span>
-          <span
-            class="sidebar-tooltip absolute left-full ml-2 top-1/2 -translate-y-1/2 scale-0 group-hover:scale-100 origin-left transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
-          >
-            Equip.
-          </span>
-        </a>
-        <a
-          href="#/equipment-prices"
-          data-role="admin"
-          class="sidebar-link flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white font-medium transition whitespace-nowrap relative group"
-        >
-          <svg
-            class="w-5 h-5 shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <line x1="12" y1="1" x2="12" y2="23"></line>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
-          <span
-            class="sidebar-label transition-opacity duration-300"
-            style="display: none; opacity: 0"
-          >
-            Preços
-          </span>
-          <span
-            class="sidebar-tooltip absolute left-full ml-2 top-1/2 -translate-y-1/2 scale-0 group-hover:scale-100 origin-left transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
-          >
-            Preços
-          </span>
-        </a>
+            <a
+              href="#/equipment-manager"
+              data-role="admin coordenador"
+              class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white text-sm whitespace-nowrap"
+            >
+              <svg
+                class="w-4 h-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+              </svg>
+              <span>Cadastro Equip.</span>
+            </a>
+            <a
+              href="#/equipment-prices"
+              data-role="admin"
+              class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white text-sm whitespace-nowrap"
+            >
+              <svg
+                class="w-4 h-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+              <span>Cadastro Valor</span>
+            </a>
+          </div>
+        </div>
         <a
           href="#/users"
           data-role="admin"
@@ -469,7 +488,7 @@
     </div>
 
     <!-- FOOTER -->
-    <footer class="bg-slate-900 border-t border-slate-800 relative z-10">
+    <footer class="bg-slate-900 border-t border-slate-800 relative z-20">
       <div class="max-w-7xl mx-auto px-6 py-8">
         <div
           class="flex flex-col md:flex-row items-center justify-between gap-4"
