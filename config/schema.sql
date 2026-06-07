@@ -59,6 +59,9 @@ CREATE TABLE `enderecos` (
   `uf` varchar(2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Indexes for enderecos
+CREATE INDEX idx_enderecos_local_do_endereco ON enderecos (local_do_endereco);
+
 -- --------------------------------------------------------
 
 --
@@ -75,6 +78,12 @@ CREATE TABLE `equipamentos` (
   `local_scm` varchar(100) DEFAULT NULL,
   `mercado` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Indexes for equipamentos
+CREATE INDEX idx_equipamentos_local_equipamento ON equipamentos (local, equipamento);
+CREATE INDEX idx_equipamentos_local_scm ON equipamentos (local_scm);
+CREATE INDEX idx_equipamentos_mercado ON equipamentos (mercado);
+ALTER TABLE equipamentos ADD FULLTEXT INDEX ft_equipamentos_search (local, equipamento, localidade);
 
 -- --------------------------------------------------------
 
@@ -221,6 +230,9 @@ CREATE TABLE `registros` (
   `equipamento_id` int(11) DEFAULT NULL,
   `notificacao_enviada` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Indexes for registros
+CREATE INDEX idx_registros_equipamento_search ON registros (equipamento_id, status, os);
 
 -- --------------------------------------------------------
 
