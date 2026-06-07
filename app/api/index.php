@@ -32,6 +32,8 @@ $router->addRoute('equipment', 'GET', function () {
         (new EquipmentController())->ticketsByEquipment();
     } elseif (isset($_GET['action']) && $_GET['action'] === 'sum-value') {
         (new EquipmentController())->sumValue();
+    } elseif (isset($_GET['action']) && $_GET['action'] === 'tickets-by-ids') {
+        (new EquipmentController())->ticketsByIds();
     } else {
         (new EquipmentController())->listAll();
     }

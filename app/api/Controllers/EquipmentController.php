@@ -170,6 +170,48 @@ class EquipmentController
 
     /*
     |--------------------------------------------------------------------------
+    | LIST TICKETS BY EQUIPMENT IDS (batch for CSV export)
+    |--------------------------------------------------------------------------
+    */
+    public function ticketsByIds(): void
+    {
+        try {
+
+            $ids = isset($_GET['ids']) ? (array) $_GET['ids'] : [];
+
+            $ids = array_map('intval', $ids);
+            $ids = array_filter($ids, fn($v) => $v > 0);
+
+            if (empty($ids)) {
+
+                Response::error('IDs dos equipamentos obrigatórios', 400);
+                return;
+            }
+
+            $repo = new TicketRepository();
+            $grouped = $repo->listByItems($ids);
+
+            $result = [];
+            foreach ($grouped as $eqId => $tickets) {
+                $result[(string) $eqId] = array_map(
+                    fn($t) => $t->toArray(),
+                    $tickets
+                );
+            }
+
+            Response::json([
+                'success' => true,
+                'data' => $result,
+            ]);
+
+        } catch (\Exception $e) {
+
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | SUM VALUE BY FILTER (badge)
     |--------------------------------------------------------------------------
     */

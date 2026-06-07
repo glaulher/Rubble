@@ -252,7 +252,17 @@ async function generateCSVReport() {
       return;
     }
 
-    const header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS';
+    const ids = list.map((e) => e.id);
+
+    const ticketsResp = await fetch(
+      `/app/api/index.php?route=equipment&action=tickets-by-ids&${ids.map((id) => 'ids[]=' + id).join('&')}`
+    );
+
+    const ticketsResult = await ticketsResp.json();
+
+    const ticketsByEquipId = ticketsResult.data || {};
+
+    const header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_CONCLUSAO;MATERIAL;OBSERVACAO';
 
     downloadCSV(
       currentSearch && currentSearch.trim() !== ''
@@ -260,14 +270,43 @@ async function generateCSVReport() {
         : 'report_complete.csv',
       header,
       (addRow) => {
+        var searchTerm = (currentSearch || '').toLowerCase().trim();
+        var searchNorm = searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
         list.forEach((e) => {
-          addRow([
-            sanitizeCSV(e.local),
-            sanitizeCSV(e.localidade),
-            sanitizeCSV(e.equipamento),
-            sanitizeCSV(e.capacidade != null ? e.capacidade + ' TR' : ''),
-            sanitizeCSV(e.searchStatus || ''),
-          ]);
+          var allTickets = ticketsByEquipId[String(e.id)] || [];
+
+          var matchedTickets = allTickets.filter(function (t) {
+            if (!searchTerm) return true;
+            var statusNorm = (t.status || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            return statusNorm.indexOf(searchNorm) >= 0;
+          });
+
+          if (matchedTickets.length === 0) {
+            addRow([
+              sanitizeCSV(e.local),
+              sanitizeCSV(e.localidade),
+              sanitizeCSV(e.equipamento),
+              sanitizeCSV(e.capacidade != null ? e.capacidade + ' TR' : ''),
+              sanitizeCSV(e.searchStatus || ''),
+              '', '', '', '', '',
+            ]);
+          } else {
+            matchedTickets.forEach(function (t) {
+              addRow([
+                sanitizeCSV(e.local),
+                sanitizeCSV(e.localidade),
+                sanitizeCSV(e.equipamento),
+                sanitizeCSV(e.capacidade != null ? e.capacidade + ' TR' : ''),
+                sanitizeCSV(t.status || ''),
+                sanitizeCSV(t.os || ''),
+                sanitizeCSV(t.data || ''),
+                sanitizeCSV(t.data_concluido || ''),
+                sanitizeCSV(t.material || ''),
+                sanitizeCSV(t.obs || ''),
+              ]);
+            });
+          }
         });
       }
     );
