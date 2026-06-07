@@ -10,47 +10,6 @@ let loading = false;
 let allLoaded = false;
 let lastHomeHash = '';
 
-function recalculateEquipment(e) {
-          const tickets = e.tickets || [];
-
-  const hasCleanUp = tickets.some(
-    (r) => (r.status || '').toLowerCase() === 'projeto clean up'
-  );
-
-  const hasPlanned = tickets.some(
-    (r) => (r.status || '').toLowerCase() === 'planejado'
-  );
-
-  const hasPending = tickets.some(
-    (r) => (r.status || '').toLowerCase() === 'pendente'
-  );
-
-  if (hasCleanUp) {
-    e.color = 'bg-purple-100 text-purple-700';
-    e.icon = '🧹';
-    e.searchStatus = 'clean up';
-    return;
-  }
-
-  if (hasPlanned) {
-    e.color = 'bg-yellow-100 text-yellow-700';
-    e.icon = '🕒';
-    e.searchStatus = 'planejado';
-    return;
-  }
-
-  if (hasPending) {
-    e.color = 'bg-red-100 text-red-700';
-    e.icon = '⚠️';
-    e.searchStatus = 'pendente';
-    return;
-  }
-
-  e.color = 'text-slate-900';
-  e.icon = '';
-  e.searchStatus = '';
-}
-
 async function loadEquipment(isPolling) {
   if (loading) return;
 
@@ -112,10 +71,6 @@ async function loadEquipment(isPolling) {
     if (newItems.length < limit) {
       allLoaded = true;
     }
-
-    newItems.forEach((e) => {
-      recalculateEquipment(e);
-    });
 
     equipment.push(...newItems);
 
