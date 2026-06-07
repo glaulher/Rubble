@@ -3,7 +3,9 @@
 namespace App\Api\Controllers;
 
 use App\Api\Services\EquipmentService;
+use App\Api\Repositories\TicketRepository;
 use App\Api\Helpers\Response;
+use App\Api\Helpers\Cache;
 use Exception;
 
 class EquipmentController
@@ -44,6 +46,16 @@ class EquipmentController
                     ? $_GET['equipamento']
                     : null;
 
+            $cacheKey = 'equipment_list:' . md5(serialize([
+                $limit, $offset, $search, $location, $equipamento
+            ]));
+
+            $cached = Cache::get($cacheKey);
+            if ($cached !== null) {
+                Response::json($cached);
+                return;
+            }
+
             /*
             |------------------------------------------------------------------
             | SERVICE
@@ -58,7 +70,7 @@ class EquipmentController
                     $equipamento
                 );
 
-            Response::json([
+            $response = [
                 'success' => true,
                 'message' =>
                     'Equipamentos listados com sucesso',
@@ -72,7 +84,11 @@ class EquipmentController
                     $data['total_valor'],
                 'limit' => $limit,
                 'offset' => $offset,
-            ]);
+            ];
+
+            Cache::set($cacheKey, $response, 10);
+
+            Response::json($response);
 
         } catch (Exception $e) {
 
@@ -112,6 +128,84 @@ class EquipmentController
                     'has_chiller' => $hasChiller,
                 ],
             ]);
+
+        } catch (Exception $e) {
+
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | LIST TICKETS BY EQUIPMENT (lazy load)
+    |--------------------------------------------------------------------------
+    */
+    public function ticketsByEquipment(): void
+    {
+        try {
+
+            $equipId = (int) ($_GET['id'] ?? 0);
+
+            if ($equipId <= 0) {
+
+                Response::error('ID do equipamento obrigatório', 400);
+            }
+
+            $repo = new TicketRepository();
+            $tickets = $repo->listByItem($equipId);
+
+            Response::json([
+                'success' => true,
+                'data' => array_map(
+                    fn($t) => $t->toArray(),
+                    $tickets
+                ),
+            ]);
+
+        } catch (Exception $e) {
+
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUM VALUE BY FILTER (badge)
+    |--------------------------------------------------------------------------
+    */
+    public function sumValue(): void
+    {
+        try {
+
+            $search =
+                trim($_GET['search'] ?? '');
+
+            $location =
+                isset($_GET['local']) && $_GET['local'] !== ''
+                    ? $_GET['local']
+                    : null;
+
+            $cacheKey = 'equipment_sum:' . md5(serialize([
+                $search, $location
+            ]));
+
+            $cached = Cache::get($cacheKey);
+            if ($cached !== null) {
+                Response::json($cached);
+                return;
+            }
+
+            $priceRepo = new \App\Api\Repositories\EquipmentPriceRepository();
+            $total = $priceRepo->sumValueByFilter($search, $location);
+
+            $response = [
+                'success' => true,
+                'total_valor' => $total,
+            ];
+
+            Cache::set($cacheKey, $response, 30);
+
+            Response::json($response);
 
         } catch (Exception $e) {
 

@@ -6,6 +6,7 @@ use App\Api\Services\TicketService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
+use App\Api\Helpers\Cache;
 use Exception;
 
 class TicketController
@@ -90,6 +91,8 @@ class TicketController
                     $data
                 );
 
+            Cache::deleteByPrefix('equipment_list:');
+
             Response::success(
                 'Registro salvo com sucesso',
                 ['id' => $id],
@@ -132,6 +135,8 @@ class TicketController
             $this->service->update(
                 $data
             );
+
+            Cache::deleteByPrefix('equipment_list:');
 
             Response::success(
                 'Registro atualizado com sucesso'
@@ -232,6 +237,8 @@ class TicketController
             $this->service->delete(
                 (int) $data['id']
             );
+
+            Cache::deleteByPrefix('equipment_list:');
 
             Response::success(
                 'Registro excluído com sucesso'

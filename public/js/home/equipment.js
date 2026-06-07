@@ -138,7 +138,8 @@ async function deleteTicket(id, button) {
 
   if (!confirmed) return;
 
-  const card = button.closest('.bg-slate-50');
+  const ticketCard = button.closest('.bg-slate-50');
+  const equipCard = button.closest('.card-item');
 
   button.disabled = true;
 
@@ -158,25 +159,24 @@ async function deleteTicket(id, button) {
       return;
     }
 
-    card.remove();
+    ticketCard.remove();
 
-    equipment.forEach((e) => {
-      e.tickets = (e.tickets || []).filter((r) => r.id !== numericId);
+    if (equipCard) {
+      const equipId = equipCard.dataset.equipId;
+      const equip = equipment.find(e => String(e.id) === String(equipId));
+      if (equip && equip.tickets_count > 0) {
+        equip.tickets_count--;
+      }
 
-      recalculateEquipment(e);
-    });
-
-    filteredEquipment.forEach((e) => {
-      e.tickets = (e.tickets || []).filter((r) => r.id !== numericId);
-
-      recalculateEquipment(e);
-    });
-
-    const expanded = getExpandedIds();
-
-    render(filteredEquipment, false);
-
-    restoreExpandedIds(expanded);
+      const badge = equipCard.querySelector('.bg-slate-100.text-slate-600');
+      if (badge) {
+        if (equip && equip.tickets_count > 0) {
+          badge.textContent = equip.tickets_count + ' OS';
+        } else {
+          badge.remove();
+        }
+      }
+    }
   } catch (err) {
     console.error(err);
 

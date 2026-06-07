@@ -79,6 +79,7 @@ class EquipmentTest extends TestCase
             'endereco' => 'Av Y, 456',
             'capacidade' => 2000.75,
             'localidade' => 'Rio de Janeiro',
+            'mercado' => null,
         ];
 
         $this->assertSame($expected, $result);

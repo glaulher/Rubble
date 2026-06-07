@@ -5,8 +5,6 @@ namespace App\Api\Services;
 use App\Api\Repositories\EquipmentRepository;
 use App\Api\Repositories\EquipmentPriceRepository;
 use App\Api\Repositories\TicketRepository;
-use App\Api\Entities\Ticket;
-use App\Config\Env;
 
 class EquipmentService
 {
@@ -29,7 +27,7 @@ class EquipmentService
         $equipments = $this->equipmentRepository->listAll($limit, $offset, $search, $location, $exactName);
 
         $ids = array_map(fn($e) => $e->id, $equipments);
-        $ticketsByEquipment = $this->ticketRepository->listByItems($ids, TicketService::STATUS_PRIORITY);
+        $ticketSummary = $this->ticketRepository->listTicketSummaryByEquipmentIds($ids);
         $pendingPvsByEquipment = $this->equipmentRepository->getPendingPvCountByEquipmentIds($ids) ?? [];
         $priceRules = $this->priceRepository->getActiveRules();
 
@@ -37,53 +35,16 @@ class EquipmentService
         foreach ($equipments as $e) {
 
             $item = $e->toArray();
-            $tickets = $ticketsByEquipment[$e->id] ?? [];
+            $summary = $ticketSummary[$e->id] ?? null;
             $pendingPv = $pendingPvsByEquipment[$e->id] ?? ['total' => 0, 'pvs' => ''];
 
-            $hasProjetoCleanUp = false;
-            $hasPlanned = false;
-            $hasPending = false;
-            $hasInProgress = false;
+            $item['searchStatus'] = $summary['searchStatus'] ?? '';
+            $item['tickets_count'] = $summary['total'] ?? 0;
 
-            foreach ($tickets as $r) {
-                $status = strtolower(trim($r->status));
-
-                if ($status === 'projeto clean up') {
-                    $hasProjetoCleanUp = true;
-                }
-
-                if ($status === 'planejado') {
-                    $hasPlanned = true;
-                }
-
-                if ($status === 'pendente') {
-                    $hasPending = true;
-                }
-
-                if ($status === 'em andamento') {
-                    $hasInProgress = true;
-                }
-            }
-
-            $searchStatus = '';
-
-            if ($hasProjetoCleanUp) {
-                $searchStatus .= ' projeto clean up cleanup clean-up';
-            }
-
-            if ($hasPending) {
-                $searchStatus .= ' pendente';
-            }
-
-            if ($hasPlanned) {
-                $searchStatus .= ' planejado';
-            }
-
-            if ($hasInProgress) {
-                $searchStatus .= ' em andamento';
-            }
-
-            $item['searchStatus'] = trim($searchStatus);
+            $hasProjetoCleanUp = ($summary['projeto_clean_up'] ?? 0) > 0;
+            $hasPlanned = ($summary['planejado'] ?? 0) > 0;
+            $hasPending = ($summary['pendente'] ?? 0) > 0;
+            $hasInProgress = ($summary['em_andamento'] ?? 0) > 0;
 
             if ($hasProjetoCleanUp) {
                 $item['color'] = 'bg-purple-100 text-purple-800';
@@ -101,8 +62,6 @@ class EquipmentService
                 $item['color'] = '';
                 $item['icon'] = '';
             }
-
-            $item['tickets'] = array_map(fn(Ticket $r) => $r->toArray(), $tickets);
 
             $item['pvs_pendentes_count'] = $pendingPv['total'];
             $item['pvs_pendentes'] = $pendingPv['pvs'];

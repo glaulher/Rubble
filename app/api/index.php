@@ -28,6 +28,10 @@ $router = new Router();
 $router->addRoute('equipment', 'GET', function () {
     if (isset($_GET['action']) && $_GET['action'] === 'check-chiller') {
         (new EquipmentController())->checkChiller();
+    } elseif (isset($_GET['action']) && $_GET['action'] === 'tickets-by-equipment') {
+        (new EquipmentController())->ticketsByEquipment();
+    } elseif (isset($_GET['action']) && $_GET['action'] === 'sum-value') {
+        (new EquipmentController())->sumValue();
     } else {
         (new EquipmentController())->listAll();
     }

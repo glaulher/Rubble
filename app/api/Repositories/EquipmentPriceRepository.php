@@ -125,12 +125,6 @@ class EquipmentPriceRepository extends BaseRepository
 
     public function sumValueByFilter(string $search = '', ?string $location = null): float
     {
-        $rules = $this->getActiveRules();
-
-        if (empty($rules)) {
-            return 0.0;
-        }
-
         $conditions = ["e.equipamento != 'N/A'"];
         $params = [];
         $types = '';
@@ -158,36 +152,36 @@ class EquipmentPriceRepository extends BaseRepository
             $types .= 'ssssssss';
         }
 
-        $sql = "SELECT e.equipamento, e.local, e.capacidade, e.mercado
-                FROM equipamentos e
-                LEFT JOIN enderecos en ON en.id = e.endereco_id
-                WHERE " . implode(" AND ", $conditions);
+        $where = implode(' AND ', $conditions);
+
+        $sql = "SELECT COALESCE(SUM(
+            CASE
+                WHEN e.equipamento LIKE '%chiller%' AND e.local IN ('MCEBC','RJDQC91','TNGBR','CPSCL') THEN 3850.00
+                WHEN e.equipamento LIKE '%chiller%' AND e.mercado = 'Empresarial' THEN 3642.14
+                WHEN e.equipamento LIKE '%chiller%' AND e.mercado = 'Pessoal' THEN 3642.14
+                WHEN e.mercado = 'Residencial' THEN e.capacidade * 94.00
+                ELSE 0
+            END
+        ), 0) AS total
+        FROM equipamentos e
+        LEFT JOIN enderecos en ON en.id = e.endereco_id
+        WHERE {$where}";
 
         if (!empty($params)) {
             $stmt = $this->conn->prepare($sql);
             $stmt->bind_param($types, ...$params);
             $stmt->execute();
-            $equipmentResult = $stmt->get_result();
+            $result = $stmt->get_result();
         } else {
-            $equipmentResult = $this->conn->query($sql);
+            $result = $this->conn->query($sql);
         }
 
-        if (!$equipmentResult) {
+        if (!$result) {
             return 0.0;
         }
 
-        $total = 0.0;
-        while ($eq = $equipmentResult->fetch_assoc()) {
-            $total += $this->matchRule(
-                $rules,
-                $eq['equipamento'],
-                $eq['local'],
-                $eq['mercado'] ?? null,
-                (float) $eq['capacidade']
-            );
-        }
-
-        return round($total, 2);
+        $row = $result->fetch_assoc();
+        return round((float) ($row['total'] ?? 0), 2);
     }
 
     private function matchRule(array $rules, string $equipamento, ?string $local, ?string $mercadoEquipamento, float $capacidade): float

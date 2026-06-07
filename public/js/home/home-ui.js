@@ -45,24 +45,11 @@ function buildEquipmentCardHtml(e, canEdit) {
               }
 
               ${
-                (() => {
-                  const tickets = e.tickets || [];
-                  const planejados = tickets.filter(t => (t.status || '').toLowerCase() === 'planejado');
-                  if (planejados.length > 0) {
-                    const dates = planejados
-                      .map(t => t.data_planejada)
-                      .filter(d => d)
-                      .sort();
-                    if (dates.length > 0) {
-                      const menorData = dates[0];
-                      const [y, m, d] = menorData.split('-');
-                      return `<span class="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-sm font-semibold">
-                        📅 Data planejada: ${d}/${m}/${y}
-                      </span>`;
-                    }
-                  }
-                  return '';
-                })()
+                e.tickets_count > 0
+                  ? `<span class="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-sm">
+                      ${e.tickets_count} OS
+                    </span>`
+                  : ''
               }
 
               ${
@@ -103,119 +90,12 @@ function buildEquipmentCardHtml(e, canEdit) {
 
         </div>
 
-        <div id="det${e.id}" class="hidden border-t border-slate-200 mt-4 pt-4">
-
-          ${
-            (e.tickets || []).length > 0
-              ? e.tickets
-                  .map((r) => {
-                    const status = (r.status || '').toLowerCase();
-
-                    const statusColor =
-                      status === 'concluído' || status === 'concluido'
-                        ? 'bg-green-100 text-green-700'
-                        : status === 'pendente'
-                          ? 'bg-red-100 text-red-700'
-                          : status === 'planejado'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : status === 'projeto clean up'
-                              ? 'bg-purple-100 text-purple-700'
-                              : 'bg-blue-100 text-blue-700';
-
-                    let dateInfo = '';
-                    const st = (r.status || '').toLowerCase();
-                    if (st === 'planejado' && r.data_planejada) {
-                      dateInfo = `📅 ${formatDate(r.data_planejada)}`;
-                    } else if ((st === 'concluído' || st === 'concluido') && r.data_concluido) {
-                      dateInfo = `📅 ${formatDate(r.data_concluido)}`;
-                    }
-
-                    return `
-                      <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-3">
-
-                        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
-
-                          <div class="flex-1 space-y-2">
-
-                            <div class="flex flex-wrap items-center gap-4 text-sm">
-
-                              <span class="font-semibold text-slate-900">
-                                OS: ${escapeHtml(r.os)}
-                              </span>
-
-                              <span class="text-slate-600">
-                                📅 ${escapeHtml(r.data ?? '-')}
-                              </span>
-
-                              <span class="text-slate-600">
-                                  🧰 Material: ${escapeHtml(r.material || '-')} 
-                              </span>
-
-                              <span class="text-slate-600">
-                                🔧 Técnico: ${escapeHtml(r.equipe || '-')}
-                              </span>
-
-                            </div>
-
-                            <div class="text-slate-600 text-sm">
-                              ${escapeHtml(r.obs || 'Sem observações')}
-                            </div>
-
-                          </div>
-
-                          <div class="shrink-0 flex items-center gap-2">
-
-                            ${dateInfo ? `<span class="text-slate-500 text-sm">${dateInfo}</span>` : ''}
-
-                            <span class="${statusColor} px-3 py-1 rounded-full text-sm font-semibold">
-                              ${escapeHtml(r.status)}
-                            </span>
-
-                            ${
-                              canEdit
-                                ? `<div class="relative group">
-                              <a href="#/form?ticket=${r.id}"
-                                class="bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-xl transition block">
-                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                                </svg>
-                              </a>
-                              <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">
-                                Editar
-                              </span>
-                            </div>
-
-                            <div class="relative group">
-                              <button
-                                data-delete-id="${r.id}"
-                                class="delete-ticket-btn bg-red-100 hover:bg-red-200 text-red-500 p-2 rounded-xl transition">
-                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <polyline points="3 6 5 6 21 6"></polyline>
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                </svg>
-                              </button>
-                              <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">
-                                Excluir
-                              </span>
-                            </div>`
-                                : ''
-                            }
-
-                          </div>
-
-                        </div>
-
-                      </div>
-                    `;
-                  })
-                  .join('')
-              : `<p class="text-slate-500">Nenhum registro encontrado.</p>`
-          }
+        <div id="det${e.id}" class="hidden border-t border-slate-200 mt-4 pt-4 tickets-container" data-loaded="false">
 
           ${
             e.pvs_pendentes_count > 0
               ? `
-                <div class="bg-red-50 rounded-xl p-4 border border-red-200 mt-3">
+                <div class="bg-red-50 rounded-xl p-4 border border-red-200 mb-3">
                   <p class="text-sm font-semibold text-red-700 mb-2">
                     PV${e.pvs_pendentes_count > 1 ? 's' : ''} não faturada${e.pvs_pendentes_count > 1 ? 's' : ''} (${e.pvs_pendentes_count})
                   </p>
@@ -412,12 +292,14 @@ function syncHomeCards(newEquipment) {
   });
 
   const seenIds = {};
+  const expandedToReload = [];
   newEquipment.forEach((e) => {
     seenIds[e.id] = true;
     const existing = existingCards[e.id];
     if (existing) {
       const detEl = existing.querySelector('#det' + e.id);
       const wasExpanded = detEl && !detEl.classList.contains('hidden');
+      const hadTicketsLoaded = wasExpanded && detEl.dataset.loaded === 'true';
 
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = buildEquipmentCardHtml(e, canEdit);
@@ -426,6 +308,9 @@ function syncHomeCards(newEquipment) {
 
       if (wasExpanded && newDetEl) {
         newDetEl.classList.remove('hidden');
+        if (hadTicketsLoaded) {
+          expandedToReload.push({ equipId: e.id, container: newDetEl });
+        }
       }
 
       existing.replaceWith(newCard);
@@ -478,6 +363,10 @@ function syncHomeCards(newEquipment) {
         }
       }
     }
+  });
+
+  expandedToReload.forEach(({ equipId, container }) => {
+    loadTicketsForEquipment(equipId, container);
   });
 }
 
@@ -555,7 +444,15 @@ function handleContentClick(event) {
   const toggleId = target.getAttribute('data-toggle-id');
   if (toggleId) {
     const el = document.getElementById('det' + toggleId);
-    if (el) el.classList.toggle('hidden');
+    if (!el) return;
+
+    const isHidden = el.classList.contains('hidden');
+
+    el.classList.toggle('hidden');
+
+    if (isHidden && el.dataset.loaded === 'false') {
+      loadTicketsForEquipment(toggleId, el);
+    }
     return;
   }
 
@@ -563,6 +460,102 @@ function handleContentClick(event) {
   if (deleteId) {
     deleteTicket(deleteId, target);
   }
+}
+
+async function loadTicketsForEquipment(equipId, container) {
+  const currentUser = getUser();
+  const userRole = currentUser ? currentUser.role : '';
+  const canEdit = userRole !== 'cliente';
+
+  container.dataset.loaded = 'loading';
+  container.insertAdjacentHTML('afterbegin',
+    '<p class="text-slate-400 text-sm animate-pulse">Carregando registros...</p>'
+  );
+
+  try {
+    const resp = await fetch(`/app/api/index.php?route=equipment&action=tickets-by-equipment&id=${equipId}`);
+    const result = await resp.json();
+
+    const loadingEl = container.querySelector('.animate-pulse');
+    if (loadingEl) loadingEl.remove();
+
+    if (!result.success || !result.data || result.data.length === 0) {
+      container.insertAdjacentHTML('afterbegin', '<p class="text-slate-500">Nenhum registro encontrado.</p>');
+      container.dataset.loaded = 'true';
+      return;
+    }
+
+    const html = result.data.map(r => buildTicketHtml(r, canEdit)).join('');
+    container.insertAdjacentHTML('afterbegin', html);
+    container.dataset.loaded = 'true';
+  } catch (err) {
+    console.error('Erro ao carregar registros:', err);
+    const loadingEl = container.querySelector('.animate-pulse');
+    if (loadingEl) loadingEl.remove();
+    container.insertAdjacentHTML('afterbegin', '<p class="text-red-500 text-sm">Erro ao carregar registros.</p>');
+    container.dataset.loaded = 'true';
+  }
+}
+
+function buildTicketHtml(r, canEdit) {
+  const status = (r.status || '').toLowerCase();
+
+  const statusColor =
+    status === 'concluído' || status === 'concluido'
+      ? 'bg-green-100 text-green-700'
+      : status === 'pendente'
+        ? 'bg-red-100 text-red-700'
+        : status === 'planejado'
+          ? 'bg-yellow-100 text-yellow-700'
+          : status === 'projeto clean up'
+            ? 'bg-purple-100 text-purple-700'
+            : 'bg-blue-100 text-blue-700';
+
+  let dateInfo = '';
+  if (status === 'planejado' && r.data_planejada) {
+    dateInfo = `📅 ${formatDate(r.data_planejada)}`;
+  } else if ((status === 'concluído' || status === 'concluido') && r.data_concluido) {
+    dateInfo = `📅 ${formatDate(r.data_concluido)}`;
+  }
+
+  return `
+    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-3">
+      <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+        <div class="flex-1 space-y-2">
+          <div class="flex flex-wrap items-center gap-4 text-sm">
+            <span class="font-semibold text-slate-900">OS: ${escapeHtml(r.os)}</span>
+            <span class="text-slate-600">📅 ${escapeHtml(r.data ?? '-')}</span>
+            <span class="text-slate-600">🧰 Material: ${escapeHtml(r.material || '-')}</span>
+            <span class="text-slate-600">🔧 Técnico: ${escapeHtml(r.equipe || '-')}</span>
+          </div>
+          <div class="text-slate-600 text-sm">${escapeHtml(r.obs || 'Sem observações')}</div>
+        </div>
+        <div class="shrink-0 flex items-center gap-2">
+          ${dateInfo ? `<span class="text-slate-500 text-sm">${dateInfo}</span>` : ''}
+          <span class="${statusColor} px-3 py-1 rounded-full text-sm font-semibold">${escapeHtml(r.status)}</span>
+          ${canEdit ? `
+            <div class="relative group">
+              <a href="#/form?ticket=${r.id}" class="bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-xl transition block">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+              </a>
+              <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Editar</span>
+            </div>
+            <div class="relative group">
+              <button data-delete-id="${r.id}" class="delete-ticket-btn bg-red-100 hover:bg-red-200 text-red-500 p-2 rounded-xl transition">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+              <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Excluir</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function initHome() {

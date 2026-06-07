@@ -70,6 +70,58 @@ class TicketRepository extends BaseRepository
         return $grouped;
     }
 
+    public function listTicketSummaryByEquipmentIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+
+        $ids = array_map('intval', $ids);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $types = str_repeat('i', count($ids));
+
+        $sql = "
+            SELECT
+                equipamento_id,
+                COUNT(*) AS total,
+                SUM(CASE WHEN LOWER(status) = 'pendente' THEN 1 ELSE 0 END) AS pendente,
+                SUM(CASE WHEN LOWER(status) = 'planejado' THEN 1 ELSE 0 END) AS planejado,
+                SUM(CASE WHEN LOWER(status) = 'em andamento' THEN 1 ELSE 0 END) AS em_andamento,
+                SUM(CASE WHEN LOWER(status) IN ('concluido', 'concluído') THEN 1 ELSE 0 END) AS concluido,
+                SUM(CASE WHEN LOWER(status) = 'projeto clean up' THEN 1 ELSE 0 END) AS projeto_clean_up
+            FROM registros
+            WHERE equipamento_id IN ({$placeholders})
+            GROUP BY equipamento_id
+        ";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param($types, ...$ids);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $summary = [];
+        while ($row = $result->fetch_assoc()) {
+            $eqId = (int) $row['equipamento_id'];
+            $statuses = [];
+            if ((int) $row['projeto_clean_up'] > 0) $statuses[] = 'projeto clean up cleanup clean-up';
+            if ((int) $row['pendente'] > 0) $statuses[] = 'pendente';
+            if ((int) $row['planejado'] > 0) $statuses[] = 'planejado';
+            if ((int) $row['em_andamento'] > 0) $statuses[] = 'em andamento';
+
+            $summary[$eqId] = [
+                'total' => (int) $row['total'],
+                'searchStatus' => trim(implode(' ', $statuses)),
+                'pendente' => (int) $row['pendente'],
+                'planejado' => (int) $row['planejado'],
+                'em_andamento' => (int) $row['em_andamento'],
+                'concluido' => (int) $row['concluido'],
+                'projeto_clean_up' => (int) $row['projeto_clean_up'],
+            ];
+        }
+
+        return $summary;
+    }
+
     public function save(array $data): int
     {
         $sql = "
