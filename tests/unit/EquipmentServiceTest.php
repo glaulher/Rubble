@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Api\Entities\Equipment;
 use App\Api\Entities\Ticket;
+use App\Api\Repositories\EquipmentPriceRepository;
 use App\Api\Repositories\EquipmentRepository;
 use App\Api\Repositories\TicketRepository;
 use App\Api\Services\EquipmentService;
@@ -11,10 +12,28 @@ use PHPUnit\Framework\TestCase;
 
 class EquipmentServiceTest extends TestCase
 {
+    private function createPriceMock(): EquipmentPriceRepository
+    {
+        $priceRepo = $this->createMock(EquipmentPriceRepository::class);
+        $priceRepo->method('getActiveRules')->willReturn([]);
+        $priceRepo->method('resolvePrice')->willReturn(0.0);
+        $priceRepo->method('sumValueByFilter')->willReturn(0.0);
+        return $priceRepo;
+    }
+
+    private function createService(
+        EquipmentRepository $equipRepo,
+        TicketRepository $ticketRepo,
+        ?EquipmentPriceRepository $priceRepo = null
+    ): EquipmentService {
+        return new EquipmentService($equipRepo, $ticketRepo, $priceRepo ?? $this->createPriceMock());
+    }
+
     public function testListAllReturnsFormattedItems(): void
     {
         $equipRepo = $this->createMock(EquipmentRepository::class);
         $ticketRepo = $this->createMock(TicketRepository::class);
+        $priceRepo = $this->createPriceMock();
 
         $equipmentData = [
             ['id' => 1, 'local' => 'Sala A', 'equipamento' => 'Notebook', 'info' => null, 'endereco_id' => null, 'local_do_endereco' => null, 'endereco' => null, 'capacidade' => null, 'localidade' => null],
@@ -24,15 +43,23 @@ class EquipmentServiceTest extends TestCase
             array_map(fn($d) => new Equipment($d), $equipmentData)
         );
         $equipRepo->method('count')->willReturn(1);
+        $equipRepo->method('countOS')->willReturn(0);
         $equipRepo->method('getPendingPvCountByEquipmentIds')->willReturn([]);
+        $priceRepo->method('sumValueByFilter')->willReturn(0.0);
 
-        $ticketRepo->method('listByItems')->willReturn([
+        $ticketRepo->method('listTicketSummaryByEquipmentIds')->willReturn([
             1 => [
-                new Ticket(['id' => 1, 'equipamento_id' => 1, 'status' => 'concluído']),
+                'total' => 1,
+                'concluido' => 1,
+                'pendente' => 0,
+                'planejado' => 0,
+                'em_andamento' => 0,
+                'projeto_clean_up' => 0,
+                'searchStatus' => 'concluído',
             ],
         ]);
 
-        $service = new EquipmentService($equipRepo, $ticketRepo);
+        $service = $this->createService($equipRepo, $ticketRepo, $priceRepo);
         $result = $service->listAll();
 
         $this->assertArrayHasKey('items', $result);
@@ -46,7 +73,7 @@ class EquipmentServiceTest extends TestCase
         $this->assertSame('Notebook', $item['equipamento']);
         $this->assertSame('', $item['color']);
         $this->assertSame('', $item['icon']);
-        $this->assertSame('', $item['searchStatus']);
+        $this->assertSame('concluído', $item['searchStatus']);
         $this->assertSame(0, $item['pvs_pendentes_count']);
         $this->assertSame('', $item['pvs_pendentes']);
     }
@@ -83,18 +110,38 @@ class EquipmentServiceTest extends TestCase
     {
         $equipRepo = $this->createMock(EquipmentRepository::class);
         $ticketRepo = $this->createMock(TicketRepository::class);
+        $priceRepo = $this->createPriceMock();
 
         $equipRepo->method('listAll')->willReturn([
             new Equipment(['id' => 1, 'local' => 'Sala A', 'equipamento' => 'Notebook']),
         ]);
         $equipRepo->method('count')->willReturn(1);
+        $equipRepo->method('countOS')->willReturn(0);
         $equipRepo->method('getPendingPvCountByEquipmentIds')->willReturn([]);
 
-        $ticketRepo->method('listByItems')->willReturn([
-            1 => [new Ticket(['id' => 1, 'equipamento_id' => 1, 'status' => $status])],
+        $summaryKey = match (strtolower($status)) {
+            'projeto clean up' => 'projeto_clean_up',
+            'em andamento' => 'em_andamento',
+            'pendente' => 'pendente',
+            'planejado' => 'planejado',
+            default => strtolower($status),
+        };
+        $summary = [
+            'total' => 1,
+            'concluido' => 0,
+            'pendente' => 0,
+            'planejado' => 0,
+            'em_andamento' => 0,
+            'projeto_clean_up' => 0,
+            'searchStatus' => $status,
+        ];
+        $summary[$summaryKey] = 1;
+
+        $ticketRepo->method('listTicketSummaryByEquipmentIds')->willReturn([
+            1 => $summary,
         ]);
 
-        $service = new EquipmentService($equipRepo, $ticketRepo);
+        $service = $this->createService($equipRepo, $ticketRepo, $priceRepo);
         return $service->listAll()['items'][0];
     }
 
@@ -102,6 +149,7 @@ class EquipmentServiceTest extends TestCase
     {
         $equipRepo = $this->createMock(EquipmentRepository::class);
         $ticketRepo = $this->createMock(TicketRepository::class);
+        $priceRepo = $this->createPriceMock();
 
         $equipmentData = [
             ['id' => 1, 'local' => 'Sala A', 'equipamento' => 'Notebook', 'info' => null, 'endereco_id' => null, 'local_do_endereco' => null, 'endereco' => null, 'capacidade' => null, 'localidade' => null],
@@ -111,17 +159,22 @@ class EquipmentServiceTest extends TestCase
             array_map(fn($d) => new Equipment($d), $equipmentData)
         );
         $equipRepo->method('count')->willReturn(1);
+        $equipRepo->method('countOS')->willReturn(0);
         $equipRepo->method('getPendingPvCountByEquipmentIds')->willReturn([]);
 
-        $ticketRepo->method('listByItems')->willReturn([
+        $ticketRepo->method('listTicketSummaryByEquipmentIds')->willReturn([
             1 => [
-                new Ticket(['id' => 1, 'equipamento_id' => 1, 'status' => 'pendente']),
-                new Ticket(['id' => 2, 'equipamento_id' => 1, 'status' => 'projeto clean up']),
-                new Ticket(['id' => 3, 'equipamento_id' => 1, 'status' => 'planejado']),
+                'total' => 3,
+                'concluido' => 0,
+                'pendente' => 1,
+                'planejado' => 1,
+                'em_andamento' => 0,
+                'projeto_clean_up' => 1,
+                'searchStatus' => 'pendente, projeto clean up, planejado',
             ],
         ]);
 
-        $service = new EquipmentService($equipRepo, $ticketRepo);
+        $service = $this->createService($equipRepo, $ticketRepo, $priceRepo);
         $result = $service->listAll();
         $item = $result['items'][0];
 
@@ -135,6 +188,7 @@ class EquipmentServiceTest extends TestCase
     {
         $equipRepo = $this->createMock(EquipmentRepository::class);
         $ticketRepo = $this->createMock(TicketRepository::class);
+        $priceRepo = $this->createPriceMock();
 
         $equipmentData = [
             ['id' => 1, 'local' => 'Sala A', 'equipamento' => 'Notebook', 'info' => null, 'endereco_id' => null, 'local_do_endereco' => null, 'endereco' => null, 'capacidade' => null, 'localidade' => null],
@@ -144,25 +198,33 @@ class EquipmentServiceTest extends TestCase
             array_map(fn($d) => new Equipment($d), $equipmentData)
         );
         $equipRepo->method('count')->willReturn(1);
+        $equipRepo->method('countOS')->willReturn(0);
         $equipRepo->method('getPendingPvCountByEquipmentIds')->willReturn([]);
 
-        $ticketRepo->method('listByItems')->willReturn([
+        $ticketRepo->method('listTicketSummaryByEquipmentIds')->willReturn([
             1 => [
-                new Ticket(['id' => 1, 'equipamento_id' => 1, 'status' => 'Em andamento']),
+                'total' => 1,
+                'concluido' => 0,
+                'pendente' => 0,
+                'planejado' => 0,
+                'em_andamento' => 1,
+                'projeto_clean_up' => 0,
+                'searchStatus' => 'Em andamento',
             ],
         ]);
 
-        $service = new EquipmentService($equipRepo, $ticketRepo);
+        $service = $this->createService($equipRepo, $ticketRepo, $priceRepo);
         $result = $service->listAll();
         $item = $result['items'][0];
 
-        $this->assertStringContainsString('em andamento', $item['searchStatus']);
+        $this->assertStringContainsStringIgnoringCase('em andamento', $item['searchStatus']);
     }
 
     public function testListAllWithNoRecords(): void
     {
         $equipRepo = $this->createMock(EquipmentRepository::class);
         $ticketRepo = $this->createMock(TicketRepository::class);
+        $priceRepo = $this->createPriceMock();
 
         $equipmentData = [
             ['id' => 1, 'local' => 'Sala A', 'equipamento' => 'Notebook', 'info' => null, 'endereco_id' => null, 'local_do_endereco' => null, 'endereco' => null, 'capacidade' => null, 'localidade' => null],
@@ -172,17 +234,18 @@ class EquipmentServiceTest extends TestCase
             array_map(fn($d) => new Equipment($d), $equipmentData)
         );
         $equipRepo->method('count')->willReturn(1);
+        $equipRepo->method('countOS')->willReturn(0);
         $equipRepo->method('getPendingPvCountByEquipmentIds')->willReturn([]);
-        $ticketRepo->method('listByItems')->willReturn([]);
+        $ticketRepo->method('listTicketSummaryByEquipmentIds')->willReturn([]);
 
-        $service = new EquipmentService($equipRepo, $ticketRepo);
+        $service = $this->createService($equipRepo, $ticketRepo, $priceRepo);
         $result = $service->listAll();
 
         $item = $result['items'][0];
         $this->assertSame('', $item['color']);
         $this->assertSame('', $item['icon']);
         $this->assertSame('', $item['searchStatus']);
-        $this->assertSame([], $item['tickets']);
+        $this->assertSame(0, $item['tickets_count']);
         $this->assertSame(0, $item['pvs_pendentes_count']);
         $this->assertSame('', $item['pvs_pendentes']);
     }
@@ -191,6 +254,7 @@ class EquipmentServiceTest extends TestCase
     {
         $equipRepo = $this->createMock(EquipmentRepository::class);
         $ticketRepo = $this->createMock(TicketRepository::class);
+        $priceRepo = $this->createPriceMock();
 
         $equipmentData = [
             ['id' => 1, 'local' => 'Sala A', 'equipamento' => 'Notebook', 'info' => null, 'endereco_id' => null, 'local_do_endereco' => null, 'endereco' => null, 'capacidade' => null, 'localidade' => null],
@@ -200,20 +264,25 @@ class EquipmentServiceTest extends TestCase
             array_map(fn($d) => new Equipment($d), $equipmentData)
         );
         $equipRepo->method('count')->willReturn(1);
+        $equipRepo->method('countOS')->willReturn(0);
         $equipRepo->method('getPendingPvCountByEquipmentIds')->willReturn([]);
 
-        $ticketData = [
-            ['id' => 1, 'equipamento_id' => 1, 'os' => 'OS-001', 'status' => 'concluído', 'data' => '2026-05-17', 'equipe' => null, 'material' => null, 'obs' => null, 'data_concluido' => null, 'notificacao_enviada' => null, 'local' => null, 'equipamento' => null],
-        ];
-
-        $ticketRepo->method('listByItems')->willReturn([
-            1 => array_map(fn($d) => new Ticket($d), $ticketData),
+        $ticketRepo->method('listTicketSummaryByEquipmentIds')->willReturn([
+            1 => [
+                'total' => 1,
+                'concluido' => 1,
+                'pendente' => 0,
+                'planejado' => 0,
+                'em_andamento' => 0,
+                'projeto_clean_up' => 0,
+                'searchStatus' => 'concluído',
+            ],
         ]);
 
-        $service = new EquipmentService($equipRepo, $ticketRepo);
+        $service = $this->createService($equipRepo, $ticketRepo, $priceRepo);
         $result = $service->listAll();
 
-        $this->assertCount(1, $result['items'][0]['tickets']);
-        $this->assertSame('OS-001', $result['items'][0]['tickets'][0]['os']);
+        $this->assertSame(1, $result['items'][0]['tickets_count']);
+        $this->assertSame('concluído', $result['items'][0]['searchStatus']);
     }
 }
