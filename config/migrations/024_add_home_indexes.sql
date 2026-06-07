@@ -15,7 +15,7 @@ CREATE INDEX IF NOT EXISTS idx_equipamentos_local_scm ON equipamentos (local_scm
 CREATE INDEX IF NOT EXISTS idx_equipamentos_mercado ON equipamentos (mercado);
 
 -- FULLTEXT for search (e.local LIKE, e.equipamento LIKE, e.localidade LIKE)
-ALTER TABLE equipamentos ADD INDEX IF NOT EXISTS ft_equipamentos_search (local, equipamento, localidade) USING FULLTEXT;
+ALTER TABLE equipamentos ADD FULLTEXT INDEX IF NOT EXISTS ft_equipamentos_search (local, equipamento, localidade);
 
 -- ============================================================
 -- enderecos
