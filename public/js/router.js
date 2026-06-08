@@ -115,6 +115,13 @@ async function router() {
   |--------------------------------------------------------------------------
   */
     html = await loadPage("/app/Views/equipment-prices/list.html?v=" + Date.now());
+  } else if (hash === "#/preventive-cycle") {
+    /*
+  |--------------------------------------------------------------------------
+  | PREVENTIVE CYCLE
+  |--------------------------------------------------------------------------
+  */
+    html = await loadPage("/app/Views/preventive-cycle/list.html?v=" + Date.now());
   } else if (hash === "#/scm") {
     /*
   |--------------------------------------------------------------------------
@@ -191,6 +198,10 @@ async function router() {
     } else if (hash === "#/equipment-prices" || hash.startsWith("#/equipment-prices?")) {
       if (typeof initPriceList === "function") {
         initPriceList();
+      }
+    } else if (hash === "#/preventive-cycle") {
+      if (typeof initPreventiveCycle === "function") {
+        initPreventiveCycle();
       }
     } else if (hash === "#/scm") {
       if (typeof initScm === "function") {
