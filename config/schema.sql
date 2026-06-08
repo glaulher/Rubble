@@ -582,6 +582,25 @@ ALTER TABLE `rate_limits`
 ALTER TABLE `rate_limits`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `preventive_cycle_items`
+--
+
+CREATE TABLE `preventive_cycle_items` (
+  `id`               INT AUTO_INCREMENT PRIMARY KEY,
+  `ciclo`            VARCHAR(7) NOT NULL COMMENT 'YYYY-MM',
+  `equipamento_id`   INT NOT NULL,
+  `observacao`       TEXT DEFAULT NULL,
+  `created_at`       DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`       DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `uk_ciclo_equip` (`ciclo`, `equipamento_id`),
+  CONSTRAINT `fk_preventive_cycle_equipamento`
+    FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
