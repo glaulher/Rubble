@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Api\Controllers;
+
+use App\Api\Services\PreventiveCycleService;
+use App\Api\Helpers\{Response, Request, Validator};
+use Exception;
+
+class PreventiveCycleController
+{
+    private PreventiveCycleService $service;
+
+    public function __construct()
+    {
+        $this->service = new PreventiveCycleService();
+    }
+
+    public function listAll(): void
+    {
+        try {
+            $ciclo = trim($_GET['ciclo'] ?? date('Y-m'));
+            $limit = (int) ($_GET['limit'] ?? 20);
+            $offset = (int) ($_GET['offset'] ?? 0);
+            $search = trim($_GET['search'] ?? '');
+
+            $data = $this->service->listAll($ciclo, $limit, $offset, $search);
+
+            Response::json([
+                'success' => true,
+                'data' => $data['items'],
+                'total' => $data['total'],
+                'limit' => $limit,
+                'offset' => $offset,
+                'ciclo' => $ciclo,
+            ]);
+        } catch (Exception $e) {
+            Response::serverError($e);
+        }
+    }
+
+    public function summary(): void
+    {
+        try {
+            $ciclo = trim($_GET['ciclo'] ?? date('Y-m'));
+            $data = $this->service->summary($ciclo);
+            Response::success('', $data);
+        } catch (Exception $e) {
+            Response::serverError($e);
+        }
+    }
+
+    public function save(): void
+    {
+        try {
+            $data = Request::body();
+
+            Validator::required($data, ['ciclo', 'items']);
+            if (!is_array($data['items'])) {
+                Response::validation('items deve ser um array');
+                return;
+            }
+
+            $result = $this->service->save($data['ciclo'], $data['items']);
+
+            Response::success('Ciclo salvo com sucesso', [
+                'saved' => $result['saved'],
+                'deleted' => $result['deleted'],
+            ]);
+        } catch (Exception $e) {
+            Response::serverError($e, 400);
+        }
+    }
+}
