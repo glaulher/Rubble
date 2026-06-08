@@ -120,7 +120,7 @@ function _cycleLoadList(ciclo, append) {
     + '&limit=' + _cycleLimit + '&offset=' + offset;
   if (search) url += '&search=' + encodeURIComponent(search);
 
-  fetch(url)
+  apiFetch(url)
     .then(function (r) { return r.json(); })
     .then(function (result) {
       if (!result.success) return;
@@ -233,7 +233,7 @@ function _cycleUpdateCounter() {
 
 function _cycleFetchSummary(ciclo) {
   var url = '/app/api/index.php?route=preventive-cycle&action=summary&ciclo=' + encodeURIComponent(ciclo);
-  fetch(url)
+  apiFetch(url)
     .then(function (r) { return r.json(); })
     .then(function (result) {
       if (!result.success || !result.data) return;
