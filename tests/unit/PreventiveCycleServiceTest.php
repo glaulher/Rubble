@@ -2,41 +2,50 @@
 
 namespace Tests\Unit;
 
+use App\Api\Services\PreventiveCycleService;
 use PHPUnit\Framework\TestCase;
 
 class PreventiveCycleServiceTest extends TestCase
 {
-    private \App\Api\Services\PreventiveCycleService $service;
-
-    protected function setUp(): void
+    private function createService(): PreventiveCycleService
     {
-        $this->service = new \App\Api\Services\PreventiveCycleService();
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventiveCycleRepository::class);
+        return new PreventiveCycleService($mockRepo);
     }
 
     public function testClassExists(): void
     {
-        $this->assertTrue(class_exists(\App\Api\Services\PreventiveCycleService::class));
+        $this->assertTrue(class_exists(PreventiveCycleService::class));
     }
 
     public function testSaveValidatesCycleFormat(): void
     {
+        $service = $this->createService();
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Formato de ciclo inválido');
-        $this->service->save('invalid', []);
+        $service->save('invalid', []);
     }
 
-    public function testSaveAcceptsValidCycle(): void
+    public function testSaveWithValidCycleDoesNotThrow(): void
     {
-        $this->assertTrue(method_exists($this->service, 'save'));
+        $service = $this->createService();
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventiveCycleRepository::class);
+        $mockRepo->method('saveBatch')->willReturn(['saved' => 3, 'deleted' => 0]);
+        $service = new PreventiveCycleService($mockRepo);
+        $result = $service->save('2026-06', [
+            ['equipamento_id' => 1, 'checked' => true, 'observacao' => 'obs'],
+        ]);
+        $this->assertArrayHasKey('saved', $result);
+        $this->assertArrayHasKey('deleted', $result);
     }
 
     public function testListAllMethodExists(): void
     {
-        $this->assertTrue(method_exists($this->service, 'listAll'));
+        $this->assertTrue(method_exists(PreventiveCycleService::class, 'listAll'));
     }
 
     public function testSummaryMethodExists(): void
     {
-        $this->assertTrue(method_exists($this->service, 'summary'));
+        $this->assertTrue(method_exists(PreventiveCycleService::class, 'summary'));
     }
 }

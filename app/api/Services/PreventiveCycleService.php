@@ -8,9 +8,9 @@ class PreventiveCycleService
 {
     private PreventiveCycleRepository $repository;
 
-    public function __construct()
+    public function __construct(?PreventiveCycleRepository $repository = null)
     {
-        $this->repository = new PreventiveCycleRepository();
+        $this->repository = $repository ?? new PreventiveCycleRepository();
     }
 
     public function listAll(string $ciclo, int $limit = 20, int $offset = 0, string $search = ''): array
