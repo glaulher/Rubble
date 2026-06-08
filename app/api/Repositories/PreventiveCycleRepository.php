@@ -116,15 +116,15 @@ class PreventiveCycleRepository extends BaseRepository
     {
         $saved = 0;
         $deleted = 0;
-        $checkedIds = [];
 
         foreach ($items as $item) {
             $equipamentoId = (int) ($item['equipamento_id'] ?? 0);
+            if ($equipamentoId <= 0) continue;
+
             $checked = !empty($item['checked']);
             $observacao = $item['observacao'] ?? '';
 
             if ($checked) {
-                $checkedIds[] = $equipamentoId;
                 $sql = "INSERT INTO preventive_cycle_items (ciclo, equipamento_id, observacao)
                         VALUES (?, ?, ?)
                         ON DUPLICATE KEY UPDATE observacao = VALUES(observacao), updated_at = NOW()";
@@ -133,25 +133,14 @@ class PreventiveCycleRepository extends BaseRepository
                 $stmt->execute();
                 if ($stmt->affected_rows > 0) $saved++;
                 $stmt->close();
+            } else {
+                $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ? AND equipamento_id = ?";
+                $stmt = $this->conn->prepare($sql);
+                $stmt->bind_param('si', $ciclo, $equipamentoId);
+                $stmt->execute();
+                if ($stmt->affected_rows > 0) $deleted++;
+                $stmt->close();
             }
-        }
-
-        if (!empty($checkedIds)) {
-            $placeholders = implode(',', array_fill(0, count($checkedIds), '?'));
-            $types = str_repeat('i', count($checkedIds));
-            $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ? AND equipamento_id NOT IN ({$placeholders})";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param('s' . $types, $ciclo, ...$checkedIds);
-            $stmt->execute();
-            $deleted = $stmt->affected_rows;
-            $stmt->close();
-        } else {
-            $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param('s', $ciclo);
-            $stmt->execute();
-            $deleted = $stmt->affected_rows;
-            $stmt->close();
         }
 
         return ['saved' => $saved, 'deleted' => $deleted];
