@@ -13,6 +13,7 @@ class RateLimitMiddleware
         'users'                => ['POST' => 10, 'PUT' => 10, 'DELETE' => 10],
         'equipment-management' => ['POST' => 10, 'PUT' => 10, 'DELETE' => 10],
         'scm'                  => ['POST' => 5, 'DELETE' => 10],
+        'preventive-cycle'     => ['POST' => 10],
     ];
 
     public function handle(string $route, string $method): void

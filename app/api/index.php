@@ -8,7 +8,7 @@ use App\Api\Router;
 use App\Api\Helpers\Response;
 use App\Api\Controllers\{AuthController, EquipmentController, EquipmentManagementController, EquipmentPriceController};
 use App\Api\Controllers\{TicketController, DashboardController, PvDashboardController};
-use App\Api\Controllers\{PvController, UserController, ScmController};
+use App\Api\Controllers\{PvController, UserController, ScmController, PreventiveCycleController};
 
 Env::load(__DIR__ . '/../../.env');
 
@@ -187,6 +187,19 @@ $router->addRoute('equipment-prices', 'GET', function () {
 $router->addRoute('equipment-prices', 'POST', fn () => (new EquipmentPriceController())->save());
 $router->addRoute('equipment-prices', 'PUT', fn () => (new EquipmentPriceController())->update());
 $router->addRoute('equipment-prices', 'DELETE', fn () => (new EquipmentPriceController())->delete());
+
+// Preventive Cycle
+$router->addRoute('preventive-cycle', 'GET', function () {
+    $ctrl = new PreventiveCycleController();
+    $action = $_GET['action'] ?? null;
+
+    if ($action === 'summary') {
+        $ctrl->summary();
+    } else {
+        $ctrl->listAll();
+    }
+});
+$router->addRoute('preventive-cycle', 'POST', fn () => (new PreventiveCycleController())->save());
 
 // SCM
 $router->addRoute('scm', 'GET', function () use ($auth) {
