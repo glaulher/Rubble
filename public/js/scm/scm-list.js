@@ -9,8 +9,10 @@ let currentScmSearch = '';
 let scmDateFrom = '';
 let scmDateTo = '';
 let scmSegmentFilter = new Set();
+let scmSiteFilter = new Set();
 let scmStatusFilter = '';
 let scmAllSegments = [];
+let scmAllSites = [];
 
 function initScm() {
     scmList = [];
@@ -22,8 +24,10 @@ function initScm() {
     scmDateFrom = '';
     scmDateTo = '';
     scmSegmentFilter = new Set();
+    scmSiteFilter = new Set();
     scmStatusFilter = '';
     scmAllSegments = [];
+    scmAllSites = [];
 
     const content = document.getElementById('scmContent');
     const searchInput = document.getElementById('searchInputScm');
@@ -81,6 +85,7 @@ function initScm() {
     document.getElementById('scmDateTo').value = scmDateTo;
 
     initSegmentMultiSelect();
+    initSiteMultiSelect();
 
     if (importBtn) {
         importBtn.addEventListener('click', () => importScm());
@@ -180,6 +185,89 @@ function updateSegmentLabel() {
     }
 }
 
+function initSiteMultiSelect() {
+    const btn = document.getElementById('scmSiteBtn');
+    const dropdown = document.getElementById('scmSiteDropdown');
+    const label = document.getElementById('scmSiteLabel');
+    if (!btn || !dropdown) return;
+
+    fetch('/app/api/index.php?route=scm&action=sites')
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                scmAllSites = res.data || [];
+                renderSiteDropdown();
+            }
+        });
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    updateSiteLabel();
+}
+
+function renderSiteDropdown() {
+    const dropdown = document.getElementById('scmSiteDropdown');
+    if (!dropdown) return;
+
+    let html = '';
+    html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100">';
+    html += '<input type="checkbox" class="site-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="__all__">';
+    html += '<span class="text-sm text-slate-700 font-medium">Todos</span>';
+    html += '</label>';
+
+    scmAllSites.forEach(site => {
+        const checked = scmSiteFilter.has(site) ? 'checked' : '';
+        html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">';
+        html += '<input type="checkbox" class="site-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="' + escapeHtml(site) + '" ' + checked + '>';
+        html += '<span class="text-sm text-slate-700">' + escapeHtml(site) + '</span>';
+        html += '</label>';
+    });
+
+    dropdown.innerHTML = html;
+
+    dropdown.querySelectorAll('.site-check').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const val = cb.dataset.value;
+            if (val === '__all__') {
+                if (cb.checked) {
+                    scmSiteFilter.clear();
+                }
+            } else {
+                if (cb.checked) {
+                    scmSiteFilter.add(val);
+                } else {
+                    scmSiteFilter.delete(val);
+                }
+            }
+            renderSiteDropdown();
+            updateSiteLabel();
+            resetScmState();
+            loadScm();
+        });
+    });
+}
+
+function updateSiteLabel() {
+    const label = document.getElementById('scmSiteLabel');
+    if (!label) return;
+    if (scmSiteFilter.size === 0) {
+        label.textContent = 'Todos';
+        label.classList.remove('text-blue-600');
+    } else {
+        label.textContent = scmSiteFilter.size + ' selecionado(s)';
+        label.classList.add('text-blue-600');
+    }
+}
+
 function resetScmState() {
     scmList = [];
     scmPage = 0;
@@ -199,6 +287,7 @@ async function loadScm(isPolling = false) {
         if (scmDateFrom) url += `&date_from=${encodeURIComponent(scmDateFrom)}`;
         if (scmDateTo) url += `&date_to=${encodeURIComponent(scmDateTo)}`;
         if (scmSegmentFilter.size > 0) url += `&segmento=${encodeURIComponent([...scmSegmentFilter].join(','))}`;
+        if (scmSiteFilter.size > 0) url += `&sites=${encodeURIComponent([...scmSiteFilter].join(','))}`;
         if (scmStatusFilter) url += `&status=${encodeURIComponent(scmStatusFilter)}`;
         const response = await fetch(url);
         const result = await response.json();

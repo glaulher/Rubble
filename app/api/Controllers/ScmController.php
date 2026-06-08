@@ -31,9 +31,11 @@ class ScmController
         $dateTo = trim($_GET['date_to'] ?? '');
         $segmentoRaw = trim($_GET['segmento'] ?? '');
         $segments = $segmentoRaw !== '' ? array_filter(array_map('trim', explode(',', $segmentoRaw))) : [];
+        $sitesRaw = trim($_GET['sites'] ?? '');
+        $sites = $sitesRaw !== '' ? array_filter(array_map('trim', explode(',', $sitesRaw))) : [];
         $status = trim($_GET['status'] ?? '');
 
-        $data = $this->service->listAll($limit, $offset, $search, $dateFrom ?: null, $dateTo ?: null, $segments, $status ?: null);
+        $data = $this->service->listAll($limit, $offset, $search, $dateFrom ?: null, $dateTo ?: null, $segments, $status ?: null, $sites);
 
         Response::json([
             'success'     => true,
@@ -94,6 +96,16 @@ class ScmController
         try {
             $segments = $this->service->segments();
             Response::json(['success' => true, 'data' => $segments]);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    public function sites(): void
+    {
+        try {
+            $sites = $this->service->sites();
+            Response::json(['success' => true, 'data' => $sites]);
         } catch (\Throwable $e) {
             Response::serverError($e);
         }

@@ -156,8 +156,12 @@ function _cycleRenderCards(items, append) {
     html += '<div class="site-group mb-6" data-site="' + local.replace(/"/g, '\\"') + '">';
     html += '<div class="mb-3 flex items-center gap-2">';
     html += '<h2 class="text-xl font-medium tracking-[0.05em] text-slate-800">' + _cycleEscape(local) + '</h2>';
+    if (first.local_scm) {
+      html += '<span class="text-base font-medium text-slate-400 mx-1">-</span>';
+      html += '<span class="text-base font-medium text-slate-500">' + _cycleEscape(hubRecase(first.local_scm)) + '</span>';
+    }
     if (first.localidade) {
-      html += '<span class="text-base font-medium text-slate-400">&mdash;</span>';
+      html += '<span class="text-base font-medium text-slate-400 mx-1">-</span>';
       html += '<span class="text-base font-medium text-slate-500">' + _cycleEscape(first.localidade) + '</span>';
     }
     html += '</div>';
@@ -168,7 +172,7 @@ function _cycleRenderCards(items, append) {
       var obs = item.observacao || '';
       var valor = parseFloat(item.valor || 0);
 
-      html += '<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4" data-equip-id="' + item.equipamento_id + '">';
+      html += '<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4" data-equip-id="' + item.equipamento_id + '" data-valor="' + valor + '">';
       html += '<div class="flex flex-col gap-3">';
       html += '<div class="flex items-center gap-3">';
       html += '<input type="checkbox" class="cycle-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" data-equip-id="' + item.equipamento_id + '"' + (checked ? ' checked' : '') + '>';
@@ -176,9 +180,6 @@ function _cycleRenderCards(items, append) {
       html += '<span class="text-lg font-light tracking-[0.05em] px-3 py-1 rounded-lg bg-slate-100 text-slate-800">' + _cycleEscape(item.equipamento || '') + '</span>';
       if (item.capacidade) {
         html += '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-sm font-semibold">' + parseFloat(item.capacidade) + ' TR</span>';
-      }
-      if (item.localidade) {
-        html += '<span class="text-sm text-slate-500">' + _cycleEscape(item.localidade) + '</span>';
       }
       if (valor > 0) {
         html += '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-sm font-semibold" data-role="admin coordenador">R$ ' + valor.toFixed(2).replace('.', ',') + '</span>';
@@ -218,9 +219,11 @@ function _cycleRenderCards(items, append) {
       _cycleSelectedIds['delete'](id);
     }
     _cycleUpdateCounter();
+    _cycleUpdateValor();
   });
 
   _cycleUpdateCounter();
+  _cycleUpdateValor();
   if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
 }
 
@@ -229,6 +232,16 @@ function _cycleUpdateCounter() {
   if (el) {
     el.textContent = _cycleTotal + ' equip. \u00b7 ' + _cycleSelectedIds.size + ' selecionados';
   }
+}
+
+function _cycleUpdateValor() {
+  var total = 0;
+  document.querySelectorAll('.cycle-checkbox:checked').forEach(function (cb) {
+    var card = cb.closest('[data-valor]');
+    if (card) total += parseFloat(card.dataset.valor) || 0;
+  });
+  var badge = document.getElementById('cycleValorBadge');
+  if (badge) badge.textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
 }
 
 function _cycleFetchSummary(ciclo) {
@@ -242,6 +255,7 @@ function _cycleFetchSummary(ciclo) {
         var val = parseFloat(result.data.total_valor || 0);
         badge.textContent = 'R$ ' + val.toFixed(2).replace('.', ',');
       }
+      _cycleUpdateValor();
     })
     .catch(function (e) { console.error(e); });
 }
