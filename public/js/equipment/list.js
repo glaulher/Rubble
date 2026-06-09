@@ -17,7 +17,7 @@ async function initEquipmentManager() {
     ?.addEventListener('click', function () { window.location.hash = '#/equipmentForm'; });
   await loadEquipments();
   setupEquipmentSearch();
-  setupEquipmentScroll();
+  createInfiniteScroll('sentinel', loadEquipments);
 }
 
 async function loadEquipments() {
@@ -159,23 +159,6 @@ function setupEquipmentSearch() {
       loadEquipments();
     }, 500);
   });
-}
-
-function setupEquipmentScroll() {
-  if (window.equipmentScrollHandler) {
-    window.removeEventListener('scroll', window.equipmentScrollHandler);
-  }
-  window.equipmentScrollHandler = function() {
-    if (equipmentLoading || equipmentAllLoaded) return;
-
-    var scrollPos = window.innerHeight + window.scrollY;
-    var threshold = document.body.offsetHeight - 400;
-
-    if (scrollPos >= threshold) {
-      loadEquipments();
-    }
-  };
-  window.addEventListener('scroll', window.equipmentScrollHandler);
 }
 
 function editEquipment(id) {
