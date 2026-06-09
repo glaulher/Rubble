@@ -291,17 +291,17 @@ function _cycleUpdateBadge() {
 
   document.querySelectorAll('#cycleContent .cycle-checkbox').forEach(function (cb) {
     var card = cb.closest('[data-valor]');
+    var hasObs = false;
     if (card) {
       var textarea = card.querySelector('.cycle-obs');
-      var hasObs = textarea && textarea.value.trim() !== '';
-      if (hasObs && !hasFilter) return;
+      hasObs = textarea && textarea.value.trim() !== '';
     }
+    if (hasObs && !hasFilter) return;
     machineCount++;
     var group = cb.closest('.site-group');
     if (group) visibleSites.add(group.dataset.site);
+    if (hasObs) return;
     if (!card) return;
-    var ta = card.querySelector('.cycle-obs');
-    if (ta && ta.value.trim() !== '') return;
     total += parseFloat(card.dataset.valor) || 0;
   });
 
