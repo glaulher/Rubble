@@ -13,10 +13,10 @@ class PreventiveCycleService
         $this->repository = $repository ?? new PreventiveCycleRepository();
     }
 
-    public function listAll(string $ciclo, int $limit = 20, int $offset = 0, string $search = '', bool $checkedOnly = false): array
+    public function listAll(string $ciclo, int $limit = 20, int $offset = 0, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false): array
     {
-        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search, $checkedOnly);
-        $total = $this->repository->count($ciclo, $search, $checkedOnly);
+        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao);
+        $total = $this->repository->count($ciclo, $search, $checkedOnly, $hasObservacao);
         return ['items' => $items, 'total' => $total];
     }
 

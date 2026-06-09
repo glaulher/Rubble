@@ -23,8 +23,9 @@ class PreventiveCycleController
             $offset = (int) ($_GET['offset'] ?? 0);
             $search = trim($_GET['search'] ?? '');
             $checkedOnly = ($_GET['checked'] ?? '') === '1';
+            $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
 
-            $data = $this->service->listAll($ciclo, $limit, $offset, $search, $checkedOnly);
+            $data = $this->service->listAll($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao);
 
             Response::json([
                 'success' => true,

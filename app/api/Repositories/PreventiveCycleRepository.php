@@ -15,7 +15,7 @@ class PreventiveCycleRepository extends BaseRepository
         END";
     }
 
-    public function listByCiclo(string $ciclo, int $limit, int $offset, string $search = '', bool $checkedOnly = false): array
+    public function listByCiclo(string $ciclo, int $limit, int $offset, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false): array
     {
         $where = 'e.equipamento != ? AND e.local != ?';
         $whereParams = ['N/A', 'Fornecimento'];
@@ -30,6 +30,12 @@ class PreventiveCycleRepository extends BaseRepository
 
         if ($checkedOnly) {
             $where .= ' AND pci.id IS NOT NULL';
+        }
+
+        if ($hasObservacao) {
+            $where .= ' AND pci.observacao IS NOT NULL AND pci.observacao != ?';
+            $whereParams[] = '';
+            $whereTypes .= 's';
         }
 
         $valorCase = $this->valorCaseSql();
@@ -65,7 +71,7 @@ class PreventiveCycleRepository extends BaseRepository
         return $data;
     }
 
-    public function count(string $ciclo, string $search = '', bool $checkedOnly = false): int
+    public function count(string $ciclo, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false): int
     {
         $where = 'e.equipamento != ? AND e.local != ?';
         $whereParams = ['N/A', 'Fornecimento'];
@@ -80,6 +86,12 @@ class PreventiveCycleRepository extends BaseRepository
 
         if ($checkedOnly) {
             $where .= ' AND pci.id IS NOT NULL';
+        }
+
+        if ($hasObservacao) {
+            $where .= ' AND pci.observacao IS NOT NULL AND pci.observacao != ?';
+            $whereParams[] = '';
+            $whereTypes .= 's';
         }
 
         $sql = "SELECT COUNT(*) AS total
@@ -109,7 +121,8 @@ class PreventiveCycleRepository extends BaseRepository
                 FROM equipamentos e
                 INNER JOIN preventive_cycle_items pci
                     ON pci.equipamento_id = e.id AND pci.ciclo = ?
-                WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'";
+                WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'
+                AND (pci.observacao IS NULL OR pci.observacao = '')";
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param('s', $ciclo);
         $stmt->execute();

@@ -1,10 +1,11 @@
 var _cycleCurrent = '';
 var _cycleSelectedIds = new Set();
 var _cycleTotal = 0;
-var _cycleLastHash = '';
 var _cyclePage = 0;
 var _cycleLimit = 20;
 var _cycleCheckedOnly = false;
+var _cycleDirtyChecks = new Map();
+var _cycleHasObservacao = false;
 
 function _cycleGenerateOptions() {
   var opts = [];
@@ -20,8 +21,9 @@ function initPreventiveCycle() {
   _cycleCurrent = '';
   _cycleSelectedIds = new Set();
   _cycleTotal = 0;
-  _cycleLastHash = '';
   _cyclePage = 0;
+  _cycleDirtyChecks = new Map();
+  _cycleHasObservacao = false;
 
   var datalist = document.getElementById('cycleOptions');
   if (datalist) {
@@ -48,6 +50,7 @@ function _cycleSetupEvents() {
         _cycleCurrent = val;
         _cyclePage = 0;
         _cycleSelectedIds = new Set();
+        _cycleDirtyChecks = new Map();
         var content = document.getElementById('cycleContent');
         if (content) content.innerHTML = '';
         _cycleLoadList(val);
@@ -74,6 +77,7 @@ function _cycleSetupEvents() {
           if (result.success) {
             _cyclePage = 0;
             _cycleSelectedIds = new Set();
+            _cycleDirtyChecks = new Map();
             _cycleLoadList(_cycleCurrent);
           } else {
             if (typeof showToast === 'function') showToast(result.message || 'Erro ao marcar/desmarcar', 'error');
@@ -115,6 +119,18 @@ function _cycleSetupEvents() {
     });
   }
 
+  var obsToggle = document.getElementById('cycleHasObservacao');
+  if (obsToggle) {
+    obsToggle.addEventListener('change', function () {
+      _cycleHasObservacao = this.checked;
+      _cyclePage = 0;
+      _cycleSelectedIds = new Set();
+      var content = document.getElementById('cycleContent');
+      if (content) content.innerHTML = '';
+      _cycleLoadList(_cycleCurrent);
+    });
+  }
+
   var sentinel = document.getElementById('cycleSentinel');
   if (sentinel) {
     var observer = new IntersectionObserver(function (entries) {
@@ -143,8 +159,14 @@ function _cycleSetupEvents() {
       } else {
         _cycleSelectedIds['delete'](id);
       }
-      _cycleUpdateCounter();
-      _cycleUpdateValor();
+      _cycleDirtyChecks.set(id, cb.checked);
+      _cycleUpdateBadge();
+    });
+
+    container.addEventListener('input', function (e) {
+      if (e.target.classList.contains('cycle-obs')) {
+        _cycleUpdateBadge();
+      }
     });
   }
 }
@@ -160,6 +182,7 @@ function _cycleLoadList(ciclo, append) {
     + '&limit=' + _cycleLimit + '&offset=' + offset;
   if (search) url += '&search=' + encodeURIComponent(search);
   if (_cycleCheckedOnly) url += '&checked=1';
+  if (_cycleHasObservacao) url += '&has_observacao=1';
 
   apiFetch(url)
     .then(function (r) { return r.json(); })
@@ -209,7 +232,12 @@ function _cycleRenderCards(items, append) {
     html += '<div class="space-y-3">';
 
     groups[local].forEach(function (item) {
-      var checked = item.checked == 1;
+      var checked;
+      if (_cycleDirtyChecks.has(item.equipamento_id)) {
+        checked = _cycleDirtyChecks.get(item.equipamento_id);
+      } else {
+        checked = item.checked == 1;
+      }
       var obs = item.observacao || '';
       var valor = parseFloat(item.valor || 0);
 
@@ -250,40 +278,32 @@ function _cycleRenderCards(items, append) {
     }
   });
 
-  _cycleUpdateCounter();
-  _cycleUpdateValor();
+  _cycleUpdateBadge();
   if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
 }
 
-function _cycleUpdateCounter() {
-  var el = document.getElementById('cycleCounter');
-  if (el) {
-    el.textContent = _cycleTotal + ' equip. \u00b7 ' + _cycleSelectedIds.size + ' selecionados';
-  }
-}
-
-function _cycleUpdateValor() {
+function _cycleUpdateBadge() {
+  var siteCount = document.querySelectorAll('.site-group').length;
+  var machineCount = _cycleTotal;
   var total = 0;
   document.querySelectorAll('.cycle-checkbox:checked').forEach(function (cb) {
     var card = cb.closest('[data-valor]');
-    if (card) total += parseFloat(card.dataset.valor) || 0;
+    if (!card) return;
+    var textarea = card.querySelector('.cycle-obs');
+    if (textarea && textarea.value.trim() !== '') return;
+    total += parseFloat(card.dataset.valor) || 0;
   });
-  var badge = document.getElementById('cycleValorBadge');
-  if (badge) badge.textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
+  var el = document.getElementById('cycleBadge');
+  if (el) {
+    el.textContent = 'R$ ' + total.toFixed(2).replace('.', ',') + ' \u00b7 ' + siteCount + ' sites \u00b7 ' + machineCount + ' m\u00e1q.';
+  }
 }
 
 function _cycleFetchSummary(ciclo) {
   var url = '/app/api/index.php?route=preventive-cycle&action=summary&ciclo=' + encodeURIComponent(ciclo);
   apiFetch(url)
     .then(function (r) { return r.json(); })
-    .then(function (result) {
-      if (!result.success || !result.data) return;
-      var badge = document.getElementById('cycleValorBadge');
-      if (badge) {
-        var val = parseFloat(result.data.total_valor || 0);
-        badge.textContent = 'R$ ' + val.toFixed(2).replace('.', ',');
-      }
-    })
+    .then(function () {})
     .catch(function () {});
 }
 
@@ -322,6 +342,7 @@ function _cycleSave() {
         if (typeof showToast === 'function') showToast('Ciclo salvo com sucesso', 'success');
         _cyclePage = 0;
         _cycleSelectedIds = new Set();
+        _cycleDirtyChecks = new Map();
         _cycleLoadList(_cycleCurrent);
       } else {
         if (typeof showToast === 'function') showToast(result.message || 'Erro ao salvar ciclo', 'error');
