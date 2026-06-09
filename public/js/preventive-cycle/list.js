@@ -286,22 +286,22 @@ function _cycleRenderCards(items, append) {
 function _cycleUpdateBadge() {
   var total = 0;
   var machineCount = 0;
-  var checkedSites = new Set();
+  var visibleSites = new Set();
 
-  document.querySelectorAll('.cycle-checkbox:checked').forEach(function (cb) {
+  document.querySelectorAll('#cycleContent .cycle-checkbox').forEach(function (cb) {
     machineCount++;
+    var group = cb.closest('.site-group');
+    if (group) visibleSites.add(group.dataset.site);
     var card = cb.closest('[data-valor]');
     if (!card) return;
     var textarea = card.querySelector('.cycle-obs');
     if (textarea && textarea.value.trim() !== '') return;
     total += parseFloat(card.dataset.valor) || 0;
-    var group = cb.closest('.site-group');
-    if (group) checkedSites.add(group.dataset.site);
   });
 
   var el = document.getElementById('cycleBadge');
   if (el) {
-    el.textContent = 'R$ ' + total.toFixed(2).replace('.', ',') + ' \u00b7 ' + checkedSites.size + ' sites \u00b7 ' + machineCount + ' m\u00e1q.';
+    el.textContent = 'R$ ' + total.toFixed(2).replace('.', ',') + ' \u00b7 ' + visibleSites.size + ' sites \u00b7 ' + machineCount + ' m\u00e1q.';
   }
 }
 
