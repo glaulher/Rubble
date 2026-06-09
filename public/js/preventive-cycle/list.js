@@ -287,20 +287,18 @@ function _cycleUpdateBadge() {
   var total = 0;
   var machineCount = 0;
   var visibleSites = new Set();
-  var hasFilter = _cycleHasObservacao || _cycleCheckedOnly;
 
-  document.querySelectorAll('#cycleContent .cycle-checkbox').forEach(function (cb) {
+  document.querySelectorAll('#cycleContent .cycle-checkbox:checked').forEach(function (cb) {
     var card = cb.closest('[data-valor]');
     var hasObs = false;
     if (card) {
       var textarea = card.querySelector('.cycle-obs');
       hasObs = textarea && textarea.value.trim() !== '';
     }
-    if (hasObs && !hasFilter) return;
+    if (hasObs && !_cycleHasObservacao) return;
     machineCount++;
     var group = cb.closest('.site-group');
     if (group) visibleSites.add(group.dataset.site);
-    if (hasObs && !hasFilter) return;
     if (!card) return;
     total += parseFloat(card.dataset.valor) || 0;
   });
