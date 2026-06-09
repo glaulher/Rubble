@@ -24,6 +24,32 @@ function hideModal(id) {
   el.classList.remove('flex');
 }
 
+function confirmDelete(title, message, itemName) {
+  return new Promise((resolve) => {
+    var titleEl = document.getElementById('deleteConfirmTitle');
+    var msgEl = document.getElementById('deleteConfirmMessage');
+    var itemEl = document.getElementById('deleteConfirmItem');
+    var btnOk = document.getElementById('deleteConfirmOk');
+    var btnCancel = document.getElementById('deleteConfirmCancel');
+
+    if (titleEl) titleEl.textContent = title || 'Excluir';
+    if (msgEl) msgEl.textContent = message || 'Tem certeza que deseja excluir ';
+    if (itemEl) itemEl.textContent = itemName || '';
+
+    showModal('modalDeleteConfirm');
+
+    btnOk.onclick = () => {
+      hideModal('modalDeleteConfirm');
+      resolve(true);
+    };
+
+    btnCancel.onclick = () => {
+      hideModal('modalDeleteConfirm');
+      resolve(false);
+    };
+  });
+}
+
 var PV_STATUSES = ['Ativo', 'SCM aprovado', 'Cancelado'];
 
 function populateStatusSelect(selectId, selected) {
@@ -54,16 +80,6 @@ function resetPvState(search, status, cycle) {
   pvCycleFilter = cycle || '';
 }
 
-function openDeleteModal(id, pvNumber) {
-  document.getElementById('deletePvId').value = id;
-  document.getElementById('deletePvNumber').textContent = pvNumber;
-  showModal('deleteModal');
-}
-
-function closeDeleteModal() {
-  hideModal('deleteModal');
-}
-
 function openStatusModal(id, pvNumber) {
   document.getElementById('statusPvId').value = id;
   document.getElementById('statusPvNumber').textContent = pvNumber;
@@ -75,35 +91,50 @@ function closeStatusModal() {
   hideModal('statusModal');
 }
 
-// --- openDeleteModal / closeDeleteModal ---
+// --- confirmDelete ---
 
-describe("openDeleteModal", () => {
+describe("confirmDelete", () => {
   beforeEach(() => {
     document.body.innerHTML =
-      '<input id="deletePvId">' +
-      '<span id="deletePvNumber"></span>' +
-      '<div id="deleteModal" class="hidden"></div>';
+      '<div id="modalDeleteConfirm" class="hidden">' +
+        '<h2 id="deleteConfirmTitle"></h2>' +
+        '<span id="deleteConfirmMessage"></span>' +
+        '<span id="deleteConfirmItem"></span>' +
+        '<button id="deleteConfirmOk"></button>' +
+        '<button id="deleteConfirmCancel"></button>' +
+      '</div>';
   });
 
-  it("sets PV id and number, shows modal", () => {
-    openDeleteModal(42, '26001');
-    expect(document.getElementById('deletePvId').value).toBe('42');
-    expect(document.getElementById('deletePvNumber').textContent).toBe('26001');
-    expect(document.getElementById('deleteModal').classList.contains('hidden')).toBe(false);
-    expect(document.getElementById('deleteModal').classList.contains('flex')).toBe(true);
-  });
-});
-
-describe("closeDeleteModal", () => {
-  beforeEach(() => {
-    document.body.innerHTML =
-      '<div id="deleteModal" class="flex"></div>';
+  it("sets title, message and item name, shows modal", () => {
+    const p = confirmDelete('Excluir PV', 'Tem certeza que deseja excluir a PV', '26001');
+    expect(document.getElementById('deleteConfirmTitle').textContent).toBe('Excluir PV');
+    expect(document.getElementById('deleteConfirmMessage').textContent).toBe('Tem certeza que deseja excluir a PV');
+    expect(document.getElementById('deleteConfirmItem').textContent).toBe('26001');
+    expect(document.getElementById('modalDeleteConfirm').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('modalDeleteConfirm').classList.contains('flex')).toBe(true);
   });
 
-  it("hides the delete modal", () => {
-    closeDeleteModal();
-    expect(document.getElementById('deleteModal').classList.contains('hidden')).toBe(true);
-    expect(document.getElementById('deleteModal').classList.contains('flex')).toBe(false);
+  it("resolves true when OK is clicked", async () => {
+    const p = confirmDelete('Excluir', 'Tem certeza que deseja excluir', 'Item');
+    document.getElementById('deleteConfirmOk').click();
+    const result = await p;
+    expect(result).toBe(true);
+    expect(document.getElementById('modalDeleteConfirm').classList.contains('hidden')).toBe(true);
+  });
+
+  it("resolves false when Cancel is clicked", async () => {
+    const p = confirmDelete('Excluir', 'Tem certeza que deseja excluir', 'Item');
+    document.getElementById('deleteConfirmCancel').click();
+    const result = await p;
+    expect(result).toBe(false);
+    expect(document.getElementById('modalDeleteConfirm').classList.contains('hidden')).toBe(true);
+  });
+
+  it("uses defaults when no params provided", () => {
+    confirmDelete();
+    expect(document.getElementById('deleteConfirmTitle').textContent).toBe('Excluir');
+    expect(document.getElementById('deleteConfirmMessage').textContent).toBe('Tem certeza que deseja excluir ');
+    expect(document.getElementById('deleteConfirmItem').textContent).toBe('');
   });
 });
 

@@ -91,3 +91,29 @@ function confirmAction(message = "Deseja continuar?") {
     };
   });
 }
+
+function confirmDelete(title, message, itemName) {
+  return new Promise((resolve) => {
+    var titleEl = document.getElementById('deleteConfirmTitle');
+    var msgEl = document.getElementById('deleteConfirmMessage');
+    var itemEl = document.getElementById('deleteConfirmItem');
+    var btnOk = document.getElementById('deleteConfirmOk');
+    var btnCancel = document.getElementById('deleteConfirmCancel');
+
+    if (titleEl) titleEl.textContent = title || 'Excluir';
+    if (msgEl) msgEl.textContent = message || 'Tem certeza que deseja excluir ';
+    if (itemEl) itemEl.textContent = itemName || '';
+
+    showModal('modalDeleteConfirm');
+
+    btnOk.onclick = () => {
+      hideModal('modalDeleteConfirm');
+      resolve(true);
+    };
+
+    btnCancel.onclick = () => {
+      hideModal('modalDeleteConfirm');
+      resolve(false);
+    };
+  });
+}

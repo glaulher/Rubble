@@ -456,13 +456,14 @@
     <script src="/public/js/utils/utils.js?v=1"></script>
     <script src="/public/js/utils/polling.js?v=1"></script>
     <script src="/public/js/components/modal.js?v=1"></script>
-    <script src="/public/js/components/messagebox.js?v=1"></script>
+    <script src="/public/js/components/messagebox.js?v=2"></script>
     <script src="/public/js/components/pagination.js?v=1"></script>
+    <script src="/public/js/components/button.js?v=1"></script>
     <script src="/public/js/utils/csv.js?v=1"></script>
     <script src="/public/js/utils/upload.js?v=5"></script>
     <script src="/public/js/utils/report.js?v=1"></script>
-    <script src="/public/js/home/home-ui.js?v=3"></script>
-    <script src="/public/js/home/equipment.js?v=5"></script>
+    <script src="/public/js/home/home-ui.js?v=6"></script>
+    <script src="/public/js/home/equipment.js?v=7"></script>
     <script src="/public/js/home/form.js?v=1"></script>
     <script src="/public/js/equipment/dashboard.js?v=2"></script>
     <script src="/public/js/pv/dashboard.js?v=2"></script>
@@ -471,21 +472,21 @@
     <script src="/public/js/pv/form-item-row.js?v=1"></script>
     <script src="/public/js/pv/form-autocomplete.js?v=1"></script>
     <script src="/public/js/pv/form-filter.js?v=1"></script>
-    <script src="/public/js/pv/list.js?v=1"></script>
-    <script src="/public/js/pv/modals.js?v=6"></script>
+    <script src="/public/js/pv/list.js?v=2"></script>
+    <script src="/public/js/pv/modals.js?v=7"></script>
     <script src="/public/js/pv/modal-email.js?v=1"></script>
     <script src="/public/js/pv/pdf-export.js?v=1"></script>
     <script src="/public/js/pv/csv-export.js?v=1"></script>
     <script src="/public/js/pv/form.js?v=6"></script>
-    <script src="/public/js/user/list.js?v=1"></script>
+    <script src="/public/js/user/list.js?v=3"></script>
     <script src="/public/js/user/form.js?v=1"></script>
-    <script src="/public/js/equipment/list.js?v=2"></script>
+    <script src="/public/js/equipment/list.js?v=4"></script>
     <script src="/public/js/equipment/form.js?v=2"></script>
-    <script src="/public/js/equipment-prices/list.js?v=1"></script>
+    <script src="/public/js/equipment-prices/list.js?v=3"></script>
     <script src="/public/js/equipment-prices/form.js?v=1"></script>
-    <script src="/public/js/scm/scm-list.js?v=9"></script>
+    <script src="/public/js/scm/scm-list.js?v=11"></script>
     <script src="/public/js/scm/scm-import.js?v=2"></script>
-    <script src="/public/js/preventive-cycle/list.js?v=1"></script>
+    <script src="/public/js/preventive-cycle/list.js?v=5"></script>
     <script src="/public/js/router.js?v=1"></script>
 
     <!-- TOAST -->
@@ -593,6 +594,29 @@
           >
             Excluir
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DELETE CONFIRM -->
+    <div id="modalDeleteConfirm" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-[99999]">
+      <div class="bg-white dark:bg-[#222838] rounded-3xl shadow-2xl w-full max-w-md p-6 m-4 animate-[fadeIn_.2s_ease]">
+        <div class="text-center">
+          <div class="mx-auto w-14 h-14 flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+            <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+          </div>
+          <h2 id="deleteConfirmTitle" class="text-xl font-light tracking-[0.05em] text-slate-800 dark:text-slate-100 mb-2"></h2>
+          <p class="text-slate-600 dark:text-slate-400 mb-6">
+            <span id="deleteConfirmMessage"></span>
+            <span id="deleteConfirmItem" class="font-semibold"></span>?
+            <br/>Esta ação não pode ser desfeita.
+          </p>
+          <div class="flex gap-3">
+            <button id="deleteConfirmOk" class="flex-1 bg-red-200 hover:bg-red-300 text-red-800 dark:bg-red-900/50 dark:hover:bg-red-800/50 dark:text-red-300 py-3 rounded-xl font-medium transition">Excluir</button>
+            <button id="deleteConfirmCancel" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 py-3 rounded-xl font-medium transition">Cancelar</button>
+          </div>
         </div>
       </div>
     </div>
