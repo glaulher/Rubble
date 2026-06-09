@@ -44,7 +44,8 @@ class PreventiveCycleController
     {
         try {
             $ciclo = trim($_GET['ciclo'] ?? date('Y-m'));
-            $data = $this->service->summary($ciclo);
+            $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
+            $data = $this->service->summary($ciclo, $hasObservacao);
             Response::success('', $data);
         } catch (Exception $e) {
             Response::serverError($e);

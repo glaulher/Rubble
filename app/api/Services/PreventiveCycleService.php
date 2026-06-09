@@ -28,9 +28,9 @@ class PreventiveCycleService
         return $this->repository->saveBatch($ciclo, $items);
     }
 
-    public function summary(string $ciclo): array
+    public function summary(string $ciclo, bool $hasObservacao = false): array
     {
-        return $this->repository->summary($ciclo);
+        return $this->repository->summary($ciclo, $hasObservacao);
     }
 
     public function checkAll(string $ciclo, bool $hasObservacao = false): int

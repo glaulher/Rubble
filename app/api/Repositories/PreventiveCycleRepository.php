@@ -112,9 +112,10 @@ class PreventiveCycleRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
-    public function summary(string $ciclo): array
+    public function summary(string $ciclo, bool $hasObservacao = false): array
     {
         $valorCase = $this->valorCaseSql();
+        $obsFilter = $hasObservacao ? '' : 'AND (pci.observacao IS NULL OR pci.observacao = '')';
         $sql = "SELECT
                     COUNT(pci.id) AS checked_count,
                     COALESCE(SUM({$valorCase}), 0) AS total_valor,
@@ -123,7 +124,7 @@ class PreventiveCycleRepository extends BaseRepository
                 INNER JOIN preventive_cycle_items pci
                     ON pci.equipamento_id = e.id AND pci.ciclo = ?
                 WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'
-                AND (pci.observacao IS NULL OR pci.observacao = '')";
+                {$obsFilter}";
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param('s', $ciclo);
         $stmt->execute();

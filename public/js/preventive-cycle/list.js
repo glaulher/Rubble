@@ -311,6 +311,7 @@ function _cycleUpdateBadge() {
 
 function _cycleFetchSummary(ciclo) {
   var url = '/app/api/index.php?route=preventive-cycle&action=summary&ciclo=' + encodeURIComponent(ciclo);
+  if (_cycleHasObservacao) url += '&has_observacao=1';
   apiFetch(url)
     .then(function (r) { return r.json(); })
     .then(function (result) {
