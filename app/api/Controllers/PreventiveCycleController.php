@@ -22,8 +22,9 @@ class PreventiveCycleController
             $limit = (int) ($_GET['limit'] ?? 20);
             $offset = (int) ($_GET['offset'] ?? 0);
             $search = trim($_GET['search'] ?? '');
+            $checkedOnly = ($_GET['checked'] ?? '') === '1';
 
-            $data = $this->service->listAll($ciclo, $limit, $offset, $search);
+            $data = $this->service->listAll($ciclo, $limit, $offset, $search, $checkedOnly);
 
             Response::json([
                 'success' => true,
@@ -54,8 +55,8 @@ class PreventiveCycleController
         try {
             $data = Request::body();
 
-            Validator::required($data, ['ciclo', 'items']);
-            if (!is_array($data['items'])) {
+            Validator::required($data, ['ciclo']);
+            if (!isset($data['items']) || !is_array($data['items'])) {
                 Response::validation('items deve ser um array');
                 return;
             }
@@ -66,6 +67,38 @@ class PreventiveCycleController
                 'saved' => $result['saved'],
                 'deleted' => $result['deleted'],
             ]);
+        } catch (Exception $e) {
+            Response::serverError($e, 400);
+        }
+    }
+
+    public function checkAll(): void
+    {
+        try {
+            $ciclo = trim($_GET['ciclo'] ?? '');
+            if ($ciclo === '') {
+                Response::validation('ciclo é obrigatório');
+                return;
+            }
+
+            $count = $this->service->checkAll($ciclo);
+            Response::success('Todos marcados', ['checked' => $count]);
+        } catch (Exception $e) {
+            Response::serverError($e, 400);
+        }
+    }
+
+    public function uncheckAll(): void
+    {
+        try {
+            $ciclo = trim($_GET['ciclo'] ?? '');
+            if ($ciclo === '') {
+                Response::validation('ciclo é obrigatório');
+                return;
+            }
+
+            $count = $this->service->uncheckAll($ciclo);
+            Response::success('Todos desmarcados', ['deleted' => $count]);
         } catch (Exception $e) {
             Response::serverError($e, 400);
         }

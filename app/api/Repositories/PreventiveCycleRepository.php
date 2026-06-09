@@ -15,17 +15,21 @@ class PreventiveCycleRepository extends BaseRepository
         END";
     }
 
-    public function listByCiclo(string $ciclo, int $limit, int $offset, string $search = ''): array
+    public function listByCiclo(string $ciclo, int $limit, int $offset, string $search = '', bool $checkedOnly = false): array
     {
-        $where = 'e.equipamento != ?';
-        $params = ['N/A'];
-        $types = 's';
+        $where = 'e.equipamento != ? AND e.local != ?';
+        $whereParams = ['N/A', 'Fornecimento'];
+        $whereTypes = 'ss';
 
         if ($search !== '') {
             $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR e.local_scm LIKE ?)';
             $likeSearch = '%' . $search . '%';
-            $params = array_merge($params, [$likeSearch, $likeSearch, $likeSearch, $likeSearch]);
-            $types .= 'ssss';
+            $whereParams = array_merge($whereParams, [$likeSearch, $likeSearch, $likeSearch, $likeSearch]);
+            $whereTypes .= 'ssss';
+        }
+
+        if ($checkedOnly) {
+            $where .= ' AND pci.id IS NOT NULL';
         }
 
         $valorCase = $this->valorCaseSql();
@@ -49,12 +53,8 @@ class PreventiveCycleRepository extends BaseRepository
                 ORDER BY e.local, e.equipamento
                 LIMIT ? OFFSET ?";
 
-        $params[] = $ciclo;
-        $types .= 's';
-        $params[] = $limit;
-        $types .= 'i';
-        $params[] = $offset;
-        $types .= 'i';
+        $params = array_merge([$ciclo], $whereParams, [$limit, $offset]);
+        $types = 's' . $whereTypes . 'ii';
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param($types, ...$params);
@@ -65,22 +65,31 @@ class PreventiveCycleRepository extends BaseRepository
         return $data;
     }
 
-    public function count(string $ciclo, string $search = ''): int
+    public function count(string $ciclo, string $search = '', bool $checkedOnly = false): int
     {
-        $where = 'e.equipamento != ?';
-        $params = ['N/A'];
-        $types = 's';
+        $where = 'e.equipamento != ? AND e.local != ?';
+        $whereParams = ['N/A', 'Fornecimento'];
+        $whereTypes = 'ss';
 
         if ($search !== '') {
             $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR e.local_scm LIKE ?)';
             $likeSearch = '%' . $search . '%';
-            $params = array_merge($params, [$likeSearch, $likeSearch, $likeSearch, $likeSearch]);
-            $types .= 'ssss';
+            $whereParams = array_merge($whereParams, [$likeSearch, $likeSearch, $likeSearch, $likeSearch]);
+            $whereTypes .= 'ssss';
+        }
+
+        if ($checkedOnly) {
+            $where .= ' AND pci.id IS NOT NULL';
         }
 
         $sql = "SELECT COUNT(*) AS total
                 FROM equipamentos e
+                LEFT JOIN preventive_cycle_items pci
+                    ON pci.equipamento_id = e.id AND pci.ciclo = ?
                 WHERE {$where}";
+
+        $params = array_merge([$ciclo], $whereParams);
+        $types = 's' . $whereTypes;
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param($types, ...$params);
@@ -99,7 +108,8 @@ class PreventiveCycleRepository extends BaseRepository
                     COALESCE(SUM({$valorCase}), 0) AS total_valor
                 FROM equipamentos e
                 INNER JOIN preventive_cycle_items pci
-                    ON pci.equipamento_id = e.id AND pci.ciclo = ?";
+                    ON pci.equipamento_id = e.id AND pci.ciclo = ?
+                WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'";
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param('s', $ciclo);
         $stmt->execute();
@@ -110,6 +120,30 @@ class PreventiveCycleRepository extends BaseRepository
             'checked_count' => (int) ($row['checked_count'] ?? 0),
             'total_valor' => (float) ($row['total_valor'] ?? 0),
         ];
+    }
+
+    public function checkAll(string $ciclo): int
+    {
+        $sql = "INSERT IGNORE INTO preventive_cycle_items (ciclo, equipamento_id)
+                SELECT ?, e.id FROM equipamentos e
+                WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param('s', $ciclo);
+        $stmt->execute();
+        $count = $stmt->affected_rows;
+        $stmt->close();
+        return $count;
+    }
+
+    public function uncheckAll(string $ciclo): int
+    {
+        $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param('s', $ciclo);
+        $stmt->execute();
+        $count = $stmt->affected_rows;
+        $stmt->close();
+        return $count;
     }
 
     public function saveBatch(string $ciclo, array $items): array

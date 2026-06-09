@@ -13,10 +13,10 @@ class PreventiveCycleService
         $this->repository = $repository ?? new PreventiveCycleRepository();
     }
 
-    public function listAll(string $ciclo, int $limit = 20, int $offset = 0, string $search = ''): array
+    public function listAll(string $ciclo, int $limit = 20, int $offset = 0, string $search = '', bool $checkedOnly = false): array
     {
-        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search);
-        $total = $this->repository->count($ciclo, $search);
+        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search, $checkedOnly);
+        $total = $this->repository->count($ciclo, $search, $checkedOnly);
         return ['items' => $items, 'total' => $total];
     }
 
@@ -31,5 +31,21 @@ class PreventiveCycleService
     public function summary(string $ciclo): array
     {
         return $this->repository->summary($ciclo);
+    }
+
+    public function checkAll(string $ciclo): int
+    {
+        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ciclo)) {
+            throw new \InvalidArgumentException('Formato de ciclo inválido (use YYYY-MM)');
+        }
+        return $this->repository->checkAll($ciclo);
+    }
+
+    public function uncheckAll(string $ciclo): int
+    {
+        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ciclo)) {
+            throw new \InvalidArgumentException('Formato de ciclo inválido (use YYYY-MM)');
+        }
+        return $this->repository->uncheckAll($ciclo);
     }
 }

@@ -4,6 +4,7 @@ var _cycleTotal = 0;
 var _cycleLastHash = '';
 var _cyclePage = 0;
 var _cycleLimit = 20;
+var _cycleCheckedOnly = false;
 
 function _cycleGenerateOptions() {
   var opts = [];
@@ -22,12 +23,6 @@ function initPreventiveCycle() {
   _cycleLastHash = '';
   _cyclePage = 0;
 
-  var now = new Date();
-  var defaultCycle = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  var input = document.getElementById('cycleInput');
-  if (input) input.value = defaultCycle;
-  _cycleCurrent = defaultCycle;
-
   var datalist = document.getElementById('cycleOptions');
   if (datalist) {
     _cycleGenerateOptions().forEach(function (c) {
@@ -37,24 +32,29 @@ function initPreventiveCycle() {
     });
   }
 
-  _cycleLoadList(defaultCycle);
   _cycleSetupEvents();
 }
 
 function _cycleSetupEvents() {
   var cycleInput = document.getElementById('cycleInput');
   if (cycleInput) {
-    cycleInput.addEventListener('change', function () {
+    var cycleTimer;
+    function _onCycleChange() {
       var val = cycleInput.value.trim();
-      if (val && val !== _cycleCurrent) {
+      if (!val) return;
+      if (val === _cycleCurrent) return;
+      clearTimeout(cycleTimer);
+      cycleTimer = setTimeout(function () {
         _cycleCurrent = val;
         _cyclePage = 0;
         _cycleSelectedIds = new Set();
         var content = document.getElementById('cycleContent');
         if (content) content.innerHTML = '';
         _cycleLoadList(val);
-      }
-    });
+      }, 300);
+    }
+    cycleInput.addEventListener('input', _onCycleChange);
+    cycleInput.addEventListener('change', _onCycleChange);
   }
 
   var saveBtn = document.getElementById('saveCycleBtn');
@@ -64,16 +64,27 @@ function _cycleSetupEvents() {
   if (selectAll) {
     selectAll.addEventListener('change', function () {
       var checked = this.checked;
-      document.querySelectorAll('.cycle-checkbox').forEach(function (cb) {
-        cb.checked = checked;
-        var id = parseInt(cb.dataset.equipId);
-        if (checked) {
-          _cycleSelectedIds.add(id);
-        } else {
-          _cycleSelectedIds['delete'](id);
-        }
-      });
-      _cycleUpdateCounter();
+      var action = checked ? 'check-all' : 'uncheck-all';
+      var url = '/app/api/index.php?route=preventive-cycle&action=' + action + '&ciclo=' + encodeURIComponent(_cycleCurrent);
+
+      selectAll.disabled = true;
+      apiFetch(url, { method: 'POST' })
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+          if (result.success) {
+            _cyclePage = 0;
+            _cycleSelectedIds = new Set();
+            _cycleLoadList(_cycleCurrent);
+          } else {
+            if (typeof showToast === 'function') showToast(result.message || 'Erro ao marcar/desmarcar', 'error');
+          }
+        })
+        .catch(function (e) {
+          if (typeof showToast === 'function') showToast('Erro ao marcar/desmarcar', 'error');
+        })
+        .finally(function () {
+          selectAll.disabled = false;
+        });
     });
   }
 
@@ -92,10 +103,22 @@ function _cycleSetupEvents() {
     });
   }
 
+  var checkedToggle = document.getElementById('cycleCheckedOnly');
+  if (checkedToggle) {
+    checkedToggle.addEventListener('change', function () {
+      _cycleCheckedOnly = this.checked;
+      _cyclePage = 0;
+      _cycleSelectedIds = new Set();
+      var content = document.getElementById('cycleContent');
+      if (content) content.innerHTML = '';
+      _cycleLoadList(_cycleCurrent);
+    });
+  }
+
   var sentinel = document.getElementById('cycleSentinel');
   if (sentinel) {
     var observer = new IntersectionObserver(function (entries) {
-      if (entries[0].isIntersecting) {
+      if (entries[0].isIntersecting && _cycleCurrent) {
         _cyclePage++;
         _cycleLoadList(_cycleCurrent, true);
       }
@@ -108,10 +131,27 @@ function _cycleSetupEvents() {
       _cycleFetchSummary(_cycleCurrent);
     }, 30000);
   }
+
+  var container = document.getElementById('cycleContent');
+  if (container) {
+    container.addEventListener('change', function (e) {
+      var cb = e.target.closest('.cycle-checkbox');
+      if (!cb) return;
+      var id = parseInt(cb.dataset.equipId);
+      if (cb.checked) {
+        _cycleSelectedIds.add(id);
+      } else {
+        _cycleSelectedIds['delete'](id);
+      }
+      _cycleUpdateCounter();
+      _cycleUpdateValor();
+    });
+  }
 }
 
 function _cycleLoadList(ciclo, append) {
   if (append === undefined) append = false;
+  if (!ciclo) return;
   var offset = append ? _cyclePage * _cycleLimit : 0;
   var searchEl = document.getElementById('cycleSearch');
   var search = searchEl ? searchEl.value.trim() : '';
@@ -119,6 +159,7 @@ function _cycleLoadList(ciclo, append) {
   var url = '/app/api/index.php?route=preventive-cycle&ciclo=' + encodeURIComponent(ciclo)
     + '&limit=' + _cycleLimit + '&offset=' + offset;
   if (search) url += '&search=' + encodeURIComponent(search);
+  if (_cycleCheckedOnly) url += '&checked=1';
 
   apiFetch(url)
     .then(function (r) { return r.json(); })
@@ -135,7 +176,7 @@ function _cycleLoadList(ciclo, append) {
       _cycleRenderCards(items, append);
       _cycleFetchSummary(ciclo);
     })
-    .catch(function (e) { console.error(e); });
+    .catch(function () {});
 }
 
 function _cycleRenderCards(items, append) {
@@ -202,24 +243,11 @@ function _cycleRenderCards(items, append) {
     container.innerHTML = html;
   }
 
+  _cycleSelectedIds = new Set();
   document.querySelectorAll('.cycle-checkbox').forEach(function (cb) {
-    var id = parseInt(cb.dataset.equipId);
-    if (_cycleSelectedIds.has(id)) {
-      cb.checked = true;
-    }
-  });
-
-  container.addEventListener('change', function (e) {
-    var cb = e.target.closest('.cycle-checkbox');
-    if (!cb) return;
-    var id = parseInt(cb.dataset.equipId);
     if (cb.checked) {
-      _cycleSelectedIds.add(id);
-    } else {
-      _cycleSelectedIds['delete'](id);
+      _cycleSelectedIds.add(parseInt(cb.dataset.equipId));
     }
-    _cycleUpdateCounter();
-    _cycleUpdateValor();
   });
 
   _cycleUpdateCounter();
@@ -255,13 +283,12 @@ function _cycleFetchSummary(ciclo) {
         var val = parseFloat(result.data.total_valor || 0);
         badge.textContent = 'R$ ' + val.toFixed(2).replace('.', ',');
       }
-      _cycleUpdateValor();
     })
-    .catch(function (e) { console.error(e); });
+    .catch(function () {});
 }
 
 function _cycleSave() {
-  var cards = document.querySelectorAll('[data-equip-id]');
+  var cards = document.querySelectorAll('[data-equip-id][data-valor]');
   var items = [];
 
   cards.forEach(function (card) {
@@ -302,7 +329,6 @@ function _cycleSave() {
     })
     .catch(function (e) {
       if (typeof showToast === 'function') showToast('Erro ao salvar ciclo', 'error');
-      console.error(e);
     })
     .finally(function () {
       if (saveBtn) {

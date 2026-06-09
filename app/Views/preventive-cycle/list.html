@@ -8,8 +8,7 @@
 
     <div class="text-center">
       <span class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold">
-        <span id="cycleCounter">0</span>
-        <span class="ml-1">equip. · 0 selecionados</span>
+        <span id="cycleCounter">0 equip. · 0 selecionados</span>
         <span class="mx-2">—</span>
         <span id="cycleValorBadge" data-role="admin coordenador">R$ 0,00</span>
       </span>
@@ -22,9 +21,9 @@
 <div class="px-6 py-3 flex flex-wrap gap-4 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 mt-3">
   <div class="flex flex-col">
     <label class="text-xs text-slate-500 mb-1">Ciclo</label>
-    <input type="text" id="cycleInput" list="cycleOptions"
-      class="bg-white text-sm rounded-lg px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-32"
-      placeholder="2026-06" />
+    <input type="text" id="cycleInput" list="cycleOptions" autocomplete="off"
+      class="bg-white text-sm rounded-lg px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36"
+      placeholder="Selecionar" />
     <datalist id="cycleOptions"></datalist>
   </div>
   <div class="flex items-end gap-2">
@@ -41,6 +40,10 @@
   <div class="flex items-end gap-3">
     <input type="checkbox" id="selectAllCycle" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
     <label for="selectAllCycle" class="text-xs text-slate-500 mb-1 cursor-pointer">Todos</label>
+  </div>
+  <div class="flex items-end gap-3">
+    <input type="checkbox" id="cycleCheckedOnly" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+    <label for="cycleCheckedOnly" class="text-xs text-slate-500 mb-1 cursor-pointer">Apenas ticadas</label>
   </div>
   <div class="flex flex-col flex-1">
     <label class="text-xs text-slate-500 mb-1">Buscar</label>

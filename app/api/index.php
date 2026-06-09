@@ -199,7 +199,17 @@ $router->addRoute('preventive-cycle', 'GET', function () {
         $ctrl->listAll();
     }
 });
-$router->addRoute('preventive-cycle', 'POST', fn () => (new PreventiveCycleController())->save());
+$router->addRoute('preventive-cycle', 'POST', function () {
+    $action = $_GET['action'] ?? null;
+    $ctrl = new PreventiveCycleController();
+    if ($action === 'check-all') {
+        $ctrl->checkAll();
+    } elseif ($action === 'uncheck-all') {
+        $ctrl->uncheckAll();
+    } else {
+        $ctrl->save();
+    }
+});
 
 // SCM
 $router->addRoute('scm', 'GET', function () use ($auth) {
