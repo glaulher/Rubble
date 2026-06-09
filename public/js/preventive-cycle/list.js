@@ -79,6 +79,7 @@ function _cycleSetupEvents() {
             _cyclePage = 0;
             _cycleSelectedIds = new Set();
             _cycleDirtyChecks = new Map();
+            selectAll.checked = false;
             _cycleLoadList(_cycleCurrent);
           } else {
             if (typeof showToast === 'function') showToast(result.message || 'Erro ao marcar/desmarcar', 'error');
