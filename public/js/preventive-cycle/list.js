@@ -300,7 +300,7 @@ function _cycleUpdateBadge() {
     machineCount++;
     var group = cb.closest('.site-group');
     if (group) visibleSites.add(group.dataset.site);
-    if (hasObs) return;
+    if (hasObs && !hasFilter) return;
     if (!card) return;
     total += parseFloat(card.dataset.valor) || 0;
   });
