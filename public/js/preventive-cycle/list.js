@@ -287,15 +287,21 @@ function _cycleUpdateBadge() {
   var total = 0;
   var machineCount = 0;
   var visibleSites = new Set();
+  var hasFilter = _cycleHasObservacao || _cycleCheckedOnly;
 
   document.querySelectorAll('#cycleContent .cycle-checkbox').forEach(function (cb) {
+    var card = cb.closest('[data-valor]');
+    if (card) {
+      var textarea = card.querySelector('.cycle-obs');
+      var hasObs = textarea && textarea.value.trim() !== '';
+      if (hasObs && !hasFilter) return;
+    }
     machineCount++;
     var group = cb.closest('.site-group');
     if (group) visibleSites.add(group.dataset.site);
-    var card = cb.closest('[data-valor]');
     if (!card) return;
-    var textarea = card.querySelector('.cycle-obs');
-    if (textarea && textarea.value.trim() !== '') return;
+    var ta = card.querySelector('.cycle-obs');
+    if (ta && ta.value.trim() !== '') return;
     total += parseFloat(card.dataset.valor) || 0;
   });
 
