@@ -313,7 +313,15 @@ function _cycleFetchSummary(ciclo) {
   var url = '/app/api/index.php?route=preventive-cycle&action=summary&ciclo=' + encodeURIComponent(ciclo);
   apiFetch(url)
     .then(function (r) { return r.json(); })
-    .then(function () {})
+    .then(function (result) {
+      if (!result.success || !result.data) return;
+      var d = result.data;
+      var val = parseFloat(d.total_valor || 0);
+      var el = document.getElementById('cycleBadge');
+      if (el) {
+        el.textContent = 'R$ ' + val.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' \u00b7 ' + (d.site_count || 0) + ' sites \u00b7 ' + (d.checked_count || 0) + ' m\u00e1q.';
+      }
+    })
     .catch(function () {});
 }
 

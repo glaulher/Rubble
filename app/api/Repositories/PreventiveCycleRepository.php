@@ -117,7 +117,8 @@ class PreventiveCycleRepository extends BaseRepository
         $valorCase = $this->valorCaseSql();
         $sql = "SELECT
                     COUNT(pci.id) AS checked_count,
-                    COALESCE(SUM({$valorCase}), 0) AS total_valor
+                    COALESCE(SUM({$valorCase}), 0) AS total_valor,
+                    COUNT(DISTINCT e.local) AS site_count
                 FROM equipamentos e
                 INNER JOIN preventive_cycle_items pci
                     ON pci.equipamento_id = e.id AND pci.ciclo = ?
@@ -132,6 +133,7 @@ class PreventiveCycleRepository extends BaseRepository
         return [
             'checked_count' => (int) ($row['checked_count'] ?? 0),
             'total_valor' => (float) ($row['total_valor'] ?? 0),
+            'site_count' => (int) ($row['site_count'] ?? 0),
         ];
     }
 
