@@ -69,6 +69,7 @@ function _cycleSetupEvents() {
       var checked = this.checked;
       var action = checked ? 'check-all' : 'uncheck-all';
       var url = '/app/api/index.php?route=preventive-cycle&action=' + action + '&ciclo=' + encodeURIComponent(_cycleCurrent);
+      if (_cycleHasObservacao) url += '&has_observacao=1';
 
       selectAll.disabled = true;
       apiFetch(url, { method: 'POST' })
@@ -283,19 +284,24 @@ function _cycleRenderCards(items, append) {
 }
 
 function _cycleUpdateBadge() {
-  var siteCount = document.querySelectorAll('.site-group').length;
-  var machineCount = _cycleTotal;
   var total = 0;
+  var machineCount = 0;
+  var checkedSites = new Set();
+
   document.querySelectorAll('.cycle-checkbox:checked').forEach(function (cb) {
+    machineCount++;
     var card = cb.closest('[data-valor]');
     if (!card) return;
     var textarea = card.querySelector('.cycle-obs');
     if (textarea && textarea.value.trim() !== '') return;
     total += parseFloat(card.dataset.valor) || 0;
+    var group = cb.closest('.site-group');
+    if (group) checkedSites.add(group.dataset.site);
   });
+
   var el = document.getElementById('cycleBadge');
   if (el) {
-    el.textContent = 'R$ ' + total.toFixed(2).replace('.', ',') + ' \u00b7 ' + siteCount + ' sites \u00b7 ' + machineCount + ' m\u00e1q.';
+    el.textContent = 'R$ ' + total.toFixed(2).replace('.', ',') + ' \u00b7 ' + checkedSites.size + ' sites \u00b7 ' + machineCount + ' m\u00e1q.';
   }
 }
 

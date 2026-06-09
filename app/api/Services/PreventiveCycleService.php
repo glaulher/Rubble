@@ -33,19 +33,19 @@ class PreventiveCycleService
         return $this->repository->summary($ciclo);
     }
 
-    public function checkAll(string $ciclo): int
+    public function checkAll(string $ciclo, bool $hasObservacao = false): int
     {
         if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ciclo)) {
             throw new \InvalidArgumentException('Formato de ciclo inválido (use YYYY-MM)');
         }
-        return $this->repository->checkAll($ciclo);
+        return $this->repository->checkAll($ciclo, $hasObservacao);
     }
 
-    public function uncheckAll(string $ciclo): int
+    public function uncheckAll(string $ciclo, bool $hasObservacao = false): int
     {
         if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ciclo)) {
             throw new \InvalidArgumentException('Formato de ciclo inválido (use YYYY-MM)');
         }
-        return $this->repository->uncheckAll($ciclo);
+        return $this->repository->uncheckAll($ciclo, $hasObservacao);
     }
 }

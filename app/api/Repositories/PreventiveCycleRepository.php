@@ -135,24 +135,44 @@ class PreventiveCycleRepository extends BaseRepository
         ];
     }
 
-    public function checkAll(string $ciclo): int
+    public function checkAll(string $ciclo, bool $hasObservacao = false): int
     {
-        $sql = "INSERT IGNORE INTO preventive_cycle_items (ciclo, equipamento_id)
-                SELECT ?, e.id FROM equipamentos e
-                WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param('s', $ciclo);
+        if ($hasObservacao) {
+            $sql = "INSERT IGNORE INTO preventive_cycle_items (ciclo, equipamento_id)
+                    SELECT ?, e.id FROM equipamentos e
+                    WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'
+                    AND EXISTS (
+                        SELECT 1 FROM preventive_cycle_items pci
+                        WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
+                        AND pci.observacao IS NOT NULL AND pci.observacao != ''
+                    )";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param('ss', $ciclo, $ciclo);
+        } else {
+            $sql = "INSERT IGNORE INTO preventive_cycle_items (ciclo, equipamento_id)
+                    SELECT ?, e.id FROM equipamentos e
+                    WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param('s', $ciclo);
+        }
         $stmt->execute();
         $count = $stmt->affected_rows;
         $stmt->close();
         return $count;
     }
 
-    public function uncheckAll(string $ciclo): int
+    public function uncheckAll(string $ciclo, bool $hasObservacao = false): int
     {
-        $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param('s', $ciclo);
+        if ($hasObservacao) {
+            $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?
+                    AND observacao IS NOT NULL AND observacao != ''";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param('s', $ciclo);
+        } else {
+            $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param('s', $ciclo);
+        }
         $stmt->execute();
         $count = $stmt->affected_rows;
         $stmt->close();

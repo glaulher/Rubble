@@ -82,7 +82,8 @@ class PreventiveCycleController
                 return;
             }
 
-            $count = $this->service->checkAll($ciclo);
+            $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
+            $count = $this->service->checkAll($ciclo, $hasObservacao);
             Response::success('Todos marcados', ['checked' => $count]);
         } catch (Exception $e) {
             Response::serverError($e, 400);
@@ -98,7 +99,8 @@ class PreventiveCycleController
                 return;
             }
 
-            $count = $this->service->uncheckAll($ciclo);
+            $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
+            $count = $this->service->uncheckAll($ciclo, $hasObservacao);
             Response::success('Todos desmarcados', ['deleted' => $count]);
         } catch (Exception $e) {
             Response::serverError($e, 400);
