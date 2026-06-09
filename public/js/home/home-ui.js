@@ -481,6 +481,18 @@ function handleContentClick(event) {
     return;
   }
 
+  var action = target.getAttribute('data-action');
+  var ticketId = target.getAttribute('data-ticket-id');
+  if (action === 'edit-ticket' && ticketId) {
+    window.location.hash = '#/form?ticket=' + ticketId;
+    return;
+  }
+  if (action === 'delete-ticket' && ticketId) {
+    var ticketOs = target.getAttribute('data-ticket-os');
+    deleteTicket(ticketId, target, ticketOs);
+    return;
+  }
+
   const deleteId = target.getAttribute('data-delete-id');
   if (deleteId) {
     deleteTicket(deleteId, target);
@@ -559,23 +571,8 @@ function buildTicketHtml(r, canEdit) {
           ${dateInfo ? `<span class="text-slate-500 text-sm">${dateInfo}</span>` : ''}
           <span class="${statusColor} px-3 py-1 rounded-full text-sm font-semibold">${escapeHtml(r.status)}</span>
           ${canEdit ? `
-            <div class="relative group">
-              <a href="#/form?ticket=${r.id}" class="bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-xl transition block">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                </svg>
-              </a>
-              <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Editar</span>
-            </div>
-            <div class="relative group">
-              <button data-delete-id="${r.id}" class="delete-ticket-btn bg-red-100 hover:bg-red-200 text-red-500 p-2 rounded-xl transition">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-              </button>
-              <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Excluir</span>
-            </div>
+            ${iconButtonHtml('edit', 'Editar', { 'data-action': 'edit-ticket', 'data-ticket-id': r.id })}
+            ${iconButtonHtml('delete', 'Excluir', { 'data-action': 'delete-ticket', 'data-ticket-id': r.id, 'data-ticket-os': r.os || '', 'class': 'delete-ticket-btn' }, 'right')}
           ` : ''}
         </div>
       </div>

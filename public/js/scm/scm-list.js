@@ -400,15 +400,7 @@ function buildScmCardHtml(s) {
                 ${totalDisplay ? `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-xl text-xs">${totalDisplay}</span>` : ''}
                 <span class="text-xs px-2 py-0.5 rounded-xl ${statusClass}">${escapeHtml(s.status)}</span>
                 ${getUser().role === 'admin' ? `
-                <div class="relative group">
-                    <button class="scm-delete-btn bg-red-100 hover:bg-red-200 text-red-500 p-2 rounded-xl transition" data-delete-id="${s.id}">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                    </button>
-                    <span class="absolute bottom-full right-0 mb-2 scale-0 group-hover:scale-100 origin-bottom-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Excluir</span>
-                </div>` : ''}
+                ${iconButtonHtml('delete', 'Excluir', { 'class': 'scm-delete-btn', 'data-delete-id': s.id }, 'right')}` : ''}
             </div>
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
@@ -492,7 +484,9 @@ function updateScmCounter(total, totalValor) {
 }
 
 async function deleteScm(id) {
-    const confirmed = await confirmAction('Tem certeza que deseja excluir este SCM?');
+    var scm = scmList.find(function(s) { return s.id === id; });
+    var scmName = scm ? scm.scm : '';
+    const confirmed = await confirmDelete('Excluir SCM', 'Tem certeza que deseja excluir o SCM', scmName);
     if (!confirmed) return;
 
     try {

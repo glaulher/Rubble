@@ -82,10 +82,18 @@ async function loadEquipment(isPolling) {
   }
 }
 
-async function deleteTicket(id, button) {
+async function deleteTicket(id, button, osNumber) {
   const numericId = Number(id);
 
-  const confirmed = await confirmAction('Tem certeza que deseja excluir?');
+  var itemName = osNumber;
+  var message = 'Tem certeza que deseja excluir a OS';
+  if (!itemName) {
+    message = 'Tem certeza que deseja excluir o ticket de';
+    var equipCardEl = button.closest('.card-item');
+    itemName = equipCardEl ? equipCardEl.querySelector('h3')?.textContent?.trim() || '' : '';
+  }
+
+  const confirmed = await confirmDelete('Excluir OS', message, itemName);
 
   if (!confirmed) return;
 

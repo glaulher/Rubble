@@ -1,19 +1,16 @@
 let pvEmailBatchIds = null;
 let pvEmailBatchUf = null;
 
-function openDeleteModal(id, pvNumber) {
-  document.getElementById('deletePvId').value = id;
-  document.getElementById('deletePvNumber').textContent = pvNumber;
-  showModal('deleteModal');
-}
+async function deletePv(id) {
+  var numeroPv = id;
+  try {
+    const response = await fetch('/app/api/index.php?route=pv&id=' + id);
+    const result = await response.json();
+    if (result.success && result.data) numeroPv = result.data.numero_pv;
+  } catch {}
 
-function closeDeleteModal() {
-  hideModal('deleteModal');
-}
-
-async function confirmDelete() {
-  const id = document.getElementById('deletePvId').value;
-  closeDeleteModal();
+  const confirmed = await confirmDelete('Excluir PV', 'Tem certeza que deseja excluir a PV', numeroPv);
+  if (!confirmed) return;
 
   try {
     const response = await fetch('/app/api/index.php?route=pv', {
@@ -31,26 +28,15 @@ async function confirmDelete() {
 
     showToast(result.message, 'success');
 
-    const row = document.querySelector(`tr[data-pv-id="${id}"]`);
+    const row = document.querySelector('tr[data-pv-id="' + id + '"]');
     if (row) row.remove();
 
-    pvList = pvList.filter(p => p.id != id);
+    pvList = pvList.filter(function(p) { return p.id != id; });
 
     updateHeaderTotal();
   } catch (err) {
     console.error(err);
     showToast('Erro ao excluir PV', 'error');
-  }
-}
-
-async function deletePv(id) {
-  try {
-    const response = await fetch('/app/api/index.php?route=pv&id=' + id);
-    const result = await response.json();
-    const numeroPv = result.success && result.data ? result.data.numero_pv : id;
-    openDeleteModal(id, numeroPv);
-  } catch {
-    openDeleteModal(id, id);
   }
 }
 

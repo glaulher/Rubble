@@ -147,40 +147,9 @@ function buildPvRowHtml(pv) {
     <td class="hidden md:table-cell px-4 py-4 text-sm font-medium text-slate-900">${valorTotal}</td>
     <td class="px-4 py-4 text-sm text-right">
       <div class="flex items-center justify-end gap-2">
-        <div class="relative group">
-          <button data-action="edit" data-pv-id="${pv.id}"
-            class="bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-xl transition">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-            </svg>
-          </button>
-          <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">
-            Editar
-          </span>
-        </div>
-        <div class="relative group">
-          <button data-action="status" data-pv-id="${pv.id}" data-pv-numero="${escapeHtml(pv.numero_pv)}"
-            class="bg-amber-100 hover:bg-amber-200 text-amber-600 p-2 rounded-xl transition">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-            </svg>
-          </button>
-          <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 scale-0 group-hover:scale-100 origin-bottom transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">
-            Alterar status
-          </span>
-        </div>
-        <div class="relative group">
-          <button data-action="delete" data-pv-id="${pv.id}"
-            class="bg-red-100 hover:bg-red-200 text-red-500 p-2 rounded-xl transition">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-          <span class="absolute bottom-full right-0 mb-2 scale-0 group-hover:scale-100 origin-bottom-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">
-            Excluir
-          </span>
-        </div>
+        ${iconButtonHtml('edit', 'Editar', { 'data-action': 'edit', 'data-pv-id': pv.id })}
+        ${iconButtonHtml('status', 'Alterar status', { 'data-action': 'status', 'data-pv-id': pv.id, 'data-pv-numero': escapeHtml(pv.numero_pv) })}
+        ${iconButtonHtml('delete', 'Excluir', { 'data-action': 'delete', 'data-pv-id': pv.id }, 'right')}
       </div>
     </td>
   `;
@@ -535,10 +504,6 @@ function initPv() {
 
   document.querySelector('[data-action="navigate-pv-form"]')
     ?.addEventListener('click', function () { window.location.hash = '#/pvForm'; });
-  document.querySelector('[data-action="confirm-delete"]')
-    ?.addEventListener('click', confirmDelete);
-  document.querySelector('[data-action="close-delete-modal"]')
-    ?.addEventListener('click', closeDeleteModal);
   document.querySelector('[data-action="generate-pv-csv"]')
     ?.addEventListener('click', generatePvCSV);
   document.querySelector('[data-action="download-pv-pdf"]')
