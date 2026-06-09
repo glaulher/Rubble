@@ -305,7 +305,7 @@ function _cycleUpdateBadge() {
 
   var el = document.getElementById('cycleBadge');
   if (el) {
-    el.textContent = 'R$ ' + total.toFixed(2).replace('.', ',') + ' \u00b7 ' + visibleSites.size + ' sites \u00b7 ' + machineCount + ' m\u00e1q.';
+    el.textContent = 'R$ ' + total.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' \u00b7 ' + visibleSites.size + ' sites \u00b7 ' + machineCount + ' m\u00e1q.';
   }
 }
 
