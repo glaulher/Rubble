@@ -16,6 +16,7 @@ async function loadEquipmentForm() {
   document.getElementById('eqEndereco').value = '';
   document.getElementById('eqUf').value = '';
   document.getElementById('mercado').value = '';
+  document.getElementById('eqLocalScm').value = '';
 
   document.querySelector('[data-action="navigate-equipment-manager"]')
     ?.addEventListener('click', function () { window.location.hash = '#/equipment-manager'; });
@@ -43,6 +44,7 @@ async function loadEquipmentForm() {
       document.getElementById('eqEndereco').value = eq.endereco_completo || '';
       document.getElementById('eqUf').value = eq.uf || '';
       document.getElementById('mercado').value = eq.mercado || '';
+      document.getElementById('eqLocalScm').value = eq.local_scm || '';
     } catch (e) {
       showToast('Erro ao carregar equipamento', 'error');
       return;
@@ -65,6 +67,7 @@ function saveEquipmentForm(e) {
   const endereco = document.getElementById('eqEndereco').value.trim();
   const uf = document.getElementById('eqUf').value.trim().toUpperCase();
   const mercado = document.getElementById('mercado').value;
+  const localScm = document.getElementById('eqLocalScm').value.trim();
 
   if (!equipamento) { showToast('Informe o equipamento', 'error'); return; }
   if (!local) { showToast('Informe o local', 'error'); return; }
@@ -84,6 +87,7 @@ function saveEquipmentForm(e) {
     endereco: endereco,
     uf: uf,
     mercado: mercado,
+    local_scm: localScm || null,
   };
   if (id) body.id = parseInt(id);
 
