@@ -96,11 +96,11 @@ class AuthService
         $rolePermissions = [
             'supervisor' => [
                 'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'auth', 'preventive-cycle'],
-                'write' => ['equipment', 'tickets', 'preventive-cycle'],
+                'write' => ['equipment', 'tickets'],
             ],
             'coordenador' => [
                 'read' => ['equipment', 'tickets', 'dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle'],
-                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'preventive-cycle'],
+                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm'],
             ],
             'cliente' => [
                 'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify'],
