@@ -2,6 +2,10 @@
 
 HVAC equipment maintenance management SPA. PHP + Vanilla JS + MariaDB.
 
+## Documentation
+
+For full technical documentation (API reference, database schema, architecture, deployment, security, and known pitfalls), see **[docs.md](docs.md)**.
+
 ## Features
 
 - **Authentication & RBAC** — JWT HMAC-SHA256 with roles: admin, supervisor, coordenador, cliente
@@ -16,6 +20,9 @@ HVAC equipment maintenance management SPA. PHP + Vanilla JS + MariaDB.
 - **Equipment Dashboard** — Pareto charts (locations, machines, technicians), resolution time analysis
 - **User Management** — Admin CRUD with password hashing, role assignment, self-delete prevention
 - **Equipment Management (Admin)** — Admin/coordenador CRUD with address find-or-create, integrity check on delete
+- **Equipment Pricing** — Admin-only CRUD with rule-based pricing (TR/Chiller), mercado filter, home page value badges
+- **SCM (Service Control)** — CSV import with status mapping, multi-select filters (site/segmento), PV status sync on import
+- **Preventive Cycle** — Cycle-based equipment tracking with checkbox/radio filters, bulk check-all, real-time valor badge
 - **CSV Export** — Equipment + ticket rows filtered by search term, per-ticket status in each row; PV items export with Windows-1252 encoding
 - **PDF Report** — PV items PDF via html2canvas + jsPDF with wrapped text and Memorial de Calculo
 - **CSV Import** — OS import from CSV with UTF-8/Latin-1 detection
@@ -119,10 +126,10 @@ bun test
 ├── app/api/
 │   ├── index.php                  # Router: ?route=
 │   ├── Auth/                      # JwtHelper, AuthService
-│   ├── Controllers/               # 9 controllers
-│   ├── Services/                  # 9 services
-│   ├── Repositories/              # 9 repositories
-│   ├── Entities/                  # 4 entities
+│   ├── Controllers/               # 10 controllers
+│   ├── Services/                  # 11 services
+│   ├── Repositories/              # 11 repositories
+│   ├── Entities/                  # 5 entities
 │   ├── Helpers/                   # Response, Request, Validator, MailerFactory, Cache, RateLimiter
 │   └── Cron/check_notification.php
 ├── app/Views/                     # HTML parciais organizados por módulo (fetched via SPA)
@@ -167,7 +174,9 @@ Script load order (index.html): `auth.js` → libs → utils → components → 
 | `notify` | GET | Cron trigger |
 | `users` | GET, POST, PUT, DELETE | User CRUD (admin) |
 | `equipment-management` | GET, POST, PUT, DELETE | Equipment CRUD (admin/coordenador) |
+| `equipment-prices` | GET, POST, PUT, DELETE | Pricing CRUD (admin) |
 | `scm` | GET, POST, DELETE | SCM list, import, delete (admin/coordenador) |
+| `preventive-cycle` | GET, POST | Cycle list, summary, save, check-all, uncheck-all |
 
 All routes (except `auth`) require JWT Bearer token. Access controlled by role.
 
@@ -181,6 +190,8 @@ All routes (except `auth`) require JWT Bearer token. Access controlled by role.
 | Manage Users | yes | no | no | no |
 | Manage Equipment | CRUD | no | CRUD (no delete) | no |
 | SCM Status | CRUD | no | CRUD (no delete) | no |
+| Preventive Cycle | CRUD | R/O | CRUD (no delete) | no |
+| Equipment Pricing | CRUD | no | no | no |
 
 ## Database
 
@@ -196,10 +207,12 @@ Main tables:
 | `pv_os` | PV <-> registros N:N join |
 | `usuarios` | Users (auth) |
 | `civil_lpu`, `material_*_lpu`, `servico_*_lpu` | LPU price catalogs |
-| `cron_controle` | Notification execution control |
-| `login_attempts` | Rate limiting for login |
 | `scm` | SCM status tracking |
 | `scm_items` | SCM line items (FK to scm) |
+| `equipamento_precos` | Equipment pricing rules |
+| `preventive_cycle_items` | Preventive maintenance cycles |
+| `cron_controle` | Notification execution control |
+| `login_attempts` | Rate limiting for login |
 | `rate_limits` | Generic rate limiting |
 
 ## License
