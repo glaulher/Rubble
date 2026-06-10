@@ -258,6 +258,8 @@ function render(list, append = false) {
 
     content.innerHTML += html;
   });
+
+  if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
 }
 
 function syncHomeCards(newEquipment) {
@@ -393,6 +395,8 @@ function syncHomeCards(newEquipment) {
   expandedToReload.forEach(({ equipId, container }) => {
     loadTicketsForEquipment(equipId, container);
   });
+
+  if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
 }
 
 function resetState(search) {
