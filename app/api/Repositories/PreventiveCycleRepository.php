@@ -115,7 +115,9 @@ class PreventiveCycleRepository extends BaseRepository
     public function summary(string $ciclo, bool $hasObservacao = false): array
     {
         $valorCase = $this->valorCaseSql();
-        $obsFilter = $hasObservacao ? '' : 'AND (pci.observacao IS NULL OR pci.observacao = '')';
+        $obsFilter = $hasObservacao
+            ? "AND pci.observacao IS NOT NULL AND pci.observacao != ''"
+            : "AND (pci.observacao IS NULL OR pci.observacao = '')";
         $sql = "SELECT
                     COUNT(pci.id) AS checked_count,
                     COALESCE(SUM({$valorCase}), 0) AS total_valor,

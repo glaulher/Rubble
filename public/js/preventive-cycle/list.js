@@ -3,9 +3,8 @@ var _cycleSelectedIds = new Set();
 var _cycleTotal = 0;
 var _cyclePage = 0;
 var _cycleLimit = 20;
-var _cycleCheckedOnly = false;
 var _cycleDirtyChecks = new Map();
-var _cycleHasObservacao = false;
+var _cycleFilter = 'all';
 
 function _cycleGenerateOptions() {
   var opts = [];
@@ -23,7 +22,7 @@ function initPreventiveCycle() {
   _cycleTotal = 0;
   _cyclePage = 0;
   _cycleDirtyChecks = new Map();
-  _cycleHasObservacao = false;
+  _cycleFilter = 'all';
 
   var datalist = document.getElementById('cycleOptions');
   if (datalist) {
@@ -69,7 +68,7 @@ function _cycleSetupEvents() {
       var checked = this.checked;
       var action = checked ? 'check-all' : 'uncheck-all';
       var url = '/app/api/index.php?route=preventive-cycle&action=' + action + '&ciclo=' + encodeURIComponent(_cycleCurrent);
-      if (_cycleHasObservacao) url += '&has_observacao=1';
+      if (_cycleFilter === 'observacao') url += '&has_observacao=1';
 
       selectAll.disabled = true;
       apiFetch(url, { method: 'POST' })
@@ -79,7 +78,7 @@ function _cycleSetupEvents() {
             _cyclePage = 0;
             _cycleSelectedIds = new Set();
             _cycleDirtyChecks = new Map();
-            selectAll.checked = false;
+            selectAll.checked = checked;
             _cycleLoadList(_cycleCurrent);
           } else {
             if (typeof showToast === 'function') showToast(result.message || 'Erro ao marcar/desmarcar', 'error');
@@ -109,29 +108,17 @@ function _cycleSetupEvents() {
     });
   }
 
-  var checkedToggle = document.getElementById('cycleCheckedOnly');
-  if (checkedToggle) {
-    checkedToggle.addEventListener('change', function () {
-      _cycleCheckedOnly = this.checked;
+  var filterRadios = document.querySelectorAll('input[name="cycleFilter"]');
+  filterRadios.forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      _cycleFilter = this.value;
       _cyclePage = 0;
       _cycleSelectedIds = new Set();
       var content = document.getElementById('cycleContent');
       if (content) content.innerHTML = '';
       _cycleLoadList(_cycleCurrent);
     });
-  }
-
-  var obsToggle = document.getElementById('cycleHasObservacao');
-  if (obsToggle) {
-    obsToggle.addEventListener('change', function () {
-      _cycleHasObservacao = this.checked;
-      _cyclePage = 0;
-      _cycleSelectedIds = new Set();
-      var content = document.getElementById('cycleContent');
-      if (content) content.innerHTML = '';
-      _cycleLoadList(_cycleCurrent);
-    });
-  }
+  });
 
   var sentinel = document.getElementById('cycleSentinel');
   if (sentinel) {
@@ -162,13 +149,6 @@ function _cycleSetupEvents() {
         _cycleSelectedIds['delete'](id);
       }
       _cycleDirtyChecks.set(id, cb.checked);
-      _cycleUpdateBadge();
-    });
-
-    container.addEventListener('input', function (e) {
-      if (e.target.classList.contains('cycle-obs')) {
-        _cycleUpdateBadge();
-      }
     });
   }
 }
@@ -183,8 +163,8 @@ function _cycleLoadList(ciclo, append) {
   var url = '/app/api/index.php?route=preventive-cycle&ciclo=' + encodeURIComponent(ciclo)
     + '&limit=' + _cycleLimit + '&offset=' + offset;
   if (search) url += '&search=' + encodeURIComponent(search);
-  if (_cycleCheckedOnly) url += '&checked=1';
-  if (_cycleHasObservacao) url += '&has_observacao=1';
+  if (_cycleFilter === 'selecionados') url += '&checked=1';
+  if (_cycleFilter === 'observacao') url += '&has_observacao=1';
 
   apiFetch(url)
     .then(function (r) { return r.json(); })
@@ -280,39 +260,13 @@ function _cycleRenderCards(items, append) {
     }
   });
 
-  _cycleUpdateBadge();
   if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
 }
 
-function _cycleUpdateBadge() {
-  var total = 0;
-  var machineCount = 0;
-  var visibleSites = new Set();
-
-  document.querySelectorAll('#cycleContent .cycle-checkbox:checked').forEach(function (cb) {
-    var card = cb.closest('[data-valor]');
-    var hasObs = false;
-    if (card) {
-      var textarea = card.querySelector('.cycle-obs');
-      hasObs = textarea && textarea.value.trim() !== '';
-    }
-    if (hasObs && !_cycleHasObservacao) return;
-    machineCount++;
-    var group = cb.closest('.site-group');
-    if (group) visibleSites.add(group.dataset.site);
-    if (!card) return;
-    total += parseFloat(card.dataset.valor) || 0;
-  });
-
-  var el = document.getElementById('cycleBadge');
-  if (el) {
-    el.textContent = 'R$ ' + total.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' \u00b7 ' + visibleSites.size + ' sites \u00b7 ' + machineCount + ' m\u00e1q.';
-  }
-}
-
 function _cycleFetchSummary(ciclo) {
+  if (!ciclo) return;
   var url = '/app/api/index.php?route=preventive-cycle&action=summary&ciclo=' + encodeURIComponent(ciclo);
-  if (_cycleHasObservacao) url += '&has_observacao=1';
+  if (_cycleFilter === 'observacao') url += '&has_observacao=1';
   apiFetch(url)
     .then(function (r) { return r.json(); })
     .then(function (result) {
@@ -363,6 +317,8 @@ function _cycleSave() {
         _cyclePage = 0;
         _cycleSelectedIds = new Set();
         _cycleDirtyChecks = new Map();
+        var selectAllEl = document.getElementById('selectAllCycle');
+        if (selectAllEl) selectAllEl.checked = false;
         _cycleLoadList(_cycleCurrent);
       } else {
         if (typeof showToast === 'function') showToast(result.message || 'Erro ao salvar ciclo', 'error');
