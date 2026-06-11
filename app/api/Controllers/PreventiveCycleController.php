@@ -107,4 +107,30 @@ class PreventiveCycleController
             Response::serverError($e, 400);
         }
     }
+
+    public function validateScm(): void
+    {
+        try {
+            $scmNumber = trim($_GET['scm_number'] ?? '');
+            if ($scmNumber === '') {
+                Response::validation('scm_number é obrigatório');
+                return;
+            }
+            $data = $this->service->validateScm($scmNumber);
+            Response::success('', $data);
+        } catch (Exception $e) {
+            Response::serverError($e);
+        }
+    }
+
+    public function scmStatusCount(): void
+    {
+        try {
+            $ciclo = trim($_GET['ciclo'] ?? date('Y-m'));
+            $data = $this->service->scmStatusCount($ciclo);
+            Response::success('', $data);
+        } catch (Exception $e) {
+            Response::serverError($e);
+        }
+    }
 }

@@ -195,6 +195,10 @@ $router->addRoute('preventive-cycle', 'GET', function () {
 
     if ($action === 'summary') {
         $ctrl->summary();
+    } elseif ($action === 'validate-scm') {
+        $ctrl->validateScm();
+    } elseif ($action === 'scm-status-count') {
+        $ctrl->scmStatusCount();
     } else {
         $ctrl->listAll();
     }

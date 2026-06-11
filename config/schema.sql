@@ -593,9 +593,11 @@ CREATE TABLE `preventive_cycle_items` (
   `ciclo`            VARCHAR(7) NOT NULL COMMENT 'YYYY-MM',
   `equipamento_id`   INT NOT NULL,
   `observacao`       TEXT DEFAULT NULL,
+  `scm_number`       VARCHAR(100) DEFAULT NULL,
   `created_at`       DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at`       DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY `uk_ciclo_equip` (`ciclo`, `equipamento_id`),
+  KEY `idx_pci_scm_number` (`scm_number`),
   CONSTRAINT `fk_preventive_cycle_equipamento`
     FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`)
     ON DELETE CASCADE

@@ -5,6 +5,13 @@ var _cyclePage = 0;
 var _cycleLimit = 20;
 var _cycleDirtyChecks = new Map();
 var _cycleFilter = 'all';
+var _cycleScmStatusColors = {
+    'SCM aprovado': 'bg-emerald-100 text-emerald-700',
+    'SCM negado': 'bg-red-100 text-red-700',
+    'SCM verificado': 'bg-blue-100 text-blue-800',
+    'SCM enviado': 'bg-purple-100 text-purple-700',
+};
+var _cycleScmValidationCache = {};
 
 function _cycleGenerateOptions() {
   var opts = [];
@@ -23,6 +30,7 @@ function initPreventiveCycle() {
   _cyclePage = 0;
   _cycleDirtyChecks = new Map();
   _cycleFilter = 'all';
+  _cycleScmValidationCache = {};
 
   var datalist = document.getElementById('cycleOptions');
   if (datalist) {
@@ -50,6 +58,7 @@ function _cycleSetupEvents() {
         _cyclePage = 0;
         _cycleSelectedIds = new Set();
         _cycleDirtyChecks = new Map();
+        _cycleScmValidationCache = {};
         var content = document.getElementById('cycleContent');
         if (content) content.innerHTML = '';
         _cycleLoadList(val);
@@ -134,6 +143,7 @@ function _cycleSetupEvents() {
   if (window.PollingManager) {
     PollingManager.start('preventive-summary', function () {
       _cycleFetchSummary(_cycleCurrent);
+      _cycleFetchScmStatusCount(_cycleCurrent);
     }, 30000);
   }
 
@@ -176,10 +186,13 @@ function _cycleLoadList(ciclo, append) {
       if (!append) {
         var content = document.getElementById('cycleContent');
         if (content) content.innerHTML = '';
+        var scmBadges = document.getElementById('cycleScmBadges');
+        if (scmBadges) scmBadges.innerHTML = '';
       }
 
       _cycleRenderCards(items, append);
       _cycleFetchSummary(ciclo);
+      _cycleFetchScmStatusCount(ciclo);
     })
     .catch(function () {});
 }
@@ -235,6 +248,8 @@ function _cycleRenderCards(items, append) {
       if (valor > 0) {
         html += '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-sm font-semibold" data-role="admin coordenador">R$ ' + valor.toFixed(2).replace('.', ',') + '</span>';
       }
+      html += '<input type="text" class="cycle-scm-input flex-1 min-w-[120px] px-3 py-1.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-slate-50" data-equip-id="' + item.equipamento_id + '" placeholder="N&ordm; do SCM..." value="' + _cycleEscape(item.scm_number || '') + '">';
+      html += '<span class="cycle-scm-badge flex-shrink-0" data-equip-id="' + item.equipamento_id + '"></span>';
       html += '</div>';
       html += '</div>';
       html += '<div class="ml-8">';
@@ -261,6 +276,62 @@ function _cycleRenderCards(items, append) {
   });
 
   if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
+
+  var cycleContent = document.getElementById('cycleContent');
+  if (cycleContent && !cycleContent._scmListenerAdded) {
+    cycleContent._scmListenerAdded = true;
+    cycleContent.addEventListener('focusout', function (e) {
+      var inp = e.target.closest('.cycle-scm-input');
+      if (!inp) return;
+      var val = inp.value.trim();
+      var equipId = inp.dataset.equipId;
+      var badgeEl = cycleContent.querySelector('.cycle-scm-badge[data-equip-id="' + equipId + '"]');
+      if (!badgeEl) return;
+      if (!val) {
+        badgeEl.innerHTML = '';
+        return;
+      }
+      _cycleValidateScm(val, equipId, badgeEl);
+    });
+  }
+}
+
+function _cycleValidateScm(scmNumber, equipId, badgeEl) {
+    if (_cycleScmValidationCache[scmNumber]) {
+        _cycleRenderScmBadge(_cycleScmValidationCache[scmNumber], badgeEl);
+        return;
+    }
+    var url = '/app/api/index.php?route=preventive-cycle&action=validate-scm&scm_number=' + encodeURIComponent(scmNumber);
+    apiFetch(url)
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+            if (!result.success || !result.data) return;
+            _cycleScmValidationCache[scmNumber] = result.data;
+            _cycleRenderScmBadge(result.data, badgeEl);
+        })
+        .catch(function () {});
+}
+
+function _cycleRenderScmBadge(data, badgeEl) {
+    if (!data.found) {
+        badgeEl.innerHTML = '<span class="inline-flex items-center bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">SCM sem n&uacute;mero correspondente</span>';
+        return;
+    }
+    var segmento = (data.segmento || '').toLowerCase();
+    var isPreventiva = segmento.includes('preventiva on going') || segmento.includes('preventiva sob demanda');
+    if (!isPreventiva) {
+        badgeEl.innerHTML = '<span class="inline-flex items-center bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">Erro no segmento</span>';
+        return;
+    }
+    var origem = (data.origem || '').toLowerCase();
+    var mercadoEquip = (data.mercado_equipamento || '').toLowerCase();
+    if (origem && mercadoEquip && origem !== mercadoEquip) {
+        badgeEl.innerHTML = '<span class="inline-flex items-center bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">Erro no mercado</span>';
+        return;
+    }
+    var status = data.status || '';
+    var statusClass = _cycleScmStatusColors[status] || 'bg-slate-100 text-slate-700';
+    badgeEl.innerHTML = '<span class="inline-flex items-center ' + statusClass + ' text-xs px-2 py-0.5 rounded-full">' + _cycleEscape(status) + '</span>';
 }
 
 function _cycleFetchSummary(ciclo) {
@@ -281,6 +352,29 @@ function _cycleFetchSummary(ciclo) {
     .catch(function () {});
 }
 
+function _cycleFetchScmStatusCount(ciclo) {
+    if (!ciclo) return;
+    var url = '/app/api/index.php?route=preventive-cycle&action=scm-status-count&ciclo=' + encodeURIComponent(ciclo);
+    apiFetch(url)
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+            if (!result.success || !result.data) return;
+            var el = document.getElementById('cycleScmBadges');
+            if (!el) return;
+            var html = '';
+            var statuses = ['SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado'];
+            statuses.forEach(function (status) {
+                var count = result.data[status] || 0;
+                if (count > 0) {
+                    var cls = _cycleScmStatusColors[status] || 'bg-slate-100 text-slate-700';
+                    html += '<span class="inline-flex items-center ' + cls + ' text-xs px-2 py-0.5 rounded-full font-semibold">' + _cycleEscape(status) + ' ' + count + '</span>';
+                }
+            });
+            el.innerHTML = html;
+        })
+        .catch(function () {});
+}
+
 function _cycleSave() {
   var cards = document.querySelectorAll('[data-equip-id][data-valor]');
   var items = [];
@@ -289,10 +383,12 @@ function _cycleSave() {
     var equipId = parseInt(card.dataset.equipId);
     var checkbox = card.querySelector('.cycle-checkbox');
     var textarea = card.querySelector('.cycle-obs');
+    var scmInput = card.querySelector('.cycle-scm-input');
     items.push({
       equipamento_id: equipId,
       checked: checkbox ? checkbox.checked : false,
       observacao: textarea ? textarea.value : '',
+      scm_number: scmInput ? scmInput.value : '',
     });
   });
 

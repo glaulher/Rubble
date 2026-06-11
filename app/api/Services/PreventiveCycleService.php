@@ -48,4 +48,24 @@ class PreventiveCycleService
         }
         return $this->repository->uncheckAll($ciclo, $hasObservacao);
     }
+
+    public function validateScm(string $scmNumber): array
+    {
+        $scm = $this->repository->findScmWithEquipment($scmNumber);
+        if (!$scm) {
+            return ['found' => false];
+        }
+        return [
+            'found' => true,
+            'status' => $scm['status'] ?? null,
+            'segmento' => $scm['segmento'] ?? null,
+            'origem' => $scm['origem'] ?? null,
+            'mercado_equipamento' => $scm['mercado'] ?? null,
+        ];
+    }
+
+    public function scmStatusCount(string $ciclo): array
+    {
+        return $this->repository->scmStatusCount($ciclo);
+    }
 }

@@ -8,6 +8,7 @@ class PreventiveCycleItem
     public string $ciclo;
     public int $equipamentoId;
     public ?string $observacao;
+    public ?string $scmNumber;
     public ?string $createdAt;
     public ?string $updatedAt;
 
@@ -17,6 +18,7 @@ class PreventiveCycleItem
         $this->ciclo = $data['ciclo'] ?? '';
         $this->equipamentoId = (int) ($data['equipamento_id'] ?? 0);
         $this->observacao = $data['observacao'] ?? null;
+        $this->scmNumber = $data['scm_number'] ?? null;
         $this->createdAt = $data['created_at'] ?? null;
         $this->updatedAt = $data['updated_at'] ?? null;
     }
@@ -28,6 +30,7 @@ class PreventiveCycleItem
             'ciclo' => $this->ciclo,
             'equipamento_id' => $this->equipamentoId,
             'observacao' => $this->observacao,
+            'scm_number' => $this->scmNumber,
         ];
     }
 }
