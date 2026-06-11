@@ -105,6 +105,16 @@ function _cycleSetupEvents() {
   var searchInput = document.getElementById('cycleSearch');
   if (searchInput) {
     var timer;
+    searchInput.addEventListener('click', function () {
+      if (this.value.trim() !== '') {
+        this.value = '';
+        _cyclePage = 0;
+        _cycleSelectedIds = new Set();
+        var content = document.getElementById('cycleContent');
+        if (content) content.innerHTML = '';
+        _cycleLoadList(_cycleCurrent);
+      }
+    });
     searchInput.addEventListener('input', function () {
       clearTimeout(timer);
       timer = setTimeout(function () {
