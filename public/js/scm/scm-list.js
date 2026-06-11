@@ -140,7 +140,11 @@ function renderSegmentDropdown() {
             if (!cb) return;
             const val = cb.dataset.value;
             if (val === '__all__') {
-                if (cb.checked) scmSegmentFilter.clear();
+                if (cb.checked) {
+                    scmSegmentFilter.clear();
+                } else {
+                    scmAllSegments.forEach(seg => scmSegmentFilter.add(seg));
+                }
             } else {
                 if (cb.checked) scmSegmentFilter.add(val);
                 else scmSegmentFilter.delete(val);
@@ -223,7 +227,11 @@ function renderSiteDropdown() {
             if (!cb) return;
             const val = cb.dataset.value;
             if (val === '__all__') {
-                if (cb.checked) scmSiteFilter.clear();
+                if (cb.checked) {
+                    scmSiteFilter.clear();
+                } else {
+                    scmAllSites.forEach(site => scmSiteFilter.add(site));
+                }
             } else {
                 if (cb.checked) scmSiteFilter.add(val);
                 else scmSiteFilter.delete(val);
