@@ -277,6 +277,19 @@ function _cycleRenderCards(items, append) {
 
   if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
 
+  document.querySelectorAll('.cycle-scm-input').forEach(function (inp) {
+    var val = inp.value.trim();
+    if (!val) return;
+    var equipId = inp.dataset.equipId;
+    var badgeEl = document.querySelector('.cycle-scm-badge[data-equip-id="' + equipId + '"]');
+    if (!badgeEl) return;
+    if (_cycleScmValidationCache[val]) {
+      _cycleRenderScmBadge(_cycleScmValidationCache[val], badgeEl);
+    } else {
+      _cycleValidateScm(val, equipId, badgeEl);
+    }
+  });
+
   var cycleContent = document.getElementById('cycleContent');
   if (cycleContent && !cycleContent._scmListenerAdded) {
     cycleContent._scmListenerAdded = true;
