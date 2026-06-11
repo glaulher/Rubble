@@ -391,6 +391,7 @@ function buildScmCardHtml(s) {
             <h3 class="font-bold text-slate-900">${escapeHtml(s.scm)}</h3>
             <span class="text-slate-400">—</span>
             ${mercadoBadge ? `<span class="text-sm">${mercadoBadge}</span>` : '<span></span>'}
+            ${s.atividade ? `<span class="text-xs text-slate-500">${escapeHtml(s.atividade)}</span>` : ''}
             ${dataDisplay ? `<span class="text-xs text-slate-400">Criação: ${dataDisplay}</span>` : ''}
             ${dataExecDisplay ? `<span class="text-xs text-slate-400">Execução: ${dataExecDisplay}</span>` : ''}
             <div class="ml-auto flex items-center gap-2">
