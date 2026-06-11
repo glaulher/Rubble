@@ -145,14 +145,11 @@ function renderSegmentDropdown() {
             const val = cb.dataset.value;
             if (val === '__all__') {
                 segmentTodosChecked = cb.checked;
-                if (cb.checked) {
-                    scmSegmentFilter.clear();
-                } else {
-                    scmAllSegments.forEach(seg => scmSegmentFilter.add(seg));
-                }
+                scmSegmentFilter.clear();
             } else {
                 if (cb.checked) scmSegmentFilter.add(val);
                 else scmSegmentFilter.delete(val);
+                segmentTodosChecked = scmAllSegments.length > 0 && scmAllSegments.every(seg => scmSegmentFilter.has(seg));
             }
             renderSegmentDropdown();
             updateSegmentLabel();
@@ -184,7 +181,7 @@ function renderSegmentDropdown() {
 function updateSegmentLabel() {
     const label = document.getElementById('scmSegmentLabel');
     if (!label) return;
-    if (scmSegmentFilter.size === 0) {
+    if (segmentTodosChecked) {
         label.textContent = 'Todos';
         label.classList.remove('text-blue-600');
     } else {
@@ -233,14 +230,11 @@ function renderSiteDropdown() {
             const val = cb.dataset.value;
             if (val === '__all__') {
                 siteTodosChecked = cb.checked;
-                if (cb.checked) {
-                    scmSiteFilter.clear();
-                } else {
-                    scmAllSites.forEach(site => scmSiteFilter.add(site));
-                }
+                scmSiteFilter.clear();
             } else {
                 if (cb.checked) scmSiteFilter.add(val);
                 else scmSiteFilter.delete(val);
+                siteTodosChecked = scmAllSites.length > 0 && scmAllSites.every(site => scmSiteFilter.has(site));
             }
             renderSiteDropdown();
             updateSiteLabel();
@@ -271,7 +265,7 @@ function renderSiteDropdown() {
 function updateSiteLabel() {
     const label = document.getElementById('scmSiteLabel');
     if (!label) return;
-    if (scmSiteFilter.size === 0) {
+    if (siteTodosChecked) {
         label.textContent = 'Todos';
         label.classList.remove('text-blue-600');
     } else {
