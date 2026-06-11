@@ -64,6 +64,11 @@ function _cycleSetupEvents() {
         _cycleLoadList(val);
       }, 300);
     }
+    cycleInput.addEventListener('click', function () {
+      if (this.value.trim() !== '') {
+        this.value = '';
+      }
+    });
     cycleInput.addEventListener('input', _onCycleChange);
     cycleInput.addEventListener('change', _onCycleChange);
   }
