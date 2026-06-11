@@ -166,7 +166,7 @@ function renderSegmentDropdown() {
     </label>`;
 
     scmAllSegments.forEach(seg => {
-        const checked = scmSegmentFilter.has(seg) ? 'checked' : '';
+        const checked = scmSegmentFilter.size === 0 || scmSegmentFilter.has(seg) ? 'checked' : '';
         html += `<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">
             <input type="checkbox" class="segment-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="${escapeHtml(seg)}" ${checked}>
             <span class="text-sm text-slate-700">${escapeHtml(seg)}</span>
@@ -252,7 +252,7 @@ function renderSiteDropdown() {
     html += '</label>';
 
     scmAllSites.forEach(site => {
-        const checked = scmSiteFilter.has(site) ? 'checked' : '';
+        const checked = scmSiteFilter.size === 0 || scmSiteFilter.has(site) ? 'checked' : '';
         html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">';
         html += '<input type="checkbox" class="site-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="' + escapeHtml(site) + '" ' + checked + '>';
         html += '<span class="text-sm text-slate-700">' + escapeHtml(site) + '</span>';
