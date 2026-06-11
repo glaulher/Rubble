@@ -361,8 +361,6 @@ function buildScmCardHtml(s) {
     const statusClass = statusColors[s.status] || 'bg-slate-100 text-slate-700';
 
     const pvDisplay = s.numero_pv ? `PV ${escapeHtml(s.numero_pv)}` : '';
-    const equipDisplay = s.equipamento ? `${escapeHtml(s.equipamento)}` : '';
-    const capDisplay = s.capacidade ? `${s.capacidade} TR` : '';
     const totalDisplay = s.total_valor ? formatCurrency(s.total_valor) : '';
 
     let mercadoBadge = '';
@@ -392,7 +390,7 @@ function buildScmCardHtml(s) {
         <div class="flex items-center gap-2">
             <h3 class="font-bold text-slate-900">${escapeHtml(s.scm)}</h3>
             <span class="text-slate-400">—</span>
-            <span class="text-sm text-slate-600">${escapeHtml(s.localidade || s.cidade || '')}</span>
+            ${mercadoBadge ? `<span class="text-sm">${mercadoBadge}</span>` : '<span></span>'}
             ${dataDisplay ? `<span class="text-xs text-slate-400">Criação: ${dataDisplay}</span>` : ''}
             ${dataExecDisplay ? `<span class="text-xs text-slate-400">Execução: ${dataExecDisplay}</span>` : ''}
             <div class="ml-auto flex items-center gap-2">
@@ -404,9 +402,6 @@ function buildScmCardHtml(s) {
             </div>
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-            ${equipDisplay ? `<span>${equipDisplay}</span>` : ''}
-            ${capDisplay ? `<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-xl text-xs">${capDisplay}</span>` : ''}
-            ${mercadoBadge}
             ${segmentoBadge}
         </div>
         <div class="mt-3 flex gap-3">
