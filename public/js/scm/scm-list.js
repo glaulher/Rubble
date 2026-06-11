@@ -13,6 +13,8 @@ let scmSiteFilter = new Set();
 let scmStatusFilter = '';
 let scmAllSegments = [];
 let scmAllSites = [];
+let segmentTodosChecked = true;
+let siteTodosChecked = true;
 
 function initScm() {
     scmList = [];
@@ -28,6 +30,8 @@ function initScm() {
     scmStatusFilter = '';
     scmAllSegments = [];
     scmAllSites = [];
+    segmentTodosChecked = true;
+    siteTodosChecked = true;
 
     const content = document.getElementById('scmContent');
     const searchInput = document.getElementById('searchInputScm');
@@ -140,6 +144,7 @@ function renderSegmentDropdown() {
             if (!cb) return;
             const val = cb.dataset.value;
             if (val === '__all__') {
+                segmentTodosChecked = cb.checked;
                 if (cb.checked) {
                     scmSegmentFilter.clear();
                 } else {
@@ -159,14 +164,14 @@ function renderSegmentDropdown() {
 
     let html = '';
 
-    const segmentAllChecked = scmSegmentFilter.size === 0 ? 'checked' : '';
+    const segmentAllChecked = segmentTodosChecked ? 'checked' : '';
     html += `<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100">
         <input type="checkbox" class="segment-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="__all__" ${segmentAllChecked}>
         <span class="text-sm text-slate-700 font-medium">Todos</span>
     </label>`;
 
     scmAllSegments.forEach(seg => {
-        const checked = scmSegmentFilter.size === 0 || scmSegmentFilter.has(seg) ? 'checked' : '';
+        const checked = segmentTodosChecked || scmSegmentFilter.has(seg) ? 'checked' : '';
         html += `<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">
             <input type="checkbox" class="segment-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="${escapeHtml(seg)}" ${checked}>
             <span class="text-sm text-slate-700">${escapeHtml(seg)}</span>
@@ -227,6 +232,7 @@ function renderSiteDropdown() {
             if (!cb) return;
             const val = cb.dataset.value;
             if (val === '__all__') {
+                siteTodosChecked = cb.checked;
                 if (cb.checked) {
                     scmSiteFilter.clear();
                 } else {
@@ -245,14 +251,14 @@ function renderSiteDropdown() {
     }
 
     let html = '';
-    const siteAllChecked = scmSiteFilter.size === 0 ? 'checked' : '';
+    const siteAllChecked = siteTodosChecked ? 'checked' : '';
     html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100">';
     html += '<input type="checkbox" class="site-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="__all__" ' + siteAllChecked + '>';
     html += '<span class="text-sm text-slate-700 font-medium">Todos</span>';
     html += '</label>';
 
     scmAllSites.forEach(site => {
-        const checked = scmSiteFilter.size === 0 || scmSiteFilter.has(site) ? 'checked' : '';
+        const checked = siteTodosChecked || scmSiteFilter.has(site) ? 'checked' : '';
         html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">';
         html += '<input type="checkbox" class="site-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="' + escapeHtml(site) + '" ' + checked + '>';
         html += '<span class="text-sm text-slate-700">' + escapeHtml(site) + '</span>';
