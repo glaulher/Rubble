@@ -134,6 +134,25 @@ function renderSegmentDropdown() {
     const dropdown = document.getElementById('scmSegmentDropdown');
     if (!dropdown) return;
 
+    if (!dropdown.dataset.delegated) {
+        dropdown.addEventListener('change', (e) => {
+            const cb = e.target.closest('.segment-check');
+            if (!cb) return;
+            const val = cb.dataset.value;
+            if (val === '__all__') {
+                if (cb.checked) scmSegmentFilter.clear();
+            } else {
+                if (cb.checked) scmSegmentFilter.add(val);
+                else scmSegmentFilter.delete(val);
+            }
+            renderSegmentDropdown();
+            updateSegmentLabel();
+            resetScmState();
+            loadScm();
+        });
+        dropdown.dataset.delegated = '1';
+    }
+
     let html = '';
 
     const segmentAllChecked = scmSegmentFilter.size === 0 ? 'checked' : '';
@@ -151,27 +170,6 @@ function renderSegmentDropdown() {
     });
 
     dropdown.innerHTML = html;
-
-    dropdown.querySelectorAll('.segment-check').forEach(cb => {
-        cb.addEventListener('change', () => {
-            const val = cb.dataset.value;
-            if (val === '__all__') {
-                if (cb.checked) {
-                    scmSegmentFilter.clear();
-                }
-            } else {
-                if (cb.checked) {
-                    scmSegmentFilter.add(val);
-                } else {
-                    scmSegmentFilter.delete(val);
-                }
-            }
-            renderSegmentDropdown();
-            updateSegmentLabel();
-            resetScmState();
-            loadScm();
-        });
-    });
 }
 
 function updateSegmentLabel() {
@@ -219,6 +217,25 @@ function renderSiteDropdown() {
     const dropdown = document.getElementById('scmSiteDropdown');
     if (!dropdown) return;
 
+    if (!dropdown.dataset.delegated) {
+        dropdown.addEventListener('change', (e) => {
+            const cb = e.target.closest('.site-check');
+            if (!cb) return;
+            const val = cb.dataset.value;
+            if (val === '__all__') {
+                if (cb.checked) scmSiteFilter.clear();
+            } else {
+                if (cb.checked) scmSiteFilter.add(val);
+                else scmSiteFilter.delete(val);
+            }
+            renderSiteDropdown();
+            updateSiteLabel();
+            resetScmState();
+            loadScm();
+        });
+        dropdown.dataset.delegated = '1';
+    }
+
     let html = '';
     const siteAllChecked = scmSiteFilter.size === 0 ? 'checked' : '';
     html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100">';
@@ -235,27 +252,6 @@ function renderSiteDropdown() {
     });
 
     dropdown.innerHTML = html;
-
-    dropdown.querySelectorAll('.site-check').forEach(cb => {
-        cb.addEventListener('change', () => {
-            const val = cb.dataset.value;
-            if (val === '__all__') {
-                if (cb.checked) {
-                    scmSiteFilter.clear();
-                }
-            } else {
-                if (cb.checked) {
-                    scmSiteFilter.add(val);
-                } else {
-                    scmSiteFilter.delete(val);
-                }
-            }
-            renderSiteDropdown();
-            updateSiteLabel();
-            resetScmState();
-            loadScm();
-        });
-    });
 }
 
 function updateSiteLabel() {
