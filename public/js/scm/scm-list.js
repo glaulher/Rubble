@@ -136,8 +136,9 @@ function renderSegmentDropdown() {
 
     let html = '';
 
+    const segmentAllChecked = scmSegmentFilter.size === 0 ? 'checked' : '';
     html += `<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100">
-        <input type="checkbox" class="segment-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="__all__">
+        <input type="checkbox" class="segment-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="__all__" ${segmentAllChecked}>
         <span class="text-sm text-slate-700 font-medium">Todos</span>
     </label>`;
 
@@ -219,8 +220,9 @@ function renderSiteDropdown() {
     if (!dropdown) return;
 
     let html = '';
+    const siteAllChecked = scmSiteFilter.size === 0 ? 'checked' : '';
     html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100">';
-    html += '<input type="checkbox" class="site-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="__all__">';
+    html += '<input type="checkbox" class="site-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="__all__" ' + siteAllChecked + '>';
     html += '<span class="text-sm text-slate-700 font-medium">Todos</span>';
     html += '</label>';
 
