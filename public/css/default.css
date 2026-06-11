@@ -335,6 +335,23 @@ button:disabled { cursor: not-allowed; }
 .dark .pagination-btn:hover { background-color: #222838 !important; color: #e2e8f0 !important; }
 .dark .pagination-btn.active { background-color: #3b82f6 !important; color: white !important; }
 
+/* Search inputs — dark mode (ID specificity beats Tailwind CDN) */
+.dark #cycleSearch,
+.dark #searchInputPv {
+  background-color: #1a1f2e !important;
+  border-color: #3b4459 !important;
+  color: #e2e8f0 !important;
+}
+.dark #cycleSearch::placeholder,
+.dark #searchInputPv::placeholder {
+  color: #64748b !important;
+}
+.dark #cycleSearch:focus,
+.dark #searchInputPv:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.3) !important;
+}
+
 /* ============================================
    Login page — ALWAYS light mode, immune to dark
    Placed at EOF to win cascade (same specificity + !important = last wins)
