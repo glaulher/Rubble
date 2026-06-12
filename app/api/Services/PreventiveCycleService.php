@@ -13,10 +13,10 @@ class PreventiveCycleService
         $this->repository = $repository ?? new PreventiveCycleRepository();
     }
 
-    public function listAll(string $ciclo, int $limit = 20, int $offset = 0, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false): array
+    public function listAll(string $ciclo, int $limit = 20, int $offset = 0, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
     {
-        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao);
-        $total = $this->repository->count($ciclo, $search, $checkedOnly, $hasObservacao);
+        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados);
+        $total = $this->repository->count($ciclo, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados);
         return ['items' => $items, 'total' => $total];
     }
 
@@ -28,25 +28,25 @@ class PreventiveCycleService
         return $this->repository->saveBatch($ciclo, $items);
     }
 
-    public function summary(string $ciclo, bool $hasObservacao = false): array
+    public function summary(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
     {
-        return $this->repository->summary($ciclo, $hasObservacao);
+        return $this->repository->summary($ciclo, $hasObservacao, $noScm, $scmLancados);
     }
 
-    public function checkAll(string $ciclo, bool $hasObservacao = false): int
+    public function checkAll(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): int
     {
         if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ciclo)) {
             throw new \InvalidArgumentException('Formato de ciclo inválido (use YYYY-MM)');
         }
-        return $this->repository->checkAll($ciclo, $hasObservacao);
+        return $this->repository->checkAll($ciclo, $hasObservacao, $noScm, $scmLancados);
     }
 
-    public function uncheckAll(string $ciclo, bool $hasObservacao = false): int
+    public function uncheckAll(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): int
     {
         if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ciclo)) {
             throw new \InvalidArgumentException('Formato de ciclo inválido (use YYYY-MM)');
         }
-        return $this->repository->uncheckAll($ciclo, $hasObservacao);
+        return $this->repository->uncheckAll($ciclo, $hasObservacao, $noScm, $scmLancados);
     }
 
     public function validateScm(string $scmNumber): array

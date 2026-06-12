@@ -24,8 +24,10 @@ class PreventiveCycleController
             $search = trim($_GET['search'] ?? '');
             $checkedOnly = ($_GET['checked'] ?? '') === '1';
             $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
+            $noScm = ($_GET['no_scm'] ?? '') === '1';
+            $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
 
-            $data = $this->service->listAll($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao);
+            $data = $this->service->listAll($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados);
 
             Response::json([
                 'success' => true,
@@ -45,7 +47,9 @@ class PreventiveCycleController
         try {
             $ciclo = trim($_GET['ciclo'] ?? date('Y-m'));
             $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
-            $data = $this->service->summary($ciclo, $hasObservacao);
+            $noScm = ($_GET['no_scm'] ?? '') === '1';
+            $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
+            $data = $this->service->summary($ciclo, $hasObservacao, $noScm, $scmLancados);
             Response::success('', $data);
         } catch (Exception $e) {
             Response::serverError($e);
@@ -84,7 +88,9 @@ class PreventiveCycleController
             }
 
             $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
-            $count = $this->service->checkAll($ciclo, $hasObservacao);
+            $noScm = ($_GET['no_scm'] ?? '') === '1';
+            $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
+            $count = $this->service->checkAll($ciclo, $hasObservacao, $noScm, $scmLancados);
             Response::success('Todos marcados', ['checked' => $count]);
         } catch (Exception $e) {
             Response::serverError($e, 400);
@@ -101,7 +107,9 @@ class PreventiveCycleController
             }
 
             $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
-            $count = $this->service->uncheckAll($ciclo, $hasObservacao);
+            $noScm = ($_GET['no_scm'] ?? '') === '1';
+            $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
+            $count = $this->service->uncheckAll($ciclo, $hasObservacao, $noScm, $scmLancados);
             Response::success('Todos desmarcados', ['deleted' => $count]);
         } catch (Exception $e) {
             Response::serverError($e, 400);

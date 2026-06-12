@@ -12,6 +12,8 @@ var _cycleScmStatusColors = {
     'SCM enviado': 'bg-purple-100 text-purple-700',
 };
 var _cycleScmValidationCache = {};
+var _cycleSummaryData = null;
+var _cycleScmData = null;
 
 function _cycleGenerateOptions() {
   var opts = [];
@@ -31,6 +33,8 @@ function initPreventiveCycle() {
   _cycleDirtyChecks = new Map();
   _cycleFilter = 'all';
   _cycleScmValidationCache = {};
+  _cycleSummaryData = null;
+  _cycleScmData = null;
 
   var datalist = document.getElementById('cycleOptions');
   if (datalist) {
@@ -83,6 +87,8 @@ function _cycleSetupEvents() {
       var action = checked ? 'check-all' : 'uncheck-all';
       var url = '/app/api/index.php?route=preventive-cycle&action=' + action + '&ciclo=' + encodeURIComponent(_cycleCurrent);
       if (_cycleFilter === 'observacao') url += '&has_observacao=1';
+      if (_cycleFilter === 'sem_scm') url += '&no_scm=1';
+      if (_cycleFilter === 'lancados') url += '&scm_lancados=1';
 
       selectAll.disabled = true;
       apiFetch(url, { method: 'POST' })
@@ -125,6 +131,8 @@ function _cycleSetupEvents() {
       timer = setTimeout(function () {
         _cyclePage = 0;
         _cycleSelectedIds = new Set();
+        _cycleSummaryData = null;
+        _cycleScmData = null;
         var content = document.getElementById('cycleContent');
         if (content) content.innerHTML = '';
         _cycleLoadList(_cycleCurrent);
@@ -138,6 +146,8 @@ function _cycleSetupEvents() {
       _cycleFilter = this.value;
       _cyclePage = 0;
       _cycleSelectedIds = new Set();
+      _cycleSummaryData = null;
+      _cycleScmData = null;
       var content = document.getElementById('cycleContent');
       if (content) content.innerHTML = '';
       _cycleLoadList(_cycleCurrent);
@@ -190,6 +200,8 @@ function _cycleLoadList(ciclo, append) {
   if (search) url += '&search=' + encodeURIComponent(search);
   if (_cycleFilter === 'selecionados') url += '&checked=1';
   if (_cycleFilter === 'observacao') url += '&has_observacao=1';
+  if (_cycleFilter === 'sem_scm') url += '&no_scm=1';
+  if (_cycleFilter === 'lancados') url += '&scm_lancados=1';
 
   apiFetch(url)
     .then(function (r) { return r.json(); })
@@ -201,8 +213,6 @@ function _cycleLoadList(ciclo, append) {
       if (!append) {
         var content = document.getElementById('cycleContent');
         if (content) content.innerHTML = '';
-        var scmBadges = document.getElementById('cycleScmBadges');
-        if (scmBadges) scmBadges.innerHTML = '';
       }
 
       _cycleRenderCards(items, append);
@@ -362,20 +372,44 @@ function _cycleRenderScmBadge(data, badgeEl) {
     badgeEl.innerHTML = '<span class="inline-flex items-center ' + statusClass + ' text-xs px-2 py-0.5 rounded-full">' + _cycleEscape(status) + '</span>';
 }
 
+function _cycleUpdateBadge() {
+    var el = document.getElementById('cycleBadge');
+    if (!el) return;
+    if (!_cycleSummaryData && !_cycleScmData) return;
+    var parts = [];
+    if (_cycleSummaryData) {
+        var d = _cycleSummaryData;
+        var val = parseFloat(d.total_valor || 0);
+        parts.push('R$ ' + val.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' \u00b7 ' + (d.site_count || 0) + ' sites \u00b7 ' + (d.checked_count || 0) + ' m\u00e1q.');
+    }
+    if (_cycleScmData) {
+        var statuses = ['SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado'];
+        var scmParts = [];
+        statuses.forEach(function (status) {
+            var count = _cycleScmData[status] || 0;
+            if (count > 0) {
+                scmParts.push(_cycleEscape(status) + ' ' + count);
+            }
+        });
+        if (scmParts.length > 0) {
+            parts.push(scmParts.join(' \u00b7 '));
+        }
+    }
+    el.textContent = parts.join(' | ');
+}
+
 function _cycleFetchSummary(ciclo) {
   if (!ciclo) return;
   var url = '/app/api/index.php?route=preventive-cycle&action=summary&ciclo=' + encodeURIComponent(ciclo);
   if (_cycleFilter === 'observacao') url += '&has_observacao=1';
+  if (_cycleFilter === 'sem_scm') url += '&no_scm=1';
+  if (_cycleFilter === 'lancados') url += '&scm_lancados=1';
   apiFetch(url)
     .then(function (r) { return r.json(); })
     .then(function (result) {
       if (!result.success || !result.data) return;
-      var d = result.data;
-      var val = parseFloat(d.total_valor || 0);
-      var el = document.getElementById('cycleBadge');
-      if (el) {
-        el.textContent = 'R$ ' + val.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' \u00b7 ' + (d.site_count || 0) + ' sites \u00b7 ' + (d.checked_count || 0) + ' m\u00e1q.';
-      }
+      _cycleSummaryData = result.data;
+      _cycleUpdateBadge();
     })
     .catch(function () {});
 }
@@ -387,18 +421,8 @@ function _cycleFetchScmStatusCount(ciclo) {
         .then(function (r) { return r.json(); })
         .then(function (result) {
             if (!result.success || !result.data) return;
-            var el = document.getElementById('cycleScmBadges');
-            if (!el) return;
-            var html = '';
-            var statuses = ['SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado'];
-            statuses.forEach(function (status) {
-                var count = result.data[status] || 0;
-                if (count > 0) {
-                    var cls = _cycleScmStatusColors[status] || 'bg-slate-100 text-slate-700';
-                    html += '<span class="inline-flex items-center ' + cls + ' text-xs px-2 py-0.5 rounded-full font-semibold">' + _cycleEscape(status) + ' ' + count + '</span>';
-                }
-            });
-            el.innerHTML = html;
+            _cycleScmData = result.data;
+            _cycleUpdateBadge();
         })
         .catch(function () {});
 }

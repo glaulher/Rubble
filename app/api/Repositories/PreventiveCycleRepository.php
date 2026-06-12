@@ -15,7 +15,7 @@ class PreventiveCycleRepository extends BaseRepository
         END";
     }
 
-    public function listByCiclo(string $ciclo, int $limit, int $offset, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false): array
+    public function listByCiclo(string $ciclo, int $limit, int $offset, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
     {
         $where = 'e.equipamento != ? AND e.local != ?';
         $whereParams = ['N/A', 'Fornecimento'];
@@ -36,6 +36,20 @@ class PreventiveCycleRepository extends BaseRepository
             $where .= ' AND pci.observacao IS NOT NULL AND pci.observacao != ?';
             $whereParams[] = '';
             $whereTypes .= 's';
+        }
+
+        if ($noScm) {
+            $where .= ' AND pci.id IS NOT NULL AND (pci.scm_number IS NULL OR pci.scm_number = ?)';
+            $whereParams[] = '';
+            $whereTypes .= 's';
+        }
+
+        $scmJoin = '';
+        if ($scmLancados) {
+            $scmJoin = ' INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN (?, ?, ?)';
+            $scmStatuses = ['SCM aprovado', 'SCM verificado', 'SCM enviado'];
+            $whereParams = array_merge($scmStatuses, $whereParams);
+            $whereTypes = 'sss' . $whereTypes;
         }
 
         $valorCase = $this->valorCaseSql();
@@ -56,6 +70,7 @@ class PreventiveCycleRepository extends BaseRepository
                 FROM equipamentos e
                 LEFT JOIN preventive_cycle_items pci
                     ON pci.equipamento_id = e.id AND pci.ciclo = ?
+                {$scmJoin}
                 WHERE {$where}
                 ORDER BY e.local, e.equipamento
                 LIMIT ? OFFSET ?";
@@ -72,7 +87,7 @@ class PreventiveCycleRepository extends BaseRepository
         return $data;
     }
 
-    public function count(string $ciclo, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false): int
+    public function count(string $ciclo, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): int
     {
         $where = 'e.equipamento != ? AND e.local != ?';
         $whereParams = ['N/A', 'Fornecimento'];
@@ -95,10 +110,25 @@ class PreventiveCycleRepository extends BaseRepository
             $whereTypes .= 's';
         }
 
+        if ($noScm) {
+            $where .= ' AND pci.id IS NOT NULL AND (pci.scm_number IS NULL OR pci.scm_number = ?)';
+            $whereParams[] = '';
+            $whereTypes .= 's';
+        }
+
+        $scmJoin = '';
+        if ($scmLancados) {
+            $scmJoin = ' INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN (?, ?, ?)';
+            $scmStatuses = ['SCM aprovado', 'SCM verificado', 'SCM enviado'];
+            $whereParams = array_merge($scmStatuses, $whereParams);
+            $whereTypes = 'sss' . $whereTypes;
+        }
+
         $sql = "SELECT COUNT(*) AS total
                 FROM equipamentos e
                 LEFT JOIN preventive_cycle_items pci
                     ON pci.equipamento_id = e.id AND pci.ciclo = ?
+                {$scmJoin}
                 WHERE {$where}";
 
         $params = array_merge([$ciclo], $whereParams);
@@ -113,12 +143,23 @@ class PreventiveCycleRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
-    public function summary(string $ciclo, bool $hasObservacao = false): array
+    public function summary(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
     {
         $valorCase = $this->valorCaseSql();
         $obsFilter = $hasObservacao
             ? "AND pci.observacao IS NOT NULL AND pci.observacao != ''"
             : "AND (pci.observacao IS NULL OR pci.observacao = '')";
+        $scmFilter = $noScm
+            ? "AND (pci.scm_number IS NULL OR pci.scm_number = '')"
+            : "";
+        $params = [$ciclo];
+        $types = 's';
+        $scmJoin = '';
+        if ($scmLancados) {
+            $scmJoin = ' INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN (?, ?, ?)';
+            array_push($params, 'SCM aprovado', 'SCM verificado', 'SCM enviado');
+            $types .= 'sss';
+        }
         $sql = "SELECT
                     COUNT(pci.id) AS checked_count,
                     COALESCE(SUM({$valorCase}), 0) AS total_valor,
@@ -126,10 +167,12 @@ class PreventiveCycleRepository extends BaseRepository
                 FROM equipamentos e
                 INNER JOIN preventive_cycle_items pci
                     ON pci.equipamento_id = e.id AND pci.ciclo = ?
+                {$scmJoin}
                 WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'
-                {$obsFilter}";
+                {$obsFilter}
+                {$scmFilter}";
         $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param('s', $ciclo);
+        $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
@@ -141,7 +184,7 @@ class PreventiveCycleRepository extends BaseRepository
         ];
     }
 
-    public function checkAll(string $ciclo, bool $hasObservacao = false): int
+    public function checkAll(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): int
     {
         if ($hasObservacao) {
             $sql = "INSERT IGNORE INTO preventive_cycle_items (ciclo, equipamento_id)
@@ -151,6 +194,29 @@ class PreventiveCycleRepository extends BaseRepository
                         SELECT 1 FROM preventive_cycle_items pci
                         WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
                         AND pci.observacao IS NOT NULL AND pci.observacao != ''
+                    )";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param('ss', $ciclo, $ciclo);
+        } elseif ($noScm) {
+            $sql = "INSERT IGNORE INTO preventive_cycle_items (ciclo, equipamento_id)
+                    SELECT ?, e.id FROM equipamentos e
+                    WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'
+                    AND EXISTS (
+                        SELECT 1 FROM preventive_cycle_items pci
+                        WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
+                        AND (pci.scm_number IS NULL OR pci.scm_number = '')
+                    )";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param('ss', $ciclo, $ciclo);
+        } elseif ($scmLancados) {
+            $sql = "INSERT IGNORE INTO preventive_cycle_items (ciclo, equipamento_id)
+                    SELECT ?, e.id FROM equipamentos e
+                    WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'
+                    AND EXISTS (
+                        SELECT 1 FROM preventive_cycle_items pci
+                        INNER JOIN scm s ON s.scm = pci.scm_number
+                        WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
+                        AND s.status IN ('SCM aprovado', 'SCM verificado', 'SCM enviado')
                     )";
             $stmt = $this->conn->prepare($sql);
             $stmt->bind_param('ss', $ciclo, $ciclo);
@@ -167,11 +233,24 @@ class PreventiveCycleRepository extends BaseRepository
         return $count;
     }
 
-    public function uncheckAll(string $ciclo, bool $hasObservacao = false): int
+    public function uncheckAll(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): int
     {
         if ($hasObservacao) {
             $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?
                     AND observacao IS NOT NULL AND observacao != ''";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param('s', $ciclo);
+        } elseif ($noScm) {
+            $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?
+                    AND (scm_number IS NULL OR scm_number = '')";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bind_param('s', $ciclo);
+        } elseif ($scmLancados) {
+            $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?
+                    AND scm_number IN (
+                        SELECT s.scm FROM scm s
+                        WHERE s.status IN ('SCM aprovado', 'SCM verificado', 'SCM enviado')
+                    )";
             $stmt = $this->conn->prepare($sql);
             $stmt->bind_param('s', $ciclo);
         } else {
