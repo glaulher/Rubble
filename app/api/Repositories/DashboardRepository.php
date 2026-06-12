@@ -54,10 +54,10 @@ class DashboardRepository extends BaseRepository
     public function topMachines(): array
     {
         $result = $this->queryOrFail("
-            SELECT e.equipamento, e.local, COUNT(*) as total_registros
+            SELECT e.equipamento, e.local, e.localidade, COUNT(*) as total_registros
             FROM registros r
             JOIN equipamentos e ON e.id = r.equipamento_id AND e.equipamento != 'N/A'
-            GROUP BY e.id, e.equipamento, e.local
+            GROUP BY e.id, e.equipamento, e.local, e.localidade
             ORDER BY total_registros DESC
             LIMIT 10
         ");
