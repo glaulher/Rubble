@@ -36,6 +36,9 @@ function initPreventiveCycle() {
   _cycleSummaryData = null;
   _cycleScmData = null;
 
+  var sel = document.getElementById('selectAllCycle');
+  if (sel) sel.checked = false;
+
   var datalist = document.getElementById('cycleOptions');
   if (datalist) {
     _cycleGenerateOptions().forEach(function (c) {
@@ -63,6 +66,8 @@ function _cycleSetupEvents() {
         _cycleSelectedIds = new Set();
         _cycleDirtyChecks = new Map();
         _cycleScmValidationCache = {};
+        var sel = document.getElementById('selectAllCycle');
+        if (sel) sel.checked = false;
         var content = document.getElementById('cycleContent');
         if (content) content.innerHTML = '';
         _cycleLoadList(val);
@@ -125,6 +130,8 @@ function _cycleSetupEvents() {
         this.value = '';
         _cyclePage = 0;
         _cycleSelectedIds = new Set();
+        var sel = document.getElementById('selectAllCycle');
+        if (sel) sel.checked = false;
         var content = document.getElementById('cycleContent');
         if (content) content.innerHTML = '';
         _cycleLoadList(_cycleCurrent);
@@ -137,6 +144,8 @@ function _cycleSetupEvents() {
         _cycleSelectedIds = new Set();
         _cycleSummaryData = null;
         _cycleScmData = null;
+        var sel = document.getElementById('selectAllCycle');
+        if (sel) sel.checked = false;
         var content = document.getElementById('cycleContent');
         if (content) content.innerHTML = '';
         _cycleLoadList(_cycleCurrent);
@@ -152,6 +161,8 @@ function _cycleSetupEvents() {
       _cycleSelectedIds = new Set();
       _cycleSummaryData = null;
       _cycleScmData = null;
+      var sel = document.getElementById('selectAllCycle');
+      if (sel) sel.checked = false;
       var content = document.getElementById('cycleContent');
       if (content) content.innerHTML = '';
       _cycleLoadList(_cycleCurrent);
