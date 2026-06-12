@@ -108,7 +108,7 @@ class NotificationService
                     </tr>
                     <tr>
                         <td><b>Data</b></td>
-                        <td>{$e($ticket->date)}</td>
+                        <td>{$e($ticket->plannedDate)}</td>
                     </tr>
                     <tr>
                         <td><b>Equipe</b></td>

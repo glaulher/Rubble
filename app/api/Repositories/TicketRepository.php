@@ -218,7 +218,8 @@ class TicketRepository extends BaseRepository
             LEFT JOIN equipamentos e ON e.id = r.equipamento_id
             WHERE
                 LOWER(r.status) = 'planejado'
-                AND DATE(r.data) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+                AND r.data_planejada IS NOT NULL
+                AND DATE(r.data_planejada) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)
                 AND r.notificacao_enviada = 0
         ";
 

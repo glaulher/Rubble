@@ -205,6 +205,12 @@ async function loadHomeForm() {
       return;
     }
 
+    if (data.status === 'Planejado' && !data.data_planejada) {
+      showToast('Informe a data planejada', 'error');
+
+      return;
+    }
+
     if (!data.material) {
       showToast('Informe material', 'error');
 

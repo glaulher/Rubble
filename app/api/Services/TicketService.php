@@ -38,6 +38,9 @@ class TicketService
         if (isset($data['status'])) {
             $data['status'] = $this->normalizeStatus($data['status']);
         }
+        if (isset($data['status']) && $data['status'] === 'Planejado' && empty($data['data_planejada'])) {
+            throw new \RuntimeException('Data planejada é obrigatória para o status Planejado');
+        }
         try {
             return $this->ticketRepository->save($data);
         } catch (\mysqli_sql_exception $e) {
@@ -66,6 +69,9 @@ class TicketService
     {
         if (isset($data['status'])) {
             $data['status'] = $this->normalizeStatus($data['status']);
+        }
+        if (isset($data['status']) && $data['status'] === 'Planejado' && empty($data['data_planejada'])) {
+            throw new \RuntimeException('Data planejada é obrigatória para o status Planejado');
         }
         try {
             return $this->ticketRepository->update($data);
