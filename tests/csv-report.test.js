@@ -12,7 +12,7 @@ function sanitizeCSV(value) {
 
 function buildCsvLines(equipment, ticketsByEquipId, currentSearch) {
   var lines = [];
-  var header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_CONCLUSAO;MATERIAL;OBSERVACAO';
+  var header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_PLANEJADA;DATA_CONCLUSAO;MATERIAL;OBSERVACAO';
   lines.push(header);
 
   var searchTerm = (currentSearch || '').toLowerCase().trim();
@@ -38,7 +38,7 @@ function buildCsvLines(equipment, ticketsByEquipId, currentSearch) {
         sanitizeCSV(e.equipamento),
         sanitizeCSV(e.capacidade != null ? e.capacidade + ' TR' : ''),
         sanitizeCSV(e.searchStatus || ''),
-        '', '', '', '', '',
+        '', '', '', '', '', '',
       ].join(';'));
     } else {
       matchedTickets.forEach(function (t) {
@@ -50,6 +50,7 @@ function buildCsvLines(equipment, ticketsByEquipId, currentSearch) {
           sanitizeCSV(t.status || ''),
           sanitizeCSV(t.os || ''),
           sanitizeCSV(t.data || ''),
+          sanitizeCSV(t.data_planejada || ''),
           sanitizeCSV(t.data_concluido || ''),
           sanitizeCSV(t.material || ''),
           sanitizeCSV(t.obs || ''),
@@ -65,7 +66,7 @@ describe("CSV Report format", () => {
   it("generates header with all columns", () => {
     var csv = buildCsvLines([], {}, '');
     var header = csv.split('\n')[0];
-    expect(header).toBe('LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_CONCLUSAO;MATERIAL;OBSERVACAO');
+    expect(header).toBe('LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_PLANEJADA;DATA_CONCLUSAO;MATERIAL;OBSERVACAO');
   });
 
   it("generates one line per ticket when equipment has tickets", () => {
@@ -102,7 +103,7 @@ describe("CSV Report format", () => {
     var lines = csv.split('\n');
 
     expect(lines).toHaveLength(2);
-    expect(lines[1]).toBe('XYZ;Local X;WM 01;5 TR;;;;;;');
+    expect(lines[1]).toBe('XYZ;Local X;WM 01;5 TR;;;;;;;');
   });
 
   describe("filters by currentSearch", () => {

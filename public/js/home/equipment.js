@@ -270,7 +270,7 @@ async function generateCSVReport() {
 
     const ticketsByEquipId = ticketsResult.data || {};
 
-    const header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_CONCLUSAO;MATERIAL;OBSERVACAO';
+    const header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_PLANEJADA;DATA_CONCLUSAO;MATERIAL;OBSERVACAO';
 
     downloadCSV(
       currentSearch && currentSearch.trim() !== ''
@@ -301,7 +301,7 @@ async function generateCSVReport() {
               sanitizeCSV(e.equipamento),
               sanitizeCSV(e.capacidade != null ? e.capacidade + ' TR' : ''),
               sanitizeCSV(e.searchStatus || ''),
-              '', '', '', '', '',
+              '', '', '', '', '', '',
             ]);
           } else {
             matchedTickets.forEach(function (t) {
@@ -313,6 +313,7 @@ async function generateCSVReport() {
                 sanitizeCSV(t.status || ''),
                 sanitizeCSV(t.os || ''),
                 sanitizeCSV(t.data || ''),
+                sanitizeCSV(t.data_planejada || ''),
                 sanitizeCSV(t.data_concluido || ''),
                 sanitizeCSV(t.material || ''),
                 sanitizeCSV(t.obs || ''),
