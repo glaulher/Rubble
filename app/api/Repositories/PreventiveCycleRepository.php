@@ -184,84 +184,65 @@ class PreventiveCycleRepository extends BaseRepository
         ];
     }
 
-    public function checkAll(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): int
+    public function listIdsByCiclo(string $ciclo, string $search = '', bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
     {
-        if ($hasObservacao) {
-            $sql = "INSERT IGNORE INTO preventive_cycle_items (ciclo, equipamento_id)
-                    SELECT ?, e.id FROM equipamentos e
-                    WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'
-                    AND EXISTS (
-                        SELECT 1 FROM preventive_cycle_items pci
-                        WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
-                        AND pci.observacao IS NOT NULL AND pci.observacao != ''
-                    )";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param('ss', $ciclo, $ciclo);
-        } elseif ($noScm) {
-            $sql = "INSERT IGNORE INTO preventive_cycle_items (ciclo, equipamento_id)
-                    SELECT ?, e.id FROM equipamentos e
-                    WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'
-                    AND EXISTS (
-                        SELECT 1 FROM preventive_cycle_items pci
-                        WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
-                        AND (pci.scm_number IS NULL OR pci.scm_number = '')
-                    )";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param('ss', $ciclo, $ciclo);
-        } elseif ($scmLancados) {
-            $sql = "INSERT IGNORE INTO preventive_cycle_items (ciclo, equipamento_id)
-                    SELECT ?, e.id FROM equipamentos e
-                    WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'
-                    AND EXISTS (
-                        SELECT 1 FROM preventive_cycle_items pci
-                        INNER JOIN scm s ON s.scm = pci.scm_number
-                        WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
-                        AND s.status IN ('SCM aprovado', 'SCM verificado', 'SCM enviado')
-                    )";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param('ss', $ciclo, $ciclo);
-        } else {
-            $sql = "INSERT IGNORE INTO preventive_cycle_items (ciclo, equipamento_id)
-                    SELECT ?, e.id FROM equipamentos e
-                    WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param('s', $ciclo);
-        }
-        $stmt->execute();
-        $count = $stmt->affected_rows;
-        $stmt->close();
-        return $count;
-    }
+        $where = 'e.equipamento != ? AND e.local != ?';
+        $whereParams = ['N/A', 'Fornecimento'];
+        $whereTypes = 'ss';
 
-    public function uncheckAll(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): int
-    {
-        if ($hasObservacao) {
-            $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?
-                    AND observacao IS NOT NULL AND observacao != ''";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param('s', $ciclo);
-        } elseif ($noScm) {
-            $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?
-                    AND (scm_number IS NULL OR scm_number = '')";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param('s', $ciclo);
-        } elseif ($scmLancados) {
-            $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?
-                    AND scm_number IN (
-                        SELECT s.scm FROM scm s
-                        WHERE s.status IN ('SCM aprovado', 'SCM verificado', 'SCM enviado')
-                    )";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param('s', $ciclo);
-        } else {
-            $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ?";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bind_param('s', $ciclo);
+        if ($search !== '') {
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR e.local_scm LIKE ?)';
+            $likeSearch = '%' . $search . '%';
+            $whereParams = array_merge($whereParams, [$likeSearch, $likeSearch, $likeSearch, $likeSearch]);
+            $whereTypes .= 'ssss';
         }
+
+        if ($hasObservacao) {
+            $where .= ' AND EXISTS (
+                SELECT 1 FROM preventive_cycle_items pci
+                WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
+                AND pci.observacao IS NOT NULL AND pci.observacao != ?
+            )';
+            $whereParams[] = $ciclo;
+            $whereParams[] = '';
+            $whereTypes .= 'ss';
+        }
+
+        if ($noScm) {
+            $where .= ' AND EXISTS (
+                SELECT 1 FROM preventive_cycle_items pci
+                WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
+                AND (pci.scm_number IS NULL OR pci.scm_number = ?)
+            )';
+            $whereParams[] = $ciclo;
+            $whereParams[] = '';
+            $whereTypes .= 'ss';
+        }
+
+        if ($scmLancados) {
+            $where .= ' AND EXISTS (
+                SELECT 1 FROM preventive_cycle_items pci
+                INNER JOIN scm s ON s.scm = pci.scm_number
+                WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
+                AND s.status IN (?, ?, ?)
+            )';
+            $whereParams[] = $ciclo;
+            $whereParams = array_merge($whereParams, ['SCM aprovado', 'SCM verificado', 'SCM enviado']);
+            $whereTypes .= 'ssss';
+        }
+
+        $sql = "SELECT e.id FROM equipamentos e WHERE {$where} ORDER BY e.local, e.equipamento";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bind_param($whereTypes, ...$whereParams);
         $stmt->execute();
-        $count = $stmt->affected_rows;
+        $result = $stmt->get_result();
+        $ids = [];
+        while ($row = $result->fetch_assoc()) {
+            $ids[] = (int) $row['id'];
+        }
         $stmt->close();
-        return $count;
+        return $ids;
     }
 
     public function saveBatch(string $ciclo, array $items): array

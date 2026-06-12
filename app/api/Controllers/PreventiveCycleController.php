@@ -78,7 +78,7 @@ class PreventiveCycleController
         }
     }
 
-    public function checkAll(): void
+    public function listIds(): void
     {
         try {
             $ciclo = trim($_GET['ciclo'] ?? '');
@@ -87,30 +87,12 @@ class PreventiveCycleController
                 return;
             }
 
+            $search = trim($_GET['search'] ?? '');
             $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
             $noScm = ($_GET['no_scm'] ?? '') === '1';
             $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
-            $count = $this->service->checkAll($ciclo, $hasObservacao, $noScm, $scmLancados);
-            Response::success('Todos marcados', ['checked' => $count]);
-        } catch (Exception $e) {
-            Response::serverError($e, 400);
-        }
-    }
-
-    public function uncheckAll(): void
-    {
-        try {
-            $ciclo = trim($_GET['ciclo'] ?? '');
-            if ($ciclo === '') {
-                Response::validation('ciclo é obrigatório');
-                return;
-            }
-
-            $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
-            $noScm = ($_GET['no_scm'] ?? '') === '1';
-            $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
-            $count = $this->service->uncheckAll($ciclo, $hasObservacao, $noScm, $scmLancados);
-            Response::success('Todos desmarcados', ['deleted' => $count]);
+            $ids = $this->service->listIds($ciclo, $search, $hasObservacao, $noScm, $scmLancados);
+            Response::success('', ['ids' => $ids]);
         } catch (Exception $e) {
             Response::serverError($e, 400);
         }

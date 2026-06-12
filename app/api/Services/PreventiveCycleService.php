@@ -33,20 +33,12 @@ class PreventiveCycleService
         return $this->repository->summary($ciclo, $hasObservacao, $noScm, $scmLancados);
     }
 
-    public function checkAll(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): int
+    public function listIds(string $ciclo, string $search = '', bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
     {
         if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ciclo)) {
             throw new \InvalidArgumentException('Formato de ciclo inválido (use YYYY-MM)');
         }
-        return $this->repository->checkAll($ciclo, $hasObservacao, $noScm, $scmLancados);
-    }
-
-    public function uncheckAll(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): int
-    {
-        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ciclo)) {
-            throw new \InvalidArgumentException('Formato de ciclo inválido (use YYYY-MM)');
-        }
-        return $this->repository->uncheckAll($ciclo, $hasObservacao, $noScm, $scmLancados);
+        return $this->repository->listIdsByCiclo($ciclo, $search, $hasObservacao, $noScm, $scmLancados);
     }
 
     public function validateScm(string $scmNumber): array

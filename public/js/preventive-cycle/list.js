@@ -84,29 +84,33 @@ function _cycleSetupEvents() {
   if (selectAll) {
     selectAll.addEventListener('change', function () {
       var checked = this.checked;
-      var action = checked ? 'check-all' : 'uncheck-all';
-      var url = '/app/api/index.php?route=preventive-cycle&action=' + action + '&ciclo=' + encodeURIComponent(_cycleCurrent);
+      selectAll.disabled = true;
+
+      var url = '/app/api/index.php?route=preventive-cycle&action=list-ids&ciclo=' + encodeURIComponent(_cycleCurrent);
       if (_cycleFilter === 'observacao') url += '&has_observacao=1';
       if (_cycleFilter === 'sem_scm') url += '&no_scm=1';
       if (_cycleFilter === 'lancados') url += '&scm_lancados=1';
 
-      selectAll.disabled = true;
-      apiFetch(url, { method: 'POST' })
+      apiFetch(url)
         .then(function (r) { return r.json(); })
         .then(function (result) {
-          if (result.success) {
-            _cyclePage = 0;
-            _cycleSelectedIds = new Set();
-            _cycleDirtyChecks = new Map();
-            selectAll.checked = checked;
-            _cycleLoadList(_cycleCurrent);
-          } else {
-            if (typeof showToast === 'function') showToast(result.message || 'Erro ao marcar/desmarcar', 'error');
-          }
+          if (!result.success || !result.data) return;
+          var ids = result.data.ids || [];
+
+          document.querySelectorAll('.cycle-checkbox').forEach(function (cb) {
+            cb.checked = checked;
+          });
+
+          _cycleSelectedIds = new Set();
+          _cycleDirtyChecks = new Map();
+          ids.forEach(function (id) {
+            if (checked) {
+              _cycleSelectedIds.add(id);
+            }
+            _cycleDirtyChecks.set(id, checked);
+          });
         })
-        .catch(function (e) {
-          if (typeof showToast === 'function') showToast('Erro ao marcar/desmarcar', 'error');
-        })
+        .catch(function () {})
         .finally(function () {
           selectAll.disabled = false;
         });
