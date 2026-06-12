@@ -18,14 +18,18 @@ function buildCsvLines(equipment, ticketsByEquipId, currentSearch) {
   var searchTerm = (currentSearch || '').toLowerCase().trim();
   var searchNorm = searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
+  var statusKeywords = ['pendente', 'conclu', 'planej', 'andamento', 'clean'];
+  var isStatusSearch = searchTerm && statusKeywords.some(function (kw) { return searchTerm.includes(kw); });
+
   equipment.forEach(function (e) {
     var allTickets = ticketsByEquipId[String(e.id)] || [];
 
-    var matchedTickets = allTickets.filter(function (t) {
-      if (!searchTerm) return true;
-      var statusNorm = (t.status || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      return statusNorm.indexOf(searchNorm) >= 0;
-    });
+    var matchedTickets = isStatusSearch
+      ? allTickets.filter(function (t) {
+          var statusNorm = (t.status || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          return statusNorm.indexOf(searchNorm) >= 0;
+        })
+      : allTickets;
 
     if (matchedTickets.length === 0) {
       lines.push([
@@ -180,6 +184,27 @@ describe("CSV Report format", () => {
       expect(lines).toHaveLength(3);
       expect(lines[1]).toContain('OS-001');
       expect(lines[2]).toContain('OS-002');
+    });
+
+    it("shows all tickets when search is a site name (not a status keyword)", () => {
+      var equipment = [
+        { id: 1, local: 'RSD', localidade: 'Resende', equipamento: 'SELF 01', capacidade: 10, searchStatus: '' },
+      ];
+      var tickets = {
+        '1': [
+          { os: 'OS-001', status: 'concluido', data: '2026-01-15' },
+          { os: 'OS-002', status: 'pendente', data: '2026-02-10' },
+        ],
+      };
+
+      var csv = buildCsvLines(equipment, tickets, 'RSD');
+      var lines = csv.split('\n');
+
+      expect(lines).toHaveLength(3);
+      expect(lines[1]).toContain('OS-001');
+      expect(lines[2]).toContain('OS-002');
+      expect(lines[1]).toContain('concluido');
+      expect(lines[2]).toContain('pendente');
     });
 
     it("shows single line with empty fields when no tickets match the filter", () => {

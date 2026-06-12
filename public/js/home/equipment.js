@@ -281,14 +281,18 @@ async function generateCSVReport() {
         var searchTerm = (currentSearch || '').toLowerCase().trim();
         var searchNorm = searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-        list.forEach((e) => {
+        var statusKeywords = ['pendente', 'conclu', 'planej', 'andamento', 'clean'];
+        var isStatusSearch = searchTerm && statusKeywords.some(function (kw) { return searchTerm.includes(kw); });
+
+        list.forEach(function (e) {
           var allTickets = ticketsByEquipId[String(e.id)] || [];
 
-          var matchedTickets = allTickets.filter(function (t) {
-            if (!searchTerm) return true;
-            var statusNorm = (t.status || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            return statusNorm.indexOf(searchNorm) >= 0;
-          });
+          var matchedTickets = isStatusSearch
+            ? allTickets.filter(function (t) {
+                var statusNorm = (t.status || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                return statusNorm.indexOf(searchNorm) >= 0;
+              })
+            : allTickets;
 
           if (matchedTickets.length === 0) {
             addRow([
