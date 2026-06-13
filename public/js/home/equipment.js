@@ -261,7 +261,7 @@ async function generateCSVReport() {
       total = result.total || chunk.length;
       allEquipment.push.apply(allEquipment, chunk);
       offset += CSV_CHUNK;
-      if (chunk.length < CSV_CHUNK) break;
+      if (chunk.length === 0 || offset >= total) break;
     }
 
     if (allEquipment.length === 0) {
