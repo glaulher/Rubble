@@ -102,6 +102,7 @@ class PvController
                     'ID obrigatório',
                     400
                 );
+                return;
             }
 
             $data =
@@ -114,6 +115,7 @@ class PvController
                 Response::notFound(
                     'PV não encontrada'
                 );
+                return;
             }
 
             Response::success(
@@ -214,16 +216,19 @@ class PvController
 
             if (!empty($data['ciclo']) && !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $data['ciclo'])) {
                 Response::error('Formato de ciclo inválido. Use AAAA-MM (ex: 2026-06)', 400);
+                return;
             }
 
             if (empty($data['os']) || trim($data['os']) === '') {
                 Response::error('Informe pelo menos uma OS', 400);
+                return;
             }
 
             $osList = array_map('trim', explode(',', $data['os']));
             foreach ($osList as $os) {
                 if ($os !== '' && !preg_match('/^\d{4,7}$/', $os)) {
                     Response::error("A OS '$os' tem formato inválido. Use apenas números (4 a 7 dígitos)", 400);
+                    return;
                 }
             }
 
@@ -361,6 +366,7 @@ class PvController
                     'lpu_origem e numero_item são obrigatórios',
                     400
                 );
+                return;
             }
 
             $result =
@@ -374,6 +380,7 @@ class PvController
                 Response::notFound(
                     'Item não encontrado na tabela informada'
                 );
+                return;
             }
 
             Response::success(
@@ -401,6 +408,7 @@ class PvController
 
             if (empty($lpuOrigin)) {
                 Response::error('lpu_origem é obrigatório', 400);
+                return;
             }
 
             if (strlen($query) < 2) {
@@ -485,6 +493,7 @@ class PvController
 
             if (!in_array($type, ['os', 'laudo', 'orcamento'], true)) {
                 Response::error('Tipo inválido. Use "os", "laudo" ou "orcamento"', 400);
+                return;
             }
 
             if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
@@ -496,6 +505,7 @@ class PvController
                 };
                 error_log("[UPLOAD] Falha no upload: error_code={$errorCode}, type={$type}, _FILES=" . json_encode($_FILES['file'] ?? []));
                 Response::error($errorMsg, 400);
+                return;
             }
 
             $file = $_FILES['file'];
@@ -503,11 +513,13 @@ class PvController
 
             if ($ext !== 'pdf') {
                 Response::error('Apenas arquivos PDF são permitidos', 400);
+                return;
             }
 
             $maxSize = 10 * 1024 * 1024;
             if ($file['size'] > $maxSize) {
                 Response::error('Arquivo excede o tamanho máximo de 10MB', 400);
+                return;
             }
 
             $tmpPath = $file['tmp_name'];
@@ -516,6 +528,7 @@ class PvController
             fclose($handle);
             if ($firstBytes !== '%PDF-') {
                 Response::error('Arquivo não é um PDF válido', 400);
+                return;
             }
 
             $dir = $type === 'os'
@@ -530,6 +543,7 @@ class PvController
             if (!is_writable($dir)) {
                 error_log("[UPLOAD] Diretório NÃO gravável: {$dir}, perms=" . substr(sprintf('%o', fileperms($dir)), -4));
                 Response::error('Diretório de destino sem permissão de escrita', 500);
+                return;
             }
 
             $osNumber = preg_replace('/[^0-9]/', '', $_POST['os_number'] ?? '');
@@ -546,6 +560,7 @@ class PvController
                 $errNo = error_get_last();
                 error_log("[UPLOAD] move_uploaded_file FALHOU: tmp={$tmpPath}, dest={$destPath}, error=" . ($errNo['message'] ?? 'unknown'));
                 Response::error('Falha ao salvar arquivo no servidor', 500);
+                return;
             }
 
             error_log("[UPLOAD] Sucesso: {$destPath}, size={$file['size']}");

@@ -79,16 +79,22 @@ async function loadPvForm() {
 
   setupItemRowDelegation();
 
+  if (form._uiController) {
+    form._uiController.abort();
+  }
+  form._uiController = new AbortController();
+  var sig = form._uiController.signal;
+
   document.querySelector('[data-action="upload-os"]')
-    ?.addEventListener('click', uploadOsFile);
+    ?.addEventListener('click', uploadOsFile, { signal: sig });
   document.querySelector('[data-action="add-item"]')
-    ?.addEventListener('click', addItemRow);
+    ?.addEventListener('click', addItemRow, { signal: sig });
   document.querySelector('[data-action="save-filter"]')
-    ?.addEventListener('click', saveFilterData);
+    ?.addEventListener('click', saveFilterData, { signal: sig });
   document.querySelector('[data-action="close-filter-modal"]')
-    ?.addEventListener('click', closeFilterModal);
+    ?.addEventListener('click', closeFilterModal, { signal: sig });
   document.querySelectorAll('[data-action="calculate-filter"]').forEach(function (el) {
-    el.addEventListener('input', calculateFilter);
+    el.addEventListener('input', calculateFilter, { signal: sig });
   });
 
   if (form._submitController) {

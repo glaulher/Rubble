@@ -31,11 +31,11 @@
                 <!-- OS -->
                 <div>
 
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label for="osNumero" class="block text-sm font-medium text-slate-700 mb-2">
                         Número da OS
                     </label>
 
-                    <input type="text" name="os"
+                    <input type="text" name="os" id="osNumero"
                         class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
 
                 </div>
@@ -43,11 +43,11 @@
                 <!-- DATA -->
                 <div>
 
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label for="osData" class="block text-sm font-medium text-slate-700 mb-2">
                         Data
                     </label>
 
-                    <input type="date" name="data"
+                    <input type="date" name="data" id="osData"
                         class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
 
                 </div>
@@ -55,11 +55,11 @@
                 <!-- EQUIPE -->
                 <div>
 
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label for="osEquipe" class="block text-sm font-medium text-slate-700 mb-2">
                         Equipe
                     </label>
 
-                    <input type="text" name="equipe"
+                    <input type="text" name="equipe" id="osEquipe"
                         class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
 
                 </div>
@@ -67,11 +67,11 @@
                 <!-- STATUS -->
                 <div>
 
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label for="osStatus" class="block text-sm font-medium text-slate-700 mb-2">
                         Status
                     </label>
 
-                    <select name="status"
+                    <select name="status" id="osStatus"
                         class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
 
                         <option value=""></option>
@@ -107,11 +107,11 @@
 
                 <div>
 
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label for="osMaterial" class="block text-sm font-medium text-slate-700 mb-2">
                         Material
                     </label>
 
-                    <select name="material"
+                    <select name="material" id="osMaterial"
                         class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
 
                         <option value=""></option>
@@ -138,7 +138,7 @@
 
                 <div id="completionDateGroup" style="display:none;">
 
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label for="completionDateInput" class="block text-sm font-medium text-slate-700 mb-2">
                         Data de Conclusão
                     </label>
 
@@ -148,7 +148,7 @@
                 </div>
 
                 <div id="plannedDateGroup" style="display:none;">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                    <label for="plannedDateInput" class="block text-sm font-medium text-slate-700 mb-2">
                         Data Planejada
                     </label>
                     <input type="date" name="data_planejada" id="plannedDateInput" disabled
@@ -162,11 +162,11 @@
             <!-- OBS -->
             <div>
 
-                <label class="block text-sm font-medium text-slate-700 mb-2">
+                <label for="osObservacao" class="block text-sm font-medium text-slate-700 mb-2">
                     Observações
                 </label>
 
-                <textarea name="obs" rows="5"
+                <textarea name="obs" id="osObservacao" rows="5"
                     class="w-full rounded-xl border border-slate-300 px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
 
             </div>

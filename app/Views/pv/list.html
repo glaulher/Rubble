@@ -51,6 +51,7 @@
         list="statusFilterList"
         autocomplete="off"
         placeholder="Todos os status"
+        aria-label="Filtrar por status"
         class="rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-100 bg-white"
       />
       <datalist id="statusFilterList"></datalist>
@@ -58,6 +59,7 @@
         type="text"
         id="searchInputPv"
         placeholder="Buscar por nº PV, local, ral, scm ..."
+        aria-label="Buscar por número PV, local, RAL ou SCM"
         class="flex-1 rounded-xl border border-slate-300 dark:border-[#3b4459] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-100 bg-white dark:bg-[#1a1f2e] dark:text-slate-200 dark:placeholder-slate-400"
       />
       <input
@@ -66,6 +68,7 @@
         list="cicloFilterList"
         autocomplete="off"
         placeholder="Todos os ciclos"
+        aria-label="Filtrar por ciclo"
         class="rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-100 bg-white"
       />
       <datalist id="cicloFilterList"></datalist>
@@ -114,6 +117,7 @@
                 <input
                   type="checkbox"
                   id="selectAllPv"
+                  aria-label="Selecionar todas PVs"
                   class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
               </th>
@@ -368,7 +372,7 @@
           </label>
         </div>
         <div id="pvEmailLocalGroup" class="hidden mb-4">
-          <label class="block text-sm font-medium text-slate-700 mb-2">
+          <label for="pvEmailLocal" class="block text-sm font-medium text-slate-700 mb-2">
             Local
           </label>
           <input

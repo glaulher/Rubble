@@ -124,7 +124,7 @@ function logout() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'logout' }),
-  }).catch(() => {});
+  }).catch(function (e) { console.warn('[auth] logout fetch error:', e); });
 
   window.location.hash = '#/login';
 }
@@ -230,10 +230,12 @@ function initLogin() {
 
     if (TURNSTILE_SITE_KEY) {
       loadTurnstile();
-      var checkTurnstile = setInterval(function () {
+      if (window._checkTurnstileInterval) clearInterval(window._checkTurnstileInterval);
+      window._checkTurnstileInterval = setInterval(function () {
         if (typeof turnstile !== 'undefined') {
           initTurnstileWidget();
-          clearInterval(checkTurnstile);
+          clearInterval(window._checkTurnstileInterval);
+          window._checkTurnstileInterval = null;
         }
       }, 200);
     }

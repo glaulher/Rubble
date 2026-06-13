@@ -229,20 +229,9 @@ function syncPvTable(newItems) {
 
   empty.classList.add('hidden');
 
-  const existingRows = {};
-  tbody.querySelectorAll('tr[data-pv-id]').forEach((tr) => {
-    existingRows[tr.dataset.pvId] = tr;
-  });
-
   const fragment = document.createDocumentFragment();
   newItems.forEach((pv) => {
-    const existing = existingRows[pv.id];
-    if (existing) {
-      existing.innerHTML = buildPvRowHtml(pv);
-      fragment.appendChild(existing);
-    } else {
-      fragment.appendChild(createPvRow(pv));
-    }
+    fragment.appendChild(createPvRow(pv));
   });
 
   tbody.innerHTML = '';

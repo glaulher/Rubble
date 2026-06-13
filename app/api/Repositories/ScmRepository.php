@@ -147,29 +147,40 @@ class ScmRepository extends BaseRepository
 
     public function upsertItems(int $scmId, array $items): bool
     {
-        $sqlDelete = "DELETE FROM scm_items WHERE scm_id = ?";
-        $stmtDelete = $this->safePrepare($sqlDelete);
-        $stmtDelete->bind_param('i', $scmId);
-        $stmtDelete->execute();
+        $this->beginTransaction();
+        try {
+            $sqlDelete = "DELETE FROM scm_items WHERE scm_id = ?";
+            $stmtDelete = $this->safePrepare($sqlDelete);
+            $stmtDelete->bind_param('i', $scmId);
+            $stmtDelete->execute();
 
-        if (empty($items)) return true;
-
-        $sql = "INSERT INTO scm_items (scm_id, servico, unidade, valor, qtde_execucao, subtotal_execucao)
-                VALUES (?, ?, ?, ?, ?, ?)";
-        $stmt = $this->safePrepare($sql);
-
-        foreach ($items as $item) {
-            $servico = $item['servico'];
-            $unidade = $item['unidade'];
-            $valor = $item['valor'];
-            $qtde = $item['qtde_execucao'];
-            $subtotal = $item['subtotal_execucao'];
-            $stmt->bind_param('issddd', $scmId, $servico, $unidade, $valor, $qtde, $subtotal);
-            if (!$stmt->execute()) {
-                return false;
+            if (empty($items)) {
+                $this->commit();
+                return true;
             }
+
+            $sql = "INSERT INTO scm_items (scm_id, servico, unidade, valor, qtde_execucao, subtotal_execucao)
+                    VALUES (?, ?, ?, ?, ?, ?)";
+            $stmt = $this->safePrepare($sql);
+
+            foreach ($items as $item) {
+                $servico = $item['servico'];
+                $unidade = $item['unidade'];
+                $valor = $item['valor'];
+                $qtde = $item['qtde_execucao'];
+                $subtotal = $item['subtotal_execucao'];
+                $stmt->bind_param('issddd', $scmId, $servico, $unidade, $valor, $qtde, $subtotal);
+                if (!$stmt->execute()) {
+                    $this->rollback();
+                    return false;
+                }
+            }
+            $this->commit();
+            return true;
+        } catch (\Throwable $e) {
+            $this->rollback();
+            throw $e;
         }
-        return true;
     }
 
     public function resolveEquipmentId(string $site): ?int

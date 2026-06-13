@@ -22,6 +22,7 @@ class AuthController
 
             if (empty($username) || empty($password)) {
                 Response::validation('Usuário e senha são obrigatórios');
+                return;
             }
 
             if (Env::get('APP_DEBUG', 'false') === 'true') {
@@ -33,22 +34,26 @@ class AuthController
 
             if (RateLimiter::isLimited($ip, 'auth:login', 5, 300)) {
                 Response::error('Muitas tentativas. Tente novamente em 5 minutos.', 429);
+                return;
             }
 
             if (Env::get('APP_DEBUG', 'false') !== 'true') {
                 $secretKey = Env::get('TURNSTILE_SECRET_KEY', '');
                 if (empty($secretKey)) {
                     Response::error('Configuração de segurança incompleta', 500);
+                    return;
                 }
                 $turnstileToken = $data['turnstile_token'] ?? '';
                 if (empty($turnstileToken) || !TurnstileHelper::verify($turnstileToken, $secretKey)) {
                     Response::error('Falha na verificação de segurança', 403);
+                    return;
                 }
             }
 
             $jwtSecret = Env::get('JWT_SECRET', '');
             if (empty($jwtSecret)) {
                 Response::error('Erro interno do servidor', 500);
+                return;
             }
 
             $result = AuthService::login($username, $password, $jwtSecret);
@@ -57,6 +62,7 @@ class AuthController
                 RateLimiter::hit($ip, 'auth:login');
                 sleep(1);
                 Response::unauthorized('Usuário ou senha inválidos');
+                return;
             }
 
             Response::success('Login realizado com sucesso', $result);
@@ -71,21 +77,25 @@ class AuthController
         $authHeader = AuthService::getAuthHeader();
         if (empty($authHeader)) {
             Response::unauthorized('Token não fornecido');
+            return;
         }
 
         $parts = explode(' ', $authHeader);
         if (count($parts) !== 2 || $parts[0] !== 'Bearer') {
             Response::unauthorized('Formato de token inválido');
+            return;
         }
 
         $jwtSecret = Env::get('JWT_SECRET', '');
         if (empty($jwtSecret)) {
             Response::error('Erro interno do servidor', 500);
+            return;
         }
         $user = AuthService::validateToken($parts[1], $jwtSecret);
 
         if (!$user) {
             Response::unauthorized('Token inválido ou expirado');
+            return;
         }
 
         Response::success('Usuário autenticado', [

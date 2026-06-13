@@ -98,12 +98,13 @@ function initPriceList() {
   loadPrices();
 
   document.querySelector('[data-action="navigate-price-form"]')
-    ?.addEventListener('click', () => {
-      window.location.hash = '#/equipment-prices-form';
-    });
+    ?.removeEventListener('click', navigatePriceFormHandler);
+  document.querySelector('[data-action="navigate-price-form"]')
+    ?.addEventListener('click', navigatePriceFormHandler);
 
   var tbody = document.getElementById('priceTableBody');
-  if (tbody) {
+  if (tbody && !tbody._listenerAttached) {
+    tbody._listenerAttached = true;
     tbody.addEventListener('click', function(e) {
       var btn = e.target.closest('[data-action]');
       if (!btn) return;
@@ -114,3 +115,5 @@ function initPriceList() {
     });
   }
 }
+
+function navigatePriceFormHandler() { window.location.hash = '#/equipment-prices-form'; }

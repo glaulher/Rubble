@@ -6,7 +6,12 @@ function debounce(fn, delay) {
   };
 }
 
+var _infiniteObservers = {};
+
 function createInfiniteScroll(sentinelId, loadFn) {
+  if (_infiniteObservers[sentinelId]) {
+    _infiniteObservers[sentinelId].disconnect();
+  }
   const sentinel = document.getElementById(sentinelId);
   if (!sentinel) return null;
 
@@ -20,5 +25,6 @@ function createInfiniteScroll(sentinelId, loadFn) {
   );
 
   observer.observe(sentinel);
+  _infiniteObservers[sentinelId] = observer;
   return observer;
 }

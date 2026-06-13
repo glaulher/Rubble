@@ -17,6 +17,13 @@ let segmentTodosChecked = true;
 let siteTodosChecked = true;
 
 function initScm() {
+    if (window._scmInitialized) {
+        PollingManager.stop('scm');
+        var existingContent = document.getElementById('scmContent');
+        if (existingContent) existingContent.innerHTML = '';
+    }
+    window._scmInitialized = true;
+
     scmList = [];
     scmPage = 0;
     scmAllLoaded = false;
@@ -350,7 +357,7 @@ function renderScm(items, append = false) {
         html += `</div></div>`;
     }
 
-    content.innerHTML += html;
+    content.insertAdjacentHTML('beforeend', html);
 }
 
 function buildScmCardHtml(s) {
@@ -450,7 +457,7 @@ function syncScmCards(newItems) {
                     content.appendChild(div);
                     group = div;
                 }
-                group.querySelector('.space-y-4').innerHTML += buildScmCardHtml(s);
+                group.querySelector('.space-y-4').insertAdjacentHTML('beforeend', buildScmCardHtml(s));
             }
         });
     }

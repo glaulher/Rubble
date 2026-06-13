@@ -13,10 +13,15 @@ async function initEquipmentManager() {
   equipmentSearch = '';
   const input = document.getElementById('equipmentSearchInput');
   if (input) input.value = '';
+
   document.querySelector('[data-action="navigate-equipment-form"]')
-    ?.addEventListener('click', function () { window.location.hash = '#/equipmentForm'; });
+    ?.removeEventListener('click', navigateEquipmentFormHandler);
+  document.querySelector('[data-action="navigate-equipment-form"]')
+    ?.addEventListener('click', navigateEquipmentFormHandler);
+
   const tbody = document.getElementById('equipmentTableBody');
-  if (tbody) {
+  if (tbody && !tbody._listenerAttached) {
+    tbody._listenerAttached = true;
     tbody.addEventListener('click', function (e) {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
@@ -34,6 +39,8 @@ async function initEquipmentManager() {
   setupEquipmentSearch();
   createInfiniteScroll('sentinel', loadEquipments);
 }
+
+function navigateEquipmentFormHandler() { window.location.hash = '#/equipmentForm'; }
 
 async function loadEquipments() {
   if (equipmentLoading || equipmentAllLoaded) return;

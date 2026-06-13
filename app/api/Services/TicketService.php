@@ -182,8 +182,21 @@ class TicketService
                         $this->ticketRepository->update($ticketData);
                         $updated++;
                     } else {
-                        $this->ticketRepository->save($ticketData);
-                        $imported++;
+                        try {
+                            $this->ticketRepository->save($ticketData);
+                            $imported++;
+                        } catch (\mysqli_sql_exception $e) {
+                            if ($e->getCode() === 1062) {
+                                $newExisting = $this->ticketRepository->findByOs($row['tarefa']);
+                                if ($newExisting) {
+                                    $ticketData['id'] = $newExisting->id;
+                                    $this->ticketRepository->update($ticketData);
+                                    $updated++;
+                                }
+                            } else {
+                                throw $e;
+                            }
+                        }
                     }
                 }
             } catch (\Throwable $e) {

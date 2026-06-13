@@ -90,6 +90,9 @@ async function savePrice(e) {
 function initPriceForm() {
   loadPriceForm();
 
-  document.getElementById('priceForm')
-    ?.addEventListener('submit', savePrice);
+  var form = document.getElementById('priceForm');
+  if (form) {
+    form.removeEventListener('submit', savePrice);
+    form.addEventListener('submit', savePrice);
+  }
 }

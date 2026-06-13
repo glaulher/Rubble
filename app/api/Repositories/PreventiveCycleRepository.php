@@ -250,34 +250,42 @@ class PreventiveCycleRepository extends BaseRepository
         $saved = 0;
         $deleted = 0;
 
-        foreach ($items as $item) {
-            $equipamentoId = (int) ($item['equipamento_id'] ?? 0);
-            if ($equipamentoId <= 0) continue;
+        $this->beginTransaction();
+        try {
+            foreach ($items as $item) {
+                $equipamentoId = (int) ($item['equipamento_id'] ?? 0);
+                if ($equipamentoId <= 0) continue;
 
-            $checked = !empty($item['checked']);
-            $observacao = $item['observacao'] ?? '';
-            $scmNumber = $item['scm_number'] ?? null;
-            if ($scmNumber !== null && trim($scmNumber) === '') {
-                $scmNumber = null;
+                $checked = !empty($item['checked']);
+                $observacao = $item['observacao'] ?? '';
+                $scmNumber = $item['scm_number'] ?? null;
+                if ($scmNumber !== null && trim($scmNumber) === '') {
+                    $scmNumber = null;
+                }
+
+                if ($checked) {
+                    $sql = "INSERT INTO preventive_cycle_items (ciclo, equipamento_id, observacao, scm_number)
+                            VALUES (?, ?, ?, ?)
+                            ON DUPLICATE KEY UPDATE observacao = VALUES(observacao), scm_number = VALUES(scm_number), updated_at = NOW()";
+                    $stmt = $this->safePrepare($sql);
+                    $stmt->bind_param('siss', $ciclo, $equipamentoId, $observacao, $scmNumber);
+                    $stmt->execute();
+                    if ($stmt->affected_rows > 0) $saved++;
+                    $stmt->close();
+                } else {
+                    $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ? AND equipamento_id = ?";
+                    $stmt = $this->safePrepare($sql);
+                    $stmt->bind_param('si', $ciclo, $equipamentoId);
+                    $stmt->execute();
+                    if ($stmt->affected_rows > 0) $deleted++;
+                    $stmt->close();
+                }
             }
 
-            if ($checked) {
-                $sql = "INSERT INTO preventive_cycle_items (ciclo, equipamento_id, observacao, scm_number)
-                        VALUES (?, ?, ?, ?)
-                        ON DUPLICATE KEY UPDATE observacao = VALUES(observacao), scm_number = VALUES(scm_number), updated_at = NOW()";
-                $stmt = $this->safePrepare($sql);
-                $stmt->bind_param('siss', $ciclo, $equipamentoId, $observacao, $scmNumber);
-                $stmt->execute();
-                if ($stmt->affected_rows > 0) $saved++;
-                $stmt->close();
-            } else {
-                $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ? AND equipamento_id = ?";
-                $stmt = $this->safePrepare($sql);
-                $stmt->bind_param('si', $ciclo, $equipamentoId);
-                $stmt->execute();
-                if ($stmt->affected_rows > 0) $deleted++;
-                $stmt->close();
-            }
+            $this->commit();
+        } catch (\Throwable $e) {
+            $this->rollback();
+            throw $e;
         }
 
         return ['saved' => $saved, 'deleted' => $deleted];

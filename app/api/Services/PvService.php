@@ -153,31 +153,38 @@ class PvService
             $data['equipamento_id'] = $this->getFornecimentoId();
         }
 
-        $pvId = $this->repository->save($data);
+        $this->repository->beginTransaction();
+        try {
+            $pvId = $this->repository->save($data);
 
-        if (!empty($data['itens']) && is_array($data['itens'])) {
-            foreach ($data['itens'] as $item) {
-                $item['pv_id'] = $pvId;
-                $item['valor_total'] = $this->calculateItemTotalValue($item);
-                $this->repository->saveItem($item);
+            if (!empty($data['itens']) && is_array($data['itens'])) {
+                foreach ($data['itens'] as $item) {
+                    $item['pv_id'] = $pvId;
+                    $item['valor_total'] = $this->calculateItemTotalValue($item);
+                    $this->repository->saveItem($item);
+                }
             }
-        }
 
-        if (!empty($data['itens'])) {
-            $worstStatus = $this->repository->getWorstStatus($pvId);
-            $data['ticket_ids'] = $this->resolveOsToTicketIds(
-                $data['os'] ?? '',
-                $data['data'] ?? null,
-                isset($data['equipamento_id']) ? (int) $data['equipamento_id'] : null,
-                $worstStatus
-            );
-        }
+            if (!empty($data['itens'])) {
+                $worstStatus = $this->repository->getWorstStatus($pvId);
+                $data['ticket_ids'] = $this->resolveOsToTicketIds(
+                    $data['os'] ?? '',
+                    $data['data'] ?? null,
+                    isset($data['equipamento_id']) ? (int) $data['equipamento_id'] : null,
+                    $worstStatus
+                );
+            }
 
-        if (!empty($data['ticket_ids'])) {
-            $this->repository->saveOsLinks($pvId, $data['ticket_ids']);
-        }
+            if (!empty($data['ticket_ids'])) {
+                $this->repository->saveOsLinks($pvId, $data['ticket_ids']);
+            }
 
-        return $pvId;
+            $this->repository->commit();
+            return $pvId;
+        } catch (\Throwable $e) {
+            $this->repository->rollback();
+            throw $e;
+        }
     }
 
     public function update(array $data): bool
@@ -188,32 +195,39 @@ class PvService
             $data['equipamento_id'] = $this->getFornecimentoId();
         }
 
-        $result = $this->repository->update($data);
+        $this->repository->beginTransaction();
+        try {
+            $result = $this->repository->update($data);
 
-        if (isset($data['itens']) && is_array($data['itens'])) {
-            $this->repository->deleteItemsByPvId((int) $data['id']);
+            if (isset($data['itens']) && is_array($data['itens'])) {
+                $this->repository->deleteItemsByPvId((int) $data['id']);
 
-            foreach ($data['itens'] as $item) {
-                $item['pv_id'] = (int) $data['id'];
-                $item['valor_total'] = $this->calculateItemTotalValue($item);
-                $this->repository->saveItem($item);
+                foreach ($data['itens'] as $item) {
+                    $item['pv_id'] = (int) $data['id'];
+                    $item['valor_total'] = $this->calculateItemTotalValue($item);
+                    $this->repository->saveItem($item);
+                }
             }
+
+            $worstStatus = $this->repository->getWorstStatus((int) $data['id']);
+            $data['ticket_ids'] = $this->resolveOsToTicketIds(
+                $data['os'] ?? '',
+                $data['data'] ?? null,
+                isset($data['equipamento_id']) ? (int) $data['equipamento_id'] : null,
+                $worstStatus
+            );
+
+            $this->repository->deleteOsLinks((int) $data['id']);
+            if (!empty($data['ticket_ids'])) {
+                $this->repository->saveOsLinks((int) $data['id'], $data['ticket_ids']);
+            }
+
+            $this->repository->commit();
+            return $result;
+        } catch (\Throwable $e) {
+            $this->repository->rollback();
+            throw $e;
         }
-
-        $worstStatus = $this->repository->getWorstStatus((int) $data['id']);
-        $data['ticket_ids'] = $this->resolveOsToTicketIds(
-            $data['os'] ?? '',
-            $data['data'] ?? null,
-            isset($data['equipamento_id']) ? (int) $data['equipamento_id'] : null,
-            $worstStatus
-        );
-
-        $this->repository->deleteOsLinks((int) $data['id']);
-        if (!empty($data['ticket_ids'])) {
-            $this->repository->saveOsLinks((int) $data['id'], $data['ticket_ids']);
-        }
-
-        return $result;
     }
 
     public function searchTicketsByOs(string $query): array

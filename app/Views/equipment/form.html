@@ -10,14 +10,14 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">Equipamento</label>
+          <label for="eqEquipamento" class="block text-sm font-medium text-slate-700 mb-2">Equipamento</label>
           <input type="text" id="eqEquipamento" required
             class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Ex: WM 01" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">Capacidade (TR)</label>
+          <label for="eqCapacidade" class="block text-sm font-medium text-slate-700 mb-2">Capacidade (TR)</label>
           <input type="number" step="0.01" id="eqCapacidade" required
             class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Ex: 10" />
@@ -26,14 +26,14 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">Local (código)</label>
+          <label for="eqLocal" class="block text-sm font-medium text-slate-700 mb-2">Local (código)</label>
           <input type="text" id="eqLocal" required
             class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Ex: ES, RJ" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">Localidade</label>
+          <label for="eqLocalidade" class="block text-sm font-medium text-slate-700 mb-2">Localidade</label>
           <input type="text" id="eqLocalidade" required
             class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Ex: Container 1" />
@@ -42,14 +42,14 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">Local do Endereço</label>
+          <label for="eqLocalEndereco" class="block text-sm font-medium text-slate-700 mb-2">Local do Endereço</label>
           <input type="text" id="eqLocalEndereco" required
             class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Ex: Resende" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">UF</label>
+          <label for="eqUf" class="block text-sm font-medium text-slate-700 mb-2">UF</label>
           <input type="text" id="eqUf" required maxlength="2"
             class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
             placeholder="Ex: RJ" />
@@ -58,7 +58,7 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">Mercado</label>
+          <label for="mercado" class="block text-sm font-medium text-slate-700 mb-2">Mercado</label>
           <select id="mercado" required
             class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Selecione...</option>
@@ -69,7 +69,7 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-2">Local SCM</label>
+          <label for="eqLocalScm" class="block text-sm font-medium text-slate-700 mb-2">Local SCM</label>
           <input type="text" id="eqLocalScm"
             class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Ex: HUB BARRADAS, HEADEND RESENDE" />
@@ -77,7 +77,7 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-slate-700 mb-2">Endereço</label>
+        <label for="eqEndereco" class="block text-sm font-medium text-slate-700 mb-2">Endereço</label>
         <input type="text" id="eqEndereco" required
           class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Ex: RUA FELICIANO SODRE 660 VILA JULIETA" />

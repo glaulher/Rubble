@@ -190,7 +190,8 @@ function downloadPvPdf() {
 
     pv.itens.forEach((item) => {
       if (!item.filtro_data) return;
-      const fd = JSON.parse(item.filtro_data);
+      var fd;
+      try { fd = JSON.parse(item.filtro_data); } catch (e) { fd = {}; }
       if (y + 20 > 280) {
         pdf.addPage();
         y = margin;

@@ -1,4 +1,4 @@
-function hubRecase(str) {
+﻿function hubRecase(str) {
   if (!str || str !== str.toUpperCase()) return str;
   const u = str.toUpperCase();
   if (u.startsWith('HUB ') || u.startsWith('HEADEND ')) {
@@ -618,7 +618,7 @@ async function loadEquipmentSummary() {
       }
     }
   } catch (err) {
-    // silent — badge polling failures are non-critical
+    console.warn('[home] badge polling error:', err);
   }
 }
 

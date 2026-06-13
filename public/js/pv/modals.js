@@ -7,7 +7,7 @@ async function deletePv(id) {
     const response = await fetch('/app/api/index.php?route=pv&id=' + id);
     const result = await response.json();
     if (result.success && result.data) numeroPv = result.data.numero_pv;
-  } catch {}
+  } catch (e) { console.warn('[modals] Erro ao buscar PV para exclusão:', e); }
 
   const confirmed = await confirmDelete('Excluir PV', 'Tem certeza que deseja excluir a PV', numeroPv);
   if (!confirmed) return;

@@ -38,10 +38,15 @@ async function loadUserForm() {
   }
 
   document.querySelector('[data-action="navigate-users"]')
-    ?.addEventListener('click', function () { window.location.hash = '#/users'; });
+    ?.removeEventListener('click', navigateUsersHandler);
+  document.querySelector('[data-action="navigate-users"]')
+    ?.addEventListener('click', navigateUsersHandler);
 
+  form.removeEventListener('submit', saveUserForm);
   form.addEventListener('submit', saveUserForm);
 }
+
+function navigateUsersHandler() { window.location.hash = '#/users'; }
 
 function saveUserForm(e) {
   e.preventDefault();

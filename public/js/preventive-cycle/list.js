@@ -26,6 +26,7 @@ function _cycleGenerateOptions() {
 }
 
 function initPreventiveCycle() {
+  document._cycleSetupDone = false;
   _cycleCurrent = '';
   _cycleSelectedIds = new Set();
   _cycleTotal = 0;
@@ -52,6 +53,8 @@ function initPreventiveCycle() {
 }
 
 function _cycleSetupEvents() {
+  if (document._cycleSetupDone) return;
+  document._cycleSetupDone = true;
   var cycleInput = document.getElementById('cycleInput');
   if (cycleInput) {
     var cycleTimer;
@@ -115,7 +118,7 @@ function _cycleSetupEvents() {
             _cycleDirtyChecks.set(id, checked);
           });
         })
-        .catch(function () {})
+        .catch(function (e) { console.warn('[preventive-cycle]', e); })
         .finally(function () {
           selectAll.disabled = false;
         });
@@ -171,13 +174,14 @@ function _cycleSetupEvents() {
 
   var sentinel = document.getElementById('cycleSentinel');
   if (sentinel) {
-    var observer = new IntersectionObserver(function (entries) {
+    if (window._cycleObserver) window._cycleObserver.disconnect();
+    window._cycleObserver = new IntersectionObserver(function (entries) {
       if (entries[0].isIntersecting && _cycleCurrent) {
         _cyclePage++;
         _cycleLoadList(_cycleCurrent, true);
       }
     }, { rootMargin: '300px' });
-    observer.observe(sentinel);
+    window._cycleObserver.observe(sentinel);
   }
 
   if (window.PollingManager) {
@@ -234,7 +238,7 @@ function _cycleLoadList(ciclo, append) {
       _cycleFetchSummary(ciclo);
       _cycleFetchScmStatusCount(ciclo);
     })
-    .catch(function () {});
+    .catch(function (e) { console.warn('[preventive-cycle]', e); });
 }
 
 function _cycleRenderCards(items, append) {
@@ -361,7 +365,7 @@ function _cycleValidateScm(scmNumber, equipId, badgeEl) {
             _cycleScmValidationCache[scmNumber] = result.data;
             _cycleRenderScmBadge(result.data, badgeEl);
         })
-        .catch(function () {});
+        .catch(function (e) { console.warn('[preventive-cycle]', e); });
 }
 
 function _cycleRenderScmBadge(data, badgeEl) {
@@ -425,7 +429,7 @@ function _cycleFetchSummary(ciclo) {
       _cycleSummaryData = result.data;
       _cycleUpdateBadge();
     })
-    .catch(function () {});
+    .catch(function (e) { console.warn('[preventive-cycle]', e); });
 }
 
 function _cycleFetchScmStatusCount(ciclo) {
@@ -438,7 +442,7 @@ function _cycleFetchScmStatusCount(ciclo) {
             _cycleScmData = result.data;
             _cycleUpdateBadge();
         })
-        .catch(function () {});
+        .catch(function (e) { console.warn('[preventive-cycle]', e); });
 }
 
 function _cycleSave() {
