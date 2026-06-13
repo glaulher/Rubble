@@ -390,7 +390,8 @@ function setupOsAutocomplete() {
   createAutocomplete({
     inputSelector: '#os',
     dropdownSelector: '.os-dropdown',
-    dataSource: () => pvOsOptions
+    dataSource: () => pvOsOptions,
+    onBlur: ({ hide }) => { hide(); }
   });
 }
 
