@@ -259,10 +259,6 @@ function _cycleRenderCards(items, append) {
       html += '<span class="text-base font-medium text-slate-400 mx-1">-</span>';
       html += '<span class="text-base font-medium text-slate-500">' + _cycleEscape(hubRecase(first.local_scm)) + '</span>';
     }
-    if (first.localidade) {
-      html += '<span class="text-base font-medium text-slate-400 mx-1">-</span>';
-      html += '<span class="text-base font-medium text-slate-500">' + _cycleEscape(first.localidade) + '</span>';
-    }
     html += '</div>';
     html += '<div class="space-y-3">';
 
@@ -282,6 +278,9 @@ function _cycleRenderCards(items, append) {
       html += '<input type="checkbox" class="cycle-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" data-equip-id="' + item.equipamento_id + '"' + (checked ? ' checked' : '') + '>';
       html += '<div class="flex-1 flex items-center gap-2 flex-wrap">';
       html += '<span class="text-lg font-light tracking-[0.05em] px-3 py-1 rounded-lg bg-slate-100 text-slate-800">' + _cycleEscape(item.equipamento || '') + '</span>';
+      if (item.localidade) {
+        html += '<span class="text-sm text-slate-500 ml-2">' + _cycleEscape(item.localidade) + '</span>';
+      }
       if (item.capacidade) {
         html += '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-sm font-semibold">' + parseFloat(item.capacidade) + ' TR</span>';
       }
