@@ -14,8 +14,8 @@ function isApiUrl(url) {
   globalThis.fetch = async function (url, options = {}) {
     const token = getToken();
     if (token && isApiUrl(url)) {
-      options = options || {};
-      options.headers = options.headers || {};
+      options = { ...options };
+      options.headers = options.headers ? { ...options.headers } : {};
       options.headers['Authorization'] = 'Bearer ' + token;
     }
     const response = await originalFetch.call(globalThis, url, options);

@@ -248,15 +248,22 @@ class TicketRepository extends BaseRepository
         return $stmt->execute();
     }
 
+    private const ALLOWED_STATUS_KEYS = [
+        'projeto clean up', 'planejado', 'pendente', 'em andamento', 'conclu%',
+    ];
+
     private function buildStatusOrderSql(array $priority): string
     {
         $parts = [];
         foreach ($priority as $status => $weight) {
+            if (!in_array($status, self::ALLOWED_STATUS_KEYS, true)) {
+                continue;
+            }
+            $weight = (int) $weight;
+            $safe = $this->conn->real_escape_string($status);
             if (str_contains($status, '%')) {
-                $safe = $this->conn->real_escape_string($status);
                 $parts[] = "WHEN LOWER(status) LIKE '{$safe}' THEN {$weight}";
             } else {
-                $safe = $this->conn->real_escape_string($status);
                 $parts[] = "WHEN LOWER(status) = '{$safe}' THEN {$weight}";
             }
         }

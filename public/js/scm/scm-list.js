@@ -125,12 +125,6 @@ function initSegmentMultiSelect() {
         dropdown.classList.toggle('hidden');
     });
 
-    document.addEventListener('click', (e) => {
-        if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
-            dropdown.classList.add('hidden');
-        }
-    });
-
     updateSegmentLabel();
 }
 
@@ -208,12 +202,6 @@ function initSiteMultiSelect() {
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
         dropdown.classList.toggle('hidden');
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
-            dropdown.classList.add('hidden');
-        }
     });
 
     updateSiteLabel();
@@ -510,26 +498,44 @@ async function deleteScm(id) {
     }
 }
 
-// Event delegation for toggle and delete buttons
-document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.scm-toggle-btn');
-    if (btn) {
-        const id = btn.dataset.toggleId;
-        const details = document.getElementById(`scmDet${id}`);
-        if (details) {
-            details.classList.toggle('hidden');
-            if (!details.classList.contains('hidden') && !details.dataset.loaded) {
-                loadScmDetails(id);
+// Event delegation for toggle, delete buttons, and dropdown closing
+if (!document._scmGlobalListener) {
+    document._scmGlobalListener = (e) => {
+        // Toggle details
+        const btn = e.target.closest('.scm-toggle-btn');
+        if (btn) {
+            const id = btn.dataset.toggleId;
+            const details = document.getElementById(`scmDet${id}`);
+            if (details) {
+                details.classList.toggle('hidden');
+                if (!details.classList.contains('hidden') && !details.dataset.loaded) {
+                    loadScmDetails(id);
+                }
             }
+            return;
         }
-    }
 
-    const deleteBtn = e.target.closest('.scm-delete-btn');
-    if (deleteBtn) {
-        const id = deleteBtn.dataset.deleteId;
-        deleteScm(id);
-    }
-});
+        // Delete button
+        const deleteBtn = e.target.closest('.scm-delete-btn');
+        if (deleteBtn) {
+            const id = deleteBtn.dataset.deleteId;
+            deleteScm(id);
+            return;
+        }
+
+        // Close dropdowns when clicking outside
+        ['scmSegmentBtn', 'scmSiteBtn'].forEach(id => {
+            const btnEl = document.getElementById(id);
+            const dropdownId = id === 'scmSegmentBtn' ? 'scmSegmentDropdown' : 'scmSiteDropdown';
+            const dropdownEl = document.getElementById(dropdownId);
+            if (dropdownEl && !dropdownEl.classList.contains('hidden') &&
+                !btnEl?.contains(e.target) && !dropdownEl.contains(e.target)) {
+                dropdownEl.classList.add('hidden');
+            }
+        });
+    };
+    document.addEventListener('click', document._scmGlobalListener);
+}
 
 async function loadScmDetails(id) {
     const details = document.getElementById(`scmDet${id}`);

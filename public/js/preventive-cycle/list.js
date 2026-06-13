@@ -465,12 +465,9 @@ function _cycleSave() {
     saveBtn.innerHTML = '<span class="animate-pulse">Salvando...</span>';
   }
 
-  fetch('/app/api/index.php?route=preventive-cycle', {
+  apiFetch('/app/api/index.php?route=preventive-cycle', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + (sessionStorage.getItem('token') || ''),
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ciclo: _cycleCurrent, items: items }),
   })
     .then(function (r) { return r.json(); })
@@ -499,11 +496,11 @@ function _cycleSave() {
     });
 }
 
-function _cycleEscape(str) {
+var _cycleEscape = typeof escapeHtml === 'function' ? escapeHtml : function (str) {
   if (!str) return '';
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-}
+};

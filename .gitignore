@@ -1,7 +1,7 @@
 .env
 OS/
 LAUDO/
-# *.sql  # commented out to allow migration files
+*.sql
 cache/
 AGENTS.md
 contexto.md

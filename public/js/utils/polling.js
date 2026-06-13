@@ -16,7 +16,8 @@
       this.stop(view);
       state[view] = { callback: callback, intervalMs: intervalMs, timer: null };
       callback();
-      state[view].timer = setInterval(callback, intervalMs);
+      var jitter = intervalMs * (0.1 + Math.random() * 0.2);
+      state[view].timer = setInterval(callback, intervalMs + jitter);
     },
 
     stop: function (view) {

@@ -244,47 +244,61 @@ async function importOS() {
   input.click();
 }
 
+const CSV_CHUNK = 500;
+
 async function generateCSVReport() {
   try {
-    const response = await fetch(
-      `/app/api/index.php?route=equipment&limit=999999&offset=0&search=${encodeURIComponent(currentSearch)}`
-    );
+    var allEquipment = [];
+    var offset = 0;
+    var total;
 
-    const result = await response.json();
+    while (true) {
+      var resp = await fetch(
+        '/app/api/index.php?route=equipment&limit=' + CSV_CHUNK + '&offset=' + offset + '&search=' + encodeURIComponent(currentSearch)
+      );
+      var result = await resp.json();
+      var chunk = result.data || [];
+      total = result.total || chunk.length;
+      allEquipment.push.apply(allEquipment, chunk);
+      offset += CSV_CHUNK;
+      if (chunk.length < CSV_CHUNK) break;
+    }
 
-    const list = result.data || [];
-
-    if (list.length === 0) {
+    if (allEquipment.length === 0) {
       showToast('Nenhum dado encontrado', 'error');
-
       return;
     }
 
-    const ids = list.map((e) => e.id);
+    var ids = allEquipment.map(function (e) { return e.id; });
+    var ticketChunks = [];
+    for (var i = 0; i < ids.length; i += CSV_CHUNK) {
+      var chunkIds = ids.slice(i, i + CSV_CHUNK);
+      var tr = await fetch(
+        '/app/api/index.php?route=equipment&action=tickets-by-ids&' + chunkIds.map(function (id) { return 'ids[]=' + id; }).join('&')
+      );
+      var trResult = await tr.json();
+      if (trResult.data) {
+        ticketChunks.push(trResult.data);
+      }
+    }
 
-    const ticketsResp = await fetch(
-      `/app/api/index.php?route=equipment&action=tickets-by-ids&${ids.map((id) => 'ids[]=' + id).join('&')}`
-    );
+    var ticketsByEquipId = Object.assign.apply(Object, [{}].concat(ticketChunks));
 
-    const ticketsResult = await ticketsResp.json();
-
-    const ticketsByEquipId = ticketsResult.data || {};
-
-    const header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_PLANEJADA;DATA_CONCLUSAO;MATERIAL;OBSERVACAO';
+    var header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_PLANEJADA;DATA_CONCLUSAO;MATERIAL;OBSERVACAO';
 
     downloadCSV(
       currentSearch && currentSearch.trim() !== ''
-        ? `report_${currentSearch}.csv`
+        ? 'report_' + currentSearch + '.csv'
         : 'report_complete.csv',
       header,
-      (addRow) => {
+      function (addRow) {
         var searchTerm = (currentSearch || '').toLowerCase().trim();
         var searchNorm = searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
         var statusKeywords = ['pendente', 'conclu', 'planej', 'andamento', 'clean'];
         var isStatusSearch = searchTerm && statusKeywords.some(function (kw) { return searchTerm.includes(kw); });
 
-        list.forEach(function (e) {
+        allEquipment.forEach(function (e) {
           var allTickets = ticketsByEquipId[String(e.id)] || [];
 
           var matchedTickets = isStatusSearch

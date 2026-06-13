@@ -9,6 +9,22 @@ async function initUsers() {
     ?.addEventListener('click', function () { window.location.hash = '#/usersForm'; });
   await loadUsers();
   setupUserSearch();
+  var tbody = document.getElementById('userTableBody');
+  if (tbody && !tbody._listenerAttached) {
+    tbody._listenerAttached = true;
+    tbody.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      switch (btn.dataset.action) {
+        case 'edit':
+          editUser(parseInt(btn.dataset.userId));
+          break;
+        case 'delete':
+          deleteUser(parseInt(btn.dataset.userId));
+          break;
+      }
+    });
+  }
 }
 
 async function loadUsers() {
@@ -75,18 +91,6 @@ function renderUsers() {
       '</tr>';
   }).join('');
 
-  tbody.addEventListener('click', function (e) {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    switch (btn.dataset.action) {
-      case 'edit':
-        editUser(parseInt(btn.dataset.userId));
-        break;
-      case 'delete':
-        deleteUser(parseInt(btn.dataset.userId));
-        break;
-    }
-  });
 }
 
 function getRoleBadge(role) {

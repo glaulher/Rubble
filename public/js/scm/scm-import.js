@@ -21,7 +21,7 @@ async function importScm() {
                 return;
             }
 
-            const response = await apiFetch('app/api/index.php?route=scm&action=import', {
+            const response = await apiFetch('/app/api/index.php?route=scm&action=import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ rows }),
