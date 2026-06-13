@@ -55,6 +55,9 @@ class DashboardServiceTest extends TestCase
         $this->assertArrayHasKey('resolutionByTechnician', $result);
 
         $this->assertSame(18, $result['totalTickets']);
+        $this->assertSame(10, $result['statusCounts']['completed']);
+        $this->assertSame(5, $result['statusCounts']['pending']);
+        $this->assertSame(3, $result['statusCounts']['planned']);
         $this->assertCount(1, $result['topSites']);
         $this->assertSame('Tech A', $result['topTechnicians'][0]['equipe']);
     }

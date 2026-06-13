@@ -10,6 +10,7 @@ class DashboardService
 
     private const STATUS_MAP = [
         'Concluído' => 'completed',
+        'concluído' => 'completed',
         'concluido' => 'completed',
         'Pendente' => 'pending',
         'pendente' => 'pending',
