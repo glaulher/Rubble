@@ -8,4 +8,11 @@ use App\Api\Services\NotificationService;
 Env::load(__DIR__ . '/../../../.env');
 
 $service = new NotificationService();
-return $service->process();
+$result = $service->process();
+
+// CLI exit code for supercronic
+if (PHP_SAPI === 'cli') {
+    exit(($result['sent'] ?? 0) > 0 ? 0 : 1);
+}
+
+return $result;

@@ -6,10 +6,13 @@ use App\Api\Entities\EquipmentPrice;
 
 class EquipmentPriceRepository extends BaseRepository
 {
-    public function listAll(): array
+    public function listAll(int $limit = 100, int $offset = 0): array
     {
-        $sql = "SELECT * FROM equipamento_precos ORDER BY id";
-        $result = $this->conn->query($sql);
+        $sql = "SELECT * FROM equipamento_precos ORDER BY id LIMIT ? OFFSET ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('ii', $limit, $offset);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
         if (!$result) {
             error_log('EquipmentPriceRepository listAll error: ' . $this->conn->error);
@@ -27,7 +30,7 @@ class EquipmentPriceRepository extends BaseRepository
     public function getById(int $id): ?EquipmentPrice
     {
         $sql = "SELECT * FROM equipamento_precos WHERE id = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
@@ -40,7 +43,7 @@ class EquipmentPriceRepository extends BaseRepository
         $sql = "INSERT INTO equipamento_precos (nome, equipamento_pattern, locais_especiais, mercado, valor, ativo)
                 VALUES (?, ?, ?, ?, ?, ?)";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param(
             'ssssdi',
             $data['nome'],
@@ -61,7 +64,7 @@ class EquipmentPriceRepository extends BaseRepository
                 SET nome = ?, equipamento_pattern = ?, locais_especiais = ?, mercado = ?, valor = ?, ativo = ?
                 WHERE id = ?";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param(
             'ssssdii',
             $data['nome'],
@@ -80,7 +83,7 @@ class EquipmentPriceRepository extends BaseRepository
     public function delete(int $id): bool
     {
         $sql = "DELETE FROM equipamento_precos WHERE id = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $id);
         $stmt->execute();
 
@@ -168,7 +171,7 @@ class EquipmentPriceRepository extends BaseRepository
         WHERE {$where}";
 
         if (!empty($params)) {
-            $stmt = $this->conn->prepare($sql);
+            $stmt = $this->safePrepare($sql);
             $stmt->bind_param($types, ...$params);
             $stmt->execute();
             $result = $stmt->get_result();
@@ -221,7 +224,7 @@ class EquipmentPriceRepository extends BaseRepository
                 WHERE {$where}";
 
         if (!empty($params)) {
-            $stmt = $this->conn->prepare($sql);
+            $stmt = $this->safePrepare($sql);
             $stmt->bind_param($types, ...$params);
             $stmt->execute();
             $result = $stmt->get_result();

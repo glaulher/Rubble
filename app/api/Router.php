@@ -14,6 +14,11 @@ class Router
         return $this;
     }
 
+    public function getRoutes(): array
+    {
+        return $this->routes;
+    }
+
     public function dispatch(string $route, string $method): void
     {
         if (empty($route)) {

@@ -62,7 +62,7 @@ class PvRepository extends BaseRepository
             {$where}
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
 
         if (!empty($params)) {
             $stmt->bind_param($types, ...$params);
@@ -102,7 +102,7 @@ class PvRepository extends BaseRepository
         $params = array_merge($filterParams, [$limit, $offset]);
         $types = $filterTypes . 'ii';
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -126,7 +126,7 @@ class PvRepository extends BaseRepository
             {$where}
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
 
         if (!empty($params)) {
             $stmt->bind_param($types, ...$params);
@@ -149,7 +149,7 @@ class PvRepository extends BaseRepository
             LIMIT 1
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -183,7 +183,7 @@ class PvRepository extends BaseRepository
             WHERE pv.id IN ($placeholders)
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$ids);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -230,7 +230,7 @@ class PvRepository extends BaseRepository
             LIMIT 1
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $numberPv);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -256,7 +256,7 @@ class PvRepository extends BaseRepository
             ORDER BY id ASC
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $pvId);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -286,7 +286,7 @@ class PvRepository extends BaseRepository
             ORDER BY pi.pv_id, pi.id
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$pvIds);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -308,7 +308,7 @@ class PvRepository extends BaseRepository
             WHERE numero_pv LIKE ?
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $param = "{$yearPrefix}%";
         $stmt->bind_param('s', $param);
         $stmt->execute();
@@ -331,7 +331,7 @@ class PvRepository extends BaseRepository
             LIMIT 1
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $itemNumber);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -349,7 +349,7 @@ class PvRepository extends BaseRepository
             ) VALUES (?, ?, ?, ?, ?, ?)
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $vNumberPv = $data['numero_pv'];
         $vDate = $data['data'] ?? null;
         $vCycle = $data['ciclo'] ?? null;
@@ -380,7 +380,7 @@ class PvRepository extends BaseRepository
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $filtroData = $data['filtro_data'] ?? null;
         $status = $data['status'] ?? 'Aguardando envio';
         $orcamento = $data['orcamento'] ?? null;
@@ -411,7 +411,7 @@ class PvRepository extends BaseRepository
     public function deleteItemsByPvId(int $pvId): bool
     {
         $sql = "DELETE FROM pv_item WHERE pv_id = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         return $stmt->bind_param('i', $pvId) && $stmt->execute();
     }
 
@@ -424,7 +424,7 @@ class PvRepository extends BaseRepository
             WHERE id = ?
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $vDate = $data['data'] ?? null;
         $vCycle = $data['ciclo'] ?? null;
         $vLocation = $data['local'];
@@ -450,7 +450,7 @@ class PvRepository extends BaseRepository
         }
 
         $sql = "UPDATE pv_item SET status = ? WHERE pv_id = ? AND status = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         return $stmt->bind_param('sis', $newStatus, $pvId, $worstStatus) && $stmt->execute();
     }
 
@@ -463,7 +463,7 @@ class PvRepository extends BaseRepository
             LIMIT 1
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $pvId);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -475,7 +475,7 @@ class PvRepository extends BaseRepository
     public function delete(int $id): bool
     {
         $sql = "DELETE FROM pv WHERE id = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $id);
         return $stmt->execute();
     }
@@ -494,7 +494,7 @@ class PvRepository extends BaseRepository
             LIMIT ?
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $param = "%{$query}%";
         $stmt->bind_param('si', $param, $limit);
         $stmt->execute();
@@ -524,7 +524,7 @@ class PvRepository extends BaseRepository
     public function saveOsLinks(int $pvId, array $ticketIds): void
     {
         $sql = "INSERT IGNORE INTO pv_os (pv_id, registro_id) VALUES (?, ?)";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
 
         foreach ($ticketIds as $ticketId) {
             $ticketId = (int) $ticketId;
@@ -537,7 +537,7 @@ class PvRepository extends BaseRepository
     public function deleteOsLinks(int $pvId): void
     {
         $sql = "DELETE FROM pv_os WHERE pv_id = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $pvId);
         $stmt->execute();
     }
@@ -552,7 +552,7 @@ class PvRepository extends BaseRepository
             ORDER BY r.id
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $pvId);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -582,7 +582,7 @@ class PvRepository extends BaseRepository
             ORDER BY po.pv_id, r.id
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$pvIds);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -605,7 +605,7 @@ class PvRepository extends BaseRepository
             LIMIT 1
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $osNumber);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -624,7 +624,7 @@ class PvRepository extends BaseRepository
             LIMIT ?
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $param = "%{$query}%";
         $stmt->bind_param('si', $param, $limit);
         $stmt->execute();
@@ -640,7 +640,7 @@ class PvRepository extends BaseRepository
 
     public function getEquipmentIdByName(string $name): ?int
     {
-        $stmt = $this->conn->prepare(
+        $stmt = $this->safePrepare(
             "SELECT id FROM equipamentos WHERE equipamento = ? LIMIT 1"
         );
         $stmt->bind_param('s', $name);
@@ -669,7 +669,7 @@ class PvRepository extends BaseRepository
             WHERE pv.id IN ($placeholders)
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$ids);
         $stmt->execute();
         $result = $stmt->get_result();

@@ -21,7 +21,7 @@ class TicketRepository extends BaseRepository
             ORDER BY {$orderBy}
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $itemId);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -56,7 +56,7 @@ class TicketRepository extends BaseRepository
             ORDER BY {$orderBy}
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$ids);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -94,7 +94,7 @@ class TicketRepository extends BaseRepository
             GROUP BY equipamento_id
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$ids);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -130,7 +130,7 @@ class TicketRepository extends BaseRepository
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $completionDate = $data['data_concluido'] ?? null;
         $plannedDate = $data['data_planejada'] ?? null;
         $stmt->bind_param(
@@ -158,7 +158,7 @@ class TicketRepository extends BaseRepository
             WHERE id = ?
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $completionDate = $data['data_concluido'] ?? null;
         $plannedDate = $data['data_planejada'] ?? null;
         $stmt->bind_param(
@@ -179,14 +179,14 @@ class TicketRepository extends BaseRepository
     public function delete(int $id): bool
     {
         $sql = "DELETE FROM registros WHERE id = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         return $stmt->bind_param('i', $id) && $stmt->execute();
     }
 
     public function getById(int $id): ?Ticket
     {
         $sql = "SELECT * FROM registros WHERE id = ? LIMIT 1";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -198,7 +198,7 @@ class TicketRepository extends BaseRepository
     public function findByOs(string $os): ?Ticket
     {
         $sql = "SELECT * FROM registros WHERE os = ? LIMIT 1";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $os);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -243,7 +243,7 @@ class TicketRepository extends BaseRepository
     public function markNotificationSent(int $id): bool
     {
         $sql = "UPDATE registros SET notificacao_enviada = 1 WHERE id = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $id);
         return $stmt->execute();
     }

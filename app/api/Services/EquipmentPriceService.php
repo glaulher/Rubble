@@ -14,9 +14,9 @@ class EquipmentPriceService
         $this->repository = $repository ?? new EquipmentPriceRepository();
     }
 
-    public function listAll(): array
+    public function listAll(int $limit = 100, int $offset = 0): array
     {
-        $items = $this->repository->listAll();
+        $items = $this->repository->listAll($limit, $offset);
         return array_map(fn(EquipmentPrice $item) => $item->toArray(), $items);
     }
 

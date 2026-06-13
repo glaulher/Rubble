@@ -78,7 +78,7 @@ class PreventiveCycleRepository extends BaseRepository
         $params = array_merge([$ciclo], $whereParams, [$limit, $offset]);
         $types = 's' . $whereTypes . 'ii';
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -134,7 +134,7 @@ class PreventiveCycleRepository extends BaseRepository
         $params = array_merge([$ciclo], $whereParams);
         $types = 's' . $whereTypes;
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -171,7 +171,7 @@ class PreventiveCycleRepository extends BaseRepository
                 WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'
                 {$obsFilter}
                 {$scmFilter}";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -233,7 +233,7 @@ class PreventiveCycleRepository extends BaseRepository
 
         $sql = "SELECT e.id FROM equipamentos e WHERE {$where} ORDER BY e.local, e.equipamento";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($whereTypes, ...$whereParams);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -265,14 +265,14 @@ class PreventiveCycleRepository extends BaseRepository
                 $sql = "INSERT INTO preventive_cycle_items (ciclo, equipamento_id, observacao, scm_number)
                         VALUES (?, ?, ?, ?)
                         ON DUPLICATE KEY UPDATE observacao = VALUES(observacao), scm_number = VALUES(scm_number), updated_at = NOW()";
-                $stmt = $this->conn->prepare($sql);
+                $stmt = $this->safePrepare($sql);
                 $stmt->bind_param('siss', $ciclo, $equipamentoId, $observacao, $scmNumber);
                 $stmt->execute();
                 if ($stmt->affected_rows > 0) $saved++;
                 $stmt->close();
             } else {
                 $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ? AND equipamento_id = ?";
-                $stmt = $this->conn->prepare($sql);
+                $stmt = $this->safePrepare($sql);
                 $stmt->bind_param('si', $ciclo, $equipamentoId);
                 $stmt->execute();
                 if ($stmt->affected_rows > 0) $deleted++;
@@ -290,7 +290,7 @@ class PreventiveCycleRepository extends BaseRepository
                 FROM scm s
                 LEFT JOIN equipamentos e ON e.id = s.equipamento_id
                 WHERE s.scm = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $scmNumber);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -310,7 +310,7 @@ class PreventiveCycleRepository extends BaseRepository
                   AND e.equipamento != 'N/A' AND e.local != 'Fornecimento'
                 GROUP BY s.status
                 ORDER BY FIELD(s.status, 'SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado')";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $ciclo);
         $stmt->execute();
         $result = $stmt->get_result();

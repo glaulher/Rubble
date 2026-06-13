@@ -2,15 +2,8 @@
 
 namespace App\Api\Repositories;
 
-use App\Config\Database;
-
 class ScmRepository extends BaseRepository
 {
-    public function __construct()
-    {
-        $this->conn = Database::connect();
-    }
-
     public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = []): array
     {
         [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status, $sites);
@@ -32,7 +25,7 @@ class ScmRepository extends BaseRepository
         $params[] = $limit;
         $params[] = $offset;
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         if ($types) {
             $stmt->bind_param($types, ...$params);
         }
@@ -53,7 +46,7 @@ class ScmRepository extends BaseRepository
                 LEFT JOIN equipamentos e ON e.id = s.equipamento_id
                 {$where}";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         if ($types) {
             $stmt->bind_param($types, ...$params);
         }
@@ -71,7 +64,7 @@ class ScmRepository extends BaseRepository
                 LEFT JOIN equipamentos e ON e.id = s.equipamento_id
                 {$where}";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         if ($types) {
             $stmt->bind_param($types, ...$params);
         }
@@ -87,7 +80,7 @@ class ScmRepository extends BaseRepository
                 LEFT JOIN equipamentos e ON e.id = s.equipamento_id
                 WHERE s.id = ?";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -101,7 +94,7 @@ class ScmRepository extends BaseRepository
     public function getItems(int $scmId): array
     {
         $sql = "SELECT * FROM scm_items WHERE scm_id = ? ORDER BY id ASC";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $scmId);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -115,7 +108,7 @@ class ScmRepository extends BaseRepository
     public function findByScmCode(string $scm): ?array
     {
         $sql = "SELECT * FROM scm WHERE scm = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $scm);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -142,7 +135,7 @@ class ScmRepository extends BaseRepository
                     obs = VALUES(obs),
                     equipamento_id = VALUES(equipamento_id)";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('sssssssssssssi',
             $data['scm'], $data['data'], $data['atividade'], $data['site'],
             $data['cidade'], $data['abertura'], $data['status'],
@@ -155,7 +148,7 @@ class ScmRepository extends BaseRepository
     public function upsertItems(int $scmId, array $items): bool
     {
         $sqlDelete = "DELETE FROM scm_items WHERE scm_id = ?";
-        $stmtDelete = $this->conn->prepare($sqlDelete);
+        $stmtDelete = $this->safePrepare($sqlDelete);
         $stmtDelete->bind_param('i', $scmId);
         $stmtDelete->execute();
 
@@ -163,7 +156,7 @@ class ScmRepository extends BaseRepository
 
         $sql = "INSERT INTO scm_items (scm_id, servico, unidade, valor, qtde_execucao, subtotal_execucao)
                 VALUES (?, ?, ?, ?, ?, ?)";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
 
         foreach ($items as $item) {
             $servico = $item['servico'];
@@ -182,7 +175,7 @@ class ScmRepository extends BaseRepository
     public function resolveEquipmentId(string $site): ?int
     {
         $sql = "SELECT id FROM equipamentos WHERE local_scm = ? LIMIT 1";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $site);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -194,7 +187,7 @@ class ScmRepository extends BaseRepository
                 JOIN enderecos en ON en.id = e.endereco_id
                 WHERE en.local_do_endereco LIKE ?
                 LIMIT 1";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $like = "%{$site}%";
         $stmt->bind_param('s', $like);
         $stmt->execute();
@@ -235,7 +228,7 @@ class ScmRepository extends BaseRepository
     public function updatePvItemStatusByScm(string $scmCode, string $status): int
     {
         $sql = "UPDATE pv_item SET status = ? WHERE scm = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('ss', $status, $scmCode);
         $stmt->execute();
         return $stmt->affected_rows;
@@ -244,7 +237,7 @@ class ScmRepository extends BaseRepository
     public function delete(int $id): bool
     {
         $sql = "DELETE FROM scm WHERE id = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $id);
         return $stmt->execute();
     }

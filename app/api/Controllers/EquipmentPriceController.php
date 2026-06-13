@@ -18,7 +18,9 @@ class EquipmentPriceController
     public function listAll(): void
     {
         try {
-            $items = $this->service->listAll();
+            $limit = (int) ($_GET['limit'] ?? 100);
+            $offset = (int) ($_GET['offset'] ?? 0);
+            $items = $this->service->listAll($limit, $offset);
             Response::success('', $items);
         } catch (\Throwable $e) {
             Response::serverError($e);
@@ -56,6 +58,7 @@ class EquipmentPriceController
             Response::success('Preço criado com sucesso', ['id' => $id]);
         } catch (\InvalidArgumentException $e) {
             Response::error($e->getMessage(), 400);
+            return;
         } catch (\Throwable $e) {
             Response::serverError($e);
         }
@@ -68,6 +71,7 @@ class EquipmentPriceController
 
             if ($id <= 0) {
                 Response::error('ID inválido', 400);
+                return;
             }
 
             $body = Request::body();
@@ -76,6 +80,7 @@ class EquipmentPriceController
 
             if (!$updated) {
                 Response::error('Registro não encontrado', 404);
+                return;
             }
 
             Response::success('Preço atualizado com sucesso');

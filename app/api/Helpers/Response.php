@@ -6,6 +6,7 @@ use App\Config\Env;
 
 class Response
 {
+    public static bool $exitOnError = true;
     /*
     |--------------------------------------------------------------------------
     | JSON
@@ -18,7 +19,7 @@ class Response
     ): void {
 
         self::outputJson($data, $status);
-        exit;
+        if (self::$exitOnError) { exit; }
     }
 
     protected static function outputJson(

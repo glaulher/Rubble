@@ -11,6 +11,8 @@ use Exception;
 
 class PvController
 {
+    private const ALLOWED_SORT = ['pv.id', 'pv.numero_pv', 'pv.data', 'pv.local', 'worst_status', 'itens_count', 'valor_total'];
+
     private PvService $service;
 
     public function __construct()
@@ -49,9 +51,11 @@ class PvController
 
             $sortBy =
                 trim($_GET['sort_by'] ?? '') ?: 'pv.id';
+            $sortBy = in_array($sortBy, self::ALLOWED_SORT) ? $sortBy : 'pv.id';
 
             $sortDir =
                 trim($_GET['sort_dir'] ?? '') ?: 'DESC';
+            $sortDir = strtoupper($sortDir) === 'ASC' ? 'ASC' : 'DESC';
 
             $data =
                 $this->service->listAll(
@@ -145,6 +149,7 @@ class PvController
 
             if (!empty($data['ciclo']) && !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $data['ciclo'])) {
                 Response::error('Formato de ciclo inválido. Use AAAA-MM (ex: 2026-06)', 400);
+                return;
             }
 
             if (empty($data['itens']) || !is_array($data['itens'])) {
@@ -152,16 +157,19 @@ class PvController
                     'Adicione pelo menos um item à PV',
                     400
                 );
+                return;
             }
 
             if (empty($data['os']) || trim($data['os']) === '') {
                 Response::error('Informe pelo menos uma OS', 400);
+                return;
             }
 
             $osList = array_map('trim', explode(',', $data['os']));
             foreach ($osList as $os) {
                 if ($os !== '' && !preg_match('/^\d{4,7}$/', $os)) {
                     Response::error("A OS '$os' tem formato inválido. Use apenas números (4 a 7 dígitos)", 400);
+                    return;
                 }
             }
 

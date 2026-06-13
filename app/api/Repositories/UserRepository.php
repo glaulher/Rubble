@@ -6,7 +6,7 @@ class UserRepository extends BaseRepository
 {
     public function getById(int $id): ?array
     {
-        $stmt = $this->conn->prepare("SELECT id, username, nome, role, created_at FROM usuarios WHERE id = ?");
+        $stmt = $this->safePrepare("SELECT id, username, nome, role, created_at FROM usuarios WHERE id = ?");
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -19,12 +19,12 @@ class UserRepository extends BaseRepository
     {
         if ($search) {
             $like = '%' . $search . '%';
-            $stmt = $this->conn->prepare(
+            $stmt = $this->safePrepare(
                 "SELECT id, username, nome, role, created_at FROM usuarios WHERE username LIKE ? OR nome LIKE ? ORDER BY nome ASC LIMIT ? OFFSET ?"
             );
             $stmt->bind_param('ssii', $like, $like, $limit, $offset);
         } else {
-            $stmt = $this->conn->prepare(
+            $stmt = $this->safePrepare(
                 "SELECT id, username, nome, role, created_at FROM usuarios ORDER BY nome ASC LIMIT ? OFFSET ?"
             );
             $stmt->bind_param('ii', $limit, $offset);
@@ -40,10 +40,10 @@ class UserRepository extends BaseRepository
     {
         if ($search) {
             $like = '%' . $search . '%';
-            $stmt = $this->conn->prepare("SELECT COUNT(*) AS total FROM usuarios WHERE username LIKE ? OR nome LIKE ?");
+            $stmt = $this->safePrepare("SELECT COUNT(*) AS total FROM usuarios WHERE username LIKE ? OR nome LIKE ?");
             $stmt->bind_param('ss', $like, $like);
         } else {
-            $stmt = $this->conn->prepare("SELECT COUNT(*) AS total FROM usuarios");
+            $stmt = $this->safePrepare("SELECT COUNT(*) AS total FROM usuarios");
         }
         $stmt->execute();
         $result = $stmt->get_result();
@@ -54,7 +54,7 @@ class UserRepository extends BaseRepository
 
     public function insert(array $data): int
     {
-        $stmt = $this->conn->prepare(
+        $stmt = $this->safePrepare(
             "INSERT INTO usuarios (username, nome, password, role) VALUES (?, ?, ?, ?)"
         );
         $stmt->bind_param('ssss', $data['username'], $data['nome'], $data['password'], $data['role']);
@@ -99,7 +99,7 @@ class UserRepository extends BaseRepository
         $values[] = $id;
 
         $sql = "UPDATE usuarios SET " . implode(', ', $fields) . " WHERE id = ?";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$values);
         $stmt->execute();
         $stmt->close();
@@ -107,7 +107,7 @@ class UserRepository extends BaseRepository
 
     public function delete(int $id): void
     {
-        $stmt = $this->conn->prepare("DELETE FROM usuarios WHERE id = ?");
+        $stmt = $this->safePrepare("DELETE FROM usuarios WHERE id = ?");
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $stmt->close();
@@ -115,7 +115,7 @@ class UserRepository extends BaseRepository
 
     public function findByUsername(string $username): ?array
     {
-        $stmt = $this->conn->prepare("SELECT id FROM usuarios WHERE username = ?");
+        $stmt = $this->safePrepare("SELECT id FROM usuarios WHERE username = ?");
         $stmt->bind_param('s', $username);
         $stmt->execute();
         $result = $stmt->get_result();

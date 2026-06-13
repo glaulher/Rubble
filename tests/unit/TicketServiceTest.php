@@ -73,7 +73,7 @@ class TicketServiceTest extends TestCase
 
         $equipRepo = $this->createMockEquipmentRepo();
         $service = new TicketService($repo, $equipRepo);
-        $result = $service->save(['os' => 'OS-003', 'equipamento_id' => '5']);
+        $result = $service->save(['os' => '123456', 'equipamento_id' => '5']);
 
         $this->assertSame(42, $result);
     }

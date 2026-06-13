@@ -20,12 +20,6 @@ class ScmController
     public function listAll(): void
     {
         try {
-            $method = $_SERVER['REQUEST_METHOD'];
-            if ($method !== 'GET') {
-                Response::json(['success' => false, 'message' => 'Method not allowed'], 405);
-                return;
-            }
-
             $limit = (int) ($_GET['limit'] ?? 20);
             $offset = (int) ($_GET['offset'] ?? 0);
             $search = trim($_GET['search'] ?? '');
@@ -77,12 +71,6 @@ class ScmController
     public function import(): void
     {
         try {
-            $method = $_SERVER['REQUEST_METHOD'];
-            if ($method !== 'POST') {
-                Response::json(['success' => false, 'message' => 'Method not allowed'], 405);
-                return;
-            }
-
             $input = Request::body();
             if (!$input || !isset($input['rows']) || !is_array($input['rows'])) {
                 Response::json(['success' => false, 'message' => 'Dados inválidos'], 400);
@@ -99,6 +87,7 @@ class ScmController
                 'skipped'   => $result['skipped'],
                 'errors'    => $result['errors'],
             ]);
+            return;
         } catch (\Throwable $e) {
             Response::serverError($e);
         }
@@ -109,6 +98,7 @@ class ScmController
         try {
             $segments = $this->service->segments();
             Response::json(['success' => true, 'data' => $segments]);
+            return;
         } catch (\Throwable $e) {
             Response::serverError($e);
         }
@@ -119,6 +109,7 @@ class ScmController
         try {
             $sites = $this->service->sites();
             Response::json(['success' => true, 'data' => $sites]);
+            return;
         } catch (\Throwable $e) {
             Response::serverError($e);
         }
@@ -127,12 +118,6 @@ class ScmController
     public function delete(): void
     {
         try {
-            $method = $_SERVER['REQUEST_METHOD'];
-            if ($method !== 'DELETE') {
-                Response::json(['success' => false, 'message' => 'Method not allowed'], 405);
-                return;
-            }
-
             $input = Request::body();
             $id = (int) ($input['id'] ?? 0);
             if ($id <= 0) {
@@ -147,6 +132,7 @@ class ScmController
             }
 
             Response::json(['success' => true, 'message' => 'SCM excluído com sucesso']);
+            return;
         } catch (\Throwable $e) {
             Response::serverError($e);
         }

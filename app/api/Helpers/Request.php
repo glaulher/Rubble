@@ -2,8 +2,6 @@
 
 namespace App\Api\Helpers;
 
-use Exception;
-
 class Request
 {
     /*
@@ -26,7 +24,7 @@ class Request
 
         if (json_last_error() !== JSON_ERROR_NONE) {
 
-            throw new Exception(
+            throw new \InvalidArgumentException(
                 'JSON inválido'
             );
         }

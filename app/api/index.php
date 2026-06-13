@@ -25,7 +25,7 @@ $auth->handle($route, $method);
 $router = new Router();
 
 // Equipment
-$router->addRoute('equipment', 'GET', function () {
+$router->addRoute('equipment', 'GET', function () use ($auth) {
     if (isset($_GET['action']) && $_GET['action'] === 'check-chiller') {
         (new EquipmentController())->checkChiller();
     } elseif (isset($_GET['action']) && $_GET['action'] === 'tickets-by-equipment') {
@@ -40,7 +40,7 @@ $router->addRoute('equipment', 'GET', function () {
 });
 
 // Tickets
-$router->addRoute('tickets', 'GET', function () {
+$router->addRoute('tickets', 'GET', function () use ($auth) {
     $controller = new TicketController();
     if (isset($_GET['id'])) {
         $controller->getById();
@@ -48,7 +48,7 @@ $router->addRoute('tickets', 'GET', function () {
         $controller->listByItem();
     }
 });
-$router->addRoute('tickets', 'POST', function () {
+$router->addRoute('tickets', 'POST', function () use ($auth) {
     $controller = new TicketController();
     if (isset($_GET['action']) && $_GET['action'] === 'import') {
         $controller->import();
@@ -66,7 +66,7 @@ $router->addRoute('dashboard', 'GET', fn () => (new DashboardController())->stat
 $router->addRoute('pv-dashboard', 'GET', fn () => (new PvDashboardController())->stats());
 
 // Notifications
-$router->addRoute('notify', 'GET', function () {
+$router->addRoute('notify', 'GET', function () use ($auth) {
     try {
         $result = require __DIR__ . '/Cron/check_notification.php';
         Response::success($result['message'] ?? 'Notificação processada', [
@@ -82,7 +82,7 @@ $router->addRoute('notify', 'GET', function () {
 $router->addRoute('locals', 'GET', fn () => (new PvController())->getLocals());
 
 // PV
-$router->addRoute('pv', 'GET', function () {
+$router->addRoute('pv', 'GET', function () use ($auth) {
     $controller = new PvController();
     $action = $_GET['action'] ?? null;
 
@@ -102,7 +102,7 @@ $router->addRoute('pv', 'GET', function () {
         $controller->listAll();
     }
 });
-$router->addRoute('pv', 'POST', function () {
+$router->addRoute('pv', 'POST', function () use ($auth) {
     $controller = new PvController();
     $action = $_GET['action'] ?? null;
 
@@ -121,7 +121,7 @@ $router->addRoute('pv', 'PATCH', fn () => (new PvController())->updateStatus());
 $router->addRoute('pv', 'DELETE', fn () => (new PvController())->delete());
 
 // Auth
-$router->addRoute('auth', 'POST', function () {
+$router->addRoute('auth', 'POST', function () use ($auth) {
     $controller = new AuthController();
     $body = json_decode(file_get_contents('php://input'), true) ?? [];
     $action = $body['action'] ?? '';
@@ -135,7 +135,7 @@ $router->addRoute('auth', 'POST', function () {
 $router->addRoute('auth', 'GET', fn () => (new AuthController())->me());
 
 // Config (public)
-$router->addRoute('config', 'GET', function () {
+$router->addRoute('config', 'GET', function () use ($auth) {
     $siteKey = Env::get('TURNSTILE_SITE_KEY', '');
     if (Env::get('APP_DEBUG', 'false') === 'true') {
         $siteKey = '';
@@ -163,7 +163,7 @@ $router->addRoute('users', 'DELETE', function () use ($auth) {
 });
 
 // Equipment Management
-$router->addRoute('equipment-management', 'GET', function () {
+$router->addRoute('equipment-management', 'GET', function () use ($auth) {
     $ctrl = new EquipmentManagementController();
     if (isset($_GET['id'])) {
         $ctrl->getById();
@@ -176,7 +176,7 @@ $router->addRoute('equipment-management', 'PUT', fn () => (new EquipmentManageme
 $router->addRoute('equipment-management', 'DELETE', fn () => (new EquipmentManagementController())->delete());
 
 // Equipment Prices
-$router->addRoute('equipment-prices', 'GET', function () {
+$router->addRoute('equipment-prices', 'GET', function () use ($auth) {
     $ctrl = new EquipmentPriceController();
     if (isset($_GET['id'])) {
         $ctrl->getById();
@@ -189,7 +189,7 @@ $router->addRoute('equipment-prices', 'PUT', fn () => (new EquipmentPriceControl
 $router->addRoute('equipment-prices', 'DELETE', fn () => (new EquipmentPriceController())->delete());
 
 // Preventive Cycle
-$router->addRoute('preventive-cycle', 'GET', function () {
+$router->addRoute('preventive-cycle', 'GET', function () use ($auth) {
     $ctrl = new PreventiveCycleController();
     $action = $_GET['action'] ?? null;
 
@@ -205,7 +205,7 @@ $router->addRoute('preventive-cycle', 'GET', function () {
         $ctrl->listAll();
     }
 });
-$router->addRoute('preventive-cycle', 'POST', function () {
+$router->addRoute('preventive-cycle', 'POST', function () use ($auth) {
     $ctrl = new PreventiveCycleController();
     $ctrl->save();
 });

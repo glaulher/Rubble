@@ -66,7 +66,7 @@ class EquipmentRepository extends BaseRepository
             WHERE " . implode(" AND ", $conditions);
 
         if (!empty($params)) {
-            $stmt = $this->conn->prepare($sql);
+            $stmt = $this->safePrepare($sql);
             $stmt->bind_param($types, ...$params);
             $stmt->execute();
             $result = $stmt->get_result();
@@ -108,7 +108,7 @@ class EquipmentRepository extends BaseRepository
             )
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $types = 'sssssssss';
         $stmt->bind_param($types, $param, $param, $param, $param, $param, $param, $param, $param, $param);
         $stmt->execute();
@@ -135,7 +135,7 @@ class EquipmentRepository extends BaseRepository
         $params[] = $offset;
         $types .= 'ii';
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$params);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -157,7 +157,7 @@ class EquipmentRepository extends BaseRepository
             WHERE e.id = ?
             LIMIT 1
         ";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $equipmentId);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
@@ -173,7 +173,7 @@ class EquipmentRepository extends BaseRepository
             AND LOWER(equipamento) LIKE '%chiller%'
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $location);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -209,7 +209,7 @@ class EquipmentRepository extends BaseRepository
             GROUP BY pv.equipamento_id
         ";
 
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$ids);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -228,7 +228,7 @@ class EquipmentRepository extends BaseRepository
     public function listByLocal(string $localCode): array
     {
         $sql = "SELECT * FROM equipamentos WHERE local = ? ORDER BY equipamento";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $localCode);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -244,7 +244,7 @@ class EquipmentRepository extends BaseRepository
     public function listByLocalLike(string $localCode): array
     {
         $sql = "SELECT * FROM equipamentos WHERE local LIKE CONCAT('%', ?, '%') ORDER BY equipamento";
-        $stmt = $this->conn->prepare($sql);
+        $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $localCode);
         $stmt->execute();
         $result = $stmt->get_result();

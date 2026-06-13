@@ -28,6 +28,11 @@ class UserController
 
             $data = $this->service->listAll($search, $limit, $offset);
 
+            $data['items'] = array_map(function($user) {
+                unset($user['password']);
+                return $user;
+            }, $data['items']);
+
             Response::json([
                 'success' => true,
                 'message' => 'Usuários listados com sucesso',

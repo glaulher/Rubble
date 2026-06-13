@@ -102,7 +102,7 @@ class PvEmailService
         $pdfPaths = [];
         $osDir = PvRepository::OS_DIR;
         foreach ($osNumbers as $osNum) {
-            $osNum = trim($osNum);
+            $osNum = preg_replace('/[^a-zA-Z0-9_-]/', '', trim($osNum));
             if ($osNum === '') continue;
             $path = $osDir . '/' . basename($osNum) . '.pdf';
             if (!file_exists($path)) {
@@ -123,7 +123,8 @@ class PvEmailService
         foreach ($items as $item) {
             $report = $item['laudo'] ?? null;
             if ($report && $report !== 'N/A') {
-                $path = $reportDir . '/' . basename($report) . '.pdf';
+                $report = preg_replace('/[^a-zA-Z0-9_-]/', '', basename($report));
+                $path = $reportDir . '/' . $report . '.pdf';
                 if (!file_exists($path)) {
                     return "PDF do laudo {$report} não encontrado. Coloque o arquivo em LAUDO/{$report}.pdf e tente novamente.";
                 }
@@ -142,7 +143,8 @@ class PvEmailService
             if ($orcamento) {
                 foreach (array_map('trim', explode(',', $orcamento)) as $file) {
                     if ($file === '') continue;
-                    $path = $reportDir . '/' . basename($file) . '.pdf';
+                    $file = preg_replace('/[^a-zA-Z0-9_-]/', '', basename($file));
+                    $path = $reportDir . '/' . $file . '.pdf';
                     if (file_exists($path)) {
                         $orcamentoPaths[] = $path;
                     }

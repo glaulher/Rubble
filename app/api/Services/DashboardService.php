@@ -8,6 +8,19 @@ class DashboardService
 {
     private DashboardRepository $repository;
 
+    private const STATUS_MAP = [
+        'Concluído' => 'completed',
+        'concluido' => 'completed',
+        'Pendente' => 'pending',
+        'pendente' => 'pending',
+        'Planejado' => 'planned',
+        'planejado' => 'planned',
+        'Em andamento' => 'pending',
+        'em andamento' => 'pending',
+        'Projeto Clean Up' => 'planned',
+        'projeto clean up' => 'planned',
+    ];
+
     public function __construct(?DashboardRepository $repository = null)
     {
         $this->repository = $repository ?? new DashboardRepository();
@@ -24,13 +37,8 @@ class DashboardService
         ];
 
         foreach ($rawCounts as $status => $count) {
-            if (stripos($status, 'conclu') !== false) {
-                $statusCounts['completed'] += $count;
-            } elseif (stripos($status, 'pendente') !== false) {
-                $statusCounts['pending'] += $count;
-            } elseif (stripos($status, 'planej') !== false) {
-                $statusCounts['planned'] += $count;
-            }
+            $bucket = self::STATUS_MAP[$status] ?? self::STATUS_MAP[mb_strtolower($status, 'UTF-8')] ?? 'pending';
+            $statusCounts[$bucket] += $count;
         }
 
         $totalTickets = array_sum($statusCounts);
