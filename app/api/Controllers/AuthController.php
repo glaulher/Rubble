@@ -24,7 +24,11 @@ class AuthController
                 Response::validation('Usuário e senha são obrigatórios');
             }
 
-            $rawIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+            if (Env::get('APP_DEBUG', 'false') === 'true') {
+                $rawIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+            } else {
+                $rawIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+            }
             $ip = trim(explode(',', $rawIp)[0]);
 
             if (RateLimiter::isLimited($ip, 'auth:login', 5, 300)) {
@@ -33,11 +37,12 @@ class AuthController
 
             if (Env::get('APP_DEBUG', 'false') !== 'true') {
                 $secretKey = Env::get('TURNSTILE_SECRET_KEY', '');
-                if (!empty($secretKey)) {
-                    $turnstileToken = $data['turnstile_token'] ?? '';
-                    if (empty($turnstileToken) || !TurnstileHelper::verify($turnstileToken, $secretKey)) {
-                        Response::error('Falha na verificação de segurança', 403);
-                    }
+                if (empty($secretKey)) {
+                    Response::error('Configuração de segurança incompleta', 500);
+                }
+                $turnstileToken = $data['turnstile_token'] ?? '';
+                if (empty($turnstileToken) || !TurnstileHelper::verify($turnstileToken, $secretKey)) {
+                    Response::error('Falha na verificação de segurança', 403);
                 }
             }
 

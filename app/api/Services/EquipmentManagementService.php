@@ -11,9 +11,9 @@ class EquipmentManagementService
 
     private EquipmentManagementRepository $repository;
 
-    public function __construct()
+    public function __construct(?EquipmentManagementRepository $repository = null)
     {
-        $this->repository = new EquipmentManagementRepository();
+        $this->repository = $repository ?? new EquipmentManagementRepository();
     }
 
     public function getById(int $id): ?array

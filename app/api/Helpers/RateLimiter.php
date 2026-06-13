@@ -6,11 +6,17 @@ use App\Config\Database;
 
 class RateLimiter
 {
+    private static ?int $lastCleanup = null;
+
     public static function isLimited(string $ip, string $endpoint, int $maxAttempts, int $windowSeconds = 60): bool
     {
         $conn = Database::connect();
 
-        $conn->query('DELETE FROM rate_limits WHERE window_start < DATE_SUB(NOW(), INTERVAL 1 HOUR)');
+        $now = time();
+        if (self::$lastCleanup === null || ($now - self::$lastCleanup) > 300) {
+            $conn->query('DELETE FROM rate_limits WHERE window_start < DATE_SUB(NOW(), INTERVAL 1 HOUR)');
+            self::$lastCleanup = $now;
+        }
 
         $windowStart = date('Y-m-d H:i:s', time() - $windowSeconds);
 

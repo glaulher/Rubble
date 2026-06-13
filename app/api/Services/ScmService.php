@@ -18,9 +18,9 @@ class ScmService
 
     private const PV_SYNC_STATUSES = ['SCM aprovado', 'SCM negado', 'SCM enviado'];
 
-    public function __construct()
+    public function __construct(?ScmRepository $repository = null)
     {
-        $this->repository = new ScmRepository();
+        $this->repository = $repository ?? new ScmRepository();
     }
 
     public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = []): array

@@ -125,7 +125,7 @@ class Response
 
         error_log("API Error [{$status}]: " . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
 
-        $message = Env::get('APP_DEBUG', false)
+        $message = Env::get('APP_DEBUG', 'false') === 'true'
             ? $e->getMessage()
             : 'Erro interno do servidor';
 

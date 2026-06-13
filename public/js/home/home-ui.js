@@ -199,6 +199,8 @@ function render(list, append = false) {
     grouped[e.local].push(e);
   });
 
+  let fullHtml = '';
+
   Object.keys(grouped).forEach((site) => {
     const localEquipment = grouped[site];
 
@@ -256,8 +258,10 @@ function render(list, append = false) {
       </div>
     `;
 
-    content.innerHTML += html;
+    fullHtml += html;
   });
+
+  content.innerHTML = fullHtml;
 
   if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
 }

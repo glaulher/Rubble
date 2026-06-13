@@ -10,16 +10,13 @@ class PvEmailService
 {
     public function send(array $pv, array $items, string $subjectKey, ?string $uf = null, ?string $local = null): array
     {
-        if (!$uf) {
-            $uf = $pv['uf'] ?? '';
-        }
+        $uf = $uf ?? $pv['uf'] ?? '';
         $envKey = $uf === 'ES' ? 'PV_EMAILS_ES' : 'PV_EMAILS_RJ';
 
         $displayLocation = $local ?: $pv['local'];
         $displayAddress = $pv['local_do_endereco'] ?? $pv['local'];
 
-        $tickets = $pv['tickets'] ?? [];
-        $osNumbers = array_map(fn(array $r) => $r['os'], $tickets);
+        $osNumbers = array_map(fn(array $r) => $r['os'], $pv['tickets'] ?? []);
         $osStr = implode(', ', $osNumbers);
 
         $subjects = [
@@ -31,107 +28,22 @@ class PvEmailService
         if (!isset($subjects[$subjectKey])) {
             return ['success' => false, 'message' => 'Assunto inválido'];
         }
-
         if (empty($osNumbers)) {
             return ['success' => false, 'message' => 'PV não possui número de OS'];
         }
 
-        $subject = $subjects[$subjectKey];
-
-        $pdfPaths = [];
-        $osDir = PvRepository::OS_DIR;
-        foreach ($osNumbers as $osNum) {
-            $osNum = trim($osNum);
-            if ($osNum === '') continue;
-            $path = $osDir . '/' . $osNum . '.pdf';
-            if (!file_exists($path)) {
-                return [
-                    'success' => false,
-                    'message' => "PDF da OS {$osNum} não encontrado. Coloque o arquivo em OS/{$osNum}.pdf e tente novamente."
-                ];
-            }
-            $pdfPaths[] = $path;
+        $pdfPaths = self::resolvePdfPaths($osNumbers);
+        if (is_string($pdfPaths)) {
+            return ['success' => false, 'message' => $pdfPaths];
         }
-        if (empty($pdfPaths)) {
-            return ['success' => false, 'message' => 'PV não possui número de OS'];
+        $reportPaths = self::resolveReportPaths($items);
+        if (is_string($reportPaths)) {
+            return ['success' => false, 'message' => $reportPaths];
         }
-
-        $reportPaths = [];
-        foreach ($items as $item) {
-            $report = $item['laudo'] ?? null;
-            if ($report && $report !== 'N/A') {
-                $reportDir = PvRepository::LAUDO_DIR;
-                $path = $reportDir . '/' . $report . '.pdf';
-                if (!file_exists($path)) {
-                    return [
-                        'success' => false,
-                        'message' => "PDF do laudo {$report} não encontrado. Coloque o arquivo em LAUDO/{$report}.pdf e tente novamente."
-                    ];
-                }
-                $reportPaths[] = $path;
-            }
-        }
-
-        $orcamentoPaths = [];
-        foreach ($items as $item) {
-            $orcamento = $item['orcamento'] ?? null;
-            if ($orcamento) {
-                $files = array_map('trim', explode(',', $orcamento));
-                foreach ($files as $file) {
-                    if (empty($file)) continue;
-                    $path = PvRepository::LAUDO_DIR . '/' . $file . '.pdf';
-                    if (file_exists($path)) {
-                        $orcamentoPaths[] = $path;
-                    }
-                }
-            }
-        }
+        $orcamentoPaths = self::resolveOrcamentoPaths($items);
 
         $body = $this->buildBody($pv, $items, $subjectKey, false);
-
-        try {
-            $mail = MailerFactory::create(60);
-
-            $emails = explode(',', Env::get($envKey, ''));
-            foreach ($emails as $email) {
-                $email = trim($email);
-                if ($email !== '') {
-                    $mail->addAddress($email);
-                }
-            }
-
-            $ccKey = $envKey . '_CC';
-            $ccEmails = explode(',', Env::get($ccKey, ''));
-            foreach ($ccEmails as $email) {
-                $email = trim($email);
-                if ($email !== '') {
-                    $mail->addCC($email);
-                }
-            }
-
-            $mail->isHTML(true);
-            $mail->Subject = $subject;
-            $mail->Body = $body;
-            foreach ($pdfPaths as $p) {
-                $mail->addAttachment($p);
-            }
-
-            foreach ($reportPaths as $lp) {
-                $mail->addAttachment($lp);
-            }
-
-            foreach ($orcamentoPaths as $orc) {
-                $mail->addAttachment($orc);
-            }
-
-            $mail->send();
-
-            return ['success' => true, 'message' => 'E-mail enviado com sucesso'];
-        } catch (\Throwable $e) {
-            $logMsg = isset($mail) ? $mail->ErrorInfo : $e->getMessage();
-            error_log('Erro ao enviar e-mail PV: ' . $logMsg);
-            return ['success' => false, 'message' => 'Erro ao enviar e-mail. Tente novamente mais tarde.'];
-        }
+        return self::configureMailer($pdfPaths, $reportPaths, $orcamentoPaths, $subjects[$subjectKey], $body, $envKey);
     }
 
     public function sendBatch(array $pvs, array $items, string $subjectKey, ?string $uf = null, ?string $local = null): array
@@ -141,10 +53,7 @@ class PvEmailService
         }
 
         $firstPv = $pvs[0];
-
-        if (!$uf) {
-            $uf = $firstPv['uf'] ?? '';
-        }
+        $uf = $uf ?? $firstPv['uf'] ?? '';
         $envKey = $uf === 'ES' ? 'PV_EMAILS_ES' : 'PV_EMAILS_RJ';
 
         $displayLocation = $local ?: $firstPv['local'];
@@ -159,7 +68,6 @@ class PvEmailService
         }
         $allOsNumbers = array_unique($allOsNumbers);
         $osStr = implode(', ', $allOsNumbers);
-
         $allPvNums = implode(', ', array_map(fn($p) => $p['numero_pv'] ?? '-', $pvs));
 
         $subjects = [
@@ -171,105 +79,115 @@ class PvEmailService
         if (!isset($subjects[$subjectKey])) {
             return ['success' => false, 'message' => 'Assunto inválido'];
         }
-
         if (empty($allOsNumbers)) {
             return ['success' => false, 'message' => 'Nenhuma PV possui número de OS'];
         }
 
-        $subject = $subjects[$subjectKey];
+        $pdfPaths = self::resolvePdfPaths($allOsNumbers);
+        if (is_string($pdfPaths)) {
+            return ['success' => false, 'message' => $pdfPaths];
+        }
+        $reportPaths = self::resolveReportPaths($items);
+        if (is_string($reportPaths)) {
+            return ['success' => false, 'message' => $reportPaths];
+        }
+        $orcamentoPaths = self::resolveOrcamentoPaths($items);
 
-        // Validate OS PDFs
+        $body = $this->buildBody($firstPv, $items, $subjectKey, true);
+        return self::configureMailer($pdfPaths, $reportPaths, $orcamentoPaths, $subjects[$subjectKey], $body, $envKey);
+    }
+
+    private static function resolvePdfPaths(array $osNumbers): array|string
+    {
         $pdfPaths = [];
         $osDir = PvRepository::OS_DIR;
-        foreach ($allOsNumbers as $osNum) {
-            $path = $osDir . '/' . $osNum . '.pdf';
+        foreach ($osNumbers as $osNum) {
+            $osNum = trim($osNum);
+            if ($osNum === '') continue;
+            $path = $osDir . '/' . basename($osNum) . '.pdf';
             if (!file_exists($path)) {
-                return [
-                    'success' => false,
-                    'message' => "PDF da OS {$osNum} não encontrado. Coloque o arquivo em OS/{$osNum}.pdf e tente novamente."
-                ];
+                return "PDF da OS {$osNum} não encontrado. Coloque o arquivo em OS/{$osNum}.pdf e tente novamente.";
             }
             $pdfPaths[] = $path;
         }
         if (empty($pdfPaths)) {
-            return ['success' => false, 'message' => 'Nenhuma OS válida para anexar'];
+            return 'Nenhuma OS válida para anexar';
         }
+        return $pdfPaths;
+    }
 
-        // Validate laudo PDFs
+    private static function resolveReportPaths(array $items): array|string
+    {
         $reportPaths = [];
+        $reportDir = PvRepository::LAUDO_DIR;
         foreach ($items as $item) {
             $report = $item['laudo'] ?? null;
             if ($report && $report !== 'N/A') {
-                $reportDir = PvRepository::LAUDO_DIR;
-                $path = $reportDir . '/' . $report . '.pdf';
+                $path = $reportDir . '/' . basename($report) . '.pdf';
                 if (!file_exists($path)) {
-                    return [
-                        'success' => false,
-                        'message' => "PDF do laudo {$report} não encontrado. Coloque o arquivo em LAUDO/{$report}.pdf e tente novamente."
-                    ];
+                    return "PDF do laudo {$report} não encontrado. Coloque o arquivo em LAUDO/{$report}.pdf e tente novamente.";
                 }
                 $reportPaths[] = $path;
             }
         }
+        return $reportPaths;
+    }
 
+    private static function resolveOrcamentoPaths(array $items): array
+    {
         $orcamentoPaths = [];
+        $reportDir = PvRepository::LAUDO_DIR;
         foreach ($items as $item) {
             $orcamento = $item['orcamento'] ?? null;
             if ($orcamento) {
-                $files = array_map('trim', explode(',', $orcamento));
-                foreach ($files as $file) {
-                    if (empty($file)) continue;
-                    $path = PvRepository::LAUDO_DIR . '/' . $file . '.pdf';
+                foreach (array_map('trim', explode(',', $orcamento)) as $file) {
+                    if ($file === '') continue;
+                    $path = $reportDir . '/' . basename($file) . '.pdf';
                     if (file_exists($path)) {
                         $orcamentoPaths[] = $path;
                     }
                 }
             }
         }
+        return $orcamentoPaths;
+    }
 
-        // Build body with isBatch=true
-        $body = $this->buildBody($firstPv, $items, $subjectKey, true);
+    private static function resolveEmailRecipients(string $envKey): array
+    {
+        $to = [];
+        foreach (explode(',', Env::get($envKey, '')) as $email) {
+            $email = trim($email);
+            if ($email !== '') $to[] = $email;
+        }
+        $cc = [];
+        foreach (explode(',', Env::get($envKey . '_CC', '')) as $email) {
+            $email = trim($email);
+            if ($email !== '') $cc[] = $email;
+        }
+        return ['to' => $to, 'cc' => $cc];
+    }
+
+    private static function configureMailer(array $pdfPaths, array $reportPaths, array $orcamentoPaths, string $subject, string $body, string $envKey): array
+    {
+        $recipients = self::resolveEmailRecipients($envKey);
 
         try {
             $mail = MailerFactory::create(60);
-
-            $emails = explode(',', Env::get($envKey, ''));
-            foreach ($emails as $email) {
-                $email = trim($email);
-                if ($email !== '') {
-                    $mail->addAddress($email);
-                }
-            }
-
-            $ccKey = $envKey . '_CC';
-            $ccEmails = explode(',', Env::get($ccKey, ''));
-            foreach ($ccEmails as $email) {
-                $email = trim($email);
-                if ($email !== '') {
-                    $mail->addCC($email);
-                }
-            }
-
             $mail->isHTML(true);
             $mail->Subject = $subject;
             $mail->Body = $body;
-            foreach ($pdfPaths as $p) {
-                $mail->addAttachment($p);
-            }
-            foreach ($reportPaths as $lp) {
-                $mail->addAttachment($lp);
-            }
 
-            foreach ($orcamentoPaths as $orc) {
-                $mail->addAttachment($orc);
-            }
+            foreach ($recipients['to'] as $email) $mail->addAddress($email);
+            foreach ($recipients['cc'] as $email) $mail->addCC($email);
+            foreach ($pdfPaths as $p) $mail->addAttachment($p);
+            foreach ($reportPaths as $p) $mail->addAttachment($p);
+            foreach ($orcamentoPaths as $p) $mail->addAttachment($p);
 
             $mail->send();
-
             return ['success' => true, 'message' => 'E-mail enviado com sucesso'];
         } catch (\Throwable $e) {
             $logMsg = isset($mail) ? $mail->ErrorInfo : $e->getMessage();
-            error_log('Erro ao enviar e-mail PV batch: ' . $logMsg);
+            error_log('Erro ao enviar e-mail PV: ' . $logMsg);
             return ['success' => false, 'message' => 'Erro ao enviar e-mail. Tente novamente mais tarde.'];
         }
     }

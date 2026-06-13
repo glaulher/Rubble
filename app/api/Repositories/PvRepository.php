@@ -80,6 +80,8 @@ class PvRepository extends BaseRepository
         $sortBy = in_array($sortBy, $allowedSort) ? $sortBy : 'pv.id';
         $sortDir = strtoupper($sortDir) === 'ASC' ? 'ASC' : 'DESC';
 
+        [$where, $filterTypes, $filterParams] = $this->buildFilterClause($search, $status, $cycle);
+
         $sql = "
             SELECT pv.*,
                 e.equipamento, e.capacidade, e.localidade, en.uf, en.local_do_endereco,
@@ -91,48 +93,14 @@ class PvRepository extends BaseRepository
             LEFT JOIN pv_item pi ON pi.pv_id = pv.id
             LEFT JOIN equipamentos e ON e.id = pv.equipamento_id
             LEFT JOIN enderecos en ON en.id = e.endereco_id
-            WHERE 1=1
-        ";
-
-        $params = [];
-        $types = '';
-
-        if ($search !== '') {
-            $sql .= " AND (
-                pv.numero_pv LIKE ?
-                OR pv.local LIKE ?
-                OR pv.ral LIKE ?
-                OR EXISTS (SELECT 1 FROM pv_os po JOIN registros r ON r.id = po.registro_id WHERE po.pv_id = pv.id AND r.os LIKE ?)
-                OR pi.scm LIKE ?
-                OR EXISTS (SELECT 1 FROM pv_item pi2 WHERE pi2.pv_id = pv.id AND pi2.laudo LIKE ?)
-                OR EXISTS (SELECT 1 FROM pv_item pi3 WHERE pi3.pv_id = pv.id AND (pi3.descricao_lpu LIKE ? OR pi3.descricao LIKE ?))
-            )";
-            $param = "%{$search}%";
-            $params = [$param, $param, $param, $param, $param, $param, $param, $param];
-            $types = 'ssssssss';
-        }
-
-        if ($status !== null && $status !== '') {
-            $sql .= " AND EXISTS (SELECT 1 FROM pv_item pi WHERE pi.pv_id = pv.id AND pi.status = ?)";
-            $params[] = $status;
-            $types .= 's';
-        }
-
-        if ($cycle !== null && $cycle !== '') {
-            $sql .= " AND pv.ciclo = ?";
-            $params[] = $cycle;
-            $types .= 's';
-        }
-
-        $sql .= "
+            {$where}
             GROUP BY pv.id
             ORDER BY {$sortBy} {$sortDir}
             LIMIT ? OFFSET ?
         ";
 
-        $params[] = $limit;
-        $params[] = $offset;
-        $types .= 'ii';
+        $params = array_merge($filterParams, [$limit, $offset]);
+        $types = $filterTypes . 'ii';
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bind_param($types, ...$params);

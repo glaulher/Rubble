@@ -15,6 +15,21 @@ async function initEquipmentManager() {
   if (input) input.value = '';
   document.querySelector('[data-action="navigate-equipment-form"]')
     ?.addEventListener('click', function () { window.location.hash = '#/equipmentForm'; });
+  const tbody = document.getElementById('equipmentTableBody');
+  if (tbody) {
+    tbody.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      switch (btn.dataset.action) {
+        case 'edit':
+          editEquipment(parseInt(btn.dataset.equipmentId));
+          break;
+        case 'delete':
+          deleteEquipment(parseInt(btn.dataset.equipmentId));
+          break;
+      }
+    });
+  }
   await loadEquipments();
   setupEquipmentSearch();
   createInfiniteScroll('sentinel', loadEquipments);
@@ -103,19 +118,6 @@ function renderEquipments() {
       '<td class="px-3 py-3 text-right">' + actions + '</td>' +
       '</tr>';
   }).join('');
-
-  tbody.addEventListener('click', function (e) {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    switch (btn.dataset.action) {
-      case 'edit':
-        editEquipment(parseInt(btn.dataset.equipmentId));
-        break;
-      case 'delete':
-        deleteEquipment(parseInt(btn.dataset.equipmentId));
-        break;
-    }
-  });
 }
 
 function setupEquipmentSearch() {

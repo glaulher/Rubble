@@ -9,9 +9,9 @@ class UserService
 {
     private UserRepository $repository;
 
-    public function __construct()
+    public function __construct(?UserRepository $repository = null)
     {
-        $this->repository = new UserRepository();
+        $this->repository = $repository ?? new UserRepository();
     }
 
     public function listAll(?string $search, int $limit, int $offset): array
@@ -36,6 +36,9 @@ class UserService
         if (strlen($data['password']) < 6) {
             throw new Exception('Senha deve ter pelo menos 6 caracteres');
         }
+        if (strlen($data['password']) > 128) {
+            throw new Exception('Senha não pode ter mais de 128 caracteres');
+        }
 
         $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
 
@@ -51,6 +54,9 @@ class UserService
 
         if (strlen($data['password']) < 6) {
             throw new Exception('Senha deve ter pelo menos 6 caracteres');
+        }
+        if (strlen($data['password']) > 128) {
+            throw new Exception('Senha não pode ter mais de 128 caracteres');
         }
 
         $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);

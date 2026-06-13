@@ -4,6 +4,7 @@ namespace App\Api\Controllers;
 
 use App\Api\Services\EquipmentPriceService;
 use App\Api\Helpers\Response;
+use App\Api\Helpers\Request;
 
 class EquipmentPriceController
 {
@@ -48,7 +49,7 @@ class EquipmentPriceController
     public function save(): void
     {
         try {
-            $body = json_decode(file_get_contents('php://input'), true) ?? [];
+            $body = Request::body();
 
             $id = $this->service->save($body);
 
@@ -69,7 +70,7 @@ class EquipmentPriceController
                 Response::error('ID inválido', 400);
             }
 
-            $body = json_decode(file_get_contents('php://input'), true) ?? [];
+            $body = Request::body();
 
             $updated = $this->service->update($id, $body);
 

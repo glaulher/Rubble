@@ -87,7 +87,7 @@ class NotificationService
 
             error_log("NotificationService: falha no envio para OS {$ticket->os} (id={$ticket->id})");
             return false;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log("NotificationService: erro ao enviar notificação OS {$ticket->os} (id={$ticket->id}): " . $e->getMessage());
             return false;
         }

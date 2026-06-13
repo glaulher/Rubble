@@ -524,14 +524,14 @@ class PvController
                 Response::error('Diretório de destino sem permissão de escrita', 500);
             }
 
-            $filename = basename($file['name']);
+            $osNumber = preg_replace('/[^0-9]/', '', $_POST['os_number'] ?? '');
+            if (empty($osNumber)) {
+                $osNumber = preg_replace('/[^a-zA-Z0-9_-]/', '', pathinfo($file['name'], PATHINFO_FILENAME));
+            }
+            $filename = $osNumber . '.pdf';
             $destPath = $dir . '/' . $filename;
 
-            $nameWithoutExt = pathinfo($filename, PATHINFO_FILENAME);
-
-            if (file_exists($destPath)) {
-                unlink($destPath);
-            }
+            $nameWithoutExt = $osNumber;
 
             $moveOk = move_uploaded_file($file['tmp_name'], $destPath);
             if (!$moveOk) {

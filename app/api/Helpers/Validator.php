@@ -21,7 +21,7 @@ class Validator
 
             if (
                 !isset($data[$field]) ||
-                trim($data[$field]) === ''
+                (!is_string($data[$field]) ? empty($data[$field]) : trim($data[$field]) === '')
             ) {
 
                 throw new Exception(
