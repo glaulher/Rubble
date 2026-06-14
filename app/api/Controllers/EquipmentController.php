@@ -166,10 +166,7 @@ class EquipmentController
 
             Response::json([
                 'success' => true,
-                'data' => array_map(
-                    fn($t) => $t->toArray(),
-                    $tickets
-                ),
+                'data' => $tickets,
             ]);
 
         } catch (\Throwable $e) {
@@ -199,15 +196,7 @@ class EquipmentController
             }
 
             $service = new TicketService();
-            $grouped = $service->listByItems($ids);
-
-            $result = [];
-            foreach ($grouped as $eqId => $tickets) {
-                $result[(string) $eqId] = array_map(
-                    fn($t) => $t->toArray(),
-                    $tickets
-                );
-            }
+            $result = $service->listByItems($ids);
 
             Response::json([
                 'success' => true,

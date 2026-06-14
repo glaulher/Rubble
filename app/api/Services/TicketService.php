@@ -33,6 +33,16 @@ class TicketService
         return array_map(fn(Ticket $r) => $r->toArray(), $tickets);
     }
 
+    public function listByItems(array $ids): array
+    {
+        $grouped = $this->ticketRepository->listByItems($ids, self::STATUS_PRIORITY);
+        $result = [];
+        foreach ($grouped as $eqId => $tickets) {
+            $result[(string) $eqId] = array_map(fn(Ticket $t) => $t->toArray(), $tickets);
+        }
+        return $result;
+    }
+
     public function save(array $data): int
     {
         if (isset($data['status'])) {
