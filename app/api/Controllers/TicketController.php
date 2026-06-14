@@ -7,7 +7,6 @@ use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
 use App\Api\Helpers\Cache;
-use Exception;
 
 class TicketController
 {
@@ -36,6 +35,7 @@ class TicketController
                     'Parâmetro item obrigatório',
                     400
                 );
+                return;
             }
 
             $data =
@@ -48,7 +48,7 @@ class TicketController
                 $data
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e);
         }
@@ -99,7 +99,7 @@ class TicketController
                 201
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e, 400);
         }
@@ -142,7 +142,7 @@ class TicketController
                 'Registro atualizado com sucesso'
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e, 400);
         }
@@ -167,6 +167,7 @@ class TicketController
                     'ID obrigatório',
                     400
                 );
+                return;
             }
 
             $data =
@@ -179,7 +180,7 @@ class TicketController
                 $data
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e, 400);
         }
@@ -244,12 +245,13 @@ class TicketController
                 'Registro excluído com sucesso'
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             $message = $e->getMessage();
             if (str_contains($message, 'foreign key constraint')) {
                 error_log("Delete FK error: " . $e->getMessage());
                 Response::error('Não é possível excluir: existem PVs vinculados a este registro. Exclua a PV primeiro.', 400);
+                return;
             }
 
             Response::serverError($e, 400);

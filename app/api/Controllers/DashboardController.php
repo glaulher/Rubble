@@ -4,7 +4,6 @@ namespace App\Api\Controllers;
 
 use App\Api\Services\DashboardService;
 use App\Api\Helpers\Response;
-use Exception;
 
 class DashboardController
 {
@@ -39,7 +38,7 @@ class DashboardController
                 'resolutionByTechnician' => $data['resolutionByTechnician'],
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e);
         }

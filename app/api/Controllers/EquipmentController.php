@@ -3,10 +3,9 @@
 namespace App\Api\Controllers;
 
 use App\Api\Services\EquipmentService;
-use App\Api\Repositories\TicketRepository;
+use App\Api\Services\TicketService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Cache;
-use Exception;
 
 class EquipmentController
 {
@@ -90,7 +89,7 @@ class EquipmentController
 
             Response::json($response);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e);
         }
@@ -115,6 +114,7 @@ class EquipmentController
                     'Local obrigatório',
                     400
                 );
+                return;
             }
 
             $hasChiller =
@@ -129,7 +129,7 @@ class EquipmentController
                 ],
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e);
         }
@@ -151,8 +151,8 @@ class EquipmentController
                 Response::error('ID do equipamento obrigatório', 400);
             }
 
-            $repo = new TicketRepository();
-            $tickets = $repo->listByItem($equipId);
+            $service = new TicketService();
+            $tickets = $service->listByItem($equipId);
 
             Response::json([
                 'success' => true,
@@ -162,7 +162,7 @@ class EquipmentController
                 ),
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e);
         }
@@ -188,8 +188,8 @@ class EquipmentController
                 return;
             }
 
-            $repo = new TicketRepository();
-            $grouped = $repo->listByItems($ids);
+            $service = new TicketService();
+            $grouped = $service->listByItems($ids);
 
             $result = [];
             foreach ($grouped as $eqId => $tickets) {
@@ -204,7 +204,7 @@ class EquipmentController
                 'data' => $result,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e);
         }
@@ -251,7 +251,7 @@ class EquipmentController
 
             Response::json($response);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e);
         }

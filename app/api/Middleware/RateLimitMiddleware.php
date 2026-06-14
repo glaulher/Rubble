@@ -4,6 +4,7 @@ namespace App\Api\Middleware;
 
 use App\Api\Helpers\RateLimiter;
 use App\Api\Helpers\Response;
+use App\Config\Env;
 
 class RateLimitMiddleware
 {
@@ -23,10 +24,15 @@ class RateLimitMiddleware
             return;
         }
 
-        $rawIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+        $isDebug = Env::get('APP_DEBUG', 'false') === 'true';
+        $rawIp = $isDebug
+            ? ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0')
+            : ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
         $ip = trim(explode(',', $rawIp)[0]);
         $endpoint = $route . ':' . $method;
         $maxAttempts = self::LIMITS[$route][$method];
+
+        RateLimiter::hit($ip, $endpoint, 60);
 
         if (RateLimiter::isLimited($ip, $endpoint, $maxAttempts, 60)) {
             Response::error('Muitas requisições. Aguarde um momento.', 429);

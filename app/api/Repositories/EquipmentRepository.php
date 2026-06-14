@@ -29,27 +29,51 @@ class EquipmentRepository extends BaseRepository
         }
 
         if ($search !== '') {
-            $conditions[] = "(
-                e.local LIKE ?
-                OR e.local_scm LIKE ?
-                OR e.equipamento LIKE ?
-                OR en.local_do_endereco LIKE ?
-                OR en.endereco LIKE ?
-                OR EXISTS (
-                    SELECT 1
-                    FROM registros r
-                    WHERE r.equipamento_id = e.id
-                    AND (
-                        r.status LIKE ?
-                        OR r.obs LIKE ?
-                        OR r.material LIKE ?
-                        OR r.os LIKE ?
+            if (mb_strlen($search) >= 3) {
+                $fulltextTerms = '+' . implode(' +*', preg_split('/\s+/', trim($search)));
+                $conditions[] = "(
+                    MATCH(e.local, e.equipamento, e.localidade) AGAINST(? IN BOOLEAN MODE)
+                    OR e.local_scm LIKE ?
+                    OR en.local_do_endereco LIKE ?
+                    OR en.endereco LIKE ?
+                    OR EXISTS (
+                        SELECT 1
+                        FROM registros r
+                        WHERE r.equipamento_id = e.id
+                        AND (
+                            r.status LIKE ?
+                            OR r.obs LIKE ?
+                            OR r.material LIKE ?
+                            OR r.os LIKE ?
+                        )
                     )
-                )
-            )";
-            $param = "%{$search}%";
-            $params = array_merge($params, [$param, $param, $param, $param, $param, $param, $param, $param, $param]);
-            $types .= 'sssssssss';
+                )";
+                $param = "%{$search}%";
+                $params = array_merge($params, [$fulltextTerms, $param, $param, $param, $param, $param, $param, $param]);
+                $types .= 'ssssssss';
+            } else {
+                $conditions[] = "(
+                    e.local LIKE ?
+                    OR e.local_scm LIKE ?
+                    OR e.equipamento LIKE ?
+                    OR en.local_do_endereco LIKE ?
+                    OR en.endereco LIKE ?
+                    OR EXISTS (
+                        SELECT 1
+                        FROM registros r
+                        WHERE r.equipamento_id = e.id
+                        AND (
+                            r.status LIKE ?
+                            OR r.obs LIKE ?
+                            OR r.material LIKE ?
+                            OR r.os LIKE ?
+                        )
+                    )
+                )";
+                $param = "%{$search}%";
+                $params = array_merge($params, [$param, $param, $param, $param, $param, $param, $param, $param, $param]);
+                $types .= 'sssssssss';
+            }
         }
 
         return [$conditions, $types, $params];

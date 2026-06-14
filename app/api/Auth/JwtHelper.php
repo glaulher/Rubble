@@ -3,6 +3,7 @@
 namespace App\Api\Auth;
 
 use App\Api\Helpers\Cache;
+use App\Config\Database;
 
 class JwtHelper
 {
@@ -63,8 +64,26 @@ class JwtHelper
             return null;
         }
 
-        if (isset($payload->jti) && Cache::has('revoked:' . $payload->jti)) {
-            return null;
+        if (isset($payload->jti)) {
+            if (Cache::has('revoked:' . $payload->jti)) {
+                return null;
+            }
+            try {
+                $conn = Database::connect();
+                $stmt = $conn->prepare('SELECT 1 FROM token_blacklist WHERE jti = ? AND expires_at > NOW() LIMIT 1');
+                if ($stmt) {
+                    $stmt->bind_param('s', $payload->jti);
+                    $stmt->execute();
+                    $exists = $stmt->get_result()->fetch_row();
+                    $stmt->close();
+                    if ($exists) {
+                        Cache::set('revoked:' . $payload->jti, true, max((int)$payload->exp - time(), 1));
+                        return null;
+                    }
+                }
+            } catch (\Throwable $e) {
+                error_log('JwtHelper blacklist check failed: ' . $e->getMessage());
+            }
         }
 
         return $payload;

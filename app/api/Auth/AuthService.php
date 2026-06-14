@@ -83,6 +83,15 @@ class AuthService
         }
         $ttl = max((int)$payload->exp - time(), 1);
         Cache::set('revoked:' . $payload->jti, true, $ttl);
+
+        $conn = Database::connect();
+        $expiresAt = date('Y-m-d H:i:s', (int)$payload->exp);
+        $stmt = $conn->prepare(
+            'INSERT IGNORE INTO token_blacklist (jti, expires_at) VALUES (?, ?)'
+        );
+        $stmt->bind_param('ss', $payload->jti, $expiresAt);
+        $stmt->execute();
+        $stmt->close();
     }
 
     public static function requireRole(object $user, string $route, string $method, ?string $action): bool
@@ -103,7 +112,7 @@ class AuthService
                 'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm'],
             ],
             'cliente' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'locals'],
                 'write' => [],
             ],
         ];

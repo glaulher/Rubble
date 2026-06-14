@@ -250,36 +250,63 @@ class PreventiveCycleRepository extends BaseRepository
         $saved = 0;
         $deleted = 0;
 
-        $this->beginTransaction();
-        try {
-            foreach ($items as $item) {
-                $equipamentoId = (int) ($item['equipamento_id'] ?? 0);
-                if ($equipamentoId <= 0) continue;
+        $checkedItems = [];
+        $uncheckedIds = [];
 
-                $checked = !empty($item['checked']);
+        foreach ($items as $item) {
+            $equipamentoId = (int) ($item['equipamento_id'] ?? 0);
+            if ($equipamentoId <= 0) continue;
+
+            if (!empty($item['checked'])) {
                 $observacao = $item['observacao'] ?? '';
                 $scmNumber = $item['scm_number'] ?? null;
                 if ($scmNumber !== null && trim($scmNumber) === '') {
                     $scmNumber = null;
                 }
+                $checkedItems[] = [$equipamentoId, $observacao, $scmNumber];
+            } else {
+                $uncheckedIds[] = $equipamentoId;
+            }
+        }
 
-                if ($checked) {
-                    $sql = "INSERT INTO preventive_cycle_items (ciclo, equipamento_id, observacao, scm_number)
-                            VALUES (?, ?, ?, ?)
-                            ON DUPLICATE KEY UPDATE observacao = VALUES(observacao), scm_number = VALUES(scm_number), updated_at = NOW()";
-                    $stmt = $this->safePrepare($sql);
-                    $stmt->bind_param('siss', $ciclo, $equipamentoId, $observacao, $scmNumber);
-                    $stmt->execute();
-                    if ($stmt->affected_rows > 0) $saved++;
-                    $stmt->close();
-                } else {
-                    $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ? AND equipamento_id = ?";
-                    $stmt = $this->safePrepare($sql);
-                    $stmt->bind_param('si', $ciclo, $equipamentoId);
-                    $stmt->execute();
-                    if ($stmt->affected_rows > 0) $deleted++;
-                    $stmt->close();
+        $this->beginTransaction();
+        try {
+            if (!empty($checkedItems)) {
+                $placeholders = [];
+                $bindValues = [];
+                $bindTypes = '';
+
+                foreach ($checkedItems as $i => $item) {
+                    $placeholders[] = '(?, ?, ?, ?)';
+                    $bindValues[] = $ciclo;
+                    $bindValues[] = $item[0];
+                    $bindValues[] = $item[1];
+                    $bindValues[] = $item[2];
+                    $bindTypes .= 'siss';
                 }
+
+                $sql = "INSERT INTO preventive_cycle_items (ciclo, equipamento_id, observacao, scm_number)
+                        VALUES " . implode(', ', $placeholders) . "
+                        ON DUPLICATE KEY UPDATE observacao = VALUES(observacao), scm_number = VALUES(scm_number), updated_at = NOW()";
+
+                $stmt = $this->safePrepare($sql);
+                $stmt->bind_param($bindTypes, ...$bindValues);
+                $stmt->execute();
+                $saved = $stmt->affected_rows;
+                $stmt->close();
+            }
+
+            if (!empty($uncheckedIds)) {
+                $placeholders = implode(',', array_fill(0, count($uncheckedIds), '?'));
+                $sql = "DELETE FROM preventive_cycle_items WHERE ciclo = ? AND equipamento_id IN ({$placeholders})";
+                $types = 's' . str_repeat('i', count($uncheckedIds));
+                $params = array_merge([$ciclo], $uncheckedIds);
+
+                $stmt = $this->safePrepare($sql);
+                $stmt->bind_param($types, ...$params);
+                $stmt->execute();
+                $deleted = $stmt->affected_rows;
+                $stmt->close();
             }
 
             $this->commit();

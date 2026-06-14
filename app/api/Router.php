@@ -21,21 +21,11 @@ class Router
 
     public function dispatch(string $route, string $method): void
     {
-        if (empty($route)) {
-            http_response_code(404);
-            echo json_encode([
+        if (empty($route) || !isset($this->routes[$route])) {
+            Response::json([
                 'success' => false,
                 'message' => 'Rota não encontrada'
-            ]);
-            return;
-        }
-
-        if (!isset($this->routes[$route])) {
-            http_response_code(404);
-            echo json_encode([
-                'success' => false,
-                'message' => 'Rota não encontrada'
-            ]);
+            ], 404);
             return;
         }
 

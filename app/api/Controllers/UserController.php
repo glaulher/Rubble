@@ -6,7 +6,6 @@ use App\Api\Services\UserService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
-use Exception;
 
 class UserController
 {
@@ -41,7 +40,7 @@ class UserController
                 'limit' => $limit,
                 'offset' => $offset,
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e);
         }
     }
@@ -52,16 +51,18 @@ class UserController
             $id = Request::get('id');
             if (!$id) {
                 Response::error('ID obrigatório', 400);
+                return;
             }
 
             $data = $this->service->getById((int)$id);
             if (!$data) {
                 Response::notFound('Usuário não encontrado');
+                return;
             }
 
             unset($data['password']);
             Response::success('Usuário encontrado', $data);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
@@ -85,7 +86,7 @@ class UserController
             $id = $this->service->save($data);
 
             Response::success('Usuário cadastrado com sucesso', ['id' => $id], 201);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
@@ -110,7 +111,7 @@ class UserController
             $this->service->update((int)$data['id'], $data);
 
             Response::success('Usuário atualizado com sucesso');
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
@@ -128,7 +129,7 @@ class UserController
             $this->service->delete((int)$data['id'], $currentUserId);
 
             Response::success('Usuário excluído com sucesso');
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }

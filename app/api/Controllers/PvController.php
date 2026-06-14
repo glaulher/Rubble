@@ -7,7 +7,6 @@ use App\Api\Services\PvService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
-use Exception;
 
 class PvController
 {
@@ -78,7 +77,7 @@ class PvController
                 'offset' => $offset,
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e);
         }
@@ -123,7 +122,7 @@ class PvController
                 $data
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e, 400);
         }
@@ -186,7 +185,7 @@ class PvController
                 201
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e, 400);
         }
@@ -240,7 +239,7 @@ class PvController
                 'PV atualizada com sucesso'
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e, 400);
         }
@@ -278,7 +277,7 @@ class PvController
                 'Status atualizado com sucesso'
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e, 400);
         }
@@ -302,7 +301,7 @@ class PvController
                 $data
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e);
         }
@@ -338,7 +337,7 @@ class PvController
                 'PV excluída com sucesso'
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e, 400);
         }
@@ -388,7 +387,7 @@ class PvController
                 $result
             );
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
 
             Response::serverError($e, 400);
         }
@@ -419,7 +418,7 @@ class PvController
             $result = $this->service->searchLpuItems($lpuOrigin, $query);
 
             Response::success('Resultados', $result);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
@@ -438,7 +437,7 @@ class PvController
             $result = $this->service->searchTicketsByOs($query);
 
             Response::success('Resultados', $result);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
@@ -475,7 +474,7 @@ class PvController
                 'data' => $data,
                 'total' => count($data),
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
@@ -602,9 +601,10 @@ class PvController
 
             if ($result['success']) {
                 Response::success($result['message']);
-            } else {
-                Response::error($result['message'], 400);
+                return;
             }
+
+            Response::error($result['message'], 400);
 
         } catch (\Throwable $e) {
             error_log('Erro ao enviar e-mail: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
@@ -659,9 +659,10 @@ class PvController
                 $targetStatus = 'E-mail de lib. aquisição/serviço';
                 $this->service->updateItemsByWorstStatusBatch($ids, $targetStatus);
                 Response::success($result['message']);
-            } else {
-                Response::error($result['message'], 400);
+                return;
             }
+
+            Response::error($result['message'], 400);
 
         } catch (\Throwable $e) {
             error_log('Erro ao enviar e-mail batch: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());

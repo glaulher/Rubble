@@ -4,7 +4,6 @@ namespace App\Api\Controllers;
 
 use App\Api\Services\PreventiveCycleService;
 use App\Api\Helpers\{Response, Request, Validator};
-use Exception;
 
 class PreventiveCycleController
 {
@@ -37,7 +36,7 @@ class PreventiveCycleController
                 'offset' => $offset,
                 'ciclo' => $ciclo,
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e);
         }
     }
@@ -51,7 +50,7 @@ class PreventiveCycleController
             $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
             $data = $this->service->summary($ciclo, $hasObservacao, $noScm, $scmLancados);
             Response::success('', $data);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e);
         }
     }
@@ -73,7 +72,7 @@ class PreventiveCycleController
                 'saved' => $result['saved'],
                 'deleted' => $result['deleted'],
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
@@ -93,7 +92,7 @@ class PreventiveCycleController
             $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
             $ids = $this->service->listIds($ciclo, $search, $hasObservacao, $noScm, $scmLancados);
             Response::success('', ['ids' => $ids]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
@@ -108,7 +107,7 @@ class PreventiveCycleController
             }
             $data = $this->service->validateScm($scmNumber);
             Response::success('', $data);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e);
         }
     }
@@ -119,7 +118,7 @@ class PreventiveCycleController
             $ciclo = trim($_GET['ciclo'] ?? date('Y-m'));
             $data = $this->service->scmStatusCount($ciclo);
             Response::success('', $data);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e);
         }
     }

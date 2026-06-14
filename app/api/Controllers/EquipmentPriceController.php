@@ -34,12 +34,14 @@ class EquipmentPriceController
 
             if ($id <= 0) {
                 Response::error('ID inválido', 400);
+                return;
             }
 
             $item = $this->service->getById($id);
 
             if (!$item) {
                 Response::error('Registro não encontrado', 404);
+                return;
             }
 
             Response::success('', $item);
@@ -98,12 +100,14 @@ class EquipmentPriceController
 
             if ($id <= 0) {
                 Response::error('ID inválido', 400);
+                return;
             }
 
             $deleted = $this->service->delete($id);
 
             if (!$deleted) {
                 Response::error('Registro não encontrado', 404);
+                return;
             }
 
             Response::success('Preço excluído com sucesso');

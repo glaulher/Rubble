@@ -7,7 +7,6 @@ use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
 use App\Api\Helpers\Cache;
-use Exception;
 
 class EquipmentManagementController
 {
@@ -35,7 +34,7 @@ class EquipmentManagementController
                 'limit' => $limit,
                 'offset' => $offset,
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e);
         }
     }
@@ -46,15 +45,17 @@ class EquipmentManagementController
             $id = Request::get('id');
             if (!$id) {
                 Response::error('ID obrigatório', 400);
+                return;
             }
 
             $data = $this->service->getById((int)$id);
             if (!$data) {
                 Response::notFound('Equipamento não encontrado');
+                return;
             }
 
             Response::success('Equipamento encontrado', $data);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
@@ -75,6 +76,7 @@ class EquipmentManagementController
 
             if (strlen($data['uf']) !== 2) {
                 Response::error('UF deve ter 2 caracteres', 400);
+                return;
             }
 
             $id = $this->service->save($data);
@@ -83,7 +85,7 @@ class EquipmentManagementController
             Cache::deleteByPrefix('equipment_sum:');
 
             Response::success('Equipamento cadastrado com sucesso', ['id' => $id], 201);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
@@ -101,6 +103,7 @@ class EquipmentManagementController
 
             if (strlen($data['uf']) !== 2) {
                 Response::error('UF deve ter 2 caracteres', 400);
+                return;
             }
 
             $this->service->update((int)$data['id'], $data);
@@ -109,7 +112,7 @@ class EquipmentManagementController
             Cache::deleteByPrefix('equipment_sum:');
 
             Response::success('Equipamento atualizado com sucesso');
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
@@ -128,7 +131,7 @@ class EquipmentManagementController
             Cache::deleteByPrefix('equipment_sum:');
 
             Response::success('Equipamento excluído com sucesso');
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e, 400);
         }
     }
