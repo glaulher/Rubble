@@ -47,7 +47,8 @@
       for (var view in state) {
         var s = state[view];
         s.callback();
-        s.timer = setInterval(s.callback, s.intervalMs);
+        var jitter = s.intervalMs * (0.1 + Math.random() * 0.2);
+        s.timer = setInterval(s.callback, s.intervalMs + jitter);
       }
     }
   });

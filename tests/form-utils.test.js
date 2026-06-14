@@ -34,9 +34,12 @@ function formatDate(dateStr) {
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
-function generateCicloOptions() {
+function generateCicloOptions(referenceYear) {
+  const currentYear = referenceYear || new Date().getFullYear();
+  const startYear = currentYear - 5;
+  const endYear = currentYear + 5;
   const opts = [];
-  for (let y = 2026; y <= 2036; y++) {
+  for (let y = startYear; y <= endYear; y++) {
     for (let m = 1; m <= 12; m++) {
       opts.push(`${y}-${String(m).padStart(2, '0')}`);
     }
@@ -185,20 +188,27 @@ describe("formatDate", () => {
 // --- generateCicloOptions ---
 
 describe("generateCicloOptions", () => {
-  it("generates 132 options (11 years x 12 months)", () => {
-    const opts = generateCicloOptions();
+  it("generates (range * 12) options with referenceYear", () => {
+    const opts = generateCicloOptions(2026);
     expect(opts.length).toBe(132);
   });
 
-  it("starts with 2026-01 and ends with 2036-12", () => {
-    const opts = generateCicloOptions();
-    expect(opts[0]).toBe("2026-01");
-    expect(opts[opts.length - 1]).toBe("2036-12");
+  it("starts with refYear-5-01 and ends with refYear+5-12", () => {
+    const opts = generateCicloOptions(2026);
+    expect(opts[0]).toBe("2021-01");
+    expect(opts[opts.length - 1]).toBe("2031-12");
   });
 
   it("all options match YYYY-MM format", () => {
-    const opts = generateCicloOptions();
+    const opts = generateCicloOptions(2026);
     opts.forEach((o) => expect(o).toMatch(/^\d{4}-(0[1-9]|1[0-2])$/));
+  });
+
+  it("defaults to current year when no referenceYear", () => {
+    const opts = generateCicloOptions();
+    const currentYear = new Date().getFullYear();
+    expect(opts[0]).toBe((currentYear - 5) + "-01");
+    expect(opts[opts.length - 1]).toBe((currentYear + 5) + "-12");
   });
 });
 

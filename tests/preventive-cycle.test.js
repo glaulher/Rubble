@@ -1,20 +1,23 @@
 import { describe, it, expect } from 'bun:test';
 
 describe('PreventiveCycle', () => {
-  it('generateCicloOptions returns 132 options', () => {
-    function generateCicloOptions() {
+  it('generateCicloOptions returns (range * 12) options with referenceYear', () => {
+    function generateCicloOptions(referenceYear) {
+      var currentYear = referenceYear || new Date().getFullYear();
+      var startYear = currentYear - 5;
+      var endYear = currentYear + 5;
       var opts = [];
-      for (var y = 2026; y <= 2036; y++) {
+      for (var y = startYear; y <= endYear; y++) {
         for (var m = 1; m <= 12; m++) {
           opts.push(y + '-' + String(m).padStart(2, '0'));
         }
       }
       return opts;
     }
-    var opts = generateCicloOptions();
+    var opts = generateCicloOptions(2026);
     expect(opts.length).toBe(132);
-    expect(opts[0]).toBe('2026-01');
-    expect(opts[opts.length - 1]).toBe('2036-12');
+    expect(opts[0]).toBe('2021-01');
+    expect(opts[opts.length - 1]).toBe('2031-12');
   });
 
   it('escapeHtml escapes special characters', () => {

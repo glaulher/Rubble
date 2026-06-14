@@ -22,9 +22,9 @@ class EquipmentService
         $this->priceRepository = $priceRepository ?? new EquipmentPriceRepository();
     }
 
-    public function listAll(int $limit = 20, int $offset = 0, string $search = '', ?string $location = null, ?string $exactName = null): array
+    public function listAll(int $limit = 20, ?array $keyset = null, string $search = '', ?string $location = null, ?string $exactName = null): array
     {
-        $equipments = $this->equipmentRepository->listAll($limit, $offset, $search, $location, $exactName);
+        $equipments = $this->equipmentRepository->listAll($limit, $keyset, $search, $location, $exactName);
 
         $ids = array_map(fn($e) => $e->id, $equipments);
         $ticketSummary = $this->ticketRepository->listTicketSummaryByEquipmentIds($ids);

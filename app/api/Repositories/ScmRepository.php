@@ -215,7 +215,9 @@ class ScmRepository extends BaseRepository
         $sql = "SELECT DISTINCT segmento FROM scm
                 WHERE segmento IS NOT NULL AND segmento != ''
                 ORDER BY segmento";
-        $result = $this->conn->query($sql);
+        $stmt = $this->safePrepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
         $segments = [];
         while ($row = $result->fetch_assoc()) {
             $segments[] = $row['segmento'];
@@ -228,7 +230,9 @@ class ScmRepository extends BaseRepository
         $sql = "SELECT DISTINCT site FROM scm
                 WHERE site IS NOT NULL AND site != ''
                 ORDER BY site";
-        $result = $this->conn->query($sql);
+        $stmt = $this->safePrepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
         $sites = [];
         while ($row = $result->fetch_assoc()) {
             $sites[] = $row['site'];

@@ -9,6 +9,7 @@ use App\Api\Helpers\Response;
 use App\Api\Controllers\{AuthController, EquipmentController, EquipmentManagementController, EquipmentPriceController};
 use App\Api\Controllers\{TicketController, DashboardController, PvDashboardController};
 use App\Api\Controllers\{PvController, UserController, ScmController, PreventiveCycleController};
+use App\Api\Controllers\{UploadController, EmailController, ExportController};
 
 Env::load(__DIR__ . '/../../.env');
 
@@ -93,7 +94,7 @@ $router->addRoute('pv', 'GET', function () use ($auth) {
     } elseif ($action === 'search-os') {
         $controller->searchOs();
     } elseif ($action === 'export-csv') {
-        $controller->exportCsv();
+        (new ExportController())->exportCsv();
     } elseif ($action === 'list-by-ids') {
         $controller->listByIds();
     } elseif (isset($_GET['id'])) {
@@ -107,11 +108,11 @@ $router->addRoute('pv', 'POST', function () use ($auth) {
     $action = $_GET['action'] ?? null;
 
     if ($action === 'send-email') {
-        $controller->sendEmail();
+        (new EmailController())->sendEmail();
     } elseif ($action === 'send-batch-email') {
-        $controller->sendBatchEmail();
+        (new EmailController())->sendBatchEmail();
     } elseif ($action === 'upload') {
-        $controller->uploadFile();
+        (new UploadController())->uploadFile();
     } else {
         $controller->save();
     }

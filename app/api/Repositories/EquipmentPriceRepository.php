@@ -92,7 +92,7 @@ class EquipmentPriceRepository extends BaseRepository
 
     public function getActiveRules(): array
     {
-        $result = $this->conn->query(
+        $stmt = $this->safePrepare(
             "SELECT nome, equipamento_pattern, locais_especiais, mercado, valor
              FROM equipamento_precos WHERE ativo = 1
              ORDER BY CASE nome
@@ -102,10 +102,8 @@ class EquipmentPriceRepository extends BaseRepository
                  ELSE 4
              END"
         );
-
-        if (!$result) {
-            return [];
-        }
+        $stmt->execute();
+        $result = $stmt->get_result();
 
         $rules = [];
         while ($row = $result->fetch_assoc()) {
@@ -170,14 +168,12 @@ class EquipmentPriceRepository extends BaseRepository
         LEFT JOIN enderecos en ON en.id = e.endereco_id
         WHERE {$where}";
 
+        $stmt = $this->safePrepare($sql);
         if (!empty($params)) {
-            $stmt = $this->safePrepare($sql);
             $stmt->bind_param($types, ...$params);
-            $stmt->execute();
-            $result = $stmt->get_result();
-        } else {
-            $result = $this->conn->query($sql);
         }
+        $stmt->execute();
+        $result = $stmt->get_result();
 
         if (!$result) {
             return 0.0;
@@ -223,14 +219,12 @@ class EquipmentPriceRepository extends BaseRepository
                 LEFT JOIN enderecos en ON en.id = e.endereco_id
                 WHERE {$where}";
 
+        $stmt = $this->safePrepare($sql);
         if (!empty($params)) {
-            $stmt = $this->safePrepare($sql);
             $stmt->bind_param($types, ...$params);
-            $stmt->execute();
-            $result = $stmt->get_result();
-        } else {
-            $result = $this->conn->query($sql);
         }
+        $stmt->execute();
+        $result = $stmt->get_result();
 
         if (!$result) {
             return 0;

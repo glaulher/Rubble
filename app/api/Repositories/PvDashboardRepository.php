@@ -191,7 +191,9 @@ class PvDashboardRepository extends BaseRepository
     public function listLocations(): array
     {
         $sql = "SELECT DISTINCT local FROM pv ORDER BY local";
-        $result = $this->conn->query($sql);
+        $stmt = $this->safePrepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
         $locals = [];
         while ($row = $result->fetch_assoc()) {
             $locals[] = $row['local'];

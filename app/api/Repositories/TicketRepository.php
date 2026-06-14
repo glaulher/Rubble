@@ -223,13 +223,9 @@ class TicketRepository extends BaseRepository
                 AND r.notificacao_enviada = 0
         ";
 
-        $result = $this->conn->query($sql);
-        if (!$result) {
-            error_log('TicketRepository listScheduledToNotify error: ' . $this->conn->error);
-            throw new \RuntimeException(
-                'Erro interno na consulta'
-            );
-        }
+        $stmt = $this->safePrepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
         $records = [];
 

@@ -69,9 +69,12 @@ function updatePvCounter(total, totalValor) {
   }
 }
 
-function generateCicloOptions() {
+function generateCicloOptions(referenceYear) {
+  const currentYear = referenceYear || new Date().getFullYear();
+  const startYear = currentYear - 5;
+  const endYear = currentYear + 5;
   const opts = [];
-  for (let y = 2026; y <= 2036; y++) {
+  for (let y = startYear; y <= endYear; y++) {
     for (let m = 1; m <= 12; m++) {
       opts.push(`${y}-${String(m).padStart(2, '0')}`);
     }

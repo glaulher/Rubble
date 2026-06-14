@@ -56,7 +56,7 @@ async function loadPvs(isPolling) {
       const response = await fetch(url);
       const result = await response.json();
 
-      const newHash = JSON.stringify(result);
+      const newHash = result._hash || JSON.stringify(result);
       if (newHash === lastPvHash) {
         pvLoading = false;
         return;

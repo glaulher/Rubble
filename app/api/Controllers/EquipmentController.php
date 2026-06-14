@@ -29,9 +29,6 @@ class EquipmentController
             $limit =
                 (int) ($_GET['limit'] ?? 20);
 
-            $offset =
-                (int) ($_GET['offset'] ?? 0);
-
             $search =
                 trim($_GET['search'] ?? '');
 
@@ -45,8 +42,21 @@ class EquipmentController
                     ? $_GET['equipamento']
                     : null;
 
+            $keyset = null;
+            if (
+                isset($_GET['last_local']) &&
+                isset($_GET['last_equipamento']) &&
+                isset($_GET['last_id'])
+            ) {
+                $keyset = [
+                    'local' => $_GET['last_local'],
+                    'equipamento' => $_GET['last_equipamento'],
+                    'id' => (int) $_GET['last_id'],
+                ];
+            }
+
             $cacheKey = 'equipment_list:' . md5(serialize([
-                $limit, $offset, $search, $location, $equipamento
+                $limit, $keyset, $search, $location, $equipamento
             ]));
 
             $cached = Cache::get($cacheKey);
@@ -63,7 +73,7 @@ class EquipmentController
             $data =
                 $this->service->listAll(
                     $limit,
-                    $offset,
+                    $keyset,
                     $search,
                     $location,
                     $equipamento
@@ -83,6 +93,7 @@ class EquipmentController
                     $data['total_valor'],
                 'limit' => $limit,
                 'offset' => $offset,
+                '_hash' => md5(serialize($data['items'])),
             ];
 
             Cache::set($cacheKey, $response, 10);

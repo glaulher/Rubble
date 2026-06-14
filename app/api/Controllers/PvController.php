@@ -2,7 +2,6 @@
 
 namespace App\Api\Controllers;
 
-use App\Api\Repositories\PvRepository;
 use App\Api\Services\PvService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
@@ -75,6 +74,7 @@ class PvController
                 'total_valor' => $data['total_valor'],
                 'limit' => $limit,
                 'offset' => $offset,
+                '_hash' => md5(serialize($data['items'])),
             ]);
 
         } catch (\Throwable $e) {
@@ -425,7 +425,7 @@ class PvController
 
     /*
     |--------------------------------------------------------------------------
-    | CSV EXPORT
+    | SEARCH OS
     |--------------------------------------------------------------------------
     */
 
@@ -439,234 +439,6 @@ class PvController
             Response::success('Resultados', $result);
         } catch (\Throwable $e) {
             Response::serverError($e, 400);
-        }
-    }
-
-    public function exportCsv(): void
-    {
-        try {
-            $search = trim($_GET['search'] ?? '');
-            $status = isset($_GET['status']) && $_GET['status'] !== ''
-                ? $_GET['status']
-                : null;
-            $cycle = isset($_GET['ciclo']) && $_GET['ciclo'] !== ''
-                ? $_GET['ciclo']
-                : null;
-
-            $pvs = $this->service->listAll(999999, 0, $search, $status, $cycle, 'pv.id', 'ASC');
-
-            $pvIds = array_map(fn($p) => $p['id'], $pvs['items']);
-            $itemsGrouped = $this->service->getItemsForExport($pvIds);
-
-            $data = [];
-            foreach ($pvs['items'] as $pv) {
-                $pvId = $pv['id'];
-                $itens = $itemsGrouped[$pvId] ?? [];
-                $data[] = [
-                    'pv' => $pv,
-                    'itens' => $itens,
-                ];
-            }
-
-            Response::json([
-                'success' => true,
-                'message' => 'Dados exportados com sucesso',
-                'data' => $data,
-                'total' => count($data),
-            ]);
-        } catch (\Throwable $e) {
-            Response::serverError($e, 400);
-        }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | SEND EMAIL
-    |--------------------------------------------------------------------------
-    */
-
-    public function uploadFile(): void
-    {
-        try {
-            $type = $_POST['type'] ?? '';
-
-            if (!in_array($type, ['os', 'laudo', 'orcamento'], true)) {
-                Response::error('Tipo inválido. Use "os", "laudo" ou "orcamento"', 400);
-                return;
-            }
-
-            if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-                $errorCode = $_FILES['file']['error'] ?? -1;
-                $errorMsg = match ($errorCode) {
-                    UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Arquivo excede o tamanho máximo',
-                    UPLOAD_ERR_NO_FILE => 'Nenhum arquivo enviado',
-                    default => 'Erro no upload do arquivo',
-                };
-                error_log("[UPLOAD] Falha no upload: error_code={$errorCode}, type={$type}, _FILES=" . json_encode($_FILES['file'] ?? []));
-                Response::error($errorMsg, 400);
-                return;
-            }
-
-            $file = $_FILES['file'];
-            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
-            if ($ext !== 'pdf') {
-                Response::error('Apenas arquivos PDF são permitidos', 400);
-                return;
-            }
-
-            $maxSize = 10 * 1024 * 1024;
-            if ($file['size'] > $maxSize) {
-                Response::error('Arquivo excede o tamanho máximo de 10MB', 400);
-                return;
-            }
-
-            $tmpPath = $file['tmp_name'];
-            $handle = fopen($tmpPath, 'r');
-            $firstBytes = fread($handle, 5);
-            fclose($handle);
-            if ($firstBytes !== '%PDF-') {
-                Response::error('Arquivo não é um PDF válido', 400);
-                return;
-            }
-
-            $dir = $type === 'os'
-                ? PvRepository::OS_DIR
-                : PvRepository::LAUDO_DIR;
-
-            if (!is_dir($dir)) {
-                mkdir($dir, 0775, true);
-                error_log("[UPLOAD] Diretório criado: {$dir}");
-            }
-
-            if (!is_writable($dir)) {
-                error_log("[UPLOAD] Diretório NÃO gravável: {$dir}, perms=" . substr(sprintf('%o', fileperms($dir)), -4));
-                Response::error('Diretório de destino sem permissão de escrita', 500);
-                return;
-            }
-
-            $osNumber = preg_replace('/[^0-9]/', '', $_POST['os_number'] ?? '');
-            if (empty($osNumber)) {
-                $osNumber = preg_replace('/[^a-zA-Z0-9_-]/', '', pathinfo($file['name'], PATHINFO_FILENAME));
-            }
-            $filename = $osNumber . '.pdf';
-            $destPath = $dir . '/' . $filename;
-
-            $nameWithoutExt = $osNumber;
-
-            $moveOk = move_uploaded_file($file['tmp_name'], $destPath);
-            if (!$moveOk) {
-                $errNo = error_get_last();
-                error_log("[UPLOAD] move_uploaded_file FALHOU: tmp={$tmpPath}, dest={$destPath}, error=" . ($errNo['message'] ?? 'unknown'));
-                Response::error('Falha ao salvar arquivo no servidor', 500);
-                return;
-            }
-
-            error_log("[UPLOAD] Sucesso: {$destPath}, size={$file['size']}");
-            Response::success('Arquivo enviado com sucesso', [
-                'filename' => $nameWithoutExt,
-            ]);
-
-        } catch (\Throwable $e) {
-            error_log("[UPLOAD] Exceção: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
-            Response::serverError($e, 500);
-        }
-    }
-
-    public function sendEmail(): void
-    {
-        try {
-
-            $data = Request::body();
-
-            Validator::required($data, ['id', 'subject']);
-            Validator::integer($data, 'id');
-
-            $pvData = $this->service->getById((int) $data['id']);
-            if (!$pvData) {
-                Response::error('PV não encontrada', 404);
-                return;
-            }
-
-            $items = $pvData['itens'] ?? [];
-
-            $service = new \App\Api\Services\PvEmailService();
-            $result = $service->send(
-                $pvData,
-                $items,
-                $data['subject'],
-                $data['uf'] ?? null,
-                $data['local'] ?? null
-            );
-
-            if ($result['success']) {
-                Response::success($result['message']);
-                return;
-            }
-
-            Response::error($result['message'], 400);
-
-        } catch (\Throwable $e) {
-            error_log('Erro ao enviar e-mail: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-            Response::error('Erro ao enviar e-mail. Tente novamente mais tarde.', 400);
-        }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | SEND BATCH EMAIL
-    |--------------------------------------------------------------------------
-    */
-
-    public function sendBatchEmail(): void
-    {
-        try {
-            $data = Request::body();
-
-            Validator::required($data, ['subject']);
-
-            $ids = $data['ids'] ?? [];
-            if (!is_array($ids) || empty($ids)) {
-                Response::error('Selecione ao menos uma PV', 400);
-                return;
-            }
-
-            $pvsData = $this->service->getByIds($ids);
-            if (empty($pvsData)) {
-                Response::error('Nenhuma PV encontrada', 404);
-                return;
-            }
-
-            $allItems = [];
-            foreach ($pvsData as $pv) {
-                $pvItems = $pv['itens'] ?? [];
-                foreach ($pvItems as $item) {
-                    $item['numero_pv'] = $pv['numero_pv'] ?? '';
-                    $allItems[] = $item;
-                }
-            }
-
-            $service = new \App\Api\Services\PvEmailService();
-            $result = $service->sendBatch(
-                $pvsData,
-                $allItems,
-                $data['subject'],
-                $data['uf'] ?? null,
-                $data['local'] ?? null
-            );
-
-            if ($result['success']) {
-                $targetStatus = 'E-mail de lib. aquisição/serviço';
-                $this->service->updateItemsByWorstStatusBatch($ids, $targetStatus);
-                Response::success($result['message']);
-                return;
-            }
-
-            Response::error($result['message'], 400);
-
-        } catch (\Throwable $e) {
-            error_log('Erro ao enviar e-mail batch: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-            Response::error('Erro ao enviar e-mail. Tente novamente mais tarde.', 400);
         }
     }
 

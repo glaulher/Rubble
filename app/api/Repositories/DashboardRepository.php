@@ -9,14 +9,9 @@ class DashboardRepository extends BaseRepository
 
     private function queryOrFail(string $sql): \mysqli_result
     {
-        $result = $this->conn->query($sql);
-        if (!$result) {
-            error_log('DashboardRepository query error: ' . $this->conn->error);
-            throw new RuntimeException(
-                'Erro interno na consulta'
-            );
-        }
-        return $result;
+        $stmt = $this->safePrepare($sql);
+        $stmt->execute();
+        return $stmt->get_result();
     }
 
     public function statusCounts(): array

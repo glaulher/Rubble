@@ -89,20 +89,12 @@ class EquipmentRepository extends BaseRepository
             LEFT JOIN enderecos en ON en.id = e.endereco_id
             WHERE " . implode(" AND ", $conditions);
 
+        $stmt = $this->safePrepare($sql);
         if (!empty($params)) {
-            $stmt = $this->safePrepare($sql);
             $stmt->bind_param($types, ...$params);
-            $stmt->execute();
-            $result = $stmt->get_result();
-        } else {
-            $result = $this->conn->query($sql);
-            if (!$result) {
-                error_log('EquipmentRepository count error: ' . $this->conn->error);
-                throw new \RuntimeException(
-                    'Erro interno na consulta'
-                );
-            }
         }
+        $stmt->execute();
+        $result = $stmt->get_result();
 
         return (int) $result->fetch_assoc()['total'];
     }
@@ -139,9 +131,17 @@ class EquipmentRepository extends BaseRepository
         return (int) $stmt->get_result()->fetch_assoc()['total'];
     }
 
-    public function listAll(int $limit = 20, int $offset = 0, string $search = '', ?string $location = null, ?string $exactName = null): array
+    public function listAll(int $limit = 20, ?array $keyset = null, string $search = '', ?string $location = null, ?string $exactName = null): array
     {
         [$conditions, $types, $params] = $this->buildFilterClause($search, $location, $exactName);
+
+        if ($keyset !== null) {
+            $conditions[] = "(e.local, e.equipamento, e.id) > (?, ?, ?)";
+            $params[] = $keyset['local'];
+            $params[] = $keyset['equipamento'];
+            $params[] = $keyset['id'];
+            $types .= 'ssi';
+        }
 
         $sql = "
             SELECT
@@ -151,13 +151,12 @@ class EquipmentRepository extends BaseRepository
             FROM equipamentos e
             LEFT JOIN enderecos en ON en.id = e.endereco_id
             WHERE " . implode(" AND ", $conditions) . "
-            ORDER BY e.local, e.equipamento
-            LIMIT ? OFFSET ?
+            ORDER BY e.local, e.equipamento, e.id
+            LIMIT ?
         ";
 
         $params[] = $limit;
-        $params[] = $offset;
-        $types .= 'ii';
+        $types .= 'i';
 
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$params);

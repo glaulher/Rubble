@@ -665,8 +665,6 @@ function initHome() {
   setupInfiniteScroll();
 
   PollingManager.start('home', function () { loadEquipment(true); }, 30000);
-
-  PollingManager.start('home-badge', function () { loadEquipmentSummary(); }, 30000);
   loadEquipmentSummary();
 
   loadEquipment(false);

@@ -82,17 +82,47 @@ class PvRepository extends BaseRepository
 
         [$where, $filterTypes, $filterParams] = $this->buildFilterClause($search, $status, $cycle);
 
+        $statusPriority = "CASE pi2.status
+            WHEN 'SCM negado' THEN 1
+            WHEN 'Aguardando envio' THEN 2
+            WHEN 'Aprovado serv.' THEN 3
+            WHEN 'E-mail de lib. aquisição/serviço' THEN 4
+            WHEN 'Aprovado aquisição/serviço' THEN 5
+            WHEN 'E-mail de aprov. serv. realizado' THEN 6
+            WHEN 'SCM enviado' THEN 7
+            WHEN 'SCM aprovado' THEN 8
+            WHEN 'Cancelado' THEN 9
+            ELSE 99
+        END";
+
         $sql = "
+            WITH os_agg AS (
+                SELECT po.pv_id, GROUP_CONCAT(r.os ORDER BY r.id SEPARATOR ', ') AS os_numbers
+                FROM pv_os po
+                JOIN registros r ON r.id = po.registro_id
+                GROUP BY po.pv_id
+            ),
+            status_agg AS (
+                SELECT pv_id,
+                    SUBSTRING_INDEX(
+                        GROUP_CONCAT(status ORDER BY {$statusPriority}),
+                        ',', 1
+                    ) AS worst_status
+                FROM pv_item
+                GROUP BY pv_id
+            )
             SELECT pv.*,
                 e.equipamento, e.capacidade, e.localidade, en.uf, en.local_do_endereco,
                 COALESCE(SUM(pi.valor_total), 0) as valor_total,
                 COUNT(pi.id) as itens_count,
-                (SELECT GROUP_CONCAT(r.os ORDER BY r.id SEPARATOR ', ') FROM pv_os po JOIN registros r ON r.id = po.registro_id WHERE po.pv_id = pv.id) as `os`,
-                (SELECT pi2.status FROM pv_item pi2 WHERE pi2.pv_id = pv.id ORDER BY FIELD(pi2.status, 'SCM negado', 'Aguardando envio', 'Aprovado serv.', 'E-mail de lib. aquisição/serviço', 'Aprovado aquisição/serviço', 'E-mail de aprov. serv. realizado', 'SCM enviado', 'SCM aprovado', 'Cancelado') LIMIT 1) as worst_status
+                COALESCE(os_agg.os_numbers, '') as `os`,
+                status_agg.worst_status
             FROM pv
             LEFT JOIN pv_item pi ON pi.pv_id = pv.id
             LEFT JOIN equipamentos e ON e.id = pv.equipamento_id
             LEFT JOIN enderecos en ON en.id = e.endereco_id
+            LEFT JOIN os_agg ON os_agg.pv_id = pv.id
+            LEFT JOIN status_agg ON status_agg.pv_id = pv.id
             {$where}
             GROUP BY pv.id
             ORDER BY {$sortBy} {$sortDir}
@@ -511,13 +541,13 @@ class PvRepository extends BaseRepository
     public function listLocations(): array
     {
         $sql = "SELECT DISTINCT local FROM equipamentos ORDER BY local";
-        $result = $this->conn->query($sql);
-
+        $stmt = $this->safePrepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
         $locals = [];
         while ($row = $result->fetch_assoc()) {
             $locals[] = $row['local'];
         }
-
         return $locals;
     }
 

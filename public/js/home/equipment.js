@@ -21,7 +21,7 @@ async function loadEquipment(isPolling) {
       );
       const result = await response.json();
 
-      const newHash = JSON.stringify(result);
+      const newHash = result._hash || JSON.stringify(result);
       if (newHash === lastHomeHash) {
         loading = false;
         return;
@@ -50,11 +50,13 @@ async function loadEquipment(isPolling) {
   loading = true;
 
   try {
-    const offset = page * limit;
+    let url = `/app/api/index.php?route=equipment&limit=${limit}&search=${encodeURIComponent(currentSearch)}`;
+    if (equipment.length > 0) {
+      var lastItem = equipment[equipment.length - 1];
+      url += `&last_local=${encodeURIComponent(lastItem.local)}&last_equipamento=${encodeURIComponent(lastItem.equipamento)}&last_id=${lastItem.id}`;
+    }
 
-    const response = await fetch(
-      `/app/api/index.php?route=equipment&limit=${limit}&offset=${offset}&search=${encodeURIComponent(currentSearch)}`
-    );
+    const response = await fetch(url);
 
     const result = await response.json();
 
