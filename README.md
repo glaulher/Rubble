@@ -21,14 +21,17 @@ For full technical documentation (API reference, database schema, architecture, 
 - **User Management** — Admin CRUD with password hashing, role assignment, self-delete prevention
 - **Equipment Management (Admin)** — Admin/coordenador CRUD with address find-or-create, integrity check on delete
 - **Equipment Pricing** — Admin-only CRUD with rule-based pricing (TR/Chiller), mercado filter, home page value badges
-- **SCM (Service Control)** — CSV import with status mapping, multi-select filters (site/segmento), PV status sync on import
-- **Preventive Cycle** — Cycle-based equipment tracking with checkbox/radio filters, bulk check-all, real-time valor badge
+- **SCM (Service Control)** — CSV import with auto-detected delimiter, status mapping, multi-select dropdown filters (site/segmento), market cross-validation badge, PV status sync on import
+- **Preventive Cycle** — Cycle-based equipment tracking with checkbox/radio filters (observacao/selecionados/sem_scm/lancados), bulk check-all/uncheck-all, SCM validation per card, real-time valor badge
 - **CSV Export** — Equipment + ticket rows filtered by search term, per-ticket status in each row; PV items export with Windows-1252 encoding
-- **PDF Report** — PV items PDF via html2canvas + jsPDF with wrapped text and Memorial de Calculo
-- **CSV Import** — OS import from CSV with UTF-8/Latin-1 detection
-- **Real-Time Polling** — 30s interval with APCu cache (file fallback), Visibility API pause/resume, incremental DOM updates
+- **PDF Report** — PV items PDF via html2canvas + jsPDF with wrapped text and Memorial de Calculo; Dashboard PDF with smart page breaks
+- **CSV Import** — OS import from CSV with UTF-8/Latin-1 detection, site code extraction, tag-based equipment matching
+- **Real-Time Polling** — 30s with APCu cache (file fallback), hash comparison for incremental DOM, random jitter to prevent thundering herd, Visibility API pause/resume
+- **Keyset Pagination** — Efficient infinite scroll via `WHERE e.id > ? LIMIT ?` instead of `LIMIT/OFFSET`
+- **FULLTEXT Search** — `MATCH ... AGAINST` in BOOLEAN MODE for equipment search ≥ 3 chars (fallback LIKE for shorter queries)
+- **Gzip Compression** — Nginx-level gzip for JSON API responses (~80% bandwidth reduction)
 - **Email Notifications** — Cron-based SMTP dispatch for scheduled OS
-- **Security Hardening** — CORS validation, login rate limiting (5/5min), error sanitization, CSP headers, HSTS, Apache hardening
+- **Security Hardening** — CORS validation, login rate limiting (5/5min), error sanitization with `Response::serverError()`, CSP headers, HSTS, Apache hardening, token blacklist
 - **Dark Mode** — Toggle with localStorage persistence, prefers-color-scheme fallback, login page immune (always light), CSS variable system
 - **Dashboard PDF** — Full dashboard capture with smart page breaks
 
@@ -58,10 +61,10 @@ For full technical documentation (API reference, database schema, architecture, 
 
 ### 1. Database
 
-Import the schema dump and run migrations:
+Import the schema and run migrations:
 
 ```bash
-mysql -u root -p manutencao < "manutencao (2).sql"
+mysql -u root -p manutencao < config/schema.sql
 # Then run each migration in config/migrations/ manually
 ```
 
@@ -140,10 +143,12 @@ bun test
 │   ├── utils/                     # utils, csv, upload, report, polling
 │   ├── components/                # modal, messagebox, pagination
 │   ├── home/                      # home-ui, equipment, form
+│   ├── equipment/                 # dashboard, list, form (admin/coordenador)
+│   ├── equipment-prices/          # list, form (admin)
 │   ├── pv/                        # constants, form-utils, form, list, modals, dashboard
 │   ├── user/                      # list, form (admin)
-│   ├── equipment/                 # list, form, dashboard (admin/coordenador)
 │   ├── scm/                       # scm-list, scm-import (admin/coordenador)
+│   ├── preventive-cycle/          # list (admin/coordenador)
 │   └── lib/                       # chart.umd.min, html2canvas.min, jspdf.umd.min
 ├── public/css/                    # default.css, fonts.css
 ├── public/fonts/Montserrat.woff2
@@ -158,7 +163,7 @@ bun test
 └── OS/ / LAUDO/                   # Upload dirs (local, not versioned)
 ```
 
-Script load order (index.html): `auth.js` → libs → utils → components → home → pv → user → equipment → scm → `router.js`
+Script load order (index.html): `sidebar.js` → `auth.js` → libs (chart, html2canvas, jspdf) → utils (utils, polling) → components (modal, messagebox, pagination, button) → utils (csv, upload, report) → home (home-ui, equipment, form) → equipment/dashboard → pv/dashboard → pv (constants, form-utils, form-item-row, form-autocomplete, form-filter, list, modals, modal-email, pdf-export, csv-export, form) → user → equipment (list, form) → equipment-prices → scm → preventive-cycle → `router.js`
 
 ## API Routes
 
@@ -171,12 +176,12 @@ Script load order (index.html): `auth.js` → libs → utils → components → 
 | `pv-dashboard` | GET | `stats()` (PV financial) |
 | `pv` | GET, POST, PUT, PATCH, DELETE | CRUD + `searchOs()`, `lookupItem()`, `searchLpuItems()`, `exportCsv()`, `sendEmail()`, `sendBatchEmail()`, `uploadFile()` |
 | `locals` | GET | `getLocals()` (autocomplete) |
-| `notify` | GET | Cron trigger |
-| `users` | GET, POST, PUT, DELETE | User CRUD (admin) |
 | `equipment-management` | GET, POST, PUT, DELETE | Equipment CRUD (admin/coordenador) |
-| `equipment-prices` | GET, POST, PUT, DELETE | Pricing CRUD (admin) |
-| `scm` | GET, POST, DELETE | SCM list, import, delete (admin/coordenador) |
-| `preventive-cycle` | GET, POST | Cycle list, summary, save, check-all, uncheck-all |
+| `equipment-prices` | GET, POST, PUT, DELETE | Pricing CRUD (admin), `listAll()`, `getById()`, `save()`, `resolvePrice()` |
+| `users` | GET, POST, PUT, DELETE | User CRUD (admin) |
+| `scm` | GET, POST, DELETE | `listAll()`, `getById()`, `import()`, `delete()`, `segments()`, `sites()` |
+| `preventive-cycle` | GET, POST | `listAll()`, `summary()`, `save()`, `check-all()`, `uncheck-all()`, `scmStatusCount()`, `validateScm()` |
+| `notify` | GET | Cron trigger |
 
 All routes (except `auth`) require JWT Bearer token. Access controlled by role.
 
@@ -190,7 +195,7 @@ All routes (except `auth`) require JWT Bearer token. Access controlled by role.
 | Manage Users | yes | no | no | no |
 | Manage Equipment | CRUD | no | CRUD (no delete) | no |
 | SCM Status | CRUD | no | CRUD (no delete) | no |
-| Preventive Cycle | CRUD | R/O | CRUD (no delete) | no |
+| Preventive Cycle | CRUD (save) | R/O | R/O | no |
 | Equipment Pricing | CRUD | no | no | no |
 
 ## Database
@@ -208,12 +213,13 @@ Main tables:
 | `usuarios` | Users (auth) |
 | `civil_lpu`, `material_*_lpu`, `servico_*_lpu` | LPU price catalogs |
 | `scm` | SCM status tracking |
-| `scm_items` | SCM line items (FK to scm) |
+| `scm_items` | SCM line items (FK → scm, ON DELETE CASCADE) |
 | `equipamento_precos` | Equipment pricing rules |
 | `preventive_cycle_items` | Preventive maintenance cycles |
 | `cron_controle` | Notification execution control |
 | `login_attempts` | Rate limiting for login |
 | `rate_limits` | Generic rate limiting |
+| `token_blacklist` | Logged-out / revoked JWT tokens |
 
 ## License
 
