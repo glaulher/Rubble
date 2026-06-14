@@ -2,10 +2,10 @@
 -- version 5.2.3
 -- https://www.phpmyadmin.net/
 --
--- Host: localhost
--- Tempo de geração: 29/05/2026 às 21:13
--- Versão do servidor: 11.4.10-MariaDB
--- Versão do PHP: 8.5.6
+-- Host: db:3306
+-- Tempo de geração: 14/06/2026 às 20:38
+-- Versão do servidor: 11.4.11-MariaDB-ubu2404
+-- Versão do PHP: 8.3.31
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -59,9 +59,6 @@ CREATE TABLE `enderecos` (
   `uf` varchar(2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Indexes for enderecos
-CREATE INDEX idx_enderecos_local_do_endereco ON enderecos (local_do_endereco);
-
 -- --------------------------------------------------------
 
 --
@@ -79,34 +76,20 @@ CREATE TABLE `equipamentos` (
   `mercado` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Indexes for equipamentos
-CREATE INDEX idx_equipamentos_local_equipamento ON equipamentos (local, equipamento);
-CREATE INDEX idx_equipamentos_local_scm ON equipamentos (local_scm);
-CREATE INDEX idx_equipamentos_mercado ON equipamentos (mercado);
-ALTER TABLE equipamentos ADD FULLTEXT INDEX ft_equipamentos_search (local, equipamento, localidade);
-
 -- --------------------------------------------------------
 
 --
--- Estrutura para tabela `scm`
+-- Estrutura para tabela `equipamento_precos`
 --
 
-CREATE TABLE `scm` (
+CREATE TABLE `equipamento_precos` (
   `id` int(11) NOT NULL,
-  `scm` varchar(100) NOT NULL,
-  `data` date DEFAULT NULL,
-  `atividade` text DEFAULT NULL,
-  `site` varchar(100) DEFAULT NULL,
-  `cidade` varchar(100) DEFAULT NULL,
-  `abertura` varchar(100) DEFAULT NULL,
-  `status` varchar(50) DEFAULT NULL,
-  `data_execucao` date DEFAULT NULL,
-  `data_validacao` date DEFAULT NULL,
-  `medicao` varchar(100) DEFAULT NULL,
-  `origem` varchar(100) DEFAULT NULL,
-  `segmento` varchar(100) DEFAULT NULL,
-  `obs` text DEFAULT NULL,
-  `equipamento_id` int(11) DEFAULT NULL,
+  `nome` varchar(50) NOT NULL,
+  `equipamento_pattern` varchar(100) DEFAULT NULL,
+  `locais_especiais` text DEFAULT NULL,
+  `mercado` varchar(50) DEFAULT NULL,
+  `valor` decimal(12,2) NOT NULL,
+  `ativo` tinyint(1) DEFAULT 1,
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -114,17 +97,14 @@ CREATE TABLE `scm` (
 -- --------------------------------------------------------
 
 --
--- Estrutura para tabela `scm_items`
+-- Estrutura para tabela `login_attempts`
 --
 
-CREATE TABLE `scm_items` (
+CREATE TABLE `login_attempts` (
   `id` int(11) NOT NULL,
-  `scm_id` int(11) NOT NULL,
-  `servico` text DEFAULT NULL,
-  `unidade` varchar(50) DEFAULT NULL,
-  `valor` decimal(12,2) DEFAULT NULL,
-  `qtde_execucao` decimal(12,3) DEFAULT NULL,
-  `subtotal_execucao` decimal(12,2) DEFAULT NULL
+  `ip_address` varchar(45) NOT NULL,
+  `attempted_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `success` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -153,6 +133,22 @@ CREATE TABLE `material_clima_lpu` (
   `descricao` mediumtext DEFAULT NULL,
   `unidade` varchar(50) DEFAULT NULL,
   `valor` decimal(10,2) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `preventive_cycle_items`
+--
+
+CREATE TABLE `preventive_cycle_items` (
+  `id` int(11) NOT NULL,
+  `ciclo` varchar(7) NOT NULL COMMENT 'YYYY-MM',
+  `equipamento_id` int(11) NOT NULL,
+  `observacao` text DEFAULT NULL,
+  `scm_number` varchar(100) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -195,9 +191,9 @@ CREATE TABLE `pv_item` (
   `fatura` enum('flpu','lpu') DEFAULT NULL,
   `scm` varchar(100) DEFAULT NULL,
   `laudo` varchar(30) DEFAULT NULL,
+  `filtro_data` text DEFAULT NULL COMMENT 'JSON com dados do calculo de filtro',
   `status` varchar(50) NOT NULL DEFAULT 'Aguardando envio',
-  `orcamento` varchar(500) DEFAULT NULL,
-  `filtro_data` text DEFAULT NULL COMMENT 'JSON com dados do calculo de filtro'
+  `orcamento` varchar(500) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -209,6 +205,20 @@ CREATE TABLE `pv_item` (
 CREATE TABLE `pv_os` (
   `pv_id` int(11) NOT NULL,
   `registro_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `rate_limits`
+--
+
+CREATE TABLE `rate_limits` (
+  `id` int(11) NOT NULL,
+  `ip_address` varchar(45) NOT NULL,
+  `endpoint` varchar(100) NOT NULL,
+  `window_start` datetime NOT NULL,
+  `attempt_count` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -231,8 +241,47 @@ CREATE TABLE `registros` (
   `notificacao_enviada` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Indexes for registros
-CREATE INDEX idx_registros_equipamento_search ON registros (equipamento_id, status, os);
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `scm`
+--
+
+CREATE TABLE `scm` (
+  `id` int(11) NOT NULL,
+  `scm` varchar(100) NOT NULL,
+  `data` date DEFAULT NULL,
+  `atividade` text DEFAULT NULL,
+  `site` varchar(100) DEFAULT NULL,
+  `cidade` varchar(100) DEFAULT NULL,
+  `data_execucao` date DEFAULT NULL,
+  `data_validacao` date DEFAULT NULL,
+  `medicao` varchar(100) DEFAULT NULL,
+  `origem` varchar(100) DEFAULT NULL,
+  `segmento` varchar(100) DEFAULT NULL,
+  `abertura` varchar(100) DEFAULT NULL,
+  `status` varchar(50) DEFAULT NULL,
+  `obs` text DEFAULT NULL,
+  `equipamento_id` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `scm_items`
+--
+
+CREATE TABLE `scm_items` (
+  `id` int(11) NOT NULL,
+  `scm_id` int(11) NOT NULL,
+  `servico` text DEFAULT NULL,
+  `unidade` varchar(50) DEFAULT NULL,
+  `valor` decimal(12,2) DEFAULT NULL,
+  `qtde_execucao` decimal(12,3) DEFAULT NULL,
+  `subtotal_execucao` decimal(12,2) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -307,10 +356,23 @@ ALTER TABLE `enderecos`
 ALTER TABLE `equipamentos`
   ADD PRIMARY KEY (`id`),
   ADD KEY `fk_equipamentos_endereco` (`endereco_id`),
-  ADD KEY `idx_equipamentos_local_equipamento` (`local`, `equipamento`),
+  ADD KEY `idx_equipamentos_local_equipamento` (`local`,`equipamento`),
   ADD KEY `idx_equipamentos_local_scm` (`local_scm`),
-  ADD KEY `idx_equipamentos_mercado` (`mercado`),
-  ADD FULLTEXT KEY `ft_equipamentos_search` (`local`, `equipamento`, `localidade`);
+  ADD KEY `idx_equipamentos_mercado` (`mercado`);
+ALTER TABLE `equipamentos` ADD FULLTEXT KEY `ft_equipamentos_search` (`local`,`equipamento`,`localidade`);
+
+--
+-- Índices de tabela `equipamento_precos`
+--
+ALTER TABLE `equipamento_precos`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Índices de tabela `login_attempts`
+--
+ALTER TABLE `login_attempts`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_login_attempts_ip_time` (`ip_address`,`attempted_at`);
 
 --
 -- Índices de tabela `material_chiller_lpu`
@@ -325,6 +387,15 @@ ALTER TABLE `material_chiller_lpu`
 ALTER TABLE `material_clima_lpu`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `numero_item` (`numero_item`);
+
+--
+-- Índices de tabela `preventive_cycle_items`
+--
+ALTER TABLE `preventive_cycle_items`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_ciclo_equip` (`ciclo`,`equipamento_id`),
+  ADD KEY `fk_preventive_cycle_equipamento` (`equipamento_id`),
+  ADD KEY `idx_pci_scm_number` (`scm_number`);
 
 --
 -- Índices de tabela `pv`
@@ -342,7 +413,8 @@ ALTER TABLE `pv`
 ALTER TABLE `pv_item`
   ADD PRIMARY KEY (`id`),
   ADD KEY `fk_pv_item_pv` (`pv_id`),
-  ADD KEY `idx_pv_item_status` (`status`);
+  ADD KEY `idx_pv_item_pv_status` (`pv_id`,`status`),
+  ADD KEY `idx_pv_item_scm` (`scm`);
 
 --
 -- Índices de tabela `pv_os`
@@ -350,6 +422,14 @@ ALTER TABLE `pv_item`
 ALTER TABLE `pv_os`
   ADD PRIMARY KEY (`pv_id`,`registro_id`),
   ADD KEY `idx_pv_os_registro` (`registro_id`);
+
+--
+-- Índices de tabela `rate_limits`
+--
+ALTER TABLE `rate_limits`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_rate_limit` (`ip_address`,`endpoint`,`window_start`),
+  ADD KEY `idx_rate_limits_lookup` (`ip_address`,`endpoint`,`window_start`);
 
 --
 -- Índices de tabela `registros`
@@ -360,7 +440,24 @@ ALTER TABLE `registros`
   ADD KEY `idx_registros_equipamento_id` (`equipamento_id`),
   ADD KEY `idx_registros_status` (`status`),
   ADD KEY `idx_registros_data` (`data`),
-  ADD KEY `idx_registros_equipamento_search` (`equipamento_id`, `status`, `os`);
+  ADD KEY `idx_registros_equipamento_search` (`equipamento_id`,`status`,`os`);
+
+--
+-- Índices de tabela `scm`
+--
+ALTER TABLE `scm`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_scm_code` (`scm`),
+  ADD KEY `idx_scm_equipamento` (`equipamento_id`),
+  ADD KEY `idx_scm_status` (`status`),
+  ADD KEY `idx_scm_site` (`site`);
+
+--
+-- Índices de tabela `scm_items`
+--
+ALTER TABLE `scm_items`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_scm_items_scm_id` (`scm_id`);
 
 --
 -- Índices de tabela `servico_chiller_lpu`
@@ -412,6 +509,18 @@ ALTER TABLE `equipamentos`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de tabela `equipamento_precos`
+--
+ALTER TABLE `equipamento_precos`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `login_attempts`
+--
+ALTER TABLE `login_attempts`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de tabela `material_chiller_lpu`
 --
 ALTER TABLE `material_chiller_lpu`
@@ -421,6 +530,12 @@ ALTER TABLE `material_chiller_lpu`
 -- AUTO_INCREMENT de tabela `material_clima_lpu`
 --
 ALTER TABLE `material_clima_lpu`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `preventive_cycle_items`
+--
+ALTER TABLE `preventive_cycle_items`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -436,9 +551,27 @@ ALTER TABLE `pv_item`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de tabela `rate_limits`
+--
+ALTER TABLE `rate_limits`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de tabela `registros`
 --
 ALTER TABLE `registros`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `scm`
+--
+ALTER TABLE `scm`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `scm_items`
+--
+ALTER TABLE `scm_items`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -459,32 +592,6 @@ ALTER TABLE `servico_clima_lpu`
 ALTER TABLE `usuarios`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `login_attempts`
---
-
-CREATE TABLE `login_attempts` (
-  `id` int(11) NOT NULL,
-  `ip_address` varchar(45) NOT NULL,
-  `attempted_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `success` tinyint(1) NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Índices de tabela `login_attempts`
---
-ALTER TABLE `login_attempts`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_login_attempts_ip_time` (`ip_address`, `attempted_at`);
-
---
--- AUTO_INCREMENT de tabela `login_attempts`
---
-ALTER TABLE `login_attempts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
 --
 -- Restrições para tabelas despejadas
 --
@@ -494,6 +601,12 @@ ALTER TABLE `login_attempts`
 --
 ALTER TABLE `equipamentos`
   ADD CONSTRAINT `fk_equipamentos_endereco` FOREIGN KEY (`endereco_id`) REFERENCES `enderecos` (`id`);
+
+--
+-- Restrições para tabelas `preventive_cycle_items`
+--
+ALTER TABLE `preventive_cycle_items`
+  ADD CONSTRAINT `fk_preventive_cycle_equipamento` FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`) ON DELETE CASCADE;
 
 --
 -- Restrições para tabelas `pv`
@@ -515,94 +628,16 @@ ALTER TABLE `pv_os`
   ADD CONSTRAINT `fk_pv_os_registro` FOREIGN KEY (`registro_id`) REFERENCES `registros` (`id`);
 
 --
--- Índices de tabela `scm`
---
-ALTER TABLE `scm`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `idx_scm_code` (`scm`),
-  ADD KEY `idx_scm_equipamento` (`equipamento_id`),
-  ADD KEY `idx_scm_status` (`status`),
-  ADD KEY `idx_scm_site` (`site`);
-
---
--- AUTO_INCREMENT de tabela `scm`
---
-ALTER TABLE `scm`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- Restrições para tabelas `scm`
 --
 ALTER TABLE `scm`
   ADD CONSTRAINT `fk_scm_equipamento` FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`) ON DELETE SET NULL;
 
 --
--- Índices de tabela `scm_items`
---
-ALTER TABLE `scm_items`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_scm_items_scm_id` (`scm_id`);
-
---
--- AUTO_INCREMENT de tabela `scm_items`
---
-ALTER TABLE `scm_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- Restrições para tabelas `scm_items`
 --
 ALTER TABLE `scm_items`
   ADD CONSTRAINT `fk_scm_items_scm` FOREIGN KEY (`scm_id`) REFERENCES `scm` (`id`) ON DELETE CASCADE;
-
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `rate_limits`
---
-
-CREATE TABLE `rate_limits` (
-  `id` int(11) NOT NULL,
-  `ip_address` varchar(45) NOT NULL,
-  `endpoint` varchar(100) NOT NULL,
-  `window_start` datetime NOT NULL,
-  `attempt_count` int(11) NOT NULL DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Índices de tabela `rate_limits`
---
-ALTER TABLE `rate_limits`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uk_rate_limit` (`ip_address`, `endpoint`, `window_start`);
-
---
--- AUTO_INCREMENT de tabela `rate_limits`
---
-ALTER TABLE `rate_limits`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
--- --------------------------------------------------------
-
---
--- Estrutura para tabela `preventive_cycle_items`
---
-
-CREATE TABLE `preventive_cycle_items` (
-  `id`               INT AUTO_INCREMENT PRIMARY KEY,
-  `ciclo`            VARCHAR(7) NOT NULL COMMENT 'YYYY-MM',
-  `equipamento_id`   INT NOT NULL,
-  `observacao`       TEXT DEFAULT NULL,
-  `scm_number`       VARCHAR(100) DEFAULT NULL,
-  `created_at`       DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`       DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY `uk_ciclo_equip` (`ciclo`, `equipamento_id`),
-  KEY `idx_pci_scm_number` (`scm_number`),
-  CONSTRAINT `fk_preventive_cycle_equipamento`
-    FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`)
-    ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
