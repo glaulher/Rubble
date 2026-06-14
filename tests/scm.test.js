@@ -341,3 +341,133 @@ describe('buildScmCardHtml', () => {
         expect(dateSpanPattern.test(html)).toBe(false);
     });
 });
+
+// --------------- Multi-select filter logic ---------------
+
+function makeFilterUncheckLogic(allItems, initialTodos = true) {
+    const state = {
+        filter: new Set(),
+        todosChecked: initialTodos,
+    };
+
+    function uncheck(val) {
+        if (state.filter.size === 0 && state.todosChecked) {
+            state.filter = new Set(allItems);
+        }
+        state.filter.delete(val);
+        state.todosChecked = allItems.length > 0 && allItems.every(i => state.filter.has(i));
+    }
+
+    function check(val) {
+        state.filter.add(val);
+        state.todosChecked = allItems.length > 0 && allItems.every(i => state.filter.has(i));
+    }
+
+    function checked(val) {
+        return state.todosChecked || state.filter.has(val);
+    }
+
+    function has(val) {
+        return state.filter.has(val);
+    }
+
+    return { state, uncheck, check, checked, has };
+}
+
+describe('SCM multi-select filter uncheck sequence', () => {
+    const ALL = ['A', 'B', 'C'];
+
+    it('uncheck one item from Todos mode: only that item unchecked', () => {
+        const m = makeFilterUncheckLogic(ALL, true);
+        m.uncheck('A');
+        expect(m.state.todosChecked).toBe(false);
+        expect(m.has('A')).toBe(false);
+        expect(m.has('B')).toBe(true);
+        expect(m.has('C')).toBe(true);
+    });
+
+    it('uncheck two items sequentially: both stay unchecked', () => {
+        const m = makeFilterUncheckLogic(ALL, true);
+        m.uncheck('A');
+        m.uncheck('B');
+        expect(m.state.todosChecked).toBe(false);
+        expect(m.has('A')).toBe(false);
+        expect(m.has('B')).toBe(false);
+        expect(m.has('C')).toBe(true);
+    });
+
+    it('uncheck all items one by one: all become unchecked', () => {
+        const m = makeFilterUncheckLogic(ALL, true);
+        m.uncheck('A');
+        m.uncheck('B');
+        m.uncheck('C');
+        expect(m.state.todosChecked).toBe(false);
+        expect(m.has('A')).toBe(false);
+        expect(m.has('B')).toBe(false);
+        expect(m.has('C')).toBe(false);
+    });
+
+    it('uncheck, re-check, uncheck again: final state correct', () => {
+        const m = makeFilterUncheckLogic(ALL, true);
+        m.uncheck('A');
+        m.check('A');
+        expect(m.state.todosChecked).toBe(true);
+        expect(m.has('A')).toBe(true);
+
+        m.uncheck('A');
+        expect(m.state.todosChecked).toBe(false);
+        expect(m.has('A')).toBe(false);
+        expect(m.has('B')).toBe(true);
+        expect(m.has('C')).toBe(true);
+    });
+
+    it('Todos off, check one, uncheck same: correct', () => {
+        const m = makeFilterUncheckLogic(ALL, false);
+        m.check('A');
+        expect(m.state.todosChecked).toBe(false);
+        expect(m.has('A')).toBe(true);
+        expect(m.has('B')).toBe(false);
+        expect(m.has('C')).toBe(false);
+
+        m.uncheck('A');
+        expect(m.state.todosChecked).toBe(false);
+        expect(m.has('A')).toBe(false);
+    });
+
+    it('check multiple then uncheck one: others unaffected', () => {
+        const m = makeFilterUncheckLogic(ALL, false);
+        m.check('A');
+        m.check('B');
+        m.uncheck('A');
+        expect(m.state.todosChecked).toBe(false);
+        expect(m.has('A')).toBe(false);
+        expect(m.has('B')).toBe(true);
+        expect(m.has('C')).toBe(false);
+    });
+
+    it('re-renders with correct checked state after two unchecks', () => {
+        const m = makeFilterUncheckLogic(ALL, true);
+        m.uncheck('A');
+        m.uncheck('B');
+        expect(m.state.todosChecked).toBe(false);
+        expect(m.checked('A')).toBe(false);
+        expect(m.checked('B')).toBe(false);
+        expect(m.checked('C')).toBe(true);
+    });
+
+    it('re-renders with correct checked state after Todos toggle off then on then uncheck', () => {
+        const m = makeFilterUncheckLogic(ALL, true);
+        // Simulate Todos unchecked (clear set, todosChecked=false)
+        m.state.filter.clear();
+        m.state.todosChecked = false;
+        // Simulate Todos re-checked (clear set, todosChecked=true)
+        m.state.filter.clear();
+        m.state.todosChecked = true;
+        // Now uncheck one
+        m.uncheck('A');
+        expect(m.state.todosChecked).toBe(false);
+        expect(m.has('A')).toBe(false);
+        expect(m.has('B')).toBe(true);
+        expect(m.has('C')).toBe(true);
+    });
+});

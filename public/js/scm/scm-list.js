@@ -151,7 +151,9 @@ function renderSegmentDropdown() {
                 if (cb.checked) {
                     scmSegmentFilter.add(val);
                 } else {
-                    scmSegmentFilter = new Set(scmAllSegments);
+                    if (scmSegmentFilter.size === 0) {
+                        scmSegmentFilter = new Set(scmAllSegments);
+                    }
                     scmSegmentFilter.delete(val);
                 }
                 segmentTodosChecked = scmAllSegments.length > 0 && scmAllSegments.every(seg => scmSegmentFilter.has(seg));
@@ -234,7 +236,9 @@ function renderSiteDropdown() {
                 if (cb.checked) {
                     scmSiteFilter.add(val);
                 } else {
-                    scmSiteFilter = new Set(scmAllSites);
+                    if (scmSiteFilter.size === 0) {
+                        scmSiteFilter = new Set(scmAllSites);
+                    }
                     scmSiteFilter.delete(val);
                 }
                 siteTodosChecked = scmAllSites.length > 0 && scmAllSites.every(site => scmSiteFilter.has(site));
