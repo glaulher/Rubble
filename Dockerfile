@@ -6,7 +6,7 @@ RUN docker-php-ext-install mysqli && \
 RUN pecl install apcu && \
     docker-php-ext-enable apcu
 
-RUN a2enmod rewrite && a2enmod headers
+RUN a2enmod rewrite && a2enmod headers && a2enmod deflate
 
 COPY config/apache/site.conf /etc/apache2/sites-available/000-default.conf
 
