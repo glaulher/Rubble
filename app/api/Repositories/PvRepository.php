@@ -82,7 +82,7 @@ class PvRepository extends BaseRepository
 
         [$where, $filterTypes, $filterParams] = $this->buildFilterClause($search, $status, $cycle);
 
-        $statusPriority = "CASE pi2.status
+        $statusPriority = "CASE pv_item.status
             WHEN 'SCM negado' THEN 1
             WHEN 'Aguardando envio' THEN 2
             WHEN 'Aprovado serv.' THEN 3

@@ -92,7 +92,6 @@ class EquipmentController
                 'total_valor' =>
                     $data['total_valor'],
                 'limit' => $limit,
-                'offset' => $offset,
                 '_hash' => md5(serialize($data['items'])),
             ];
 

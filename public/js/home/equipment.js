@@ -53,7 +53,7 @@ async function loadEquipment(isPolling) {
     let url = `/app/api/index.php?route=equipment&limit=${limit}&search=${encodeURIComponent(currentSearch)}`;
     if (equipment.length > 0) {
       var lastItem = equipment[equipment.length - 1];
-      url += `&last_local=${encodeURIComponent(lastItem.local)}&last_equipamento=${encodeURIComponent(lastItem.equipamento)}&last_id=${lastItem.id}`;
+      url += `&last_local=${encodeURIComponent(lastItem.local || '')}&last_equipamento=${encodeURIComponent(lastItem.equipamento || '')}&last_id=${lastItem.id}`;
     }
 
     const response = await fetch(url);
@@ -251,19 +251,20 @@ const CSV_CHUNK = 500;
 async function generateCSVReport() {
   try {
     var allEquipment = [];
-    var offset = 0;
     var total;
 
     while (true) {
-      var resp = await fetch(
-        '/app/api/index.php?route=equipment&limit=' + CSV_CHUNK + '&offset=' + offset + '&search=' + encodeURIComponent(currentSearch)
-      );
+      var url = '/app/api/index.php?route=equipment&limit=' + CSV_CHUNK + '&search=' + encodeURIComponent(currentSearch);
+      if (allEquipment.length > 0) {
+        var lastItem = allEquipment[allEquipment.length - 1];
+        url += '&last_local=' + encodeURIComponent(lastItem.local || '') + '&last_equipamento=' + encodeURIComponent(lastItem.equipamento || '') + '&last_id=' + lastItem.id;
+      }
+      var resp = await fetch(url);
       var result = await resp.json();
       var chunk = result.data || [];
       total = result.total || chunk.length;
       allEquipment.push.apply(allEquipment, chunk);
-      offset += CSV_CHUNK;
-      if (chunk.length === 0 || offset >= total) break;
+      if (chunk.length === 0) break;
     }
 
     if (allEquipment.length === 0) {
