@@ -190,78 +190,75 @@ function render(list, append = false) {
   }
 
   const grouped = {};
-
   list.forEach((e) => {
-    if (!grouped[e.local]) {
-      grouped[e.local] = [];
-    }
-
+    if (!grouped[e.local]) grouped[e.local] = [];
     grouped[e.local].push(e);
   });
 
-  let fullHtml = '';
-
-  Object.keys(grouped).forEach((site) => {
-    const localEquipment = grouped[site];
-
-    let html = `
-      <div class="site-group mb-10" data-site="${escapeHtml(site)}">
-
-        <div class="mb-4">
-
-           <h2 class="text-2xl font-medium tracking-[0.05em] text-slate-800">
-
-            ${escapeHtml(site)}
-
-            <span class="text-base font-medium text-slate-600 mx-1">-</span>
-            <span class="text-base font-medium text-slate-600">
-              ${escapeHtml(hubRecase(localEquipment[0].local_scm ?? ''))}
-            </span>
-
-            <span class="text-base font-medium text-slate-600 mx-1">&mdash;</span>
-            <span class="text-base font-medium text-slate-600">
-              ${escapeHtml(localEquipment[0].localidade ?? '')}
-            </span>
-
-            <span class="text-base font-medium text-slate-600 mx-1">-</span>
-            <span class="text-base font-medium text-slate-600">
-              ${escapeHtml(localEquipment[0].local_do_endereco ?? '')}
-            </span>
-
-            <span class="hidden md:inline text-base font-normal text-slate-600">
-              ${escapeHtml(
-                formatAddress(
-                  localEquipment[0].endereco
-                    ? '- ' + localEquipment[0].endereco
-                    : ''
-                )
-              )}
-            </span>
-
-          </h2>
-
-          <p class="text-slate-500">
-            ${localEquipment.length} equipamentos
-          </p>
-
-        </div>
-
-        <div class="space-y-4">
-    `;
-
-    localEquipment.forEach((e) => {
-      html += buildEquipmentCardHtml(e, canEdit);
+  if (append) {
+    Object.keys(grouped).forEach((site) => {
+      const localEquipment = grouped[site];
+      const escapedSite = site.replace(/"/g, '\\"');
+      let siteGroup = content.querySelector(`.site-group[data-site="${escapedSite}"]`);
+      if (siteGroup) {
+        const spaceDiv = siteGroup.querySelector('.space-y-4');
+        localEquipment.forEach((e) => {
+          spaceDiv.insertAdjacentHTML('beforeend', buildEquipmentCardHtml(e, canEdit));
+        });
+        const countEl = siteGroup.querySelector('.mb-4 p');
+        if (countEl) {
+          countEl.textContent = siteGroup.querySelectorAll('.card-item').length + ' equipamentos';
+        }
+      } else {
+        let html = `
+          <div class="site-group mb-10" data-site="${escapeHtml(site)}">
+            <div class="mb-4">
+              <h2 class="text-2xl font-medium tracking-[0.05em] text-slate-800">
+                ${escapeHtml(site)}
+                <span class="text-base font-medium text-slate-600 mx-1">-</span>
+                <span class="text-base font-medium text-slate-600">${escapeHtml(hubRecase(localEquipment[0].local_scm ?? ''))}</span>
+                <span class="text-base font-medium text-slate-600 mx-1">&mdash;</span>
+                <span class="text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].localidade ?? '')}</span>
+                <span class="text-base font-medium text-slate-600 mx-1">-</span>
+                <span class="text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].local_do_endereco ?? '')}</span>
+                <span class="hidden md:inline text-base font-normal text-slate-600">${escapeHtml(formatAddress(localEquipment[0].endereco ? '- ' + localEquipment[0].endereco : ''))}</span>
+              </h2>
+              <p class="text-slate-500">${localEquipment.length} equipamentos</p>
+            </div>
+            <div class="space-y-4">
+        `;
+        localEquipment.forEach((e) => { html += buildEquipmentCardHtml(e, canEdit); });
+        html += `</div></div>`;
+        content.insertAdjacentHTML('beforeend', html);
+      }
     });
-
-    html += `
-        </div>
-      </div>
-    `;
-
-    fullHtml += html;
-  });
-
-  content.innerHTML = fullHtml;
+  } else {
+    let fullHtml = '';
+    Object.keys(grouped).forEach((site) => {
+      const localEquipment = grouped[site];
+      let html = `
+        <div class="site-group mb-10" data-site="${escapeHtml(site)}">
+          <div class="mb-4">
+            <h2 class="text-2xl font-medium tracking-[0.05em] text-slate-800">
+              ${escapeHtml(site)}
+              <span class="text-base font-medium text-slate-600 mx-1">-</span>
+              <span class="text-base font-medium text-slate-600">${escapeHtml(hubRecase(localEquipment[0].local_scm ?? ''))}</span>
+              <span class="text-base font-medium text-slate-600 mx-1">&mdash;</span>
+              <span class="text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].localidade ?? '')}</span>
+              <span class="text-base font-medium text-slate-600 mx-1">-</span>
+              <span class="text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].local_do_endereco ?? '')}</span>
+              <span class="hidden md:inline text-base font-normal text-slate-600">${escapeHtml(formatAddress(localEquipment[0].endereco ? '- ' + localEquipment[0].endereco : ''))}</span>
+            </h2>
+            <p class="text-slate-500">${localEquipment.length} equipamentos</p>
+          </div>
+          <div class="space-y-4">
+      `;
+      localEquipment.forEach((e) => { html += buildEquipmentCardHtml(e, canEdit); });
+      html += `</div></div>`;
+      fullHtml += html;
+    });
+    content.innerHTML = fullHtml;
+  }
 
   if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
 }

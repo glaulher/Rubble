@@ -33,12 +33,12 @@ async function loadEquipment(isPolling) {
       totalOS = result.total_os || 0;
       totalValor = result.total_valor || 0;
 
-      equipment = newItems;
+      equipment = [...newItems, ...equipment.slice(newItems.length)];
       filteredEquipment = [...equipment];
       allLoaded = newItems.length < limit;
       page = 1;
 
-      syncHomeCards(newItems);
+      syncHomeCards(equipment);
     } catch (error) {
       console.error('Erro ao carregar equipamentos:', error);
     } finally {
@@ -46,6 +46,8 @@ async function loadEquipment(isPolling) {
     }
     return;
   }
+
+  if (allLoaded) return;
 
   loading = true;
 
