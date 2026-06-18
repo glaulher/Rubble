@@ -2,7 +2,7 @@
   if (!str || str !== str.toUpperCase()) return str;
   const u = str.toUpperCase();
   if (u.startsWith('HUB ') || u.startsWith('HEADEND ')) {
-    return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
   }
   return str;
 }
@@ -48,7 +48,7 @@ function buildEquipmentCardHtml(e, canEdit) {
                 e.valor_tr
                   ? `<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-sm font-semibold"
                        data-role="admin coordenador">
-                      R$ ${e.valor_tr.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                      R$ ${e.valor_tr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>`
                   : ''
               }
@@ -177,9 +177,10 @@ function render(list, append = false) {
       label.textContent = 'máquinas cadastradas';
 
       if (valueEl) {
-        const isAdminOrCoord = userRole === 'admin' || userRole === 'coordenador';
+        const isAdminOrCoord =
+          userRole === 'admin' || userRole === 'coordenador';
         if (isAdminOrCoord && totalValor > 0) {
-          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
           valueEl.style.display = '';
         } else {
           valueEl.textContent = '';
@@ -199,15 +200,21 @@ function render(list, append = false) {
     Object.keys(grouped).forEach((site) => {
       const localEquipment = grouped[site];
       const escapedSite = site.replace(/"/g, '\\"');
-      let siteGroup = content.querySelector(`.site-group[data-site="${escapedSite}"]`);
+      let siteGroup = content.querySelector(
+        `.site-group[data-site="${escapedSite}"]`
+      );
       if (siteGroup) {
         const spaceDiv = siteGroup.querySelector('.space-y-4');
         localEquipment.forEach((e) => {
-          spaceDiv.insertAdjacentHTML('beforeend', buildEquipmentCardHtml(e, canEdit));
+          spaceDiv.insertAdjacentHTML(
+            'beforeend',
+            buildEquipmentCardHtml(e, canEdit)
+          );
         });
         const countEl = siteGroup.querySelector('.mb-4 p');
         if (countEl) {
-          countEl.textContent = siteGroup.querySelectorAll('.card-item').length + ' equipamentos';
+          countEl.textContent =
+            siteGroup.querySelectorAll('.card-item').length + ' equipamentos';
         }
       } else {
         let html = `
@@ -218,8 +225,6 @@ function render(list, append = false) {
                 <span class="text-base font-medium text-slate-600 mx-1">-</span>
                 <span class="text-base font-medium text-slate-600">${escapeHtml(hubRecase(localEquipment[0].local_scm ?? ''))}</span>
                 <span class="text-base font-medium text-slate-600 mx-1">&mdash;</span>
-                <span class="text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].localidade ?? '')}</span>
-                <span class="text-base font-medium text-slate-600 mx-1">-</span>
                 <span class="text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].local_do_endereco ?? '')}</span>
                 <span class="hidden md:inline text-base font-normal text-slate-600">${escapeHtml(formatAddress(localEquipment[0].endereco ? '- ' + localEquipment[0].endereco : ''))}</span>
               </h2>
@@ -227,7 +232,9 @@ function render(list, append = false) {
             </div>
             <div class="space-y-4">
         `;
-        localEquipment.forEach((e) => { html += buildEquipmentCardHtml(e, canEdit); });
+        localEquipment.forEach((e) => {
+          html += buildEquipmentCardHtml(e, canEdit);
+        });
         html += `</div></div>`;
         content.insertAdjacentHTML('beforeend', html);
       }
@@ -244,8 +251,8 @@ function render(list, append = false) {
               <span class="text-base font-medium text-slate-600 mx-1">-</span>
               <span class="text-base font-medium text-slate-600">${escapeHtml(hubRecase(localEquipment[0].local_scm ?? ''))}</span>
               <span class="text-base font-medium text-slate-600 mx-1">&mdash;</span>
-              <span class="text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].localidade ?? '')}</span>
-              <span class="text-base font-medium text-slate-600 mx-1">-</span>
+             
+              
               <span class="text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].local_do_endereco ?? '')}</span>
               <span class="hidden md:inline text-base font-normal text-slate-600">${escapeHtml(formatAddress(localEquipment[0].endereco ? '- ' + localEquipment[0].endereco : ''))}</span>
             </h2>
@@ -253,7 +260,9 @@ function render(list, append = false) {
           </div>
           <div class="space-y-4">
       `;
-      localEquipment.forEach((e) => { html += buildEquipmentCardHtml(e, canEdit); });
+      localEquipment.forEach((e) => {
+        html += buildEquipmentCardHtml(e, canEdit);
+      });
       html += `</div></div>`;
       fullHtml += html;
     });
@@ -275,8 +284,16 @@ function syncHomeCards(newEquipment) {
   const label = document.getElementById('counterLabel');
   const valueEl = document.getElementById('counterValue');
   if (counter && label) {
-    const statusKeywords = ['pendente', 'conclu', 'planej', 'andamento', 'clean'];
-    const isStatusSearch = currentSearch !== '' && statusKeywords.some((kw) => currentSearch.includes(kw));
+    const statusKeywords = [
+      'pendente',
+      'conclu',
+      'planej',
+      'andamento',
+      'clean',
+    ];
+    const isStatusSearch =
+      currentSearch !== '' &&
+      statusKeywords.some((kw) => currentSearch.includes(kw));
     if (isStatusSearch) {
       counter.textContent = totalOS;
       label.textContent = 'OS cadastradas';
@@ -289,9 +306,10 @@ function syncHomeCards(newEquipment) {
       label.textContent = 'máquinas cadastradas';
 
       if (valueEl) {
-        const isAdminOrCoord = userRole === 'admin' || userRole === 'coordenador';
+        const isAdminOrCoord =
+          userRole === 'admin' || userRole === 'coordenador';
         if (isAdminOrCoord && totalValor > 0) {
-          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
           valueEl.style.display = '';
         } else {
           valueEl.textContent = '';
@@ -339,7 +357,9 @@ function syncHomeCards(newEquipment) {
       existing.replaceWith(newCard);
     } else {
       const escapedLocal = e.local.replace(/"/g, '\\"');
-      let siteGroup = content.querySelector(`.site-group[data-site="${escapedLocal}"]`);
+      let siteGroup = content.querySelector(
+        `.site-group[data-site="${escapedLocal}"]`
+      );
       if (!siteGroup) {
         siteGroup = document.createElement('div');
         siteGroup.className = 'site-group mb-10';
@@ -351,8 +371,8 @@ function syncHomeCards(newEquipment) {
               <span class="text-base font-medium text-slate-600 mx-1">-</span>
               <span class="text-base font-medium text-slate-600">${escapeHtml(hubRecase(e.local_scm ?? ''))}</span>
               <span class="text-base font-medium text-slate-600 mx-1">&mdash;</span>
-              <span class="text-base font-medium text-slate-600">${escapeHtml(e.localidade ?? '')}</span>
-              <span class="text-base font-medium text-slate-600 mx-1">-</span>
+             
+              
               <span class="text-base font-medium text-slate-600">${escapeHtml(e.local_do_endereco ?? '')}</span>
               <span class="hidden md:inline text-base font-normal text-slate-600">${escapeHtml(formatAddress(e.endereco ? '- ' + e.endereco : ''))}</span>
             </h2>
@@ -370,7 +390,9 @@ function syncHomeCards(newEquipment) {
 
       const countEl = siteGroup.querySelector('.mb-4 p');
       if (countEl) {
-        const siteCount = content.querySelectorAll(`.site-group[data-site="${escapedLocal}"] .card-item`).length;
+        const siteCount = content.querySelectorAll(
+          `.site-group[data-site="${escapedLocal}"] .card-item`
+        ).length;
         countEl.textContent = siteCount + ' equipamentos';
       }
     }
@@ -510,31 +532,40 @@ async function loadTicketsForEquipment(equipId, container) {
   const canEdit = userRole !== 'cliente';
 
   container.dataset.loaded = 'loading';
-  container.insertAdjacentHTML('afterbegin',
+  container.insertAdjacentHTML(
+    'afterbegin',
     '<p class="text-slate-400 text-sm animate-pulse">Carregando registros...</p>'
   );
 
   try {
-    const resp = await fetch(`/app/api/index.php?route=equipment&action=tickets-by-equipment&id=${equipId}`);
+    const resp = await fetch(
+      `/app/api/index.php?route=equipment&action=tickets-by-equipment&id=${equipId}`
+    );
     const result = await resp.json();
 
     const loadingEl = container.querySelector('.animate-pulse');
     if (loadingEl) loadingEl.remove();
 
     if (!result.success || !result.data || result.data.length === 0) {
-      container.insertAdjacentHTML('afterbegin', '<p class="text-slate-500">Nenhum registro encontrado.</p>');
+      container.insertAdjacentHTML(
+        'afterbegin',
+        '<p class="text-slate-500">Nenhum registro encontrado.</p>'
+      );
       container.dataset.loaded = 'true';
       return;
     }
 
-    const html = result.data.map(r => buildTicketHtml(r, canEdit)).join('');
+    const html = result.data.map((r) => buildTicketHtml(r, canEdit)).join('');
     container.insertAdjacentHTML('afterbegin', html);
     container.dataset.loaded = 'true';
   } catch (err) {
     console.error('Erro ao carregar registros:', err);
     const loadingEl = container.querySelector('.animate-pulse');
     if (loadingEl) loadingEl.remove();
-    container.insertAdjacentHTML('afterbegin', '<p class="text-red-500 text-sm">Erro ao carregar registros.</p>');
+    container.insertAdjacentHTML(
+      'afterbegin',
+      '<p class="text-red-500 text-sm">Erro ao carregar registros.</p>'
+    );
     container.dataset.loaded = 'true';
   }
 }
@@ -556,7 +587,10 @@ function buildTicketHtml(r, canEdit) {
   let dateInfo = '';
   if (status === 'planejado' && r.data_planejada) {
     dateInfo = `📅 ${formatDate(r.data_planejada)}`;
-  } else if ((status === 'concluído' || status === 'concluido') && r.data_concluido) {
+  } else if (
+    (status === 'concluído' || status === 'concluido') &&
+    r.data_concluido
+  ) {
     dateInfo = `📅 ${formatDate(r.data_concluido)}`;
   }
 
@@ -575,10 +609,14 @@ function buildTicketHtml(r, canEdit) {
         <div class="shrink-0 flex items-center gap-2">
           ${dateInfo ? `<span class="text-slate-500 text-sm">${dateInfo}</span>` : ''}
           <span class="${statusColor} px-3 py-1 rounded-full text-sm font-semibold">${escapeHtml(r.status)}</span>
-          ${canEdit ? `
+          ${
+            canEdit
+              ? `
             ${iconButtonHtml('edit', 'Editar', { 'data-action': 'edit-ticket', 'data-ticket-id': r.id })}
-            ${iconButtonHtml('delete', 'Excluir', { 'data-action': 'delete-ticket', 'data-ticket-id': r.id, 'data-ticket-os': r.os || '', 'class': 'delete-ticket-btn' }, 'right')}
-          ` : ''}
+            ${iconButtonHtml('delete', 'Excluir', { 'data-action': 'delete-ticket', 'data-ticket-id': r.id, 'data-ticket-os': r.os || '', class: 'delete-ticket-btn' }, 'right')}
+          `
+              : ''
+          }
         </div>
       </div>
     </div>
@@ -588,15 +626,19 @@ function buildTicketHtml(r, canEdit) {
 async function loadEquipmentSummary() {
   const search = currentSearch || '';
   const statusKeywords = ['pendente', 'conclu', 'planej', 'andamento', 'clean'];
-  const isStatusSearch = search !== '' && statusKeywords.some((kw) => search.includes(kw));
+  const isStatusSearch =
+    search !== '' && statusKeywords.some((kw) => search.includes(kw));
   if (isStatusSearch) return;
   try {
-    const resp = await fetch(`/app/api/index.php?route=equipment&action=sum-value&search=${encodeURIComponent(search)}`);
+    const resp = await fetch(
+      `/app/api/index.php?route=equipment&action=sum-value&search=${encodeURIComponent(search)}`
+    );
     const result = await resp.json();
     if (!result.success) return;
 
     if (result.total_equipment !== undefined) {
-      document.getElementById('machineCounter').textContent = result.total_equipment;
+      document.getElementById('machineCounter').textContent =
+        result.total_equipment;
     }
     if (result.total_valor !== undefined) {
       totalValor = result.total_valor;
@@ -604,9 +646,10 @@ async function loadEquipmentSummary() {
       if (valueEl) {
         const currentUser = getUser();
         const userRole = currentUser ? currentUser.role : '';
-        const isAdminOrCoord = userRole === 'admin' || userRole === 'coordenador';
+        const isAdminOrCoord =
+          userRole === 'admin' || userRole === 'coordenador';
         if (isAdminOrCoord && totalValor > 0) {
-          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
           valueEl.style.display = '';
         } else {
           valueEl.textContent = '';
@@ -661,7 +704,13 @@ function initHome() {
 
   setupInfiniteScroll();
 
-  PollingManager.start('home', function () { loadEquipment(true); }, 30000);
+  PollingManager.start(
+    'home',
+    function () {
+      loadEquipment(true);
+    },
+    30000
+  );
   loadEquipmentSummary();
 
   loadEquipment(false);
