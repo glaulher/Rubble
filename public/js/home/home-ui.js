@@ -224,9 +224,9 @@ function render(list, append = false) {
                 ${escapeHtml(site)}
                 <span class="text-base font-medium text-slate-600 mx-1">-</span>
                 <span class="text-base font-medium text-slate-600">${escapeHtml(hubRecase(localEquipment[0].local_scm ?? ''))}</span>
-                <span class="text-base font-medium text-slate-600 mx-1">&mdash;</span>
-                <span class="text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].local_do_endereco ?? '')}</span>
-                <span class="hidden md:inline text-base font-normal text-slate-600">${escapeHtml(formatAddress(localEquipment[0].endereco ? '- ' + localEquipment[0].endereco : ''))}</span>
+                <span class="hidden md:inline text-base font-medium text-slate-600 mx-1">&mdash;</span>
+                <span class="hidden md:inline  text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].local_do_endereco ?? '')}</span>
+                <span class="text-base font-normal text-slate-600">${escapeHtml(formatAddress(localEquipment[0].endereco ? '- ' + localEquipment[0].endereco : ''))}</span>
               </h2>
               <p class="text-slate-500">${localEquipment.length} equipamentos</p>
             </div>
@@ -250,11 +250,11 @@ function render(list, append = false) {
               ${escapeHtml(site)}
               <span class="text-base font-medium text-slate-600 mx-1">-</span>
               <span class="text-base font-medium text-slate-600">${escapeHtml(hubRecase(localEquipment[0].local_scm ?? ''))}</span>
-              <span class="text-base font-medium text-slate-600 mx-1">&mdash;</span>
+              <span class="hidden md:inline text-base font-medium text-slate-600 mx-1">&mdash;</span>
              
               
-              <span class="text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].local_do_endereco ?? '')}</span>
-              <span class="hidden md:inline text-base font-normal text-slate-600">${escapeHtml(formatAddress(localEquipment[0].endereco ? '- ' + localEquipment[0].endereco : ''))}</span>
+              <span class="hidden md:inline text-base font-medium text-slate-600">${escapeHtml(localEquipment[0].local_do_endereco ?? '')}</span>
+              <span class="text-base font-normal text-slate-600">${escapeHtml(formatAddress(localEquipment[0].endereco ? '- ' + localEquipment[0].endereco : ''))}</span>
             </h2>
             <p class="text-slate-500">${localEquipment.length} equipamentos</p>
           </div>
@@ -370,11 +370,11 @@ function syncHomeCards(newEquipment) {
               ${escapeHtml(e.local)}
               <span class="text-base font-medium text-slate-600 mx-1">-</span>
               <span class="text-base font-medium text-slate-600">${escapeHtml(hubRecase(e.local_scm ?? ''))}</span>
-              <span class="text-base font-medium text-slate-600 mx-1">&mdash;</span>
+              <span class="hidden md:inline text-base font-medium text-slate-600 mx-1">&mdash;</span>
              
               
-              <span class="text-base font-medium text-slate-600">${escapeHtml(e.local_do_endereco ?? '')}</span>
-              <span class="hidden md:inline text-base font-normal text-slate-600">${escapeHtml(formatAddress(e.endereco ? '- ' + e.endereco : ''))}</span>
+              <span class="hidden md:inline text-base font-medium text-slate-600">${escapeHtml(e.local_do_endereco ?? '')}</span>
+              <span class="text-base font-normal text-slate-600">${escapeHtml(formatAddress(e.endereco ? '- ' + e.endereco : ''))}</span>
             </h2>
             <p class="text-slate-500">0 equipamentos</p>
           </div>
