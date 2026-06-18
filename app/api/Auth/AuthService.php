@@ -111,6 +111,10 @@ class AuthService
                 'read' => ['equipment', 'tickets', 'dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle'],
                 'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm'],
             ],
+            'administrativo' => [
+                'read' => ['pdf-audit', 'auth'],
+                'write' => [],
+            ],
             'cliente' => [
                 'read' => ['equipment', 'tickets', 'dashboard', 'locals'],
                 'write' => [],

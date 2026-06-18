@@ -120,6 +120,20 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  pdf-checker:
+    build:
+      context: .
+      dockerfile: Dockerfile.pdf-checker
+    container_name: rubble-pdf-checker
+    expose:
+      - "8000"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+    restart: unless-stopped
+
 volumes:
   db-data:
   os-data:

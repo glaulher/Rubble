@@ -9,7 +9,7 @@ use App\Api\Helpers\Response;
 use App\Api\Controllers\{AuthController, EquipmentController, EquipmentManagementController, EquipmentPriceController};
 use App\Api\Controllers\{TicketController, DashboardController, PvDashboardController};
 use App\Api\Controllers\{PvController, UserController, ScmController, PreventiveCycleController};
-use App\Api\Controllers\{UploadController, EmailController, ExportController};
+use App\Api\Controllers\{UploadController, EmailController, ExportController, PdfAuditController};
 
 Env::load(__DIR__ . '/../../.env');
 
@@ -231,6 +231,34 @@ $router->addRoute('scm', 'POST', function () use ($auth) {
 });
 $router->addRoute('scm', 'DELETE', function () use ($auth) {
     (new ScmController($auth->getUser()))->delete();
+});
+
+// PDF Audit
+$router->addRoute('pdf-audit', 'POST', function () use ($auth) {
+    $ctrl = new PdfAuditController();
+    $action = $_GET['action'] ?? '';
+
+    if ($action === 'set-reference') {
+        $ctrl->setReference();
+    } elseif ($action === 'audit') {
+        $ctrl->audit();
+    } else {
+        Response::error('Ação não encontrada', 404);
+    }
+});
+$router->addRoute('pdf-audit', 'GET', function () use ($auth) {
+    $ctrl = new PdfAuditController();
+    $action = $_GET['action'] ?? '';
+
+    if ($action === 'health') {
+        $ctrl->health();
+    } elseif ($action === 'get-reference') {
+        $ctrl->getReference();
+    } elseif ($action === 'clear-reference') {
+        $ctrl->clearReference();
+    } else {
+        Response::error('Ação não encontrada', 404);
+    }
 });
 
 // Dispatch

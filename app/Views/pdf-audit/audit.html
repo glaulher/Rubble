@@ -1,0 +1,90 @@
+<div class="min-h-screen dark-gradient" style="background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);">
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-2 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 items-center">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Auditoria de PDF</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Validar relatórios contra referência</p>
+      </div>
+      <div class="text-center">
+        <span class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold">
+          <span id="auditStatus">Aguardando referência</span>
+        </span>
+      </div>
+      <div class="text-right flex items-center justify-end gap-2">
+        <button id="clearReferenceBtn" class="hidden text-xs text-red-300 hover:text-red-200 transition-colors" data-role="admin coordenador administrativo">
+          Limpar referência
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="auditMain" class="p-6">
+
+    <div id="stepReference" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+      <h2 class="text-xl font-light tracking-[0.05em] text-slate-800 mb-2">1. Enviar Relatório de Exemplo</h2>
+      <p class="text-sm text-slate-500 mb-4">Envie um PDF de relatório preenchido corretamente para servir como referência.</p>
+      <div class="flex items-center gap-4">
+        <label class="cursor-pointer inline-flex items-center gap-2 bg-emerald-200 hover:bg-emerald-300 text-emerald-800 px-4 py-2 rounded-xl transition-colors">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Selecionar PDF de Exemplo
+          <input type="file" id="referenceInput" accept=".pdf" class="hidden">
+        </label>
+        <span id="referenceFilename" class="text-sm text-slate-400 hidden"></span>
+      </div>
+      <div id="referencePreview" class="mt-4 hidden">
+        <div class="bg-slate-50 rounded-xl p-4 text-sm">
+          <h3 class="font-semibold text-slate-700 mb-2">Extraído da referência:</h3>
+          <div id="referenceFields" class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3"></div>
+          <div class="flex gap-4 text-xs text-slate-500">
+            <span>Checklists: <strong id="refChecklistCount">0</strong></span>
+            <span>Fotos: <strong id="refImageCount">0</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="stepAudit" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6 hidden">
+      <h2 class="text-xl font-light tracking-[0.05em] text-slate-800 mb-2">2. Auditar Relatórios</h2>
+      <p class="text-sm text-slate-500 mb-4">Selecione até 10 PDFs de relatórios para auditar contra a referência.</p>
+      <div class="flex items-center gap-4">
+        <label class="cursor-pointer inline-flex items-center gap-2 bg-sky-200 hover:bg-sky-300 text-sky-800 px-4 py-2 rounded-xl transition-colors">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Selecionar PDFs
+          <input type="file" id="auditInput" accept=".pdf" multiple class="hidden">
+        </label>
+        <span id="auditFilenames" class="text-sm text-slate-400"></span>
+        <button id="runAuditBtn" class="hidden bg-blue-200 hover:bg-blue-300 text-blue-800 px-4 py-2 rounded-xl transition-colors">
+          Auditar
+        </button>
+      </div>
+      <div id="auditProgress" class="hidden mt-4">
+        <div class="w-full bg-slate-200 rounded-full h-2">
+          <div id="auditProgressBar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <p id="auditProgressText" class="text-xs text-slate-500 mt-1"></p>
+      </div>
+    </div>
+
+    <div id="stepResults" class="hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-light tracking-[0.05em] text-slate-800">3. Resultados</h2>
+        <div class="flex gap-2">
+          <span id="resultsSummary" class="text-sm text-slate-500 self-center"></span>
+          <button id="downloadCsvBtn" class="bg-emerald-200 hover:bg-emerald-300 text-emerald-800 px-4 py-2 rounded-xl transition-colors text-sm hidden" data-role="admin coordenador administrativo">
+            Baixar CSV
+          </button>
+        </div>
+      </div>
+      <div id="auditResults" class="space-y-4"></div>
+    </div>
+
+  </div>
+</div>

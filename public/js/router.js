@@ -126,11 +126,18 @@ async function router() {
     html = await loadPage("/app/Views/preventive-cycle/list.html?v=" + VIEW_VERSION);
   } else if (hash === "#/scm") {
     /*
-  |--------------------------------------------------------------------------
-  | SCM
-  |--------------------------------------------------------------------------
-  */
+    |--------------------------------------------------------------------------
+    | SCM
+    |--------------------------------------------------------------------------
+    */
     html = await loadPage("/app/Views/scm/scm.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/pdf-audit") {
+    /*
+    |--------------------------------------------------------------------------
+    | PDF AUDIT
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/pdf-audit/audit.html?v=" + VIEW_VERSION);
   } else if (hash === "#/login") {
     html = await loadPage("/app/Views/auth/login.html?v=" + VIEW_VERSION);
   } else {
@@ -208,6 +215,10 @@ async function router() {
     } else if (hash === "#/scm") {
       if (typeof initScm === "function") {
         initScm();
+      }
+    } else if (hash === "#/pdf-audit") {
+      if (typeof initPdfAudit === "function") {
+        initPdfAudit();
       }
     } else if (hash === "#/login") {
       if (typeof initLogin === "function") {
