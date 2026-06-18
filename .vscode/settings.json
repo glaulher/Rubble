@@ -1,0 +1,31 @@
+{
+  "intelephense.environment.phpVersion": "8.4.0",
+  "intelephense.environment.includes": [
+    "vendor/autoload.php"
+  ],
+  "intelephense.format.enable": false,
+  "phpcs.enable": false,
+  "[php]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "files.associations": {
+    "*.html": "html",
+    "*.php": "php"
+  },
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.minimap.enabled": false
+}
