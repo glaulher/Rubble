@@ -1,25 +1,27 @@
-FROM php:8.4-apache
+FROM composer:latest AS composer
+COPY composer.json composer.lock /app/
+RUN composer install --no-interaction --working-dir=/app
 
-RUN docker-php-ext-install mysqli && \
-    docker-php-ext-enable mysqli
+FROM php:8.4-fpm-alpine
 
-RUN pecl install apcu && \
-    docker-php-ext-enable apcu
+RUN apk add --no-cache --virtual .build-deps autoconf make g++ && \
+    docker-php-ext-install mysqli && \
+    docker-php-ext-enable mysqli && \
+    pecl install apcu && \
+    docker-php-ext-enable apcu && \
+    apk del .build-deps
 
-RUN a2enmod rewrite && a2enmod headers && a2enmod deflate
-
-COPY config/apache/site.conf /etc/apache2/sites-available/000-default.conf
+COPY config/php/zz-opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
+COPY config/php-fpm/zz-www.conf /usr/local/etc/php-fpm.d/zz-www.conf
 
 COPY . /var/www/html/
+COPY --from=composer /app/vendor /var/www/html/vendor
+COPY --from=composer /app/composer.lock /var/www/html/composer.lock
 
 RUN rm -rf \
     /var/www/html/node_modules \
-    /var/www/html/vendor \
-    /var/www/html/tests \
     /var/www/html/bun.lock \
     /var/www/html/bunfig.toml \
-    /var/www/html/phpunit.xml \
-    /var/www/html/composer.* \
     /var/www/html/package* \
     /var/www/html/.prettierrc \
     /var/www/html/README.md \

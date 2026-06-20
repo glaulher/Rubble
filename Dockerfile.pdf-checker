@@ -1,11 +1,22 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
-RUN apt-get update && apt-get install -y poppler-utils && rm -rf /var/lib/apt/lists/*
+ENV PYTHONUNBUFFERED=1 \
+    HF_HOME=/cache/huggingface
 
-COPY rubble-pdf-checker/app /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    poppler-utils \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-RUN pip install --no-cache-dir -r requirements.txt
+COPY rubble-pdf-checker/app/requirements.txt .
+RUN pip install --no-cache-dir torch==2.4.0 --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r requirements.txt
+
+RUN python -c "from transformers import CLIPModel, CLIPProcessor; CLIPModel.from_pretrained('openai/clip-vit-base-patch32'); CLIPProcessor.from_pretrained('openai/clip-vit-base-patch32')"
+
+COPY rubble-pdf-checker/app/ .
 
 EXPOSE 8000
 

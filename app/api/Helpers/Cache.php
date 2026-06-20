@@ -9,7 +9,11 @@ class Cache
     public static function isApcuAvailable(): bool
     {
         if (self::$apcuAvailable === null) {
-            self::$apcuAvailable = extension_loaded('apcu') && ini_get('apc.enabled');
+            $loaded = extension_loaded('apcu') && ini_get('apc.enabled');
+            if ($loaded && PHP_SAPI === 'cli' && !ini_get('apc.enable_cli')) {
+                $loaded = false;
+            }
+            self::$apcuAvailable = $loaded;
         }
         return self::$apcuAvailable;
     }

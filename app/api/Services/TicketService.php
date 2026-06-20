@@ -169,7 +169,7 @@ class TicketService
                 foreach ($matchedEquipments as $equipment) {
                     $existing = $this->ticketRepository->findByOs($row['tarefa']);
 
-                    if ($existing && mb_strtolower($existing->status, 'UTF-8') === 'planejado') {
+                    if ($existing && mb_strtolower($existing->status ?? '', 'UTF-8') === 'planejado') {
                         $skipped++;
                         $errors[] = ['linha' => $index + 1, 'motivo' => 'OS com status Planejado ignorada na importação'];
                         continue;

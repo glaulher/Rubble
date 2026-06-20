@@ -1,4 +1,7 @@
+import glob
+import os
 import re
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -11,6 +14,24 @@ def run_pdftotext(pdf_path: str) -> str:
         capture_output=True, text=True, timeout=60
     )
     return result.stdout
+
+
+def _parse_size(raw: str) -> int:
+    raw = raw.strip().upper()
+    try:
+        if raw.endswith("KB"):
+            return int(float(raw[:-2]) * 1024)
+        if raw.endswith("K"):
+            return int(float(raw[:-1]) * 1024)
+        if raw.endswith("MB"):
+            return int(float(raw[:-2]) * 1024 * 1024)
+        if raw.endswith("M"):
+            return int(float(raw[:-1]) * 1024 * 1024)
+        if raw.endswith("B"):
+            return int(raw[:-1])
+        return int(raw)
+    except (ValueError, TypeError):
+        return 0
 
 
 def run_pdfimages(pdf_path: str, output_dir: str) -> list[dict]:
@@ -27,24 +48,29 @@ def run_pdfimages(pdf_path: str, output_dir: str) -> list[dict]:
     lines = result.stdout.strip().split("\n")
     for line in lines[2:]:
         parts = line.split()
-        if len(parts) >= 6:
-            try:
-                page = int(parts[0])
-            except ValueError:
-                continue
+        if len(parts) < 6:
+            continue
+        try:
+            page = int(parts[0])
             num = int(parts[1])
-            width = int(parts[2])
-            height = int(parts[3])
-            size = parts[8] if len(parts) > 8 else "0"
-            size_bytes = int(size.replace("B", "")) if size.rstrip("B").isdigit() else 0
-            images.append({
-                "page": page,
-                "num": num,
-                "width": width,
-                "height": height,
-                "size_bytes": size_bytes,
-                "path": f"{output_dir}/img-{num:04d}.png"
-            })
+            width = int(parts[3])
+            height = int(parts[4])
+        except (ValueError, IndexError):
+            continue
+
+        image_type = parts[2] if len(parts) > 2 else ""
+        if image_type == "smask":
+            continue
+
+        size_raw = parts[-2] if len(parts) > 3 else "0"
+        size_bytes = _parse_size(size_raw)
+        images.append({
+            "page": page,
+            "num": num,
+            "width": width,
+            "height": height,
+            "size_bytes": size_bytes,
+        })
 
     return images
 
@@ -157,31 +183,41 @@ def parse_checklists(text: str) -> list[dict]:
         item_match = re.match(r"(\d+)\s*-\s*(.+)", line)
         if item_match:
             item_num = item_match.group(1)
-            item_desc = item_match.group(2).strip()
+            raw_desc = item_match.group(2)
 
             initial = ""
             final = ""
 
-            if i + 1 < len(lines):
-                next_line = lines[i + 1].strip()
-                if next_line in ("OK", "NOK", "NA"):
-                    initial = next_line
-                    if i + 2 < len(lines):
-                        n2 = lines[i + 2].strip()
-                        if n2 in ("OK", "NOK", "NA"):
-                            final = n2
-                        elif i + 3 < len(lines) and lines[i + 3].strip() in ("OK", "NOK", "NA"):
-                            final = lines[i + 3].strip()
-                        else:
-                            final = n2
-                elif i + 2 < len(lines) and lines[i + 2].strip() in ("OK", "NOK", "NA"):
-                    initial = next_line
-                    final = lines[i + 2].strip()
-                elif next_line in ("OK", "NOK", "NA"):
-                    initial = next_line
-                    final = next_line
-                else:
-                    initial = next_line
+            # Try to detect status on same line (pdftotext -layout puts columns on same line)
+            same_line = re.match(
+                r"(.+?)\s{2,}(OK|NOK|NA)(?:\s{2,}(OK|NOK|NA))?\s*$", raw_desc, re.IGNORECASE
+            )
+            if same_line:
+                item_desc = same_line.group(1).strip()
+                initial = same_line.group(2).upper()
+                final = same_line.group(3).upper() if same_line.group(3) else initial
+            else:
+                item_desc = raw_desc.strip()
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1].strip()
+                    if next_line in ("OK", "NOK", "NA"):
+                        initial = next_line
+                        if i + 2 < len(lines):
+                            n2 = lines[i + 2].strip()
+                            if n2 in ("OK", "NOK", "NA"):
+                                final = n2
+                            elif i + 3 < len(lines) and lines[i + 3].strip() in ("OK", "NOK", "NA"):
+                                final = lines[i + 3].strip()
+                            else:
+                                final = n2
+                    elif i + 2 < len(lines) and lines[i + 2].strip() in ("OK", "NOK", "NA"):
+                        initial = next_line
+                        final = lines[i + 2].strip()
+                    elif next_line in ("OK", "NOK", "NA"):
+                        initial = next_line
+                        final = next_line
+                    else:
+                        initial = next_line
 
             items.append({
                 "numero": item_num,
@@ -222,6 +258,10 @@ def parse_measurements(text: str) -> dict:
     corrente_t = re.search(r"Corrente.*?Fase\s*T.*?\n\s*([\d.]+)", text, re.DOTALL)
     if corrente_t:
         measurements["corrente_t"] = corrente_t.group(1).strip()
+
+    pressao = re.search(r"Pressão\s*[:\s]+([\d.,]+)", text, re.IGNORECASE)
+    if pressao:
+        measurements["pressao"] = pressao.group(1).strip().replace(",", ".")
 
     return measurements
 
@@ -267,24 +307,30 @@ def extract_photo_labels(text: str) -> list[str]:
             if "Página" in stripped or "Infratel" in stripped:
                 continue
             if stripped and len(stripped) > 3:
-                labels.append(stripped)
+                parts = re.split(r"\s{4,}", stripped)
+                for part in parts:
+                    part = part.strip()
+                    if part:
+                        labels.append(part)
 
     return labels
 
 
-def extract(pdf_path: str) -> dict:
+def extract(pdf_path: str) -> tuple[dict, str]:
     text = run_pdftotext(pdf_path)
     if not text.strip():
         raise ValueError("Falha ao extrair texto do PDF. Verifique se o arquivo é válido.")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    tmpdir = tempfile.mkdtemp(prefix="pdf-extract-")
+    try:
         images = run_pdfimages(pdf_path, tmpdir)
 
         analyzed_images = []
-        for img in images:
-            png_path = Path(f"{tmpdir}/img-{img['num']:04d}.png")
-            jpg_path = Path(f"{tmpdir}/img-{img['num']:04d}.jpg")
-            actual_path = png_path if png_path.exists() else jpg_path
+        for img_idx, img in enumerate(images):
+            matches = glob.glob(os.path.join(tmpdir, f"img-{img['num']:03d}.*"))
+            if not matches:
+                matches = glob.glob(os.path.join(tmpdir, f"img-{img['num']:04d}.*"))
+            actual_path = Path(matches[0]) if matches else Path()
 
             analysis = {}
             if actual_path.exists():
@@ -292,45 +338,53 @@ def extract(pdf_path: str) -> dict:
 
             analyzed_images.append({
                 "page": img["page"],
-                "num": img["num"],
+                "num": img_idx,
+                "orig_num": img["num"],
                 "width": img["width"],
                 "height": img["height"],
                 "size_bytes": img["size_bytes"],
-                "analysis": analysis
+                "path": str(actual_path) if actual_path.exists() else "",
+                "analysis": analysis,
             })
 
-    image_quality = "ok"
-    for img in analyzed_images:
-        if img.get("analysis", {}).get("too_dark") or img.get("analysis", {}).get("too_light"):
-            image_quality = "problema"
-        if img.get("size_bytes", 0) < 10240:
-            image_quality = "problema"
+        image_quality = "ok"
+        for img in analyzed_images:
+            if img.get("analysis", {}).get("too_dark") or img.get("analysis", {}).get("too_light"):
+                image_quality = "problema"
+            if img.get("size_bytes", 0) < 10240:
+                image_quality = "problema"
 
-    fields = extract_fields(text)
-    checklists = parse_checklists(text)
-    measurements = parse_measurements(text)
-    photo_labels = extract_photo_labels(text)
+        fields = extract_fields(text)
+        checklists = parse_checklists(text)
+        measurements = parse_measurements(text)
+        photo_labels = extract_photo_labels(text)
 
-    nok_items = [i for i in checklists if i["final"] == "NOK"]
+        nok_items = [i for i in checklists if i["final"] == "NOK"]
 
-    empty_fields = [k for k, v in fields.items() if not v or v in ("NA", "0", "")]
+        empty_fields = [k for k, v in fields.items() if not v or v in ("NA", "0", "")]
 
-    missing_measurements = []
-    for key in ["tensao_r", "tensao_s", "tensao_t", "corrente_r", "corrente_s", "corrente_t"]:
-        if key not in measurements or not measurements[key]:
-            missing_measurements.append(key)
+        missing_measurements = []
+        for key in ["tensao_r", "tensao_s", "tensao_t", "corrente_r", "corrente_s", "corrente_t", "pressao"]:
+            if key not in measurements or not measurements[key]:
+                missing_measurements.append(key)
 
-    return {
-        "success": True,
-        "fields": fields,
-        "checklist": checklists,
-        "nok_items": nok_items,
-        "measurements": measurements,
-        "missing_measurements": missing_measurements,
-        "images": analyzed_images,
-        "image_count": len(analyzed_images),
-        "image_quality": image_quality,
-        "empty_fields": empty_fields,
-        "photo_labels": photo_labels,
-        "has_images": len(analyzed_images) > 0
-    }
+        result = {
+            "success": True,
+            "fields": fields,
+            "checklist": checklists,
+            "nok_items": nok_items,
+            "measurements": measurements,
+            "missing_measurements": missing_measurements,
+            "images": analyzed_images,
+            "image_count": len(analyzed_images),
+            "image_quality": image_quality,
+            "empty_fields": empty_fields,
+            "photo_labels": photo_labels,
+            "has_images": len(analyzed_images) > 0,
+        }
+
+        return result, tmpdir
+
+    except Exception:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+        raise

@@ -31,7 +31,7 @@ class PdfAuditController
                 return;
             }
 
-            Response::json($result['data'], $result['message'] ?? 'Referência definida com sucesso');
+            Response::success('Referência definida', $result['data']);
         } catch (\Throwable $e) {
             Response::serverError($e);
         }
@@ -62,8 +62,10 @@ class PdfAuditController
                 return;
             }
 
-            $result = $this->service->audit($uploadedFiles);
-            Response::json($result, 'Auditoria concluída');
+            $photoIndices = $_POST['photo_indices'] ?? '';
+            $aiEnabled = $_POST['ai_enabled'] ?? 'true';
+            $result = $this->service->audit($uploadedFiles, $photoIndices, $aiEnabled);
+            Response::json($result);
         } catch (\Throwable $e) {
             Response::serverError($e);
         }
@@ -74,7 +76,7 @@ class PdfAuditController
         try {
             $result = $this->service->health();
             if ($result) {
-                Response::json($result, 'OK');
+                Response::json($result);
             } else {
                 Response::error('Serviço PDF Checker indisponível', 503);
             }
@@ -88,9 +90,9 @@ class PdfAuditController
         try {
             $result = $this->service->getReference();
             if ($result) {
-                Response::json($result, 'Referência carregada');
+                Response::success('OK', ['reference' => $result]);
             } else {
-                Response::error('Nenhuma referência definida', 404);
+                Response::success('Nenhuma referência', ['reference' => null]);
             }
         } catch (\Throwable $e) {
             Response::serverError($e);

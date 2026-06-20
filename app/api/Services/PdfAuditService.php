@@ -35,7 +35,7 @@ class PdfAuditService
             $data = json_decode($response, true);
             return [
                 'success' => false,
-                'message' => $data['detail'] ?? 'Erro ao processar referência no serviço PDF'
+                'message' => self::extractDetail($data),
             ];
         }
 
@@ -47,25 +47,40 @@ class PdfAuditService
         ];
     }
 
-    public function audit(array $files): array
+    public function audit(array $files, string $photoIndices = '', string $aiEnabled = 'true'): array
     {
-        $multipart = [];
-        foreach ($files as $i => $file) {
-            $multipart['files[' . $i . ']'] = new \CURLFile(
-                $file['tmp_name'],
-                'application/pdf',
-                $file['name']
-            );
+        $boundary = '----' . bin2hex(random_bytes(16));
+        $body = '';
+
+        if ($photoIndices !== '') {
+            $body .= "--$boundary\r\n";
+            $body .= "Content-Disposition: form-data; name=\"photo_indices\"\r\n\r\n";
+            $body .= $photoIndices . "\r\n";
         }
+
+        $body .= "--$boundary\r\n";
+        $body .= "Content-Disposition: form-data; name=\"ai_enabled\"\r\n\r\n";
+        $body .= $aiEnabled . "\r\n";
+
+        foreach ($files as $file) {
+            $body .= "--$boundary\r\n";
+            $body .= "Content-Disposition: form-data; name=\"files\"; filename=\"{$file['name']}\"\r\n";
+            $body .= "Content-Type: application/pdf\r\n\r\n";
+            $body .= file_get_contents($file['tmp_name']) . "\r\n";
+        }
+        $body .= "--$boundary--\r\n";
 
         $curl = curl_init();
         curl_setopt_array($curl, [
             CURLOPT_URL => $this->checkerUrl . '/audit',
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $multipart,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: multipart/form-data; boundary=' . $boundary,
+                'Expect:',
+            ],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 300,
-            CURLOPT_HTTPHEADER => ['Expect:'],
         ]);
 
         $response = curl_exec($curl);
@@ -76,7 +91,7 @@ class PdfAuditService
             $data = json_decode($response, true);
             return [
                 'success' => false,
-                'message' => $data['detail'] ?? 'Erro ao processar auditoria no serviço PDF',
+                'message' => self::extractDetail($data, 'Erro ao processar auditoria no serviço PDF'),
                 'results' => []
             ];
         }
@@ -120,6 +135,12 @@ class PdfAuditService
         if (file_exists($sessionFile)) {
             unlink($sessionFile);
         }
+    }
+
+    private static function extractDetail(?array $data, string $default = 'Erro ao processar referência no serviço PDF'): string
+    {
+        $detail = $data['detail'] ?? null;
+        return is_string($detail) ? $detail : $default;
     }
 
     private function saveReferenceSession(array $data): void

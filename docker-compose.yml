@@ -31,8 +31,6 @@ services:
   app:
     build: .
     container_name: rubble-app
-    expose:
-      - "80"
     env_file: .env
     volumes:
       - os-data:/var/www/html/OS
@@ -40,8 +38,32 @@ services:
     entrypoint: >
       sh -c "
         chown -R www-data:www-data /var/www/html/OS /var/www/html/LAUDO &&
-        exec docker-php-entrypoint apache2-foreground
+        exec docker-php-entrypoint php-fpm
       "
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+    healthcheck:
+      test: ['CMD', 'php', '-r', '$e=null; $m=null; fsockopen("tcp://127.0.0.1:9000", 9000, $e, $m, 2) or exit(1); exit(0);']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: rubble-nginx
+    volumes:
+      - ./:/var/www/html:ro
+      - ./config/nginx/site.conf:/etc/nginx/conf.d/default.conf:ro
+    expose:
+      - "80"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.rubble.rule=Host(`rubbleapp.duckdns.org`)"
@@ -49,14 +71,13 @@ services:
       - "traefik.http.routers.rubble.tls=true"
       - "traefik.http.routers.rubble.tls.certresolver=letsencrypt"
       - "traefik.http.services.rubble.loadbalancer.server.port=80"
+    depends_on:
+      - app
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '1.0'
-    depends_on:
-      db:
-        condition: service_healthy
+          memory: 128M
+          cpus: '0.25'
     restart: unless-stopped
 
   db:
@@ -127,6 +148,8 @@ services:
     container_name: rubble-pdf-checker
     expose:
       - "8000"
+    volumes:
+      - hf-cache:/cache/huggingface
     deploy:
       resources:
         limits:
@@ -139,4 +162,5 @@ volumes:
   os-data:
   laudo-data:
   traefik-letsencrypt:
+  hf-cache:
 

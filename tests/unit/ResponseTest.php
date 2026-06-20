@@ -4,6 +4,8 @@ namespace Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/ResponseTestHelper.php';
+
 class ResponseTest extends TestCase
 {
     protected function setUp(): void
