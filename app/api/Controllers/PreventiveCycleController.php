@@ -4,6 +4,7 @@ namespace App\Api\Controllers;
 
 use App\Api\Services\PreventiveCycleService;
 use App\Api\Helpers\{Response, Request, Validator};
+use Exception;
 
 class PreventiveCycleController
 {
@@ -72,8 +73,10 @@ class PreventiveCycleController
                 'saved' => $result['saved'],
                 'deleted' => $result['deleted'],
             ]);
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 
@@ -92,8 +95,10 @@ class PreventiveCycleController
             $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
             $ids = $this->service->listIds($ciclo, $search, $hasObservacao, $noScm, $scmLancados);
             Response::success('', ['ids' => $ids]);
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 
@@ -107,6 +112,8 @@ class PreventiveCycleController
             }
             $data = $this->service->validateScm($scmNumber);
             Response::success('', $data);
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
             Response::serverError($e);
         }

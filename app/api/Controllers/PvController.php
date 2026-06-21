@@ -6,6 +6,7 @@ use App\Api\Services\PvService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
+use Exception;
 
 class PvController
 {
@@ -185,9 +186,12 @@ class PvController
                 201
             );
 
+        } catch (\Exception $e) {
+
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
 
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 
@@ -239,9 +243,12 @@ class PvController
                 'PV atualizada com sucesso'
             );
 
+        } catch (\Exception $e) {
+
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
 
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 
@@ -277,9 +284,12 @@ class PvController
                 'Status atualizado com sucesso'
             );
 
+        } catch (\Exception $e) {
+
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
 
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 
@@ -337,9 +347,12 @@ class PvController
                 'PV excluída com sucesso'
             );
 
+        } catch (\Exception $e) {
+
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
 
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 

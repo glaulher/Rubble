@@ -6,6 +6,7 @@ use App\Api\Services\UserService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
+use Exception;
 
 class UserController
 {
@@ -86,8 +87,10 @@ class UserController
             $id = $this->service->save($data);
 
             Response::success('Usuário cadastrado com sucesso', ['id' => $id], 201);
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 
@@ -111,8 +114,10 @@ class UserController
             $this->service->update((int)$data['id'], $data);
 
             Response::success('Usuário atualizado com sucesso');
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 
@@ -129,8 +134,10 @@ class UserController
             $this->service->delete((int)$data['id'], $currentUserId);
 
             Response::success('Usuário excluído com sucesso');
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 }

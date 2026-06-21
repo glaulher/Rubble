@@ -7,6 +7,7 @@ use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
 use App\Api\Helpers\Cache;
+use Exception;
 
 class EquipmentManagementController
 {
@@ -85,8 +86,10 @@ class EquipmentManagementController
             Cache::deleteByPrefix('equipment_sum:');
 
             Response::success('Equipamento cadastrado com sucesso', ['id' => $id], 201);
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 
@@ -112,8 +115,10 @@ class EquipmentManagementController
             Cache::deleteByPrefix('equipment_sum:');
 
             Response::success('Equipamento atualizado com sucesso');
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 
@@ -131,8 +136,10 @@ class EquipmentManagementController
             Cache::deleteByPrefix('equipment_sum:');
 
             Response::success('Equipamento excluído com sucesso');
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
-            Response::serverError($e, 400);
+            Response::serverError($e);
         }
     }
 }

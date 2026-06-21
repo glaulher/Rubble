@@ -5,6 +5,7 @@ namespace App\Api\Controllers;
 use App\Api\Services\ScmService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
+use Exception;
 
 class ScmController
 {
@@ -88,6 +89,8 @@ class ScmController
                 'errors'    => $result['errors'],
             ]);
             return;
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
             Response::serverError($e);
         }
@@ -133,6 +136,8 @@ class ScmController
 
             Response::json(['success' => true, 'message' => 'SCM excluído com sucesso']);
             return;
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
             Response::serverError($e);
         }
