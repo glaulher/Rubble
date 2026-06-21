@@ -78,7 +78,7 @@ class UserController
                 Response::error('Informe um e-mail válido', 400);
             }
 
-            $allowedRoles = ['admin', 'supervisor', 'coordenador', 'cliente'];
+            $allowedRoles = ['admin', 'supervisor', 'coordenador', 'administrativo', 'cliente'];
             if (!in_array($data['role'], $allowedRoles, true)) {
                 Response::error('Role inválida', 400);
             }
@@ -103,7 +103,7 @@ class UserController
                 Response::error('Informe um e-mail válido', 400);
             }
 
-            $allowedRoles = ['admin', 'supervisor', 'coordenador', 'cliente'];
+            $allowedRoles = ['admin', 'supervisor', 'coordenador', 'administrativo', 'cliente'];
             if (!in_array($data['role'], $allowedRoles, true)) {
                 Response::error('Role inválida', 400);
             }
