@@ -6,8 +6,8 @@
         <p class="text-sm text-slate-400/80 mt-0.5">Validar relatórios contra referência</p>
       </div>
       <div class="text-center">
-        <span class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold">
-          <span id="auditStatus">Aguardando referência</span>
+        <span id="auditCenterBadge" class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold">
+          <span id="auditCenterBadgeText"><span class="text-emerald-300">0</span> aprovado - <span class="text-red-300">0</span> rejeitado</span>
         </span>
       </div>
       <div class="text-right flex items-center justify-end gap-2">
@@ -22,14 +22,6 @@
           </button>
           <span id="aiToggleTooltip" class="absolute top-full mt-2 right-0 origin-top-right scale-0 group-hover:scale-100 transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Análise por IA: ligada</span>
         </div>
-
-        <span id="auditCountBadge" class="hidden text-xs text-slate-400/80">
-          <span id="countApproved" class="text-emerald-300 font-semibold">0</span>
-          <span class="text-slate-500"> aprovado</span>
-          <span class="text-slate-400 mx-1">·</span>
-          <span id="countRejected" class="text-red-300 font-semibold">0</span>
-          <span class="text-slate-500"> rejeitado</span>
-        </span>
 
         <div id="clearReferenceBtn" class="hidden relative group" data-role="admin coordenador administrativo">
           <button id="clearReferenceBtnInner" class="bg-amber-100 hover:bg-amber-200 text-amber-600 p-2 rounded-xl transition">

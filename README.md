@@ -23,6 +23,7 @@ For full technical documentation (API reference, database schema, architecture, 
 - **Equipment Pricing** — Admin-only CRUD with rule-based pricing (TR/Chiller), mercado filter, home page value badges
 - **SCM (Service Control)** — CSV import with auto-detected delimiter, status mapping, multi-select dropdown filters (site/segmento), market cross-validation badge, PV status sync on import
 - **Preventive Cycle** — Cycle-based equipment tracking with checkbox/radio filters (observacao/selecionados/sem_scm/lancados), bulk check-all/uncheck-all, SCM validation per card, real-time valor badge
+- **PDF Audit** — CLIP-based AI report validation against reference PDFs; reference upload with progress simulation; OCR mode for non-AI validation; collapsible cards with photo comparison table
 - **CSV Export** — Equipment + ticket rows filtered by search term, per-ticket status in each row; PV items export with Windows-1252 encoding
 - **PDF Report** — PV items PDF via html2canvas + jsPDF with wrapped text and Memorial de Calculo; Dashboard PDF with smart page breaks
 - **CSV Import** — OS import from CSV with UTF-8/Latin-1 detection, site code extraction, tag-based equipment matching
@@ -181,6 +182,7 @@ Script load order (index.html): `sidebar.js` → `auth.js` → libs (chart, html
 | `users` | GET, POST, PUT, DELETE | User CRUD (admin) |
 | `scm` | GET, POST, DELETE | `listAll()`, `getById()`, `import()`, `delete()`, `segments()`, `sites()` |
 | `preventive-cycle` | GET, POST | `listAll()`, `summary()`, `save()`, `check-all()`, `uncheck-all()`, `scmStatusCount()`, `validateScm()` |
+| `pdf-audit` | GET, POST | `setReference()`, `audit()`, `getReference()`, `clearReference()`, `health()` |
 | `notify` | GET | Cron trigger |
 
 All routes (except `auth`) require JWT Bearer token. Access controlled by role.

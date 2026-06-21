@@ -441,10 +441,22 @@ Principais migrations:
 - **Batch operations:** `check-all`/`uncheck-all` respeitam filtro atual, usam INSERT com múltiplos VALUES + DELETE com IN (não 1 query por item)
 - **Agrupamento:** `local - hubRecase(local_scm)` (header do grupo), `localidade` exibida por card individual
 
+### PDF Audit (Auditoria de PDF)
+
+- **Rota:** `pdf-audit` — referência + auditoria de PDFs contra modelo
+- **Microserviço Python:** FastAPI + CLIP (ViT-B/32) em container separado (`rubble-pdf-checker/`)
+- **Threshold dinâmico:** CLIP threshold definido pelo pior score das fotos da referência
+- **Toggles:** IA (CLIP) ou OCR (sem IA, qualidade básica, até 30 arquivos)
+- **Upload progress:** barra mapeada 0-50% (upload real) + simulação 50-90% (processamento Python), mesma do `runAudit()`
+- **Center badge:** sub-header mostra `X aprovado - Y rejeitado` (verde/vermelho) em vez de nome da referência
+- **Cards de resultado:** colapsáveis (Ver/Ocultar) com itens NOK, problemas de fotos, campos ausentes, tabela de comparação CLIP
+- **CSV export:** resultados em formato CSV com encoding UTF-8 BOM
+- **Permissões:** admin = CRUD (upload/set reference/clear), coordenador/administrativo = R/O (visualizar/CSV)
+
 ### Home (Dashboard Principal)
 
 - **Cards de equipamento:** Agrupados por local, site groups com `data-site` attribute
-- **Polling::** `PollingManager` com jitter aleatório (±5s) para evitar thundering herd
+- **Polling:** `PollingManager` com jitter aleatório (±5s) para evitar thundering herd
 - **Hash comparison:** `lastHomeHash` comparado via MD5 server-side — só atualiza DOM se dados mudaram
 - **Incremental DOM:** `syncHomeCards()` atualiza in-place por `data-equip-id`, preserva estado expandido, remove cards obsoletos
 - **Badge total:** `#counterValue` via polling separado, sincronizado com `syncHomeCards()`
@@ -485,6 +497,7 @@ Principais migrations:
 - Login page sempre light (imune ao dark mode) — `router.js` remove classe `dark` do `<html>`, `auth.js` restaura ao sair
 - CSS Variables em `default.css` com overrides `!important`
 - Tailwind CDN injeta `<style>` DEPOIS de CSS estático — usar `dark:` variants diretamente nas classes HTML para elementos que o CDN sobrescreve (ex: search inputs, autocomplete dropdowns)
+- Cobertura CSS `!important` para cards de resultado (ex: `.dark .bg-amber-50`, `.dark .border-amber-200`, `.dark .text-amber-700`) — adicionar em `default.css` conforme necessário
 
 ### Skeleton Screen
 

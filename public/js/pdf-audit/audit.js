@@ -5,12 +5,23 @@ let aiEnabled = true;
 let maxAuditFiles = 10;
 let _auditSimTimer = null;
 
+function resetAuditCounts() {
+  const el = document.getElementById('auditCenterBadgeText');
+  if (el) el.innerHTML = '<span class="text-emerald-300">0</span> aprovado - <span class="text-red-300">0</span> rejeitado';
+}
+
+function updateAuditCounts(approved, rejected) {
+  const el = document.getElementById('auditCenterBadgeText');
+  if (el) el.innerHTML = '<span class="text-emerald-300">' + approved + '</span> aprovado - <span class="text-red-300">' + rejected + '</span> rejeitado';
+}
+
 function initPdfAudit() {
   auditReference = null;
   auditResults = [];
   selectedPhotoIndices = new Set();
   aiEnabled = true;
   maxAuditFiles = 10;
+  resetAuditCounts();
 
   const referenceInput = document.getElementById('referenceInput');
   if (referenceInput) {
@@ -120,34 +131,54 @@ async function handleReferenceUpload(e) {
   const progressText = document.getElementById('referenceProgressText');
   if (progress) progress.classList.remove('hidden');
 
+  // Simulation fills gap between upload (0-50%) and response
+  _auditSimTimer = setInterval(() => {
+    if (!progressBar) return;
+    const cur = parseFloat(progressBar.style.width) || 0;
+    if (cur < 90) {
+      const inc = (90 - cur) * 0.04 + 0.2;
+      const next = Math.min(90, cur + inc);
+      progressBar.style.width = next + '%';
+      if (progressText) progressText.textContent = 'Processando... ' + Math.round(next) + '%';
+    }
+  }, 500);
+
   try {
     const result = await uploadWithProgress(
       '/app/api/index.php?route=pdf-audit&action=set-reference',
       formData,
       {
         onProgress: (pct) => {
-          if (progressBar) progressBar.style.width = pct + '%';
-          if (progressText) progressText.textContent = file.name + ' ' + pct + '%';
+          // Map real upload (0-100%) to first half of bar (0-50%)
+          const mapped = Math.round(pct * 0.5);
+          if (progressBar) progressBar.style.width = mapped + '%';
+          if (progressText) progressText.textContent = 'Enviando... ' + mapped + '%';
         }
       }
     );
 
+    if (_auditSimTimer) {
+      clearInterval(_auditSimTimer);
+      _auditSimTimer = null;
+    }
     if (progressBar) progressBar.style.width = '100%';
-    if (progressText) progressText.textContent = file.name + ' 100%';
-    setTimeout(() => {
-      if (progress) progress.classList.add('hidden');
-      if (progressBar) progressBar.style.width = '0%';
-    }, 1000);
+    if (progressText) progressText.textContent = 'Processando resposta...';
 
     if (!result.success) {
       showToast(result.message || 'Erro ao processar referência', 'error');
+      if (progress) setTimeout(() => progress.classList.add('hidden'), 800);
       return;
     }
 
     auditReference = result.data;
     showToast('Referência definida com sucesso', 'success');
     showReferencePreview(result.data);
+    if (progress) setTimeout(() => progress.classList.add('hidden'), 800);
   } catch (err) {
+    if (_auditSimTimer) {
+      clearInterval(_auditSimTimer);
+      _auditSimTimer = null;
+    }
     if (progress) progress.classList.add('hidden');
     showToast('Erro ao enviar referência', 'error');
   }
@@ -187,11 +218,6 @@ function showReferencePreview(data) {
   }
   if (imageCount) {
     imageCount.textContent = data.reference?.image_count || 0;
-  }
-
-  const statusEl = document.getElementById('auditStatus');
-  if (statusEl) {
-    statusEl.innerHTML = `<span class="text-emerald-300">Referência: ${data.reference?.fields?.nome_site || 'definida'}</span>`;
   }
 
   const photoList = document.getElementById('referencePhotoList');
@@ -306,8 +332,6 @@ async function runAudit() {
   }
   formData.append('ai_enabled', aiEnabled ? 'true' : 'false');
 
-  showToast('Auditando relatórios...', 'loading');
-
   // Simulation fills gap between upload (0-50% of bar) and response
   _auditSimTimer = setInterval(() => {
     if (!progressBar) return;
@@ -392,12 +416,7 @@ function renderResults(results) {
     summary.textContent = `${results.length} relatórios — ${approved} aprovados, ${rejected} rejeitados`;
   }
 
-  const countBadge = document.getElementById('auditCountBadge');
-  const countApproved = document.getElementById('countApproved');
-  const countRejected = document.getElementById('countRejected');
-  if (countBadge) countBadge.classList.remove('hidden');
-  if (countApproved) countApproved.textContent = approved;
-  if (countRejected) countRejected.textContent = rejected;
+  updateAuditCounts(approved, rejected);
 
   if (container) {
     container.innerHTML = results.map(r => buildAuditCardHtml(r)).join('');
@@ -621,7 +640,6 @@ async function clearReference() {
   const auditInput = document.getElementById('auditInput');
   const runBtn = document.getElementById('runAuditBtn');
   const photosContainer = document.getElementById('referencePhotos');
-  const countBadge = document.getElementById('auditCountBadge');
   const refProgress = document.getElementById('referenceProgress');
   const auditProgress = document.getElementById('auditProgress');
 
@@ -636,14 +654,10 @@ async function clearReference() {
   if (referenceInput) referenceInput.value = '';
   if (runBtn) runBtn.classList.add('hidden');
   if (photosContainer) photosContainer.classList.add('hidden');
-  if (countBadge) countBadge.classList.add('hidden');
   if (refProgress) refProgress.classList.add('hidden');
   if (auditProgress) auditProgress.classList.add('hidden');
 
-  const statusEl = document.getElementById('auditStatus');
-  if (statusEl) {
-    statusEl.textContent = 'Aguardando referência';
-  }
+  resetAuditCounts();
 
   const filenames = document.getElementById('auditFilenames');
   if (filenames) filenames.textContent = '';
