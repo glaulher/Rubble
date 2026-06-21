@@ -46,7 +46,7 @@ services:
           memory: 1G
           cpus: '1.0'
     healthcheck:
-      test: ['CMD', 'php', '-r', '$e=null; $m=null; fsockopen("tcp://127.0.0.1:9000", 9000, $e, $m, 2) or exit(1); exit(0);']
+      test: ['CMD-SHELL', 'ps aux | grep -q "[p]hp-fpm"']
       interval: 30s
       timeout: 10s
       retries: 3
