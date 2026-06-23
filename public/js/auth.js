@@ -114,11 +114,13 @@ async function login(username, password, turnstileToken) {
   }
 
   storeAuth(result.data.token, result.data.user);
+  destroyTurnstile();
   return result.data.user;
 }
 
 function logout() {
   clearAuth();
+  destroyTurnstile();
 
   fetch('/app/api/index.php?route=auth', {
     method: 'POST',

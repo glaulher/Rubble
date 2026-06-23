@@ -21,10 +21,6 @@ async function router() {
     PollingManager.stopAll();
   }
 
-  if (typeof destroyTurnstile === 'function') {
-    destroyTurnstile();
-  }
-
   const app = document.getElementById("app");
 
   const hash = window.location.hash;
