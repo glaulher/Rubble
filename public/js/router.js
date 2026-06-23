@@ -21,9 +21,13 @@ async function router() {
     PollingManager.stopAll();
   }
 
-  const app = document.getElementById("app");
-
   const hash = window.location.hash;
+
+  if (hash !== '#/login' && typeof destroyTurnstile === 'function') {
+    destroyTurnstile();
+  }
+
+  const app = document.getElementById("app");
 
   if (!authGuard()) {
     return;
