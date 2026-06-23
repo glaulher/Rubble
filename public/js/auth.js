@@ -206,6 +206,17 @@ function initTurnstileWidget() {
   container.dataset.turnstileRendered = '1';
 }
 
+function destroyTurnstile() {
+  if (typeof turnstile !== 'undefined' && turnstileWidgetId !== null) {
+    try {
+      turnstile.remove(turnstileWidgetId);
+    } catch (e) {
+      // widget already removed from DOM
+    }
+    turnstileWidgetId = null;
+  }
+}
+
 function getTurnstileToken() {
   if (!TURNSTILE_SITE_KEY || turnstileWidgetId === null) return '';
   return turnstile.getResponse(turnstileWidgetId);
@@ -360,6 +371,7 @@ if (typeof globalThis !== 'undefined') {
   globalThis.parseJwtPayload = parseJwtPayload;
   globalThis.storeAuth = storeAuth;
   globalThis.clearAuth = clearAuth;
+  globalThis.destroyTurnstile = destroyTurnstile;
   globalThis.login = login;
   globalThis.logout = logout;
   globalThis.apiFetch = apiFetch;
