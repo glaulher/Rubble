@@ -25,6 +25,35 @@
       </div>
 
       <div class="flex items-center gap-4 justify-self-end self-start">
+        <div class="relative group">
+          <button
+            data-action="generate-csv"
+            class="bg-emerald-300 hover:bg-emerald-400 text-emerald-800 px-2 py-2 rounded-xl font-semibold transition"
+          >
+            <svg
+              class="w-6 h-6"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+              />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="8" y1="13" x2="16" y2="13" />
+              <line x1="8" y1="17" x2="16" y2="17" />
+              <line x1="8" y1="9" x2="10" y2="9" />
+            </svg>
+          </button>
+          <span
+            class="absolute right-0 top-[54px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+          >
+            Exportar relat&oacute;rio CSV
+          </span>
+        </div>
         <input
           type="text"
           id="cycleSearch"

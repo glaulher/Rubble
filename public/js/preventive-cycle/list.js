@@ -88,6 +88,12 @@ function _cycleSetupEvents() {
   var saveBtn = document.getElementById('saveCycleBtn');
   if (saveBtn) saveBtn.addEventListener('click', _cycleSave);
 
+  var csvBtn = document.querySelector('[data-action="generate-csv"]');
+  if (csvBtn) {
+    csvBtn.removeEventListener('click', _cycleExportCsv);
+    csvBtn.addEventListener('click', _cycleExportCsv);
+  }
+
   var selectAll = document.getElementById('selectAllCycle');
   if (selectAll) {
     selectAll.addEventListener('change', function () {
@@ -496,6 +502,88 @@ function _cycleSave() {
         saveBtn.innerHTML =
           '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Salvar Ciclo';
       }
+    });
+}
+
+function _cycleExportCsv() {
+  var ciclo = _cycleCurrent;
+  if (!ciclo) {
+    if (typeof showToast === 'function') showToast('Selecione um ciclo primeiro', 'error');
+    return;
+  }
+
+  var allItems = [];
+  var limit = 500;
+  var offset = 0;
+
+  var searchEl = document.getElementById('cycleSearch');
+  var search = searchEl ? searchEl.value.trim() : '';
+
+  function _fetchPage() {
+    var url = '/app/api/index.php?route=preventive-cycle&ciclo=' + encodeURIComponent(ciclo)
+      + '&limit=' + limit + '&offset=' + offset;
+    if (search) url += '&search=' + encodeURIComponent(search);
+    if (_cycleFilter === 'selecionados') url += '&checked=1';
+    if (_cycleFilter === 'observacao') url += '&has_observacao=1';
+    if (_cycleFilter === 'sem_scm') url += '&no_scm=1';
+    if (_cycleFilter === 'lancados') url += '&scm_lancados=1';
+
+    return apiFetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (result) {
+        if (!result.success) return [];
+        return result.data || [];
+      });
+  }
+
+  function _fetchAll() {
+    return _fetchPage().then(function _loop(chunk) {
+      if (!chunk || chunk.length === 0) return allItems;
+      allItems.push.apply(allItems, chunk);
+      if (chunk.length < limit) return allItems;
+      offset += limit;
+      return _fetchPage().then(_loop);
+    });
+  }
+
+  _fetchAll()
+    .then(function (items) {
+      if (items.length === 0) {
+        if (typeof showToast === 'function') showToast('Nenhum dado para exportar', 'error');
+        return;
+      }
+
+      if (typeof downloadCSV !== 'function') {
+        if (typeof showToast === 'function') showToast('Função de exportação indisponível', 'error');
+        return;
+      }
+
+      var header = 'LOCAL;LOCAL SCM;LOCALIDADE;EQUIPAMENTO;CAPACIDADE (TR);VALOR (R$);MARCADO;OBSERVACAO;SCM';
+
+      downloadCSV(
+        'preventiva_' + ciclo + '.csv',
+        header,
+        function (addRow) {
+          items.forEach(function (item) {
+            var valor = parseFloat(item.valor || 0);
+            addRow([
+              sanitizeCSV(item.local || ''),
+              sanitizeCSV(item.local_scm || ''),
+              sanitizeCSV(item.localidade || ''),
+              sanitizeCSV(item.equipamento || ''),
+              item.capacidade ? parseFloat(item.capacidade) + ' TR' : '',
+              valor > 0 ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+              item.checked ? 'Sim' : 'N\u00e3o',
+              sanitizeCSV(item.observacao || ''),
+              sanitizeCSV(item.scm_number || ''),
+            ]);
+          });
+        }
+      );
+    })
+    .catch(function (e) {
+      console.warn('[preventive-cycle] CSV export error:', e);
+      if (typeof showToast === 'function') showToast('Erro ao exportar CSV', 'error');
     });
 }
 
