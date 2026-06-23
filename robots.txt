@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://rubbleapp.duckdns.org/sitemap.xml
