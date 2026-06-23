@@ -250,6 +250,10 @@ class TicketRepository extends BaseRepository
 
     private function buildStatusOrderSql(array $priority): string
     {
+        // Security boundary: ALLOWED_STATUS_KEYS whitelist with strict in_array()
+        // prevents any non-whitelisted value from reaching SQL concatenation.
+        // $priority comes from TicketService::STATUS_PRIORITY (hardcoded constants),
+        // never from user input. real_escape_string() is defense-in-depth.
         $parts = [];
         foreach ($priority as $status => $weight) {
             if (!in_array($status, self::ALLOWED_STATUS_KEYS, true)) {

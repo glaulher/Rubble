@@ -166,8 +166,8 @@ CREATE TABLE `pv` (
   `obs` text DEFAULT NULL,
   `ral` varchar(100) DEFAULT NULL,
   `equipamento_id` int(11) DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `created_at` datetime NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -240,6 +240,9 @@ CREATE TABLE `registros` (
   `equipamento_id` int(11) DEFAULT NULL,
   `notificacao_enviada` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- FK constraint added via migration 036:
+-- ALTER TABLE registros ADD CONSTRAINT fk_registros_equipamento FOREIGN KEY (equipamento_id) REFERENCES equipamentos(id);
 
 -- --------------------------------------------------------
 
@@ -601,6 +604,12 @@ ALTER TABLE `usuarios`
 --
 ALTER TABLE `equipamentos`
   ADD CONSTRAINT `fk_equipamentos_endereco` FOREIGN KEY (`endereco_id`) REFERENCES `enderecos` (`id`);
+
+--
+-- Restrições para tabelas `registros`
+--
+ALTER TABLE `registros`
+  ADD CONSTRAINT `fk_registros_equipamento` FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`);
 
 --
 -- Restrições para tabelas `preventive_cycle_items`

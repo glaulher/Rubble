@@ -24,6 +24,8 @@ class ExportController
     {
         try {
             $search = trim($_GET['search'] ?? '');
+            $limit = (int) ($_GET['limit'] ?? 500);
+            $offset = (int) ($_GET['offset'] ?? 0);
             $status = isset($_GET['status']) && $_GET['status'] !== ''
                 ? $_GET['status']
                 : null;
@@ -31,7 +33,7 @@ class ExportController
                 ? $_GET['ciclo']
                 : null;
 
-            $pvs = $this->service->listAll(999999, 0, $search, $status, $cycle, 'pv.id', 'ASC');
+            $pvs = $this->service->listAll($limit, $offset, $search, $status, $cycle, 'pv.id', 'ASC');
 
             $pvIds = array_map(fn($p) => $p['id'], $pvs['items']);
             $itemsGrouped = $this->service->getItemsForExport($pvIds);

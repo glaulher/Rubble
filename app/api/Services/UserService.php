@@ -52,14 +52,18 @@ class UserService
             throw new Exception('Este e-mail já está em uso');
         }
 
-        if (strlen($data['password']) < 6) {
-            throw new Exception('Senha deve ter pelo menos 6 caracteres');
+        // Password is optional on update — only rehash if provided
+        if (!empty($data['password'])) {
+            if (strlen($data['password']) < 6) {
+                throw new Exception('Senha deve ter pelo menos 6 caracteres');
+            }
+            if (strlen($data['password']) > 128) {
+                throw new Exception('Senha não pode ter mais de 128 caracteres');
+            }
+            $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+        } else {
+            unset($data['password']);
         }
-        if (strlen($data['password']) > 128) {
-            throw new Exception('Senha não pode ter mais de 128 caracteres');
-        }
-
-        $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
 
         $this->repository->update($id, $data);
     }

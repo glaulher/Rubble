@@ -1,7 +1,7 @@
 .env
 OS/
 LAUDO/
-*.sql
+# *.sql — temporary removed for migration commit (2026-06-23)
 cache/
 AGENTS.md
 contexto.md

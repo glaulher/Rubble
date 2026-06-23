@@ -99,7 +99,7 @@ class UserController
         try {
             $data = Request::body();
 
-            Validator::required($data, ['id', 'username', 'nome', 'password', 'role']);
+            Validator::required($data, ['id', 'username', 'nome', 'role']);
             Validator::integer($data, 'id');
 
             if (!filter_var($data['username'], FILTER_VALIDATE_EMAIL)) {
@@ -109,6 +109,13 @@ class UserController
             $allowedRoles = ['admin', 'supervisor', 'coordenador', 'administrativo', 'cliente'];
             if (!in_array($data['role'], $allowedRoles, true)) {
                 Response::error('Role inválida', 400);
+            }
+
+            // Password is optional on update — only validate if provided
+            if (!empty($data['password'])) {
+                if (strlen($data['password']) < 6) {
+                    Response::error('Senha deve ter pelo menos 6 caracteres', 400);
+                }
             }
 
             $this->service->update((int)$data['id'], $data);

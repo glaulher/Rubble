@@ -13,12 +13,7 @@ class PvDashboardRepository extends BaseRepository
             throw new RuntimeException('Erro na preparação: ' . $this->conn->error);
         }
         if ($params) {
-            $bindParams = [$types];
-            foreach ($params as &$param) {
-                $bindParams[] = &$param;
-            }
-            unset($param);
-            call_user_func_array([$stmt, 'bind_param'], $bindParams);
+            $stmt->bind_param($types, ...$params);
         }
         if (!$stmt->execute()) {
             throw new RuntimeException('Erro na execução: ' . $stmt->error);
