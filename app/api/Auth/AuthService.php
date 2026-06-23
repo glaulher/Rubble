@@ -116,7 +116,7 @@ class AuthService
                 'write' => [],
             ],
             'cliente' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'locals'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify'],
                 'write' => [],
             ],
         ];
