@@ -519,6 +519,8 @@ function _cycleExportCsv() {
   var searchEl = document.getElementById('cycleSearch');
   var search = searchEl ? searchEl.value.trim() : '';
 
+  if (typeof showToast === 'function') showToast('Exportando CSV...', 'loading');
+
   function _fetchPage() {
     var url = '/app/api/index.php?route=preventive-cycle&ciclo=' + encodeURIComponent(ciclo)
       + '&limit=' + limit + '&offset=' + offset;
@@ -531,7 +533,9 @@ function _cycleExportCsv() {
     return apiFetch(url)
       .then(function (r) { return r.json(); })
       .then(function (result) {
-        if (!result.success) return [];
+        if (!result.success) {
+          throw new Error(result.message || 'Erro ao carregar dados');
+        }
         return result.data || [];
       });
   }
@@ -549,11 +553,13 @@ function _cycleExportCsv() {
   _fetchAll()
     .then(function (items) {
       if (items.length === 0) {
+        if (typeof dismissToast === 'function') dismissToast();
         if (typeof showToast === 'function') showToast('Nenhum dado para exportar', 'error');
         return;
       }
 
       if (typeof downloadCSV !== 'function') {
+        if (typeof dismissToast === 'function') dismissToast();
         if (typeof showToast === 'function') showToast('Função de exportação indisponível', 'error');
         return;
       }
@@ -580,9 +586,12 @@ function _cycleExportCsv() {
           });
         }
       );
+
+      if (typeof dismissToast === 'function') dismissToast();
     })
     .catch(function (e) {
       console.warn('[preventive-cycle] CSV export error:', e);
+      if (typeof dismissToast === 'function') dismissToast();
       if (typeof showToast === 'function') showToast('Erro ao exportar CSV', 'error');
     });
 }
