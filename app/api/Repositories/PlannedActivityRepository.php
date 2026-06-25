@@ -8,25 +8,38 @@ class PlannedActivityRepository extends BaseRepository
 {
     public function listAll(int $limit, int $offset, string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null): array
     {
-        [$where, $params, $types] = $this->buildFilterClause($search, $dateFrom, $dateTo, $status);
+        [$pw, $pp, $pt] = $this->buildPreventivaFilter($search, $dateFrom, $dateTo, $status);
+        [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status);
 
         $sql = "
-            SELECT r.*, e.local, e.equipamento, e.localidade, e.capacidade, e.local_scm
-            FROM registros r
-            LEFT JOIN equipamentos e ON e.id = r.equipamento_id
-            WHERE {$where}
-            ORDER BY r.data_planejada DESC, r.id DESC
+            SELECT id, local, equipamento, capacidade, local_scm, localidade, os, data_planejada, equipe, status, obs, tipo, machine_count
+            FROM (
+                SELECT ap.id, ap.site AS local, '' AS equipamento, '' AS capacidade, '' AS local_scm, '' AS localidade,
+                       ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.obs, 'preventiva' AS tipo,
+                       (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count
+                FROM atividades_preventivas ap
+                WHERE {$pw}
+
+                UNION ALL
+
+                SELECT r.id, COALESCE(e.local, ''), COALESCE(e.equipamento, ''), COALESCE(e.capacidade, ''),
+                       COALESCE(e.local_scm, ''), COALESCE(e.localidade, ''),
+                       r.os, r.data_planejada, r.equipe, r.status, r.obs, r.tipo, 0 AS machine_count
+                FROM registros r
+                LEFT JOIN equipamentos e ON e.id = r.equipamento_id
+                WHERE {$cw}
+            ) AS combined
+            ORDER BY data_planejada DESC, id DESC
             LIMIT ? OFFSET ?
         ";
 
+        $allParams = array_merge($pp, $cp, [$limit, $offset]);
+        $allTypes = $pt . $ct . 'ii';
+
         $stmt = $this->safePrepare($sql);
-
-        if ($types !== '') {
-            $stmt->bind_param($types . 'ii', ...array_merge($params, [$limit, $offset]));
-        } else {
-            $stmt->bind_param('ii', $limit, $offset);
+        if ($allTypes !== '') {
+            $stmt->bind_param($allTypes, ...$allParams);
         }
-
         $stmt->execute();
         $result = $stmt->get_result();
 
@@ -40,21 +53,25 @@ class PlannedActivityRepository extends BaseRepository
 
     public function count(string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null): int
     {
-        [$where, $params, $types] = $this->buildFilterClause($search, $dateFrom, $dateTo, $status);
+        [$pw, $pp, $pt] = $this->buildPreventivaFilter($search, $dateFrom, $dateTo, $status);
+        [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status);
 
         $sql = "
             SELECT COUNT(*) AS total
-            FROM registros r
-            LEFT JOIN equipamentos e ON e.id = r.equipamento_id
-            WHERE {$where}
+            FROM (
+                SELECT ap.id FROM atividades_preventivas ap WHERE {$pw}
+                UNION ALL
+                SELECT r.id FROM registros r LEFT JOIN equipamentos e ON e.id = r.equipamento_id WHERE {$cw}
+            ) AS combined
         ";
 
+        $allParams = array_merge($pp, $cp);
+        $allTypes = $pt . $ct;
+
         $stmt = $this->safePrepare($sql);
-
-        if ($types !== '') {
-            $stmt->bind_param($types, ...$params);
+        if ($allTypes !== '') {
+            $stmt->bind_param($allTypes, ...$allParams);
         }
-
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
@@ -62,9 +79,9 @@ class PlannedActivityRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
-    private function buildFilterClause(string $search, ?string $dateFrom, ?string $dateTo, ?string $status): array
+    private function buildCorretivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status): array
     {
-        $where = 'r.data_planejada IS NOT NULL';
+        $where = 'r.data_planejada IS NOT NULL AND r.tipo = \'corretiva\'';
         $params = [];
         $types = '';
 
@@ -89,14 +106,47 @@ class PlannedActivityRepository extends BaseRepository
             $searchTerm = '%' . $search . '%';
             if (mb_strlen($search) >= 3) {
                 $safeSearch = $this->conn->real_escape_string($search);
-                $where .= " AND (MATCH(e.local, e.equipamento, e.localidade) AGAINST('+{$safeSearch}*' IN BOOLEAN MODE) OR r.obs LIKE ? OR r.os LIKE ? OR r.data_planejada LIKE ?)";
-                array_push($params, $searchTerm, $searchTerm, $searchTerm);
-                $types .= 'sss';
+                $where .= " AND (MATCH(e.local, e.equipamento, e.localidade) AGAINST('+{$safeSearch}*' IN BOOLEAN MODE) OR r.obs LIKE ? OR r.os LIKE ? OR r.data_planejada LIKE ? OR r.tipo LIKE ?)";
+                array_push($params, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
+                $types .= 'ssss';
             } else {
-                $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.obs LIKE ? OR r.os LIKE ? OR r.data_planejada LIKE ?)';
-                array_push($params, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
-                $types .= 'ssssss';
+                $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.obs LIKE ? OR r.os LIKE ? OR r.data_planejada LIKE ? OR r.tipo LIKE ?)';
+                array_push($params, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
+                $types .= 'sssssss';
             }
+        }
+
+        return [$where, $params, $types];
+    }
+
+    private function buildPreventivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status): array
+    {
+        $where = 'ap.data_planejada IS NOT NULL';
+        $params = [];
+        $types = '';
+
+        if ($dateFrom !== null && $dateFrom !== '') {
+            $where .= ' AND ap.data_planejada >= ?';
+            $params[] = $dateFrom;
+            $types .= 's';
+        }
+        if ($dateTo !== null && $dateTo !== '') {
+            $where .= ' AND ap.data_planejada <= ?';
+            $params[] = $dateTo;
+            $types .= 's';
+        }
+        if ($status !== null && $status !== '') {
+            $where .= ' AND LOWER(ap.status) = ?';
+            $params[] = mb_strtolower($status);
+            $types .= 's';
+        }
+
+        $search = $this->normalizeDateSearch($search);
+        if ($search !== '') {
+            $searchTerm = '%' . $search . '%';
+            $where .= ' AND (ap.site LIKE ? OR ap.ticket LIKE ? OR ap.obs LIKE ?)';
+            array_push($params, $searchTerm, $searchTerm, $searchTerm);
+            $types .= 'sss';
         }
 
         return [$where, $params, $types];

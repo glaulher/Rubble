@@ -45,11 +45,13 @@ function plannedStatusBadgeHtml(status) {
 }
 
 function buildPlannedCardHtml(item) {
+  var tipo = item.tipo || 'preventiva';
   var equipName = item.equipamento || 'N/A';
   var localidade = item.localidade || '';
   var capacidade = item.capacidade || '';
   var local = item.local || '';
   var localScm = item.local_scm || '';
+  var material = item.material || (tipo === 'preventiva' ? '' : 'Sim');
 
   var capacidadeHtml = capacidade ? '<span class="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded-lg text-xs font-medium">' + escapeHtml(capacidade) + ' TR</span>' : '';
   var localHtml = local
@@ -57,12 +59,10 @@ function buildPlannedCardHtml(item) {
     : '';
 
   var statusBadge = plannedStatusBadgeHtml(item.status);
-  var tipo = item.tipo || 'preventiva';
   var tipoBadge = tipo === 'corretiva'
     ? '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-amber-100 text-amber-700">Corretiva</span>'
     : '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-blue-100 text-blue-700">Preventiva</span>';
   var equipe = item.equipe || 'A definir';
-  var material = item.material || 'Sim';
   var obs = item.obs || '';
 
   var obsHtml = '';
@@ -70,11 +70,42 @@ function buildPlannedCardHtml(item) {
     obsHtml = '<div class="mt-2 text-xs text-slate-600 dark:text-slate-400 whitespace-pre-line leading-relaxed border-t border-slate-100 dark:border-slate-700 pt-2">' + escapeHtml(obs) + '</div>';
   }
 
-  var deleteBtn = '';
+  var canEdit = false;
   if (typeof getUser === 'function') {
     var user = getUser();
     if (user && (user.role === 'admin' || user.role === 'coordenador')) {
-      deleteBtn = '<button class="planned-delete-btn bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-xl" data-id="' + item.id + '" aria-label="Excluir atividade">' +
+      canEdit = true;
+    }
+  }
+
+  var actionsHtml = canEdit
+    ? '<div class="flex items-center gap-1">' +
+        tipoBadge +
+        statusBadge +
+      '</div>'
+    : '<div class="flex items-center gap-1">' +
+        tipoBadge +
+        statusBadge +
+      '</div>';
+
+  var extraBtns = '';
+
+  if (tipo === 'preventiva') {
+    var machineCount = item.machine_count || 0;
+    extraBtns = '<button class="planned-status-btn bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-xl" data-id="' + item.id + '" data-status="' + escapeHtml(item.status || 'Planejado') + '" aria-label="Alterar status">' +
+      '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M20 7l-6 6h4v6H6v-6h4L4 7h16z"/>' +
+      '</svg></button>';
+    if (canEdit) {
+      extraBtns += '<button class="planned-delete-btn bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-xl" data-id="' + item.id + '" aria-label="Excluir atividade">' +
+        '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<polyline points="3 6 5 6 21 6"></polyline>' +
+        '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>' +
+        '</svg></button>';
+    }
+  } else {
+    if (canEdit) {
+      extraBtns = '<button class="planned-delete-btn bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-xl" data-id="' + item.id + '" aria-label="Excluir atividade">' +
         '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
         '<polyline points="3 6 5 6 21 6"></polyline>' +
         '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>' +
@@ -82,25 +113,37 @@ function buildPlannedCardHtml(item) {
     }
   }
 
-  return '<div class="planned-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '">' +
+  var headerHtml = '';
+  var bodyHtml = '';
+
+  if (tipo === 'preventiva') {
+    headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
+      '<span class="font-semibold text-sm text-slate-800 dark:text-white">' + escapeHtml(local) + '</span>' +
+      (item.os ? '<span class="text-sm text-slate-500 dark:text-slate-300">Ticket ' + escapeHtml(item.os) + '</span>' : '') +
+      (machineCount > 0 ? '<span class="text-xs text-slate-400">\u2014 ' + machineCount + ' m\u00e1quina' + (machineCount > 1 ? 's' : '') + '</span>' : '') +
+    '</div>';
+  } else {
+    headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
+      '<span class="font-semibold text-sm text-slate-800 dark:text-white">OS ' + escapeHtml(item.os || '') + '</span>' +
+      '<span class="text-sm text-slate-600 dark:text-slate-300">' + escapeHtml(equipName) + '</span>' +
+      capacidadeHtml +
+    '</div>';
+  }
+
+  return '<div class="planned-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '" data-tipo="' + tipo + '">' +
     '<div class="flex items-start justify-between gap-3">' +
       '<div class="flex-1 min-w-0">' +
-        '<div class="flex items-center gap-2 flex-wrap">' +
-          '<span class="font-semibold text-sm text-slate-800 dark:text-white">OS ' + escapeHtml(item.os || '') + '</span>' +
-          '<span class="text-sm text-slate-600 dark:text-slate-300">' + escapeHtml(equipName) + '</span>' +
-          capacidadeHtml +
-        '</div>' +
+        headerHtml +
         localHtml +
       '</div>' +
       '<div class="flex items-center gap-2 shrink-0">' +
-        tipoBadge +
-        statusBadge +
-        deleteBtn +
+        actionsHtml +
+        extraBtns +
       '</div>' +
     '</div>' +
     '<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">' +
       '<span>Equipe: <strong class="text-slate-700 dark:text-slate-200">' + escapeHtml(equipe) + '</strong></span>' +
-      '<span>Material: <strong class="text-slate-700 dark:text-slate-200">' + escapeHtml(material) + '</strong></span>' +
+      (material ? '<span>Material: <strong class="text-slate-700 dark:text-slate-200">' + escapeHtml(material) + '</strong></span>' : '') +
     '</div>' +
     obsHtml +
   '</div>';
@@ -110,7 +153,7 @@ function renderPlanned(items, append) {
   var counter = document.getElementById('plannedCounter');
   if (counter) {
     var total = typeof window._plannedTotal !== 'undefined' ? window._plannedTotal : items.length;
-    counter.textContent = total;
+    counter.textContent = total + ' atividades';
   }
 
   var content = document.getElementById('plannedContent');
@@ -252,6 +295,11 @@ function openPlanModal() {
 
   var hiddenId = document.getElementById('planEquipamentoId');
   if (hiddenId) hiddenId.value = '';
+
+  var prevFields = document.getElementById('preventivaFields');
+  var corrFields = document.getElementById('corretivaFields');
+  if (prevFields) prevFields.classList.add('hidden');
+  if (corrFields) corrFields.classList.add('hidden');
 }
 
 function closePlanModal() {
@@ -535,9 +583,10 @@ function copyPlannedWhatsApp() {
           var cap = item.capacidade || '';
           var itemTipo = item.tipo || 'preventiva';
           var tipoLabel = itemTipo === 'corretiva' ? 'Corretiva' : 'Preventiva';
-          var equipLine = '*OS* ' + (item.os || '') + ' | ' + equipName;
+          var osLabel = itemTipo === 'corretiva' ? '*OS*' : '*Ticket*';
+          var equipLine = osLabel + ' ' + (item.os || '') + ' | ' + equipName;
           if (cap) equipLine += ' (' + cap + ' TR)';
-          equipLine += ' | ' + tipoLabel;
+          equipLine += ' | *' + tipoLabel + '*';
           lines.push(equipLine);
 
           lines.push('*Equipe:* ' + (item.equipe || 'A definir'));
@@ -643,20 +692,59 @@ function initPlannedActivity() {
   }
 
   var planTipo = document.getElementById('planTipo');
-  var planOsLabel = document.getElementById('planOsLabel');
-  if (planTipo && planOsLabel) {
+  var prevFields = document.getElementById('preventivaFields');
+  var corrFields = document.getElementById('corretivaFields');
+  if (planTipo && prevFields && corrFields) {
     planTipo.addEventListener('change', function () {
-      planOsLabel.textContent = this.value === 'corretiva' ? 'OS/Chamado' : 'N\u00ba OS';
+      if (this.value === 'preventiva') {
+        prevFields.classList.remove('hidden');
+        corrFields.classList.add('hidden');
+      } else if (this.value === 'corretiva') {
+        corrFields.classList.remove('hidden');
+        prevFields.classList.add('hidden');
+      } else {
+        prevFields.classList.add('hidden');
+        corrFields.classList.add('hidden');
+      }
     });
+  }
+
+  var btnCancelStatus = document.getElementById('btnCancelStatus');
+  if (btnCancelStatus) {
+    btnCancelStatus.addEventListener('click', closeStatusPreventiva);
+  }
+
+  var statusForm = document.getElementById('statusForm');
+  if (statusForm) {
+    statusForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      submitStatusPreventiva();
+    });
+  }
+
+  var statusBackdrop = document.getElementById('modalStatusBackdrop');
+  if (statusBackdrop) {
+    statusBackdrop.addEventListener('click', closeStatusPreventiva);
   }
 
   var content = document.getElementById('plannedContent');
   if (content) {
     content.addEventListener('click', function (e) {
-      var btn = e.target.closest('.planned-delete-btn');
-      if (btn) {
-        var id = parseInt(btn.dataset.id, 10);
-        if (id) deletePlanned(id);
+      var deleteBtn = e.target.closest('.planned-delete-btn');
+      if (deleteBtn) {
+        var deleteId = parseInt(deleteBtn.getAttribute('data-id'), 10);
+        var deleteCard = deleteBtn.closest('.planned-card');
+        var deleteTipo = deleteCard ? deleteCard.getAttribute('data-tipo') : 'corretiva';
+        if (deleteId) deletePlanned(deleteId, deleteTipo);
+        return;
+      }
+
+      var statusBtn = e.target.closest('.planned-status-btn');
+      if (statusBtn) {
+        var statusId = parseInt(statusBtn.getAttribute('data-id'), 10);
+        var currentStatus = statusBtn.getAttribute('data-status');
+        if (statusId) openStatusPreventiva(statusId, currentStatus);
+        return;
       }
     });
   }
@@ -675,27 +763,21 @@ function initPlannedActivity() {
 }
 
 function submitPlan() {
-  var os = document.getElementById('planOs');
-  var equipamentoId = document.getElementById('planEquipamentoId');
   var dataPlanejada = document.getElementById('planData');
   var equipe = document.getElementById('planEquipe');
   var obs = document.getElementById('planObs');
   var planTipo = document.getElementById('planTipo');
+  var planSite = document.getElementById('planSite');
 
-  if (!os.value.trim()) {
-    showToast('Informe o número da OS.', 'error');
-    os.focus();
+  if (!planTipo || !planTipo.value) {
+    showToast('Selecione o tipo (Preventiva ou Corretiva).', 'error');
+    if (planTipo) planTipo.focus();
     return;
   }
 
-  if (!/^[a-zA-Z0-9]+$/.test(os.value.trim())) {
-    showToast('OS deve conter apenas letras e números.', 'error');
-    os.focus();
-    return;
-  }
-
-  if (!equipamentoId || !equipamentoId.value) {
-    showToast('Selecione um equipamento.', 'error');
+  if (!planSite || !planSite.value.trim()) {
+    showToast('Selecione um site.', 'error');
+    if (planSite) planSite.focus();
     return;
   }
 
@@ -705,15 +787,52 @@ function submitPlan() {
     return;
   }
 
-  var payload = {
-    os: os.value.trim(),
-    equipamento_id: parseInt(equipamentoId.value, 10),
-    data_planejada: dataPlanejada.value,
-    equipe: equipe.value.trim() || 'A definir',
-    material: 'Sim',
-    obs: obs.value.trim() || '',
-    tipo: planTipo ? planTipo.value : 'preventiva',
-  };
+  var isPreventiva = planTipo.value === 'preventiva';
+  var route;
+  var payload;
+
+  if (isPreventiva) {
+    var ticket = document.getElementById('planTicket');
+    route = '/app/api/index.php?route=preventiva';
+    payload = {
+      site: planSite.value.trim(),
+      data_planejada: dataPlanejada.value,
+      ticket: ticket ? ticket.value.trim() : '',
+      equipe: equipe.value.trim() || 'A definir',
+      obs: obs.value.trim() || '',
+    };
+  } else {
+    var os = document.getElementById('planOs');
+    var equipamentoId = document.getElementById('planEquipamentoId');
+
+    if (!os.value.trim()) {
+      showToast('Informe o n\u00famero da OS.', 'error');
+      os.focus();
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9]+$/.test(os.value.trim())) {
+      showToast('OS deve conter apenas letras e n\u00fameros.', 'error');
+      os.focus();
+      return;
+    }
+
+    if (!equipamentoId || !equipamentoId.value) {
+      showToast('Selecione um equipamento.', 'error');
+      return;
+    }
+
+    route = '/app/api/index.php?route=planned-activities';
+    payload = {
+      os: os.value.trim(),
+      equipamento_id: parseInt(equipamentoId.value, 10),
+      data_planejada: dataPlanejada.value,
+      equipe: equipe.value.trim() || 'A definir',
+      material: 'Sim',
+      obs: obs.value.trim() || '',
+      tipo: 'corretiva',
+    };
+  }
 
   var btn = document.querySelector('#planForm button[type="submit"]');
   if (btn) {
@@ -721,7 +840,7 @@ function submitPlan() {
     btn.textContent = 'Salvando...';
   }
 
-  apiFetch('/app/api/index.php?route=planned-activities', {
+  apiFetch(route, {
     method: 'POST',
     body: JSON.stringify(payload),
   })
@@ -736,7 +855,7 @@ function submitPlan() {
         if (result.data && result.data.action === 'updated') {
           showToast('OS atualizada para Planejado com sucesso!', 'success');
         } else {
-          showToast('Atividade planejada com sucesso!', 'success');
+          showToast('Atividade registrada com sucesso!', 'success');
         }
         closePlanModal();
         resetPlannedState('');
@@ -755,14 +874,18 @@ function submitPlan() {
     });
 }
 
-function deletePlanned(id) {
+function deletePlanned(id, tipo) {
   if (typeof confirmDelete !== 'function') return;
+
+  var route = tipo === 'preventiva'
+    ? '/app/api/index.php?route=preventiva'
+    : '/app/api/index.php?route=planned-activities';
 
   confirmDelete('Excluir Atividade', 'Tem certeza que deseja excluir esta atividade planejada?', 'atividade #' + id)
     .then(function (confirmed) {
       if (!confirmed) return;
 
-      apiFetch('/app/api/index.php?route=planned-activities', {
+      apiFetch(route, {
         method: 'DELETE',
         body: JSON.stringify({ id: id }),
       })
@@ -776,5 +899,88 @@ function deletePlanned(id) {
           showToast('Erro ao excluir atividade.', 'error');
           console.error('Erro ao excluir atividade:', err);
         });
+    });
+}
+
+var STATUS_TRANSITIONS = {
+  'Planejado': ['Em Andamento', 'Cancelado'],
+  'Em Andamento': ['Conclu\u00eddo', 'Cancelado'],
+  'Cancelado': ['Planejado'],
+  'Conclu\u00eddo': [],
+};
+
+function openStatusPreventiva(id, currentStatus) {
+  var modal = document.getElementById('modalStatusPreventiva');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+
+  document.getElementById('statusPreventivaId').value = id;
+
+  var select = document.getElementById('statusSelect');
+  select.innerHTML = '';
+
+  var transitions = STATUS_TRANSITIONS[currentStatus] || [];
+  if (transitions.length === 0) {
+    showToast('Este status n\u00e3o permite altera\u00e7\u00e3o.', 'error');
+    closeStatusPreventiva();
+    return;
+  }
+
+  select.innerHTML = '<option value="">Selecione</option>';
+  transitions.forEach(function (s) {
+    var opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    select.appendChild(opt);
+  });
+}
+
+function closeStatusPreventiva() {
+  var modal = document.getElementById('modalStatusPreventiva');
+  if (modal) modal.classList.add('hidden');
+}
+
+function submitStatusPreventiva() {
+  var id = document.getElementById('statusPreventivaId').value;
+  var status = document.getElementById('statusSelect').value;
+  var obs = document.getElementById('statusObs').value.trim() || '';
+
+  if (!id || !status) {
+    showToast('Selecione um status.', 'error');
+    return;
+  }
+
+  var btn = document.querySelector('#statusForm button[type="submit"]');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+  }
+
+  apiFetch('/app/api/index.php?route=preventiva&action=update-status', {
+    method: 'POST',
+    body: JSON.stringify({ id: parseInt(id, 10), status: status, obs: obs }),
+  })
+    .then(function (res) { return res.json(); })
+    .then(function (result) {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Confirmar';
+      }
+      if (result && result.success) {
+        showToast('Status atualizado com sucesso!', 'success');
+        closeStatusPreventiva();
+        resetPlannedState('');
+        loadPlanned(false);
+      } else {
+        showToast(result && result.message ? result.message : 'Erro ao atualizar status.', 'error');
+      }
+    })
+    .catch(function (err) {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Confirmar';
+      }
+      showToast('Erro ao atualizar status.', 'error');
+      console.error('Erro ao atualizar status:', err);
     });
 }

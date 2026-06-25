@@ -11,6 +11,7 @@ use App\Api\Controllers\{TicketController, DashboardController, PvDashboardContr
 use App\Api\Controllers\{PvController, UserController, ScmController, PreventiveCycleController};
 use App\Api\Controllers\{UploadController, EmailController, ExportController, PdfAuditController};
 use App\Api\Controllers\PlannedActivityController;
+use App\Api\Controllers\PreventivaController;
 
 Env::load(__DIR__ . '/../../.env');
 
@@ -251,6 +252,20 @@ $router->addRoute('planned-activities', 'POST', function () use ($auth) {
 });
 $router->addRoute('planned-activities', 'DELETE', function () use ($auth) {
     (new PlannedActivityController($auth->getUser()))->delete();
+});
+
+// Preventiva
+$router->addRoute('preventiva', 'POST', function () use ($auth) {
+    $ctrl = new PreventivaController($auth->getUser());
+    $action = $_GET['action'] ?? '';
+    if ($action === 'update-status') {
+        $ctrl->updateStatus();
+    } else {
+        $ctrl->plan();
+    }
+});
+$router->addRoute('preventiva', 'DELETE', function () use ($auth) {
+    (new PreventivaController($auth->getUser()))->delete();
 });
 
 // PDF Audit
