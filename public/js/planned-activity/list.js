@@ -57,6 +57,10 @@ function buildPlannedCardHtml(item) {
     : '';
 
   var statusBadge = plannedStatusBadgeHtml(item.status);
+  var tipo = item.tipo || 'preventiva';
+  var tipoBadge = tipo === 'corretiva'
+    ? '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-amber-100 text-amber-700">Corretiva</span>'
+    : '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-blue-100 text-blue-700">Preventiva</span>';
   var equipe = item.equipe || 'A definir';
   var material = item.material || 'Sim';
   var obs = item.obs || '';
@@ -89,6 +93,7 @@ function buildPlannedCardHtml(item) {
         localHtml +
       '</div>' +
       '<div class="flex items-center gap-2 shrink-0">' +
+        tipoBadge +
         statusBadge +
         deleteBtn +
       '</div>' +
@@ -402,7 +407,7 @@ function exportPlannedCsv() {
         showToast('Função CSV não disponível.', 'error');
         return;
       }
-      var header = ['LOCAL', 'LOCAL SCM', 'LOCALIDADE', 'EQUIPAMENTO', 'CAPACIDADE', 'OS', 'DATA PLANEJADA', 'STATUS', 'EQUIPE', 'MATERIAL', 'OBS'].join(';');
+      var header = ['LOCAL', 'LOCAL SCM', 'LOCALIDADE', 'EQUIPAMENTO', 'CAPACIDADE', 'OS', 'DATA PLANEJADA', 'STATUS', 'TIPO', 'EQUIPE', 'MATERIAL', 'OBS'].join(';');
       downloadCSV('atividades_planejadas.csv', header, function (addRow) {
         items.forEach(function (item) {
           addRow([
@@ -414,6 +419,7 @@ function exportPlannedCsv() {
             sanitizeCSV(item.os || ''),
             sanitizeCSV(item.data_planejada || ''),
             sanitizeCSV(item.status || ''),
+            sanitizeCSV(item.tipo || 'preventiva'),
             sanitizeCSV(item.equipe || ''),
             sanitizeCSV(item.material || ''),
             sanitizeCSV(item.obs || ''),
@@ -527,8 +533,11 @@ function copyPlannedWhatsApp() {
 
           var equipName = item.equipamento || 'N/A';
           var cap = item.capacidade || '';
+          var itemTipo = item.tipo || 'preventiva';
+          var tipoLabel = itemTipo === 'corretiva' ? 'Corretiva' : 'Preventiva';
           var equipLine = '*OS* ' + (item.os || '') + ' | ' + equipName;
           if (cap) equipLine += ' (' + cap + ' TR)';
+          equipLine += ' | ' + tipoLabel;
           lines.push(equipLine);
 
           lines.push('*Equipe:* ' + (item.equipe || 'A definir'));
@@ -633,6 +642,14 @@ function initPlannedActivity() {
     });
   }
 
+  var planTipo = document.getElementById('planTipo');
+  var planOsLabel = document.getElementById('planOsLabel');
+  if (planTipo && planOsLabel) {
+    planTipo.addEventListener('change', function () {
+      planOsLabel.textContent = this.value === 'corretiva' ? 'OS/Chamado' : 'N\u00ba OS';
+    });
+  }
+
   var content = document.getElementById('plannedContent');
   if (content) {
     content.addEventListener('click', function (e) {
@@ -663,6 +680,7 @@ function submitPlan() {
   var dataPlanejada = document.getElementById('planData');
   var equipe = document.getElementById('planEquipe');
   var obs = document.getElementById('planObs');
+  var planTipo = document.getElementById('planTipo');
 
   if (!os.value.trim()) {
     showToast('Informe o número da OS.', 'error');
@@ -694,6 +712,7 @@ function submitPlan() {
     equipe: equipe.value.trim() || 'A definir',
     material: 'Sim',
     obs: obs.value.trim() || '',
+    tipo: planTipo ? planTipo.value : 'preventiva',
   };
 
   var btn = document.querySelector('#planForm button[type="submit"]');

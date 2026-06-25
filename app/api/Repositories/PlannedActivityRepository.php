@@ -116,41 +116,44 @@ class PlannedActivityRepository extends BaseRepository
 
     public function createFromPlanning(array $data, string $auditLog): int
     {
+        $tipo = $data['tipo'] ?? 'preventiva';
         $sql = "
             INSERT INTO registros (
-                equipamento_id, os, data, equipe, status, data_planejada, material, obs, origin
-            ) VALUES (?, ?, CURDATE(), ?, 'Planejado', ?, ?, ?, 'planning')
+                equipamento_id, os, data, equipe, status, data_planejada, material, obs, origin, tipo
+            ) VALUES (?, ?, CURDATE(), ?, 'Planejado', ?, ?, ?, 'planning', ?)
         ";
 
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param(
-            'isssss',
+            'issssss',
             $data['equipamento_id'],
             $data['os'],
             $data['equipe'],
             $data['data_planejada'],
             $data['material'],
-            $auditLog
+            $auditLog,
+            $tipo
         );
         $stmt->execute();
 
         return (int) $this->conn->insert_id;
     }
 
-    public function updateToPlanned(int $id, string $dataPlanejada, string $equipe, string $auditLog): bool
+    public function updateToPlanned(int $id, string $dataPlanejada, string $equipe, string $auditLog, string $tipo = 'preventiva'): bool
     {
         $sql = "
             UPDATE registros
-            SET status = 'Planejado', data_planejada = ?, equipe = ?, obs = ?
+            SET status = 'Planejado', data_planejada = ?, equipe = ?, obs = ?, tipo = ?
             WHERE id = ?
         ";
 
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param(
-            'sssi',
+            'ssssi',
             $dataPlanejada,
             $equipe,
             $auditLog,
+            $tipo,
             $id
         );
         return $stmt->execute();

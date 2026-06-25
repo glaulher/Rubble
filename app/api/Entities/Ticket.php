@@ -16,6 +16,7 @@ class Ticket
     public ?string $plannedDate;
     public ?int $notificationSent;
     public ?string $origin;
+    public ?string $tipo;
     public ?string $local;
     public ?string $equipment;
 
@@ -33,6 +34,7 @@ class Ticket
         $this->plannedDate = $data['data_planejada'] ?? null;
         $this->notificationSent = isset($data['notificacao_enviada']) ? (int) $data['notificacao_enviada'] : null;
         $this->origin = $data['origin'] ?? null;
+        $this->tipo = $data['tipo'] ?? 'preventiva';
         $this->local = $data['local'] ?? null;
         $this->equipment = $data['equipamento'] ?? null;
     }
@@ -51,6 +53,7 @@ class Ticket
             'data_concluido' => $this->completionDate,
             'data_planejada' => $this->plannedDate,
             'notificacao_enviada' => $this->notificationSent,
+            'tipo' => $this->tipo,
             'local' => $this->local,
             'equipamento' => $this->equipment,
         ];

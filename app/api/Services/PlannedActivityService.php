@@ -61,6 +61,11 @@ class PlannedActivityService
             throw new \RuntimeException('Observação deve ter no máximo 1000 caracteres.');
         }
 
+        $tipo = trim($data['tipo'] ?? 'preventiva');
+        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+            throw new \RuntimeException('Tipo inválido. Use preventiva ou corretiva.');
+        }
+
         $userName = $currentUser['nome'] ?? $currentUser['username'] ?? 'Desconhecido';
         $userRole = $currentUser['role'] ?? '';
         $now = date('d/m/Y H:i');
@@ -76,7 +81,8 @@ class PlannedActivityService
                 $existing->id,
                 $dataPlanejada,
                 $equipe,
-                $newObs
+                $newObs,
+                $tipo
             );
 
             return ['action' => 'updated', 'id' => $existing->id];
@@ -87,6 +93,7 @@ class PlannedActivityService
         $data['data_planejada'] = $dataPlanejada;
         $data['equipe'] = $equipe;
         $data['material'] = $material;
+        $data['tipo'] = $tipo;
 
         $id = $this->repository->createFromPlanning($data, $auditEntry);
 

@@ -66,7 +66,7 @@ class PlannedActivityController
 
             $output = fopen('php://output', 'w');
 
-            $header = ['LOCAL', 'LOCAL SCM', 'LOCALIDADE', 'EQUIPAMENTO', 'CAPACIDADE', 'OS', 'DATA PLANEJADA', 'STATUS', 'EQUIPE', 'MATERIAL', 'OBS'];
+            $header = ['LOCAL', 'LOCAL SCM', 'LOCALIDADE', 'EQUIPAMENTO', 'CAPACIDADE', 'OS', 'DATA PLANEJADA', 'STATUS', 'TIPO', 'EQUIPE', 'MATERIAL', 'OBS'];
             fputcsv($output, $header, ';');
 
             foreach ($items as $item) {
@@ -79,6 +79,7 @@ class PlannedActivityController
                     $item['os'] ?? '',
                     $item['data_planejada'] ?? '',
                     $item['status'] ?? '',
+                    $item['tipo'] ?? 'preventiva',
                     $item['equipe'] ?? '',
                     $item['material'] ?? '',
                     $item['obs'] ?? '',
