@@ -104,19 +104,19 @@ class AuthService
 
         $rolePermissions = [
             'supervisor' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'auth', 'preventive-cycle'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'auth', 'preventive-cycle', 'planned-activities'],
                 'write' => ['equipment', 'tickets'],
             ],
             'coordenador' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle'],
-                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities'],
+                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities'],
             ],
             'administrativo' => [
                 'read' => ['pdf-audit', 'auth'],
                 'write' => [],
             ],
             'cliente' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'planned-activities'],
                 'write' => [],
             ],
         ];
@@ -137,6 +137,9 @@ class AuthService
             }
             if ($method === 'DELETE' && $route === 'scm') {
                 return $role === 'admin';
+            }
+            if ($method === 'DELETE' && $route === 'planned-activities') {
+                return $role === 'admin' || $role === 'coordenador';
             }
             if ($route === 'auth' && $method === 'POST') {
                 $body = json_decode(file_get_contents('php://input'), true) ?? [];

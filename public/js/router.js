@@ -1,4 +1,4 @@
-const VIEW_VERSION = 2;
+const VIEW_VERSION = 3;
 
 async function loadPage(url) {
   try {
@@ -135,6 +135,13 @@ async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/scm/scm.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/planned-activity") {
+    /*
+    |--------------------------------------------------------------------------
+    | PLANNED ACTIVITY
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/planned-activity/list.html?v=" + VIEW_VERSION);
   } else if (hash === "#/pdf-audit") {
     /*
     |--------------------------------------------------------------------------
@@ -219,6 +226,10 @@ async function router() {
     } else if (hash === "#/scm") {
       if (typeof initScm === "function") {
         initScm();
+      }
+    } else if (hash === "#/planned-activity") {
+      if (typeof initPlannedActivity === "function") {
+        initPlannedActivity();
       }
     } else if (hash === "#/pdf-audit") {
       if (typeof initPdfAudit === "function") {

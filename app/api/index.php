@@ -10,6 +10,7 @@ use App\Api\Controllers\{AuthController, EquipmentController, EquipmentManagemen
 use App\Api\Controllers\{TicketController, DashboardController, PvDashboardController};
 use App\Api\Controllers\{PvController, UserController, ScmController, PreventiveCycleController};
 use App\Api\Controllers\{UploadController, EmailController, ExportController, PdfAuditController};
+use App\Api\Controllers\PlannedActivityController;
 
 Env::load(__DIR__ . '/../../.env');
 
@@ -231,6 +232,23 @@ $router->addRoute('scm', 'POST', function () use ($auth) {
 });
 $router->addRoute('scm', 'DELETE', function () use ($auth) {
     (new ScmController($auth->getUser()))->delete();
+});
+
+// Planned Activities
+$router->addRoute('planned-activities', 'GET', function () use ($auth) {
+    $ctrl = new PlannedActivityController();
+    $action = $_GET['action'] ?? '';
+    if ($action === 'export-csv') {
+        $ctrl->exportCsv();
+    } else {
+        $ctrl->listAll();
+    }
+});
+$router->addRoute('planned-activities', 'POST', function () use ($auth) {
+    (new PlannedActivityController($auth->getUser()))->plan();
+});
+$router->addRoute('planned-activities', 'DELETE', function () use ($auth) {
+    (new PlannedActivityController($auth->getUser()))->delete();
 });
 
 // PDF Audit
