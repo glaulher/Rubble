@@ -24,6 +24,7 @@ For full technical documentation (API reference, database schema, architecture, 
 - **SCM (Service Control)** — CSV import with auto-detected delimiter, status mapping, multi-select dropdown filters (site/segmento), market cross-validation badge, PV status sync on import
 - **Preventive Cycle** — Cycle-based equipment tracking with checkbox/radio filters (observacao/selecionados/sem_scm/lancados), bulk check-all/uncheck-all, SCM validation per card, real-time valor badge
 - **PDF Audit** — CLIP-based AI report validation against reference PDFs; reference upload with progress simulation; OCR mode for non-AI validation; collapsible cards with photo comparison table
+- **Planned Activities** — Site-level preventive planning (atividades_preventivas) + corrective ticket planning (registros), status workflow, CSV export, tooltips on action buttons
 - **CSV Export** — Equipment + ticket rows filtered by search term, per-ticket status in each row; PV items export with Windows-1252 encoding
 - **PDF Report** — PV items PDF via html2canvas + jsPDF with wrapped text and Memorial de Calculo; Dashboard PDF with smart page breaks
 - **CSV Import** — OS import from CSV with UTF-8/Latin-1 detection, site code extraction, tag-based equipment matching
@@ -150,6 +151,7 @@ bun test
 │   ├── user/                      # list, form (admin)
 │   ├── scm/                       # scm-list, scm-import (admin/coordenador)
 │   ├── preventive-cycle/          # list (admin/coordenador)
+│   ├── planned-activity/          # list (preventive + corrective planning)
 │   └── lib/                       # chart.umd.min, html2canvas.min, jspdf.umd.min
 ├── public/css/                    # default.css, fonts.css
 ├── public/fonts/Montserrat.woff2
@@ -164,7 +166,7 @@ bun test
 └── OS/ / LAUDO/                   # Upload dirs (local, not versioned)
 ```
 
-Script load order (index.html): `sidebar.js` → `auth.js` → libs (chart, html2canvas, jspdf) → utils (utils, polling) → components (modal, messagebox, pagination, button) → utils (csv, upload, report) → home (home-ui, equipment, form) → equipment/dashboard → pv/dashboard → pv (constants, form-utils, form-item-row, form-autocomplete, form-filter, list, modals, modal-email, pdf-export, csv-export, form) → user → equipment (list, form) → equipment-prices → scm → preventive-cycle → `router.js`
+Script load order (index.html): `sidebar.js` → `auth.js` → libs (chart, html2canvas, jspdf) → utils (utils, polling) → components (modal, messagebox, pagination, button) → utils (csv, upload, report) → home (home-ui, equipment, form) → equipment/dashboard → pv/dashboard → pv (constants, form-utils, form-item-row, form-autocomplete, form-filter, list, modals, modal-email, pdf-export, csv-export, form) → user → equipment (list, form) → equipment-prices → scm → preventive-cycle → planned-activity → `router.js`
 
 ## API Routes
 
@@ -182,6 +184,8 @@ Script load order (index.html): `sidebar.js` → `auth.js` → libs (chart, html
 | `users` | GET, POST, PUT, DELETE | User CRUD (admin) |
 | `scm` | GET, POST, DELETE | `listAll()`, `getById()`, `import()`, `delete()`, `segments()`, `sites()` |
 | `preventive-cycle` | GET, POST | `listAll()`, `summary()`, `save()`, `check-all()`, `uncheck-all()`, `scmStatusCount()`, `validateScm()` |
+| `planned-activities` | GET, POST, DELETE | `listAll()`, `exportCsv()`, `plan()`, `delete()` |
+| `preventiva` | POST, DELETE | `plan()`, `updateStatus()`, `delete()` |
 | `pdf-audit` | GET, POST | `setReference()`, `audit()`, `getReference()`, `clearReference()`, `health()` |
 | `notify` | GET | Cron trigger |
 
@@ -198,6 +202,7 @@ All routes (except `auth`) require JWT Bearer token. Access controlled by role.
 | Manage Equipment | CRUD | no | CRUD (no delete) | no |
 | SCM Status | CRUD | no | CRUD (no delete) | no |
 | Preventive Cycle | CRUD (save) | R/O | R/O | no |
+| Planned Activities | CRUD | no | CRUD (no delete) | R/O |
 | Equipment Pricing | CRUD | no | no | no |
 
 ## Database
@@ -218,6 +223,7 @@ Main tables:
 | `scm_items` | SCM line items (FK → scm, ON DELETE CASCADE) |
 | `equipamento_precos` | Equipment pricing rules |
 | `preventive_cycle_items` | Preventive maintenance cycles |
+| `atividades_preventivas` | Planned activities (preventive, site-level) |
 | `cron_controle` | Notification execution control |
 | `login_attempts` | Rate limiting for login |
 | `rate_limits` | Generic rate limiting |

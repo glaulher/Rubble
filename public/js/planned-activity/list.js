@@ -92,24 +92,13 @@ function buildPlannedCardHtml(item) {
 
   if (tipo === 'preventiva') {
     var machineCount = item.machine_count || 0;
-    extraBtns = '<button class="planned-status-btn bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-xl" data-id="' + item.id + '" data-status="' + escapeHtml(item.status || 'Planejado') + '" aria-label="Alterar status">' +
-      '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      '<path d="M20 7l-6 6h4v6H6v-6h4L4 7h16z"/>' +
-      '</svg></button>';
+    extraBtns = iconButtonHtml('edit', 'Alterar status', { 'class': 'planned-status-btn', 'data-id': item.id, 'data-status': item.status || 'Planejado' });
     if (canEdit) {
-      extraBtns += '<button class="planned-delete-btn bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-xl" data-id="' + item.id + '" aria-label="Excluir atividade">' +
-        '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-        '<polyline points="3 6 5 6 21 6"></polyline>' +
-        '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>' +
-        '</svg></button>';
+      extraBtns += iconButtonHtml('delete', 'Excluir atividade', { 'class': 'planned-delete-btn', 'data-id': item.id });
     }
   } else {
     if (canEdit) {
-      extraBtns = '<button class="planned-delete-btn bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-xl" data-id="' + item.id + '" aria-label="Excluir atividade">' +
-        '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-        '<polyline points="3 6 5 6 21 6"></polyline>' +
-        '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>' +
-        '</svg></button>';
+      extraBtns = iconButtonHtml('delete', 'Excluir atividade', { 'class': 'planned-delete-btn', 'data-id': item.id });
     }
   }
 

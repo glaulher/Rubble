@@ -175,6 +175,8 @@ bun install
 | `users` | GET, POST, PUT, DELETE | User CRUD (admin) |
 | `scm` | GET, POST, DELETE | `listAll()`, `getById()`, `import()`, `delete()`, `segments()`, `sites()` |
 | `preventive-cycle` | GET, POST | `listAll()`, `summary()`, `save()`, `check-all()`, `uncheck-all()`, `scmStatusCount()`, `validateScm()` |
+| `planned-activities` | GET, POST, DELETE | `listAll()`, `exportCsv()`, `plan()`, `delete()` |
+| `preventiva` | POST, DELETE | `plan()`, `updateStatus()`, `delete()` |
 | `notify` | GET | Cron trigger |
 
 ### Middleware Pipeline
@@ -196,6 +198,8 @@ Request → CorsMiddleware → AuthMiddleware → RateLimitMiddleware → Router
 | `scm` | POST | 5 |
 | `scm` | DELETE | 10 |
 | `preventive-cycle` | POST | 10 |
+| `planned-activities` | POST/DELETE | 10 |
+| `preventiva` | POST/DELETE | 10 |
 
 ### Permissões por Role
 
@@ -208,6 +212,7 @@ Request → CorsMiddleware → AuthMiddleware → RateLimitMiddleware → Router
 | Gerenciar equipamentos | CRUD | ❌ | CRUD (sem delete) | ❌ |
 | SCM Status | CRUD | ❌ | CRUD (sem delete) | ❌ |
 | Ciclo Preventiva | CRUD | R/O | CRUD (sem delete) | ❌ |
+| Atividades Planejadas | CRUD | ❌ | CRUD (sem delete) | R/O |
 | Cadastro Valor | CRUD | ❌ | ❌ | ❌ |
 
 ### Response Format
@@ -242,6 +247,7 @@ Erros: `{ "success": false, "message": "Erro msg" }` com HTTP status apropriado.
 | `scm_items` | SCM itens (FK → scm) |
 | `equipamento_precos` | Regras de preço |
 | `preventive_cycle_items` | Ciclo preventiva |
+| `atividades_preventivas` | Atividades planejadas (preventiva) |
 | `cron_controle` | Controle de notificações |
 | `login_attempts` | Rate limiting login |
 | `rate_limits` | Rate limiting genérico |
@@ -312,6 +318,18 @@ CREATE TABLE preventive_cycle_items (
     FOREIGN KEY (equipamento_id) REFERENCES equipamentos(id)
 );
 
+CREATE TABLE atividades_preventivas (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    site            VARCHAR(100) NOT NULL,
+    data_planejada  DATE NOT NULL,
+    ticket          VARCHAR(50) DEFAULT NULL,
+    equipe          VARCHAR(100) DEFAULT NULL,
+    status          VARCHAR(50) DEFAULT 'Planejado',
+    obs             TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 CREATE TABLE login_attempts (
     id            INT AUTO_INCREMENT PRIMARY KEY,
     ip_address    VARCHAR(45) NOT NULL,
@@ -353,6 +371,8 @@ Principais migrations:
 - 032: Índice rate_limits (`idx_rate_limits_lookup`)
 - 033: Token blacklist (`token_blacklist` table + cleanup cron)
 - 034: PV timestamps `timestamp` → `datetime`
+- 038: Campo `tipo` (ENUM preventiva/corretiva) em registros
+- 039: Tabela `atividades_preventivas` (site-level planned activities)
 
 ---
 
@@ -462,6 +482,20 @@ Principais migrations:
 - **Badge total:** `#counterValue` via polling separado, sincronizado com `syncHomeCards()`
 - **Keyset pagination:** Scroll infinito via `WHERE e.id > ? LIMIT ?` (enviado como `lastId` do frontend)
 - **FULLTEXT search:** Search ≥ 3 chars usa `MATCH ... AGAINST IN BOOLEAN MODE`
+
+### Planned Activities (Atividades Planejadas)
+
+- **Rotas:** `planned-activities` (listAll, exportCsv, plan, delete) + `preventiva` (plan, updateStatus, delete)
+- **Tipos:** `preventiva` (site-level, sem OS, com ticket) e `corretiva` (per-equipment, com OS, em `registros`)
+- **Preventiva:** Armazenada em `atividades_preventivas` (tabela dedicada). Site-level: sem campo equipamento, com ticket e contagem de máquinas por subquery.
+- **Corretiva:** Armazenada em `registros` com `origin='planning'`. Hard DELETE ao deletar.
+- **UNION ALL:** Feed unificado via `PlannedActivityRepository::listAll()` — merge de `atividades_preventivas` (tipo=preventiva) com `registros` (tipo=corretiva, origin=planning), ordenado por `data_planejada DESC`
+- **Status transitions (preventiva):** Planejado → Em Andamento/Cancelado, Em Andamento → Concluído/Cancelado, Cancelado → Planejado, Concluído → terminal
+- **Form toggle:** Campo tipo (Selecione/Preventiva/Corretiva) alterna campos: preventiva = site + ticket; corretiva = equipamento + OS
+- **Botões de ação:** Usam `iconButtonHtml()` — status (edit/azul com tooltip "Alterar status"), delete (vermelho com tooltip "Excluir atividade")
+- **Dark mode:** Todos os botões de formulário (Cancelar, Confirmar, Planejar) possuem `dark:` variants explícitas — o CDN do Tailwind injeta `<style>` DEPOIS de `default.css` e sobrescreve regras `!important`
+- **CSV export:** Paginação em chunks de 500 via offset, reutiliza `listAll()` com filtro por ciclo + busca
+- **Permissões:** Admin CRUD completo, coordenador CRUD sem DELETE, supervisor/cliente leitura apenas
 
 ---
 
@@ -702,6 +736,7 @@ Status está em `pv_item`, não em `pv` (migration 010). Queries devem JOINar co
 - **RateLimiter atômico:** Usa `INSERT ... ON DUPLICATE KEY UPDATE` — sem janela entre SELECT e INSERT.
 - **CronRepository atômico:** INSERT primeiro (garante row exists) + SELECT para verificação.
 - **`importante`:** Filtros SCM multi-select: ao desmarcar o 1º item com Todos ativo, pré-popular `Set` com todos os itens e remover apenas o desmarcado. Não `delete()` em Set vazio.
+- **Dark mode buttons:** O CDN do Tailwind injeta `<style>` DEPOIS de `default.css`. `!important` no `default.css` não é confiável para sobrescrever utility classes do CDN. Usar `dark:` variants diretamente no HTML para botões que precisam de cores específicas em dark mode (ex: `dark:bg-slate-600 dark:text-slate-200`).
 - **schema.sql vs .gitignore:** `*.sql` está no `.gitignore`. Para commitar schema, comentar temporariamente. `git add -f` não funciona com padrões do `.gitignore`.
 
 ---
