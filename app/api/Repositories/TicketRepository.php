@@ -124,17 +124,18 @@ class TicketRepository extends BaseRepository
 
     public function save(array $data): int
     {
+        $tipo = $data['tipo'] ?? 'corretiva';
         $sql = "
             INSERT INTO registros (
-                equipamento_id, os, data, equipe, status, data_concluido, data_planejada, material, obs
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                equipamento_id, os, data, equipe, status, data_concluido, data_planejada, material, obs, tipo
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ";
 
         $stmt = $this->safePrepare($sql);
         $completionDate = $data['data_concluido'] ?? null;
         $plannedDate = $data['data_planejada'] ?? null;
         $stmt->bind_param(
-            'issssssss',
+            'isssssssss',
             $data['equipamento_id'],
             $data['os'],
             $data['data'],
@@ -143,7 +144,8 @@ class TicketRepository extends BaseRepository
             $completionDate,
             $plannedDate,
             $data['material'],
-            $data['obs']
+            $data['obs'],
+            $tipo
         );
         $stmt->execute();
 
