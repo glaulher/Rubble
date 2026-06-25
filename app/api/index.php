@@ -223,6 +223,8 @@ $router->addRoute('scm', 'GET', function () use ($auth) {
         $ctrl->segments();
     } elseif ($action === 'sites') {
         $ctrl->sites();
+    } elseif ($action === 'cycles') {
+        $ctrl->listCycles();
     } else {
         $ctrl->listAll();
     }

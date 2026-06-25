@@ -23,13 +23,13 @@ class ScmService
         $this->repository = $repository ?? new ScmRepository();
     }
 
-    public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = []): array
+    public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = [], ?string $ciclo = null): array
     {
-        $items = $this->repository->listAll($limit, $offset, $search, $dateFrom, $dateTo, $segments, $status, $sites);
+        $items = $this->repository->listAll($limit, $offset, $search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo);
         return [
             'items'       => $items,
-            'total'       => $this->repository->count($search, $dateFrom, $dateTo, $segments, $status, $sites),
-            'total_valor' => $this->repository->getTotalValue($search, $dateFrom, $dateTo, $segments, $status, $sites),
+            'total'       => $this->repository->count($search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo),
+            'total_valor' => $this->repository->getTotalValue($search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo),
         ];
     }
 
@@ -41,6 +41,11 @@ class ScmService
     public function sites(): array
     {
         return $this->repository->sites();
+    }
+
+    public function cycles(): array
+    {
+        return $this->repository->cycles();
     }
 
     public function getById(int $id): ?array

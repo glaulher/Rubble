@@ -4,9 +4,9 @@ namespace App\Api\Repositories;
 
 class ScmRepository extends BaseRepository
 {
-    public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = []): array
+    public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = [], ?string $ciclo = null): array
     {
-        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status, $sites);
+        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo);
 
         $sql = "SELECT s.*, 
                        e.equipamento, e.capacidade, e.local, e.localidade, e.mercado,
@@ -38,9 +38,9 @@ class ScmRepository extends BaseRepository
         return $items;
     }
 
-    public function count(string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = []): int
+    public function count(string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = [], ?string $ciclo = null): int
     {
-        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status, $sites);
+        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo);
 
         $sql = "SELECT COUNT(*) as total FROM scm s
                 LEFT JOIN equipamentos e ON e.id = s.equipamento_id
@@ -54,9 +54,9 @@ class ScmRepository extends BaseRepository
         return (int) $stmt->get_result()->fetch_assoc()['total'];
     }
 
-    public function getTotalValue(string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = []): float
+    public function getTotalValue(string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = [], ?string $ciclo = null): float
     {
-        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status, $sites);
+        [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo);
 
         $sql = "SELECT COALESCE(SUM(si.subtotal_execucao), 0) as total_valor 
                 FROM scm s
@@ -240,6 +240,22 @@ class ScmRepository extends BaseRepository
         return $sites;
     }
 
+    public function cycles(): array
+    {
+        $sql = "SELECT DISTINCT DATE_FORMAT(data_validacao, '%Y-%m') AS ciclo
+                FROM scm
+                WHERE data_validacao IS NOT NULL
+                ORDER BY ciclo DESC";
+        $stmt = $this->safePrepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $cycles = [];
+        while ($row = $result->fetch_assoc()) {
+            $cycles[] = $row['ciclo'];
+        }
+        return $cycles;
+    }
+
     public function updatePvItemStatusByScm(string $scmCode, string $status): int
     {
         $sql = "UPDATE pv_item SET status = ? WHERE scm = ?";
@@ -257,7 +273,7 @@ class ScmRepository extends BaseRepository
         return $stmt->execute();
     }
 
-    private function buildFilterClause(string $search, ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = []): array
+    private function buildFilterClause(string $search, ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = [], ?string $ciclo = null): array
     {
         $conditions = [];
         $types = '';
@@ -302,6 +318,14 @@ class ScmRepository extends BaseRepository
             $conditions[] = 's.status = ?';
             $params[] = $status;
             $types .= 's';
+        }
+
+        if ($ciclo !== null && $ciclo !== '') {
+            $conditions[] = 's.data_validacao >= ? AND s.data_validacao < ?';
+            $params[] = $ciclo . '-01';
+            $nextMonth = date('Y-m-d', strtotime($ciclo . '-01 +1 month'));
+            $params[] = $nextMonth;
+            $types .= 'ss';
         }
 
         $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';

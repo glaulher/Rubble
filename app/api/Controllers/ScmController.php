@@ -31,8 +31,9 @@ class ScmController
             $sitesRaw = trim($_GET['sites'] ?? '');
             $sites = $sitesRaw !== '' ? array_filter(array_map('trim', explode(',', $sitesRaw))) : [];
             $status = trim($_GET['status'] ?? '');
+            $ciclo = trim($_GET['ciclo'] ?? '');
 
-            $data = $this->service->listAll($limit, $offset, $search, $dateFrom ?: null, $dateTo ?: null, $segments, $status ?: null, $sites);
+            $data = $this->service->listAll($limit, $offset, $search, $dateFrom ?: null, $dateTo ?: null, $segments, $status ?: null, $sites, $ciclo ?: null);
 
             Response::json([
                 'success'     => true,
@@ -42,6 +43,19 @@ class ScmController
                 'total_valor' => $data['total_valor'],
                 'limit'       => $limit,
                 'offset'      => $offset,
+            ]);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    public function listCycles(): void
+    {
+        try {
+            $cycles = $this->service->cycles();
+            Response::json([
+                'success' => true,
+                'data'    => $cycles,
             ]);
         } catch (\Throwable $e) {
             Response::serverError($e);
