@@ -123,7 +123,7 @@ function buildPlannedCardHtml(item) {
     '<div class="flex items-start justify-between gap-3">' +
       '<div class="flex-1 min-w-0">' +
         headerHtml +
-        localHtml +
+        (tipo !== 'preventiva' ? localHtml : '') +
       '</div>' +
       '<div class="flex items-center gap-2 shrink-0">' +
         actionsHtml +
@@ -893,9 +893,9 @@ function deletePlanned(id, tipo) {
 
 var STATUS_TRANSITIONS = {
   'Planejado': ['Em Andamento', 'Cancelado'],
-  'Em Andamento': ['Conclu\u00eddo', 'Cancelado'],
+  'Em Andamento': ['Conclu\u00eddo', 'Cancelado', 'Planejado'],
   'Cancelado': ['Planejado'],
-  'Conclu\u00eddo': [],
+  'Conclu\u00eddo': ['Em Andamento'],
 };
 
 function openStatusPreventiva(id, currentStatus) {
