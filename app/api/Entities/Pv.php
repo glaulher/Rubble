@@ -93,10 +93,4 @@ class Pv
         return $arr;
     }
 
-    public static function fromRow(array $row, array $itens = []): self
-    {
-        $pv = new self($row);
-        $pv->items = $itens;
-        return $pv;
-    }
 }

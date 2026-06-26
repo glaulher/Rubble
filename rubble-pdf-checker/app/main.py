@@ -10,14 +10,12 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import JSONResponse
 
 from store import ReferenceStore
 from services.extraction import ExtractionService
 from services.comparison import ComparisonService
 from services.audit import AuditService
 from clip_validator import _load_model, validate_images_with_clip
-from models.report import ExtractedReport, ImageData, ImageAnalysis
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -73,70 +73,7 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 /* ============================================
-   Dark mode utility classes
-   ============================================ */
-
-/* Card / Surface */
-.dm-surface {
-  background-color: var(--bg-surface);
-  border-color: var(--border);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-card);
-}
-.dm-surface-alt {
-  background-color: var(--bg-surface-alt);
-  color: var(--text-primary);
-}
-.dm-elevated {
-  background-color: var(--bg-elevated);
-  border-color: var(--border);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-elevated);
-}
-.dm-input {
-  background-color: var(--bg-input);
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-}
-.dm-input::placeholder { color: var(--text-muted); }
-
-/* Text */
-.dm-text { color: var(--text-primary); }
-.dm-text-secondary { color: var(--text-secondary); }
-.dm-text-muted { color: var(--text-muted); }
-
-/* Borders */
-.dm-border { border-color: var(--border); }
-.dm-border-strong { border-color: var(--border-strong); }
-
-/* ============================================
-   Badge utilities for dark mode
-   ============================================ */
-
-.dark .dm-badge-emerald { background-color: rgba(6,95,70,0.4); color: #6ee7b7; }
-.dark .dm-badge-red { background-color: rgba(153,27,27,0.4); color: #fca5a5; }
-.dark .dm-badge-sky { background-color: rgba(12,74,110,0.4); color: #7dd3fc; }
-.dark .dm-badge-blue { background-color: rgba(30,64,175,0.4); color: #93c5fd; }
-.dark .dm-badge-amber { background-color: rgba(146,64,14,0.4); color: #fcd34d; }
-.dark .dm-badge-purple { background-color: rgba(107,33,168,0.4); color: #c4b5fd; }
-.dark .dm-badge-violet { background-color: rgba(109,40,217,0.4); color: #c4b5fd; }
-.dark .dm-badge-green { background-color: rgba(21,128,61,0.4); color: #86efac; }
-.dark .dm-badge-gray { background-color: rgba(55,65,81,0.5); color: #d1d5db; }
-.dark .dm-badge-teal { background-color: rgba(19,78,74,0.4); color: #5eead4; }
-.dark .dm-badge-indigo { background-color: rgba(49,46,129,0.4); color: #a5b4fc; }
-.dark .dm-badge-slate { background-color: rgba(51,65,85,0.5); color: #e2e8f0; }
-.dark .dm-badge-cyan { background-color: rgba(22,78,99,0.4); color: #67e8f9; }
-.dark .dm-badge-pink { background-color: rgba(157,23,77,0.4); color: #f9a8d4; }
-
-/* Gradient sub-headers (dark variant) */
-.dark .dm-gradient-header {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
-}
-
-/* Gradient backgrounds (dark variant) */
-.dark .dm-bg-base { background: var(--bg-base) !important; }
-
-/* Dark mode purple gradient for views */
+   Dark mode purple gradient for views */
 .dark .dark-gradient {
   background: linear-gradient(90deg, #0f1117, #1c013c, #28005b) !important;
 }

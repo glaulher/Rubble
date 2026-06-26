@@ -55,9 +55,9 @@ class EquipmentController
                 ];
             }
 
-            $cacheKey = 'equipment_list:' . md5(serialize([
+            $cacheKey = Cache::buildKey('equipment_list', [
                 $limit, $keyset, $search, $location, $equipamento
-            ]));
+            ]);
 
             $cached = Cache::get($cacheKey);
             if ($cached !== null) {
@@ -226,9 +226,9 @@ class EquipmentController
                     ? $_GET['local']
                     : null;
 
-            $cacheKey = 'equipment_sum:' . md5(serialize([
+            $cacheKey = Cache::buildKey('equipment_sum', [
                 $search, $location
-            ]));
+            ]);
 
             $cached = Cache::get($cacheKey);
             if ($cached !== null) {

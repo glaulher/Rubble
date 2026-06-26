@@ -9,10 +9,8 @@ from models.report import (
     ImageValidationResult,
     AuditFileResult,
     ChecklistItem,
-    ImageValidationResult,
 )
 from comparator import validate_images, compare_from_extracted
-from clip_validator import validate_images_with_clip
 
 
 class ComparisonService:

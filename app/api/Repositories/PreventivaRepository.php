@@ -51,14 +51,4 @@ class PreventivaRepository extends BaseRepository
         return $stmt->execute();
     }
 
-    public function countBySite(string $local): int
-    {
-        $sql = "SELECT COUNT(*) AS total FROM equipamentos WHERE local = ?";
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('s', $local);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        return (int) ($row['total'] ?? 0);
-    }
 }

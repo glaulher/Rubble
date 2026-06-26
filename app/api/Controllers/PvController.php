@@ -11,6 +11,8 @@ use Exception;
 class PvController
 {
     private const ALLOWED_SORT = ['pv.id', 'pv.numero_pv', 'pv.data', 'pv.local', 'worst_status', 'itens_count', 'valor_total'];
+    private const CYCLE_REGEX = '/^\d{4}-(0[1-9]|1[0-2])$/';
+    private const OS_REGEX = '/^\d{4,7}$/';
 
     private PvService $service;
 
@@ -149,7 +151,7 @@ class PvController
 
             Validator::integer($data, 'equipamento_id');
 
-            if (!empty($data['ciclo']) && !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $data['ciclo'])) {
+            if (!empty($data['ciclo']) && !preg_match(self::CYCLE_REGEX, $data['ciclo'])) {
                 Response::error('Formato de ciclo inválido. Use AAAA-MM (ex: 2026-06)', 400);
                 return;
             }
@@ -169,7 +171,7 @@ class PvController
 
             $osList = array_map('trim', explode(',', $data['os']));
             foreach ($osList as $os) {
-                if ($os !== '' && !preg_match('/^\d{4,7}$/', $os)) {
+                if ($os !== '' && !preg_match(self::OS_REGEX, $os)) {
                     Response::error("A OS '$os' tem formato inválido. Use apenas números (4 a 7 dígitos)", 400);
                     return;
                 }
@@ -217,7 +219,7 @@ class PvController
             Validator::integer($data, 'id');
             Validator::integer($data, 'equipamento_id');
 
-            if (!empty($data['ciclo']) && !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $data['ciclo'])) {
+            if (!empty($data['ciclo']) && !preg_match(self::CYCLE_REGEX, $data['ciclo'])) {
                 Response::error('Formato de ciclo inválido. Use AAAA-MM (ex: 2026-06)', 400);
                 return;
             }
@@ -229,7 +231,7 @@ class PvController
 
             $osList = array_map('trim', explode(',', $data['os']));
             foreach ($osList as $os) {
-                if ($os !== '' && !preg_match('/^\d{4,7}$/', $os)) {
+                if ($os !== '' && !preg_match(self::OS_REGEX, $os)) {
                     Response::error("A OS '$os' tem formato inválido. Use apenas números (4 a 7 dígitos)", 400);
                     return;
                 }

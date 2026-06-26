@@ -5,20 +5,21 @@ require_once __DIR__ . '/../../config/autoloader.php';
 use App\Config\Env;
 use App\Api\Middleware\{CorsMiddleware, AuthMiddleware, RateLimitMiddleware};
 use App\Api\Router;
-use App\Api\Helpers\Response;
-use App\Api\Controllers\{AuthController, EquipmentController, EquipmentManagementController, EquipmentPriceController};
-use App\Api\Controllers\{TicketController, DashboardController, PvDashboardController};
-use App\Api\Controllers\{PvController, UserController, ScmController, PreventiveCycleController};
-use App\Api\Controllers\{UploadController, EmailController, ExportController, PdfAuditController};
-use App\Api\Controllers\PlannedActivityController;
-use App\Api\Controllers\PreventivaController;
+use App\Api\Helpers\{Response, Request};
+use App\Api\Controllers\{
+    AuthController, EquipmentController, EquipmentManagementController, EquipmentPriceController,
+    TicketController, DashboardController, PvDashboardController,
+    PvController, UserController, ScmController, PreventiveCycleController,
+    UploadController, EmailController, ExportController, PdfAuditController,
+    PlannedActivityController, PreventivaController
+};
 
 Env::load(__DIR__ . '/../../.env');
 
 (new CorsMiddleware())->handle();
 
 $route  = $_GET['route'] ?? '';
-$method = $_SERVER['REQUEST_METHOD'];
+$method = Request::method();
 
 $auth = new AuthMiddleware();
 $auth->handle($route, $method);
@@ -126,7 +127,7 @@ $router->addRoute('pv', 'DELETE', fn () => (new PvController())->delete());
 // Auth
 $router->addRoute('auth', 'POST', function () use ($auth) {
     $controller = new AuthController();
-    $body = json_decode(file_get_contents('php://input'), true) ?? [];
+    $body = Request::body();
     $action = $body['action'] ?? '';
 
     if ($action === 'logout') {

@@ -80,9 +80,3 @@ class AuditFileResult(BaseModel):
     empty_fields: list[str] = Field(default_factory=list)
     images: list[ImageValidationResult] = Field(default_factory=list)
     photo_issues: list[ImageValidationResult] = Field(default_factory=list)
-
-
-class ReferenceData(BaseModel):
-    extracted: ExtractedReport
-    clip_threshold: float = 0.5
-    photo_scores: list[dict] = Field(default_factory=list)

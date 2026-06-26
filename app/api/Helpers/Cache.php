@@ -31,7 +31,8 @@ class Cache
     {
         if (self::isApcuAvailable()) {
             apcu_store($key, $value, $ttl);
-            $prefix = explode('_', $key)[0];
+            $colonPos = strpos($key, ':');
+            $prefix = $colonPos !== false ? substr($key, 0, $colonPos) : $key;
             $trackedKey = '_tracked:' . $prefix;
             $tracked = apcu_fetch($trackedKey);
             if (!is_array($tracked)) {
@@ -92,7 +93,7 @@ class Cache
 
     public static function buildKey(string $prefix, array $params): string
     {
-        return $prefix . '_' . md5(serialize($params));
+        return $prefix . ':' . md5(serialize($params));
     }
 
     private static function fileGet(string $key): mixed

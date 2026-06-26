@@ -213,9 +213,6 @@ def parse_checklists(text: str) -> list[dict]:
                     elif i + 2 < len(lines) and lines[i + 2].strip() in ("OK", "NOK", "NA"):
                         initial = next_line
                         final = lines[i + 2].strip()
-                    elif next_line in ("OK", "NOK", "NA"):
-                        initial = next_line
-                        final = next_line
                     else:
                         initial = next_line
 
