@@ -6,6 +6,7 @@ use App\Api\Services\PvService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
+use App\Api\Helpers\Cache;
 use Exception;
 
 class PvController
@@ -345,6 +346,8 @@ class PvController
                 (int) $data['id']
             );
 
+            Cache::deleteByPrefix('pv_list:');
+
             Response::success(
                 'PV excluída com sucesso'
             );
@@ -354,6 +357,40 @@ class PvController
             Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
 
+            Response::serverError($e);
+        }
+    }
+
+    public function deleteItem(): void
+    {
+        try {
+            $data = Request::body();
+            Validator::required($data, ['item_id']);
+            Validator::integer($data, 'item_id');
+
+            $result = $this->service->deleteItem((int) $data['item_id']);
+
+            if (!$result['success']) {
+                Response::error('Item não encontrado', 404);
+                return;
+            }
+
+            Cache::deleteByPrefix('pv_list:');
+
+            if ($result['autoDeletedPv']) {
+                Response::success('Item excluído. PV sem itens foi removida automaticamente.', [
+                    'autoDeletedPv' => true,
+                    'pvId' => $result['pvId'],
+                ]);
+            } else {
+                Response::success('Item excluído com sucesso', [
+                    'autoDeletedPv' => false,
+                    'pvId' => $result['pvId'],
+                ]);
+            }
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
             Response::serverError($e);
         }
     }

@@ -261,6 +261,35 @@ class PvService
         return $this->repository->delete($id);
     }
 
+    public function deleteItem(int $itemId): array
+    {
+        $pvId = $this->repository->getItemPvId($itemId);
+        if ($pvId === null) {
+            return ['success' => false, 'autoDeletedPv' => false];
+        }
+
+        $this->repository->deleteItem($itemId);
+        $remaining = $this->repository->countItemsByPvId($pvId);
+
+        if ($remaining === 0) {
+            $this->repository->deleteOsLinks($pvId);
+            $this->repository->delete($pvId);
+            return [
+                'success' => true,
+                'autoDeletedPv' => true,
+                'pvId' => $pvId,
+                'remainingCount' => 0,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'autoDeletedPv' => false,
+            'pvId' => $pvId,
+            'remainingCount' => $remaining,
+        ];
+    }
+
     private function validateLpuItems(array $items): void
     {
         foreach ($items as $i => $item) {

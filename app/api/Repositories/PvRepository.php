@@ -445,6 +445,34 @@ class PvRepository extends BaseRepository
         return $stmt->bind_param('i', $pvId) && $stmt->execute();
     }
 
+    public function getItemPvId(int $itemId): ?int
+    {
+        $sql = "SELECT pv_id FROM pv_item WHERE id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $itemId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row ? (int) $row['pv_id'] : null;
+    }
+
+    public function deleteItem(int $itemId): bool
+    {
+        $sql = "DELETE FROM pv_item WHERE id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $itemId);
+        return $stmt->execute();
+    }
+
+    public function countItemsByPvId(int $pvId): int
+    {
+        $sql = "SELECT COUNT(*) FROM pv_item WHERE pv_id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $pvId);
+        $stmt->execute();
+        return (int) $stmt->get_result()->fetch_row()[0];
+    }
+
     public function update(array $data): bool
     {
         $sql = "

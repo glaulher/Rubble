@@ -128,6 +128,7 @@ async function openPvItemModal(id) {
         <td class="px-3 py-3 text-sm text-slate-700 laudo-col hidden">${escapeHtml(item.laudo || '-')}</td>
         <td class="px-3 py-3 text-sm text-slate-700">${quantidade}</td>
         <td class="px-3 py-3 text-sm text-right font-medium text-slate-900">${valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+        <td class="px-3 py-3 text-sm text-center">${iconButtonHtml('delete', 'Excluir item', { 'data-action': 'delete-item', 'data-item-id': item.id })}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -157,6 +158,64 @@ async function openPvItemModal(id) {
     pvEmailPvData = pv;
 
     showModal('pvItemModal');
+
+    if (!document.getElementById('pvItemModalBody').dataset._deleteItemAttached) {
+      document.getElementById('pvItemModalBody').dataset._deleteItemAttached = '1';
+      document.getElementById('pvItemModalBody').addEventListener('click', async function (e) {
+        const btn = e.target.closest('[data-action="delete-item"]');
+        if (!btn) return;
+
+        const itemId = parseInt(btn.dataset.itemId);
+        const tr = btn.closest('tr');
+        let itemLabel = '';
+        const tdDesc = tr ? tr.querySelector('td:nth-child(3)') : null;
+        if (tdDesc) itemLabel = tdDesc.textContent.trim() || '';
+        if (itemLabel.length > 50) itemLabel = itemLabel.substring(0, 50) + '...';
+
+        const confirmed = await confirmDelete('Excluir item', 'Tem certeza que deseja excluir este item da PV?', itemLabel);
+        if (!confirmed) return;
+
+        try {
+          const response = await fetch('/app/api/index.php?route=pv&action=delete-item', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_id: itemId }),
+          });
+          const result = await response.json();
+
+          if (!result.success) {
+            showToast(result.message, 'error');
+            return;
+          }
+
+          if (result.data && result.data.autoDeletedPv) {
+            hideModal('pvItemModal');
+            const row = document.querySelector('tr[data-pv-id="' + result.data.pvId + '"]');
+            if (row) row.remove();
+            pvList = pvList.filter(function (p) { return p.id != result.data.pvId; });
+            updateHeaderTotal();
+            showToast(result.message, 'success');
+          } else {
+            if (tr) tr.remove();
+            var remainingRows = document.querySelectorAll('#pvItemModalBody tr');
+            var newTotal = 0;
+            remainingRows.forEach(function (row) {
+              var tds = row.querySelectorAll('td');
+              if (tds.length >= 10) {
+                var val = parseFloat(tds[9].textContent.replace(/[R$\s.]/g, '').replace(',', '.')) || 0;
+                newTotal += val;
+              }
+            });
+            document.getElementById('pvItemModalTotal').textContent =
+              newTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            showToast(result.message, 'success');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Erro ao excluir item', 'error');
+        }
+      });
+    }
   } catch (err) {
     console.error(err);
     showToast('Erro ao carregar itens', 'error');

@@ -122,7 +122,15 @@ $router->addRoute('pv', 'POST', function () use ($auth) {
 });
 $router->addRoute('pv', 'PUT', fn () => (new PvController())->update());
 $router->addRoute('pv', 'PATCH', fn () => (new PvController())->updateStatus());
-$router->addRoute('pv', 'DELETE', fn () => (new PvController())->delete());
+$router->addRoute('pv', 'DELETE', function () {
+    $controller = new PvController();
+    $action = $_GET['action'] ?? null;
+    if ($action === 'delete-item') {
+        $controller->deleteItem();
+    } else {
+        $controller->delete();
+    }
+});
 
 // Auth
 $router->addRoute('auth', 'POST', function () use ($auth) {
