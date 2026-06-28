@@ -237,22 +237,15 @@ async function fetchSiteKey() {
 async function fetchActiveCount() {
   try {
     var r = await apiFetch('/app/api/index.php?route=auth&action=active-count');
-    console.log('[online] status:', r.status);
     var d = await r.json();
-    console.log('[online] response:', d);
     if (d.success && d.data) {
       var el = document.getElementById('activeUserCount');
       if (el) {
         el.textContent = '\u25CF ' + (d.data.active_users || 0) + ' online';
-        console.log('[online] updated');
-      } else {
-        console.warn('[online] #activeUserCount not found');
       }
-    } else {
-      console.warn('[online] API returned error:', d.message);
     }
   } catch (e) {
-    console.warn('[online] fetch error:', e);
+    // silêncio
   }
 }
 
