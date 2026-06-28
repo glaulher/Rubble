@@ -18,10 +18,6 @@ function hbarGradient(ctx, chartArea) {
   return gradient;
 }
 
-function isDarkMode() {
-  return document.documentElement.classList.contains('dark');
-}
-
 function chartColors() {
   const dark = isDarkMode();
   return {

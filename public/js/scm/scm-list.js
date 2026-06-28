@@ -759,11 +759,6 @@ async function loadScmDetails(id) {
     }
 }
 
-function formatCurrency(value) {
-    const val = parseFloat(value) || 0;
-    return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
 function formatDateBr(date) {
     if (!date) return '';
     const parts = date.split('-');

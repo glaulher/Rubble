@@ -32,3 +32,12 @@ function sanitizeCSV(value) {
     .trim();
   return result.replace(/^[=+\-@]/g, "'$&");
 }
+
+function formatCurrency(value) {
+  const val = parseFloat(value) || 0;
+  return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function isDarkMode() {
+  return document.documentElement.classList.contains('dark');
+}

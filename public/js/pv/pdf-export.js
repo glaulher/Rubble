@@ -1,11 +1,3 @@
-function formatCurrency(value) {
-  if (value == null || isNaN(value)) return 'R$ 0,00';
-  const fixed = value.toFixed(2);
-  const parts = fixed.split('.');
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return 'R$ ' + parts[0] + ',' + parts[1];
-}
-
 function downloadPvPdf() {
   const pv = pvEmailPvData;
   if (!pv || !pv.itens || pv.itens.length === 0) {

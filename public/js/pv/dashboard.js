@@ -18,10 +18,6 @@ function pvHbarGradient(ctx, chartArea) {
   return gradient;
 }
 
-function isDarkMode() {
-  return document.documentElement.classList.contains('dark');
-}
-
 function pvChartColors() {
   const dark = isDarkMode();
   return {

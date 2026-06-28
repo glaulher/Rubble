@@ -12,7 +12,7 @@
       </div>
       <div class="text-right flex items-center justify-end gap-2">
         <div class="relative group">
-          <button id="aiToggleBtn"
+          <button id="aiToggleBtn" data-role="admin coordenador administrativo"
             class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors bg-emerald-500/20 text-emerald-300">
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"></circle>
@@ -25,7 +25,7 @@
 
         <div id="clearReferenceBtn" class="hidden relative group" data-role="admin coordenador administrativo">
           <button id="clearReferenceBtnInner" class="bg-amber-100 hover:bg-amber-200 text-amber-600 p-2 rounded-xl transition">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="12" y1="2" x2="12" y2="18"></line>
               <line x1="4" y1="18" x2="20" y2="18"></line>
               <line x1="6" y1="20" x2="18" y2="20"></line>
@@ -45,7 +45,7 @@
       <p class="text-sm text-slate-500 mb-4">Envie um PDF de relatório preenchido corretamente para servir como referência.</p>
       <div class="flex items-center gap-4">
         <label class="cursor-pointer inline-flex items-center gap-2 bg-emerald-200 hover:bg-emerald-300 text-emerald-800 px-4 py-2 rounded-xl transition-colors">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
@@ -82,7 +82,7 @@
       <p id="auditStepDesc" class="text-sm text-slate-500 mb-4">Selecione até 10 PDFs de relatórios para auditar contra a referência.</p>
       <div class="flex items-center gap-4">
         <label class="cursor-pointer inline-flex items-center gap-2 bg-sky-200 hover:bg-sky-300 text-sky-800 px-4 py-2 rounded-xl transition-colors">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
@@ -91,7 +91,7 @@
           <input type="file" id="auditInput" accept=".pdf" multiple class="hidden">
         </label>
         <span id="auditFilenames" class="text-sm text-slate-400"></span>
-        <button id="runAuditBtn" class="hidden bg-blue-200 hover:bg-blue-300 text-blue-800 px-4 py-2 rounded-xl transition-colors">
+        <button id="runAuditBtn" data-role="admin coordenador administrativo" class="hidden bg-blue-200 hover:bg-blue-300 text-blue-800 px-4 py-2 rounded-xl transition-colors">
           Auditar
         </button>
       </div>
