@@ -237,15 +237,22 @@ async function fetchSiteKey() {
 async function fetchActiveCount() {
   try {
     var r = await apiFetch('/app/api/index.php?route=auth&action=active-count');
+    console.log('[online] status:', r.status);
     var d = await r.json();
+    console.log('[online] response:', d);
     if (d.success && d.data) {
       var el = document.getElementById('activeUserCount');
       if (el) {
-        el.textContent = '\u25CF ' + d.data.active_users + ' online';
+        el.textContent = '\u25CF ' + (d.data.active_users || 0) + ' online';
+        console.log('[online] updated');
+      } else {
+        console.warn('[online] #activeUserCount not found');
       }
+    } else {
+      console.warn('[online] API returned error:', d.message);
     }
   } catch (e) {
-    // silêncio
+    console.warn('[online] fetch error:', e);
   }
 }
 
@@ -374,7 +381,7 @@ function updateUserDisplay() {
         '<span class="text-xs text-slate-400 ml-2">(' +
         (roleLabels[user.role] || user.role) +
         ')</span>' +
-        (user.role === 'admin' ? '<span id="activeUserCount" class="text-xs text-emerald-400 ml-2"></span>' : '') +
+        (user.role === 'admin' ? '<span id="activeUserCount" class="text-xs text-emerald-400 ml-2">\u25CF ...</span>' : '') +
         '<button id="logoutBtn" class="ml-4 text-sm text-red-400 hover:text-red-300 transition">Sair</button>';
 
       const logoutBtn = document.getElementById('logoutBtn');
