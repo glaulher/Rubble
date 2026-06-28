@@ -196,7 +196,7 @@ function renderPlanned(items, append) {
     }
 
     html += '<div class="timeline-group" data-date="' + safeDate + '">' +
-      '<h2 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">' + escapeHtml(dateLabel) + '</h2>' +
+      '<h2 class="text-lg font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">' + escapeHtml(dateLabel) + '</h2>' +
       '<div class="space-y-3">';
 
     groupItems.forEach(function (item) {
