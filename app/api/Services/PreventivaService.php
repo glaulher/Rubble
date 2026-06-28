@@ -10,7 +10,7 @@ class PreventivaService
 
     private const ALLOWED_STATUS_TRANSITIONS = [
         'Planejado' => ['Em Andamento', 'Cancelado'],
-        'Em Andamento' => ['Concluído', 'Cancelado', 'Planejado'],
+        'Em Andamento' => ['Em Andamento', 'Concluído', 'Cancelado', 'Planejado'],
         'Cancelado' => ['Planejado'],
         'Concluído' => ['Em Andamento'],
     ];

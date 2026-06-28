@@ -893,7 +893,7 @@ function deletePlanned(id, tipo) {
 
 var STATUS_TRANSITIONS = {
   'Planejado': ['Em Andamento', 'Cancelado'],
-  'Em Andamento': ['Conclu\u00eddo', 'Cancelado', 'Planejado'],
+  'Em Andamento': ['Em Andamento', 'Conclu\u00eddo', 'Cancelado', 'Planejado'],
   'Cancelado': ['Planejado'],
   'Conclu\u00eddo': ['Em Andamento'],
 };
