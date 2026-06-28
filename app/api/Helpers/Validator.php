@@ -21,7 +21,7 @@ class Validator
 
             if (
                 !isset($data[$field]) ||
-                (!is_string($data[$field]) ? empty($data[$field]) : trim($data[$field]) === '')
+                (!is_string($data[$field]) ? $data[$field] === null : trim($data[$field]) === '')
             ) {
 
                 throw new Exception(
@@ -44,10 +44,10 @@ class Validator
 
         if (
             isset($data[$field]) &&
-            !filter_var(
+            filter_var(
                 $data[$field],
                 FILTER_VALIDATE_INT
-            )
+            ) === false
         ) {
 
             throw new Exception(

@@ -9,8 +9,8 @@
 
 function formatPvDisplay(pvEntry) {
   const parts = pvEntry.split('|');
-  const pvNum = parts[0];
-  const osNum = parts[1] || '';
+  const pvNum = escapeHtml(parts[0]);
+  const osNum = escapeHtml(parts[1] || '');
   return osNum ? `PV${pvNum} - OS${osNum}` : `PV${pvNum}`;
 }
 

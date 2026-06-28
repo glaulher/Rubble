@@ -29,7 +29,7 @@ class PvDashboardController
                 'success' => true,
                 ...$data,
             ]);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Response::serverError($e);
         }
     }

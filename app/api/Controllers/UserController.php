@@ -77,11 +77,13 @@ class UserController
 
             if (!filter_var($data['username'], FILTER_VALIDATE_EMAIL)) {
                 Response::error('Informe um e-mail válido', 400);
+                return;
             }
 
             $allowedRoles = ['admin', 'supervisor', 'coordenador', 'administrativo', 'cliente'];
             if (!in_array($data['role'], $allowedRoles, true)) {
                 Response::error('Role inválida', 400);
+                return;
             }
 
             $id = $this->service->save($data);
@@ -104,17 +106,20 @@ class UserController
 
             if (!filter_var($data['username'], FILTER_VALIDATE_EMAIL)) {
                 Response::error('Informe um e-mail válido', 400);
+                return;
             }
 
             $allowedRoles = ['admin', 'supervisor', 'coordenador', 'administrativo', 'cliente'];
             if (!in_array($data['role'], $allowedRoles, true)) {
                 Response::error('Role inválida', 400);
+                return;
             }
 
             // Password is optional on update — only validate if provided
             if (!empty($data['password'])) {
                 if (strlen($data['password']) < 6) {
                     Response::error('Senha deve ter pelo menos 6 caracteres', 400);
+                    return;
                 }
             }
 

@@ -159,6 +159,7 @@ class EquipmentController
             if ($equipId <= 0) {
 
                 Response::error('ID do equipamento obrigatório', 400);
+                return;
             }
 
             $service = new TicketService();

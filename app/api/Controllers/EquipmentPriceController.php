@@ -88,6 +88,7 @@ class EquipmentPriceController
             Response::success('Preço atualizado com sucesso');
         } catch (\InvalidArgumentException $e) {
             Response::error($e->getMessage(), 400);
+            return;
         } catch (\Throwable $e) {
             Response::serverError($e);
         }

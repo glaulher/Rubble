@@ -64,7 +64,8 @@ class PdfAuditService
 
         foreach ($files as $file) {
             $body .= "--$boundary\r\n";
-            $body .= "Content-Disposition: form-data; name=\"files\"; filename=\"{$file['name']}\"\r\n";
+            $safeName = preg_replace('/[^a-zA-Z0-9_.-]/', '_', $file['name']);
+            $body .= "Content-Disposition: form-data; name=\"files\"; filename=\"{$safeName}\"\r\n";
             $body .= "Content-Type: application/pdf\r\n\r\n";
             $body .= file_get_contents($file['tmp_name']) . "\r\n";
         }

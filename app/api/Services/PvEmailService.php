@@ -231,13 +231,13 @@ class PvEmailService
             } else {
                 $lpuLabel = 'FLPU';
             }
-            $itemNumber = $item['numero_item'] ?? '-';
+            $itemNumber = $e((string)($item['numero_item'] ?? '-'));
             $lpuDescription = $e($item['descricao_lpu'] ?? '-');
             $description = $e($item['descricao'] ?? '-');
             $value = isset($item['valor']) ? number_format((float) $item['valor'], 2, ',', '.') : '-';
             $flpuSource = $item['valor_flpu'] ?? $item['valor'] ?? null;
             $flpuValue = $flpuSource !== null ? number_format((float) $flpuSource, 2, ',', '.') : '-';
-            $qty = $item['quantidade'] ?? '-';
+            $qty = $e((string)($item['quantidade'] ?? '-'));
             $bdi = isset($item['bdi']) ? $item['bdi'] . '%' : '-';
             $totalValue = isset($item['valor_total']) ? number_format((float) $item['valor_total'], 2, ',', '.') : '-';
             $reportItem = $e($item['laudo'] ?? '');

@@ -66,7 +66,7 @@ class AuthController
             }
 
             Response::success('Login realizado com sucesso', $result);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("Login error: " . $e->getMessage());
             Response::error('Erro interno do servidor');
         }
