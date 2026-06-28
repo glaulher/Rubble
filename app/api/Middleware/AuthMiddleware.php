@@ -3,6 +3,7 @@
 namespace App\Api\Middleware;
 
 use App\Config\Env;
+use App\Config\Database;
 use App\Api\Auth\AuthService;
 use App\Api\Helpers\Response;
 
@@ -49,6 +50,26 @@ class AuthMiddleware
         }
 
         $this->user = $user;
+
+        $this->trackActivity($user);
+    }
+
+    private function trackActivity(object $user): void
+    {
+        try {
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+            $conn = Database::connect();
+            $stmt = $conn->prepare(
+                "INSERT INTO user_activity (user_id, username, nome, role, last_activity, ip_address)
+                 VALUES (?, ?, ?, ?, NOW(), ?)
+                 ON DUPLICATE KEY UPDATE last_activity = NOW(), username = VALUES(username), nome = VALUES(nome), role = VALUES(role), ip_address = VALUES(ip_address)"
+            );
+            $stmt->bind_param('issss', $user->user_id, $user->username, $user->nome, $user->role, $ip);
+            $stmt->execute();
+            $stmt->close();
+        } catch (\Throwable $e) {
+            error_log('Error tracking activity: ' . $e->getMessage());
+        }
     }
 
     public function getUser(): ?object

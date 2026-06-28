@@ -144,7 +144,15 @@ $router->addRoute('auth', 'POST', function () use ($auth) {
         $controller->login();
     }
 });
-$router->addRoute('auth', 'GET', fn () => (new AuthController())->me());
+$router->addRoute('auth', 'GET', function () {
+    $ctrl = new AuthController();
+    $action = $_GET['action'] ?? '';
+    if ($action === 'active-count') {
+        $ctrl->activeCount();
+    } else {
+        $ctrl->me();
+    }
+});
 
 // Config (public)
 $router->addRoute('config', 'GET', function () use ($auth) {

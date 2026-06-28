@@ -108,6 +108,58 @@ class AuthController
         ]);
     }
 
+    public function activeCount(): void
+    {
+        $authHeader = AuthService::getAuthHeader();
+        if (empty($authHeader)) {
+            Response::unauthorized('Token não fornecido');
+            return;
+        }
+
+        $parts = explode(' ', $authHeader);
+        if (count($parts) !== 2 || $parts[0] !== 'Bearer') {
+            Response::unauthorized('Formato de token inválido');
+            return;
+        }
+
+        $jwtSecret = Env::get('JWT_SECRET', '');
+        if (empty($jwtSecret)) {
+            Response::error('Erro interno do servidor', 500);
+            return;
+        }
+
+        $user = AuthService::validateToken($parts[1], $jwtSecret);
+        if (!$user) {
+            Response::unauthorized('Token inválido ou expirado');
+            return;
+        }
+
+        if ($user->role !== 'admin') {
+            Response::error('Permissão negada', 403);
+            return;
+        }
+
+        try {
+            $conn = \App\Config\Database::connect();
+
+            $cleanup = $conn->prepare("DELETE FROM user_activity WHERE last_activity < NOW() - INTERVAL 30 MINUTE");
+            $cleanup->execute();
+            $cleanup->close();
+
+            $stmt = $conn->prepare(
+                "SELECT COUNT(*) as total FROM user_activity WHERE last_activity > DATE_SUB(NOW(), INTERVAL 5 MINUTE)"
+            );
+            $stmt->execute();
+            $result = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+
+            Response::success('', ['active_users' => (int)$result['total']]);
+        } catch (\Throwable $e) {
+            error_log('Error fetching active count: ' . $e->getMessage());
+            Response::error('Erro interno do servidor', 500);
+        }
+    }
+
     public function logout(): void
     {
         $authHeader = AuthService::getAuthHeader();

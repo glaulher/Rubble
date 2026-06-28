@@ -2,6 +2,7 @@ const AUTH_TOKEN_KEY = 'rubble_token';
 const AUTH_USER_KEY = 'rubble_user';
 var TURNSTILE_SITE_KEY = '';
 var turnstileWidgetId = null;
+var _activeCountInterval = null;
 
 function isApiUrl(url) {
   return typeof url === 'string' &&
@@ -118,6 +119,7 @@ async function login(username, password, turnstileToken) {
 }
 
 function logout() {
+  stopActiveCountPolling();
   clearAuth();
 
   fetch('/app/api/index.php?route=auth', {
@@ -229,6 +231,34 @@ async function fetchSiteKey() {
     return d.data?.turnstile_site_key || '';
   } catch (e) {
     return '';
+  }
+}
+
+async function fetchActiveCount() {
+  try {
+    var r = await apiFetch('/app/api/index.php?route=auth&action=active-count');
+    var d = await r.json();
+    if (d.success && d.data) {
+      var el = document.getElementById('activeUserCount');
+      if (el) {
+        el.textContent = '\u25CF ' + d.data.active_users + ' online';
+      }
+    }
+  } catch (e) {
+    // silêncio
+  }
+}
+
+function startActiveCountPolling() {
+  stopActiveCountPolling();
+  fetchActiveCount();
+  _activeCountInterval = setInterval(fetchActiveCount, 60000);
+}
+
+function stopActiveCountPolling() {
+  if (_activeCountInterval) {
+    clearInterval(_activeCountInterval);
+    _activeCountInterval = null;
   }
 }
 
@@ -344,6 +374,7 @@ function updateUserDisplay() {
         '<span class="text-xs text-slate-400 ml-2">(' +
         (roleLabels[user.role] || user.role) +
         ')</span>' +
+        (user.role === 'admin' ? '<span id="activeUserCount" class="text-xs text-emerald-400 ml-2"></span>' : '') +
         '<button id="logoutBtn" class="ml-4 text-sm text-red-400 hover:text-red-300 transition">Sair</button>';
 
       const logoutBtn = document.getElementById('logoutBtn');
@@ -353,10 +384,18 @@ function updateUserDisplay() {
           logout();
         });
       }
+
+      if (user.role === 'admin') {
+        startActiveCountPolling();
+      } else {
+        stopActiveCountPolling();
+      }
     } else if (!isLoginPage) {
+      stopActiveCountPolling();
       displayEl.innerHTML =
         '<a href="#/login" class="text-blue-400 hover:text-blue-300 text-sm font-medium">Entrar</a>';
     } else {
+      stopActiveCountPolling();
       displayEl.innerHTML = '';
     }
   }
@@ -380,4 +419,7 @@ if (typeof globalThis !== 'undefined') {
   globalThis.toggleSidebar = toggleSidebar;
   globalThis.updateUserDisplay = updateUserDisplay;
   globalThis.initLogin = initLogin;
+  globalThis.startActiveCountPolling = startActiveCountPolling;
+  globalThis.stopActiveCountPolling = stopActiveCountPolling;
+  globalThis.fetchActiveCount = fetchActiveCount;
 }
