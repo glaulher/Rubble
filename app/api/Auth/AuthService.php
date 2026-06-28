@@ -112,7 +112,7 @@ class AuthService
                 'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities'],
             ],
             'administrativo' => [
-                'read' => ['pdf-audit', 'auth'],
+                'read' => ['pdf-audit', 'auth', 'planned-activities'],
                 'write' => [],
             ],
             'cliente' => [
