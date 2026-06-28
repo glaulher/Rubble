@@ -146,6 +146,16 @@ class AuthController
             $cleanup->execute();
             $cleanup->close();
 
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+            $trackStmt = $conn->prepare(
+                "INSERT INTO user_activity (user_id, username, nome, role, last_activity, ip_address)
+                 VALUES (?, ?, ?, ?, NOW(), ?)
+                 ON DUPLICATE KEY UPDATE last_activity = NOW()"
+            );
+            $trackStmt->bind_param('issss', $user->user_id, $user->username, $user->nome, $user->role, $ip);
+            $trackStmt->execute();
+            $trackStmt->close();
+
             $stmt = $conn->prepare(
                 "SELECT COUNT(*) as total FROM user_activity WHERE last_activity > DATE_SUB(NOW(), INTERVAL 5 MINUTE)"
             );
