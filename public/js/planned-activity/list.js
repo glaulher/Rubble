@@ -55,7 +55,7 @@ function buildPlannedCardHtml(item) {
 
   var capacidadeHtml = capacidade ? '<span class="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded-lg text-xs font-medium">' + escapeHtml(capacidade) + ' TR</span>' : '';
   var localHtml = local
-    ? '<p class="text-xs text-slate-500 dark:text-slate-400">' + escapeHtml(local) + (localScm ? ' - ' + escapeHtml(localScm) : '') + (localidade ? ' \u2014 ' + escapeHtml(localidade) : '') + '</p>'
+    ? '<p class="text-xs text-slate-600">' + escapeHtml(local) + (localScm ? ' - ' + escapeHtml(localScm) : '') + (localidade ? ' \u2014 ' + escapeHtml(localidade) : '') + '</p>'
     : '';
 
   var statusBadge = plannedStatusBadgeHtml(item.status);
@@ -67,7 +67,7 @@ function buildPlannedCardHtml(item) {
 
   var obsHtml = '';
   if (obs) {
-    obsHtml = '<div class="mt-2 text-xs text-slate-600 dark:text-slate-400 whitespace-pre-line leading-relaxed border-t border-slate-100 dark:border-slate-700 pt-2">' + escapeHtml(obs) + '</div>';
+    obsHtml = '<div class="mt-2 text-xs text-slate-600 whitespace-pre-line leading-relaxed border-t border-slate-100 dark:border-slate-700 pt-2">' + escapeHtml(obs) + '</div>';
   }
 
   var canEdit = false;
@@ -107,14 +107,14 @@ function buildPlannedCardHtml(item) {
 
   if (tipo === 'preventiva') {
     headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
-      '<span class="font-semibold text-sm text-slate-800 dark:text-white">' + escapeHtml(local) + '</span>' +
-      (item.os ? '<span class="text-sm text-slate-500 dark:text-slate-300">Ticket ' + escapeHtml(item.os) + '</span>' : '') +
-      (machineCount > 0 ? '<span class="text-xs text-slate-400">\u2014 ' + machineCount + ' m\u00e1quina' + (machineCount > 1 ? 's' : '') + '</span>' : '') +
+      '<span class="font-semibold text-sm text-slate-800">' + escapeHtml(local) + '</span>' +
+      (item.os ? '<span class="text-sm text-slate-600">Ticket ' + escapeHtml(item.os) + '</span>' : '') +
+      (machineCount > 0 ? '<span class="text-xs text-slate-500">\u2014 ' + machineCount + ' m\u00e1quina' + (machineCount > 1 ? 's' : '') + '</span>' : '') +
     '</div>';
   } else {
     headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
-      '<span class="font-semibold text-sm text-slate-800 dark:text-white">OS ' + escapeHtml(item.os || '') + '</span>' +
-      '<span class="text-sm text-slate-600 dark:text-slate-300">' + escapeHtml(equipName) + '</span>' +
+      '<span class="font-semibold text-sm text-slate-800">OS ' + escapeHtml(item.os || '') + '</span>' +
+      '<span class="text-sm text-slate-600">' + escapeHtml(equipName) + '</span>' +
       capacidadeHtml +
     '</div>';
   }
@@ -130,9 +130,9 @@ function buildPlannedCardHtml(item) {
         extraBtns +
       '</div>' +
     '</div>' +
-    '<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">' +
-      '<span>Equipe: <strong class="text-slate-700 dark:text-slate-200">' + escapeHtml(equipe) + '</strong></span>' +
-      (material ? '<span>Material: <strong class="text-slate-700 dark:text-slate-200">' + escapeHtml(material) + '</strong></span>' : '') +
+    '<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">' +
+      '<span>Equipe: <strong class="text-slate-700">' + escapeHtml(equipe) + '</strong></span>' +
+      (material ? '<span>Material: <strong class="text-slate-700">' + escapeHtml(material) + '</strong></span>' : '') +
     '</div>' +
     obsHtml +
   '</div>';
@@ -154,7 +154,7 @@ function renderPlanned(items, append) {
 
   if (!items || items.length === 0) {
     if (!append) {
-      content.innerHTML = '<div class="text-center py-20 text-slate-400 dark:text-slate-500"><p class="text-lg">Nenhuma atividade planejada encontrada.</p></div>';
+      content.innerHTML = '<div class="text-center py-20 text-slate-500"><p class="text-lg">Nenhuma atividade planejada encontrada.</p></div>';
     }
     return;
   }

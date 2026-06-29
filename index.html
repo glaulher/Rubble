@@ -22,10 +22,12 @@
     <link rel="icon" type="image/png" href="/image/Monster.png" />
 
     <link rel="stylesheet" href="/public/css/fonts.css" />
-    <link rel="stylesheet" href="/public/css/default.css?v=12" />
+    <link rel="stylesheet" href="/public/css/default.css?v=13" />
 
     <style>
-      @custom-variant dark (&:where(.dark, .dark *));
+      #sidebar[data-collapsed='false'] .sidebar-tooltip {
+        display: none;
+      }
     </style>
 
     <script>
@@ -575,7 +577,7 @@
     <script src="/public/js/scm/scm-import.js?v=2" defer></script>
     <script src="/public/js/preventive-cycle/list.js?v=19" defer></script>
     <script src="/public/js/pdf-audit/audit.js?v=4" defer></script>
-    <script src="/public/js/planned-activity/list.js?v=10" defer></script>
+    <script src="/public/js/planned-activity/list.js?v=11" defer></script>
     <script src="/public/js/router.js?v=6"></script>
 
     <!-- TOAST -->
