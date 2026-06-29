@@ -148,6 +148,11 @@ body {
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 
+/* Sidebar tooltip */
+#sidebar[data-collapsed='false'] .sidebar-tooltip {
+  display: none;
+}
+
 /* ============================================
    Dark mode toggle button
    ============================================ */
