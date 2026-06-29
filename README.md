@@ -8,7 +8,7 @@ For full technical documentation (API reference, database schema, architecture, 
 
 ## Features
 
-- **Authentication & RBAC** — JWT HMAC-SHA256 with roles: admin, supervisor, coordenador, cliente
+- **Authentication & RBAC** — JWT HMAC-SHA256 with roles: admin, supervisor, coordenador, administrativo, cliente
 - **Equipment Management** — CRUD with pagination, debounced search, infinite scroll
 - **Service Orders (OS)** — Full CRUD with status workflow: Pendente → Planejado → Em Andamento → Concluido / Projeto Clean Up; ordered by status priority in cards
 - **PV (Propostas de Venda)** — Full CRUD with items, LPU catalog autocomplete, FLPU fields, status funnel
@@ -35,7 +35,6 @@ For full technical documentation (API reference, database schema, architecture, 
 - **Email Notifications** — Cron-based SMTP dispatch for scheduled OS
 - **Security Hardening** — CORS validation, login rate limiting (5/5min), error sanitization with `Response::serverError()`, CSP headers, HSTS, Apache hardening, token blacklist
 - **Dark Mode** — Toggle with localStorage persistence, prefers-color-scheme fallback, login page immune (always light), CSS variable system
-- **Dashboard PDF** — Full dashboard capture with smart page breaks
 
 ## Stack
 
@@ -129,11 +128,13 @@ bun test
 │   ├── Env.php                    # .env parser
 │   └── migrations/                # SQL migrations (local only)
 ├── app/api/
-│   ├── index.php                  # Router: ?route=
+│   ├── index.php                  # Bootstrap + middleware + route dispatch
+│   ├── Router.php                 # Route registration + dispatch
 │   ├── Auth/                      # JwtHelper, AuthService
-│   ├── Controllers/               # 10 controllers
-│   ├── Services/                  # 11 services
-│   ├── Repositories/              # 11 repositories
+│   ├── Middleware/                 # Cors, Auth, RateLimit
+│   ├── Controllers/               # 17 controllers
+│   ├── Services/                  # 15 services
+│   ├── Repositories/              # 14 repositories
 │   ├── Entities/                  # 5 entities
 │   ├── Helpers/                   # Response, Request, Validator, MailerFactory, Cache, RateLimiter
 │   └── Cron/check_notification.php
@@ -143,15 +144,16 @@ bun test
 │   ├── auth.js                    # Login, logout, token, auth guard
 │   ├── router.js                  # Hash-based SPA router
 │   ├── utils/                     # utils, csv, upload, report, polling
-│   ├── components/                # modal, messagebox, pagination
+│   ├── components/                # button, modal, messagebox, pagination
 │   ├── home/                      # home-ui, equipment, form
-│   ├── equipment/                 # dashboard, list, form (admin/coordenador)
-│   ├── equipment-prices/          # list, form (admin)
 │   ├── pv/                        # constants, form-utils, form, list, modals, dashboard
 │   ├── user/                      # list, form (admin)
+│   ├── equipment/                 # dashboard, list, form (admin/coordenador)
+│   ├── equipment-prices/          # list, form (admin)
 │   ├── scm/                       # scm-list, scm-import (admin/coordenador)
 │   ├── preventive-cycle/          # list (admin/coordenador)
 │   ├── planned-activity/          # list (preventive + corrective planning)
+│   ├── pdf-audit/                 # audit (admin/coordenador/administrativo)
 │   └── lib/                       # chart.umd.min, html2canvas.min, jspdf.umd.min
 ├── public/css/                    # default.css, fonts.css
 ├── public/fonts/Montserrat.woff2
@@ -166,7 +168,7 @@ bun test
 └── OS/ / LAUDO/                   # Upload dirs (local, not versioned)
 ```
 
-Script load order (index.html): `sidebar.js` → `auth.js` → libs (chart, html2canvas, jspdf) → utils (utils, polling) → components (modal, messagebox, pagination, button) → utils (csv, upload, report) → home (home-ui, equipment, form) → equipment/dashboard → pv/dashboard → pv (constants, form-utils, form-item-row, form-autocomplete, form-filter, list, modals, modal-email, pdf-export, csv-export, form) → user → equipment (list, form) → equipment-prices → scm → preventive-cycle → planned-activity → `router.js`
+Script load order (index.html): `sidebar.js` → `auth.js` → libs (chart, html2canvas, jspdf) → utils (utils, polling) → components (modal, messagebox, pagination, button) → utils (csv, upload, report) → home (home-ui, equipment, form) → equipment/dashboard → pv/dashboard → pv (constants, form-utils, form-item-row, form-autocomplete, form-filter, list, modals, modal-email, pdf-export, csv-export, form) → user → equipment (list, form) → equipment-prices → scm → preventive-cycle → planned-activity → pdf-audit → `router.js`
 
 ## API Routes
 
@@ -193,17 +195,18 @@ All routes (except `auth`) require JWT Bearer token. Access controlled by role.
 
 ## Permissions
 
-| Resource | Admin | Supervisor | Coordenador | Cliente |
-|----------|-------|-----------|-------------|---------|
-| Home (equip + tickets) | CRUD | CRUD | CRUD | R/O |
-| Dashboard | yes | yes | yes | R/O |
-| PV + PV Dashboard | CRUD | no | CRUD (no delete) | no |
-| Manage Users | yes | no | no | no |
-| Manage Equipment | CRUD | no | CRUD (no delete) | no |
-| SCM Status | CRUD | no | CRUD (no delete) | no |
-| Preventive Cycle | CRUD (save) | R/O | R/O | no |
-| Planned Activities | CRUD | no | CRUD (no delete) | R/O |
-| Equipment Pricing | CRUD | no | no | no |
+| Resource | Admin | Supervisor | Coordenador | Administrativo | Cliente |
+|----------|-------|-----------|-------------|----------------|---------|
+| Home (equip + tickets) | CRUD | CRUD | CRUD | R/O | R/O |
+| Dashboard | yes | yes | yes | yes | R/O |
+| PV + PV Dashboard | CRUD | no | CRUD (no delete) | no | no |
+| Manage Users | yes | no | no | no | no |
+| Manage Equipment | CRUD | no | CRUD (no delete) | no | no |
+| SCM Status | CRUD | no | CRUD (no delete) | no | no |
+| Preventive Cycle | CRUD (save) | R/O | R/O | no | no |
+| Planned Activities | CRUD | R/O | CRUD (no delete) | R/O | R/O |
+| Equipment Pricing | CRUD | no | no | no | no |
+| PDF Audit | CRUD | no | R/O | R/O | no |
 
 ## Database
 

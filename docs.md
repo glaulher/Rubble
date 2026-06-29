@@ -120,9 +120,9 @@ bun install
 │   ├── Router.php             ← Classe de roteamento
 │   ├── Auth/                  ← JwtHelper, AuthService
 │   ├── Middleware/             ← Cors, Auth, RateLimit
-│   ├── Controllers/           ← 10 controllers
-│   ├── Services/              ← 11 services
-│   ├── Repositories/          ← 11 repositories
+│   ├── Controllers/           ← 17 controllers
+│   ├── Services/              ← 15 services
+│   ├── Repositories/          ← 14 repositories
 │   ├── Entities/              ← 5 entities
 │   ├── Helpers/               ← Response, Request, Validator, Cache, etc.
 │   └── Cron/check_notification.php
@@ -143,6 +143,8 @@ bun install
 │       ├── equipment-prices/  ← list, form (admin)
 │       ├── scm/               ← scm-list, scm-import
 │       ├── preventive-cycle/  ← list (admin/coordenador)
+│       ├── planned-activity/  ← list (preventive + corrective)
+│       ├── pdf-audit/         ← audit (admin/coordenador/administrativo)
 │       └── lib/               ← chart, html2canvas, jspdf
 ├── tests/                     ← PHPUnit + Bun tests
 ├── OS/ / LAUDO/               ← Upload dirs (local, não versionado)
@@ -153,31 +155,437 @@ bun install
 
 ## 3. API Reference
 
-### Autenticação
+### Authentication
 
-- JWT HMAC-SHA256 manual (`app/api/Auth/JwtHelper.php`)
-- Token no `sessionStorage`, enviado como `Authorization: Bearer <token>`
-- Token TTL: 12 horas (43200s)
-- Rotas públicas: apenas `auth` (login)
+- **JWT HMAC-SHA256** — Custom implementation (`app/api/Auth/JwtHelper.php`), no external dependencies
+- Token stored in `sessionStorage`, sent as `Authorization: Bearer <token>`
+- Token TTL: 12 hours (43200s)
+- Public routes: `auth` only
+- Blacklist support: table `token_blacklist` for explicit logout revocation
 
-### Rotas
+### Base URL
 
-| Rota | Métodos | Ações |
-|------|---------|-------|
-| `auth` | POST, GET | `login()`, `me()`, `logout()` |
-| `equipment` | GET | `listAll()` (keyset pagination), `checkChiller()`, `ticketsByEquipment()`, `sumValue()`, `ticketsByIds()` |
-| `tickets` | GET, POST, PUT, DELETE | `listByItem()`, `getById()`, `save()`, `import()`, `update()`, `delete()` |
-| `dashboard` | GET | `stats()` |
-| `pv-dashboard` | GET | `stats()` |
-| `pv` | GET, POST, PUT, PATCH, DELETE | CRUD + `searchOs()`, `lookupItem()`, `searchLpuItems()`, `exportCsv()`, `sendEmail()`, `sendBatchEmail()`, `uploadFile()` |
-| `equipment-management` | GET, POST, PUT, DELETE | Equipment CRUD (admin/coordenador) |
-| `equipment-prices` | GET, POST, PUT, DELETE | Pricing CRUD (admin), `resolvePrice()` |
-| `users` | GET, POST, PUT, DELETE | User CRUD (admin) |
-| `scm` | GET, POST, DELETE | `listAll()`, `getById()`, `import()`, `delete()`, `segments()`, `sites()` |
-| `preventive-cycle` | GET, POST | `listAll()`, `summary()`, `save()`, `check-all()`, `uncheck-all()`, `scmStatusCount()`, `validateScm()` |
-| `planned-activities` | GET, POST, DELETE | `listAll()`, `exportCsv()`, `plan()`, `delete()` |
-| `preventiva` | POST, DELETE | `plan()`, `updateStatus()`, `delete()` |
-| `notify` | GET | Cron trigger |
+```
+https://rubbleapp.duckdns.org/api/?route={route}&action={action}
+```
+
+All routes require JWT Bearer token (except `auth`). Access controlled by role.
+
+### Response Format
+
+```json
+{
+  "success": true,
+  "message": "Operação realizada",
+  "data": {}
+}
+```
+
+Errors: `{ "success": false, "message": "Erro msg" }` with appropriate HTTP status.
+
+---
+
+### Auth
+
+#### `POST ?route=auth&action=login`
+
+Authenticate user and receive JWT.
+
+**Request:**
+```json
+{
+  "username": "admin@example.com",
+  "password": "secret123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "user": { "id": 1, "nome": "Admin", "role": "admin" }
+  }
+}
+```
+
+**Errors:** 401 invalid credentials, 429 rate limit (5 attempts/5min).
+
+#### `GET ?route=auth&action=me`
+
+Get current user from token.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": { "id": 1, "nome": "Admin", "username": "admin@example.com", "role": "admin" }
+}
+```
+
+#### `POST ?route=auth&action=logout`
+
+Revoke current token (adds to blacklist).
+
+**Headers:** `Authorization: Bearer <token>`
+
+---
+
+### Equipment
+
+#### `GET ?route=equipment&action=listAll`
+
+Paginated equipment list with tickets and PV counts. Keyset pagination (no offset).
+
+**Query Params:** `limit` (default 20), `last_local`, `last_equipamento`, `last_id`, `search`, `exact_name`
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [{ "id": 1, "equipamento": "WM 01", "capacidade": "10 TR", "local": "BMA", "localidade": "Container 1", "local_scm": "BMADTC", "mercado": "Residencial", "status_aberto": 3, "pvs_pendentes_count": 1, "pvs_pendentes": "260025|OS12345" }],
+  "keyset": { "last_local": "BMA", "last_equipamento": "WM 01", "last_id": 50 },
+  "_hash": "a1b2c3d4e5f6..."
+}
+```
+
+#### `GET ?route=equipment&action=sumValue`
+
+Aggregated total value for all equipment (used in home badge).
+
+**Response (200):**
+```json
+{ "success": true, "data": { "total": 158942.50 } }
+```
+
+#### `GET ?route=equipment&action=ticketsByEquipment`
+
+Tickets for a single equipment (loaded on card expand).
+
+**Query Params:** `id` (equipment ID)
+
+#### `GET ?route=equipment&action=ticketsByIds`
+
+Batch ticket lookup for CSV export.
+
+**Query Params:** `ids[]` (array of equipment IDs), `limit`, `offset`
+
+#### `GET ?route=equipment&action=checkChiller`
+
+Check if equipment has chiller naming pattern.
+
+**Query Params:** `local`
+
+---
+
+### Locals (Autocomplete)
+
+#### `GET ?route=locals`
+
+Return distinct local values for autocomplete dropdowns.
+
+---
+
+### Tickets (OS)
+
+#### `GET ?route=tickets&action=listByItem`
+
+List tickets for an equipment.
+
+**Query Params:** `equipamento_id`
+
+#### `POST ?route=tickets&action=save`
+
+Create a new ticket.
+
+#### `PUT ?route=tickets&action=update`
+
+Update ticket status/fields.
+
+#### `DELETE ?route=tickets&action=delete`
+
+Delete a ticket. Returns 400 if linked to a PV.
+
+#### `POST ?route=tickets&action=import`
+
+Bulk import from CSV. Auto-detects delimiter, BOM strip, site code extraction.
+
+---
+
+### PV (Propostas de Venda)
+
+#### `GET ?route=pv&action=listAll`
+
+List PVs with pagination, search, status filter, cycle filter. Sorted by created_at DESC.
+
+**Query Params:** `page`, `search`, `status`, `ciclo`, `sort_by`, `sort_dir`
+
+#### `GET ?route=pv&action=getById`
+
+Single PV with all items.
+
+**Query Params:** `id`
+
+#### `POST ?route=pv&action=save`
+
+Create new PV with items.
+
+#### `PUT ?route=pv&action=update`
+
+Update PV and its items.
+
+#### `PATCH ?route=pv&action=updateStatus`
+
+Update status of one or more PV items.
+
+**Request:**
+```json
+{
+  "items": [{ "id": 1, "status": "SCM aprovado" }]
+}
+```
+
+#### `DELETE ?route=pv&action=delete`
+
+Delete PV and all items.
+
+#### `GET ?route=pv&action=searchOs`
+
+Autocomplete: OS numbers matching query.
+
+#### `GET ?route=pv&action=lookupItem`
+
+Lookup LPU item details by item number.
+
+#### `GET ?route=pv&action=searchLpuItems`
+
+Search LPU catalogs (civil, material, servico) by description.
+
+#### `GET ?route=pv&action=exportCsv`
+
+Export PV items as CSV (Windows-1252 encoding).
+
+#### `POST ?route=pv&action=sendEmail`
+
+Send single PV email with HTML tables and OS/laudo PDF attachments.
+
+**Request:**
+```json
+{
+  "pv_id": 123,
+  "subject": "materiais"
+}
+```
+
+#### `POST ?route=pv&action=sendBatchEmail`
+
+Batch email dispatch.
+
+**Request:**
+```json
+{
+  "ids": [123, 124],
+  "subject": "servicos"
+}
+```
+
+Subjects: `materiais`, `servicos`, `contratacao`.
+
+#### `POST ?route=pv&action=uploadFile`
+
+Upload OS or laudo file (PDF, max 2MB).
+
+---
+
+### Equipment Management (CRUD — admin/coordenador)
+
+#### `GET ?route=equipment-management`
+
+List all equipment (infinite scroll via keyset pagination).
+
+#### `POST ?route=equipment-management`
+
+Create equipment with address (find-or-create).
+
+#### `PUT ?route=equipment-management`
+
+Update equipment.
+
+#### `DELETE ?route=equipment-management`
+
+Delete equipment. Blocked if linked to tickets or PVs.
+
+---
+
+### Equipment Pricing (CRUD — admin only)
+
+#### `GET ?route=equipment-prices`
+
+List pricing rules.
+
+#### `POST ?route=equipment-prices`
+
+Create pricing rule.
+
+#### `PUT ?route=equipment-prices`
+
+Update pricing rule.
+
+#### `DELETE ?route=equipment-prices`
+
+Delete pricing rule.
+
+#### `GET ?route=equipment-prices&action=resolvePrice`
+
+Resolve price for a given equipment/capacity/local/mercado.
+
+**Query Params:** `equipamento`, `capacidade`, `local`, `mercado`
+
+---
+
+### SCM (Controle de Medição)
+
+#### `GET ?route=scm`
+
+List SCM records with filters (paginated).
+
+**Query Params:** `page`, `date_from`, `date_to`, `segments[]`, `sites[]`, `status`, `search`
+
+#### `GET ?route=scm&action=getById`
+
+Single SCM with items.
+
+#### `POST ?route=scm&action=import`
+
+Import SCM from CSV. Auto-detects delimiter, strips BOM, filters ABERTO/EM ABERTO.
+
+#### `DELETE ?route=scm&action=delete`
+
+Delete SCM (admin only).
+
+#### `GET ?route=scm&action=segments`
+
+Distinct segment values for filter dropdown.
+
+#### `GET ?route=scm&action=sites`
+
+Distinct site values for filter dropdown.
+
+---
+
+### Preventive Cycle
+
+#### `GET ?route=preventive-cycle&action=listAll`
+
+Paginated equipment list for a cycle.
+
+**Query Params:** `ciclo` (YYYY-MM), `search`, `limit`, `offset`, `has_observacao`, `no_scm`, `scm_lancados`
+
+#### `GET ?route=preventive-cycle&action=summary`
+
+Aggregated summary: total value, site count, machine count, checked count.
+
+**Query Params:** `ciclo`, `has_observacao`, `no_scm`, `scm_lancados`
+
+#### `POST ?route=preventive-cycle&action=save`
+
+Batch save checkboxes, observações, SCM numbers.
+
+#### `POST ?route=preventive-cycle&action=check-all`
+
+Check all items matching current filters.
+
+#### `POST ?route=preventive-cycle&action=uncheck-all`
+
+Uncheck all items matching current filters.
+
+#### `GET ?route=preventive-cycle&action=scmStatusCount`
+
+SCM status distribution for items in cycle.
+
+#### `POST ?route=preventive-cycle&action=validateScm`
+
+Validate SCM number against database.
+
+**Request:**
+```json
+{ "scm": "260001" }
+```
+
+---
+
+### Planned Activities
+
+#### `GET ?route=planned-activities`
+
+List all planned activities (preventiva + corretiva via UNION ALL).
+
+**Query Params:** `search`, `status`, `type`, `limit`, `offset`
+
+#### `POST ?route=planned-activities&action=plan`
+
+Create planned activity (preventiva or corretiva).
+
+#### `DELETE ?route=planned-activities&action=delete`
+
+Delete planned activity.
+
+#### `GET ?route=planned-activities&action=exportCsv`
+
+Export as CSV.
+
+---
+
+### Preventiva
+
+#### `POST ?route=preventiva&action=plan`
+
+Create site-level preventive activity.
+
+#### `POST ?route=preventiva&action=updateStatus`
+
+Update status: Planejado → Em Andamento → Concluído / Cancelado.
+
+#### `DELETE ?route=preventiva&action=delete`
+
+Delete preventive activity.
+
+---
+
+### PDF Audit
+
+#### `POST ?route=pdf-audit&action=setReference`
+
+Upload reference PDF for comparison.
+
+#### `POST ?route=pdf-audit&action=audit`
+
+Run audit: forward PDF to Python microservice (CLIP-based comparison).
+
+**Query Params:** `photo_indices`, `ai_enabled`
+
+#### `GET ?route=pdf-audit&action=getReference`
+
+Get current reference metadata.
+
+#### `POST ?route=pdf-audit&action=clearReference`
+
+Clear current reference.
+
+#### `GET ?route=pdf-audit&action=health`
+
+Health check for Python microservice.
+
+---
+
+### Notify
+
+#### `GET ?route=notify`
+
+Cron trigger: check for activities planned for tomorrow and send email notifications.
+
+---
 
 ### Middleware Pipeline
 
@@ -185,10 +593,10 @@ bun install
 Request → CorsMiddleware → AuthMiddleware → RateLimitMiddleware → Router → Handler
 ```
 
-**Rate Limits (por minuto):**
+**Rate Limits (60s window):**
 
-| Rota | Método | Limite |
-|------|--------|--------|
+| Route | Method | Limit |
+|-------|--------|-------|
 | `auth` | POST | 5 |
 | `pv` | POST/PUT/PATCH | 30 |
 | `pv` | DELETE | 10 |
@@ -201,31 +609,20 @@ Request → CorsMiddleware → AuthMiddleware → RateLimitMiddleware → Router
 | `planned-activities` | POST/DELETE | 10 |
 | `preventiva` | POST/DELETE | 10 |
 
-### Permissões por Role
+### Permissions by Role
 
-| Recurso | Admin | Supervisor | Coordenador | Cliente |
-|---------|:-----:|:----------:|:-----------:|:-------:|
-| Home (equip + tickets) | CRUD | CRUD | CRUD | R/O |
-| Dashboard | ✅ | ✅ | ✅ | R/O |
-| PV + PV Dashboard | CRUD | ❌ | CRUD (sem delete) | ❌ |
-| Gerenciar usuários | ✅ | ❌ | ❌ | ❌ |
-| Gerenciar equipamentos | CRUD | ❌ | CRUD (sem delete) | ❌ |
-| SCM Status | CRUD | ❌ | CRUD (sem delete) | ❌ |
-| Ciclo Preventiva | CRUD | R/O | CRUD (sem delete) | ❌ |
-| Atividades Planejadas | CRUD | ❌ | CRUD (sem delete) | R/O |
-| Cadastro Valor | CRUD | ❌ | ❌ | ❌ |
-
-### Response Format
-
-```json
-{
-  "success": true,
-  "message": "Operação realizada",
-  "data": { ... }
-}
-```
-
-Erros: `{ "success": false, "message": "Erro msg" }` com HTTP status apropriado.
+| Resource | Admin | Supervisor | Coordenador | Administrativo | Cliente |
+|----------|:-----:|:----------:|:-----------:|:--------------:|:-------:|
+| Home (equip + tickets) | CRUD | CRUD | CRUD | R/O | R/O |
+| Dashboard | ✅ | ✅ | ✅ | ✅ | R/O |
+| PV + PV Dashboard | CRUD | ❌ | CRUD (no delete) | ❌ | ❌ |
+| Manage Users | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Manage Equipment | CRUD | ❌ | CRUD (no delete) | ❌ | ❌ |
+| SCM Status | CRUD | ❌ | CRUD (no delete) | ❌ | ❌ |
+| Preventive Cycle | CRUD (save) | R/O | R/O | ❌ | ❌ |
+| Planned Activities | CRUD | R/O | CRUD (no delete) | R/O | R/O |
+| Equipment Pricing | CRUD | ❌ | ❌ | ❌ | ❌ |
+| PDF Audit | CRUD | ❌ | R/O | R/O | ❌ |
 
 ---
 
@@ -261,7 +658,7 @@ CREATE TABLE usuarios (
     username    VARCHAR(50)  NOT NULL UNIQUE,
     password    VARCHAR(255) NOT NULL,
     nome        VARCHAR(100) NOT NULL,
-    role        ENUM('admin','supervisor','coordenador','cliente') NOT NULL DEFAULT 'cliente',
+    role        ENUM('admin','supervisor','coordenador','administrativo','cliente') NOT NULL DEFAULT 'cliente',
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -371,6 +768,7 @@ Principais migrations:
 - 032: Índice rate_limits (`idx_rate_limits_lookup`)
 - 033: Token blacklist (`token_blacklist` table + cleanup cron)
 - 034: PV timestamps `timestamp` → `datetime`
+- 035: Role `administrativo` adicionada em usuarios
 - 038: Campo `tipo` (ENUM preventiva/corretiva) em registros
 - 039: Tabela `atividades_preventivas` (site-level planned activities)
 
@@ -449,7 +847,7 @@ Principais migrations:
 - **Username = email** (campo email salvo como username)
 - **Password:** hash único (`password_hash`), sempre obrigatório (re-hash se preenchido no edit)
 - **Self-delete:** Bloqueado (verificação no controller)
-- **Role:** `ENUM('admin','supervisor','coordenador','cliente')`
+- **Role:** `ENUM('admin','supervisor','coordenador','administrativo','cliente')`
 
 ### Preventive Cycle (Ciclo Preventiva)
 
@@ -493,7 +891,7 @@ Principais migrations:
 - **Status transitions (preventiva):** Planejado → Em Andamento/Cancelado, Em Andamento → Concluído/Cancelado, Cancelado → Planejado, Concluído → terminal
 - **Form toggle:** Campo tipo (Selecione/Preventiva/Corretiva) alterna campos: preventiva = site + ticket; corretiva = equipamento + OS
 - **Botões de ação:** Usam `iconButtonHtml()` — status (edit/azul com tooltip "Alterar status"), delete (vermelho com tooltip "Excluir atividade")
-- **Dark mode:** Todos os botões de formulário (Cancelar, Confirmar, Planejar) possuem `dark:` variants explícitas — o CDN do Tailwind injeta `<style>` DEPOIS de `default.css` e sobrescreve regras `!important`
+- **Dark mode:** Botões de formulário usam classes únicas (sem `dark:` variants) — cores dark gerenciadas via `.dark .bg-*` e `.dark .text-*` em `default.css`
 - **CSV export:** Paginação em chunks de 500 via offset, reutiliza `listAll()` com filtro por ciclo + busca
 - **Permissões:** Admin CRUD completo, coordenador CRUD sem DELETE, supervisor/cliente leitura apenas
 
@@ -530,8 +928,9 @@ Principais migrations:
 - `prefers-color-scheme: dark` como default
 - Login page sempre light (imune ao dark mode) — `router.js` remove classe `dark` do `<html>`, `auth.js` restaura ao sair
 - CSS Variables em `default.css` com overrides `!important`
-- Tailwind CDN injeta `<style>` DEPOIS de CSS estático — usar `dark:` variants diretamente nas classes HTML para elementos que o CDN sobrescreve (ex: search inputs, autocomplete dropdowns)
-- Cobertura CSS `!important` para cards de resultado (ex: `.dark .bg-amber-50`, `.dark .border-amber-200`, `.dark .text-amber-700`) — adicionar em `default.css` conforme necessário
+- **Estratégia:** `default.css` com seletores `.dark .*` + `!important` é a fonte de verdade — Tailwind CDN é tratado como extra
+- `dark:` variants **não devem ser usadas** no HTML: quando o SO está em dark mode, o Tailwind aplica `dark:` variants mesmo sem a classe `.dark`, causando texto claro em fundo claro
+- Cobertura CSS `!important` para cards de resultado, botões, inputs, selects (ex: `.dark .bg-amber-50`, `.dark .border-amber-200`, `.dark .text-amber-700`) — adicionar em `default.css` conforme necessário
 
 ### Skeleton Screen
 
@@ -719,7 +1118,7 @@ Status está em `pv_item`, não em `pv` (migration 010). Queries devem JOINar co
 - **Env::get() retorna string, não boolean:** Comparar com `=== 'true'`.
 - **Tailwind CDN vs CSS cascade:** CDN injeta `<style>` DEPOIS de CSS estático.
 - **`public/tailwindcss.js` NÃO PODE SER MODIFICADO.**
-- **Dark mode login immune:** Remover classe `dark` via JS, não CSS.
+- **Dark mode login immune:** Remover classe `dark` do `<html>` via JS (`router.js`), nunca via CSS (Tailwind CDN sobrescreve). CSS overrides com `!important` são fallback, não solução.
 - **Equipment Pricing `sumValueByFilter()` hardcoded:** Não usa tabela de regras.
 - **Router class é deliberadamente fina:** Só registro + dispatch.
 - **Skeleton screen removido implicitamente:** `router.js` substitui via `innerHTML`.
@@ -736,7 +1135,7 @@ Status está em `pv_item`, não em `pv` (migration 010). Queries devem JOINar co
 - **RateLimiter atômico:** Usa `INSERT ... ON DUPLICATE KEY UPDATE` — sem janela entre SELECT e INSERT.
 - **CronRepository atômico:** INSERT primeiro (garante row exists) + SELECT para verificação.
 - **`importante`:** Filtros SCM multi-select: ao desmarcar o 1º item com Todos ativo, pré-popular `Set` com todos os itens e remover apenas o desmarcado. Não `delete()` em Set vazio.
-- **Dark mode buttons:** O CDN do Tailwind injeta `<style>` DEPOIS de `default.css`. `!important` no `default.css` não é confiável para sobrescrever utility classes do CDN. Usar `dark:` variants diretamente no HTML para botões que precisam de cores específicas em dark mode (ex: `dark:bg-slate-600 dark:text-slate-200`).
+- **Dark mode buttons:** `default.css` com `.dark .bg-*` + `!important` é a fonte de verdade. `dark:` variants NÃO devem ser usadas (conflitam com `prefers-color-scheme` do CDN). Adicionar overrides em `default.css` conforme necessário.
 - **schema.sql vs .gitignore:** `*.sql` está no `.gitignore`. Para commitar schema, comentar temporariamente. `git add -f` não funciona com padrões do `.gitignore`.
 
 ---
@@ -793,4 +1192,4 @@ Status está em `pv_item`, não em `pv` (migration 010). Queries devem JOINar co
 
 ---
 
-*Documentação gerada a partir do AGENTS.md. Última atualização: 2026-06-10.*
+*Documentação gerada a partir do AGENTS.md. Última atualização: 2026-06-29.*
