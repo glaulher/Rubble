@@ -219,6 +219,10 @@ button:disabled { cursor: not-allowed; }
 .dark .bg-pink-100, .dark .bg-pink-100.text-pink-700 { color: #f9a8d4 !important; }
 .dark .bg-slate-100, .dark .bg-slate-100.text-slate-700, .dark .bg-slate-100.text-slate-600 { color: #e2e8f0 !important; }
 
+/* Fallback: ensure bg-white works even if Tailwind CDN
+   doesn't generate the utility for dynamic content */
+.bg-white { background-color: #ffffff; }
+
 /* Text colors */
 .dark .text-slate-900 { color: #e2e8f0 !important; }
 .dark .text-slate-800 { color: #e2e8f0 !important; }
