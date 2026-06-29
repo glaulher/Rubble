@@ -2,10 +2,6 @@
    RUBBLE — CSS Variables + Dark Mode
    ============================================ */
 
-/* Tell Tailwind v4 browser build to use .dark class
-   instead of @media (prefers-color-scheme: dark) */
-@custom-variant dark (&:where(.dark, .dark *));
-
 :root {
   /* Backgrounds */
   --bg-base: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);
@@ -147,6 +143,11 @@ body {
 
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
+
+/* Sidebar tooltip */
+#sidebar[data-collapsed='false'] .sidebar-tooltip {
+  display: none;
+}
 
 /* ============================================
    Dark mode toggle button
