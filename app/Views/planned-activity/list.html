@@ -78,28 +78,28 @@
 
 <!-- MODAL: PLAN NOVA ATIVIDADE -->
 <div id="modalPlanActivity" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40">
-  <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-white mb-4">Planejar Atividade</h2>
+  <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
+    <h2 class="text-lg font-semibold text-slate-800 mb-4">Planejar Atividade</h2>
     <form id="planForm" class="space-y-4" novalidate>
       <div>
-        <label for="planSite" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Site</label>
+        <label for="planSite" class="block text-sm font-medium text-slate-700 mb-1">Site</label>
         <div class="autocomplete-wrap relative">
           <input
             id="planSite"
             type="text"
             autocomplete="off"
-            class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500 dark:bg-slate-700 dark:text-white"
+            class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
             placeholder="Digite o site..."
           >
-          <div class="site-dropdown hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"></div>
+          <div class="site-dropdown hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"></div>
         </div>
       </div>
       <div>
-        <label for="planTipo" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo</label>
+        <label for="planTipo" class="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
         <select
           id="planTipo"
           required
-          class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500 dark:bg-slate-700 dark:text-white"
+          class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
         >
           <option value="">Selecione</option>
           <option value="preventiva">Preventiva</option>
@@ -109,11 +109,11 @@
       <!-- Preventiva fields -->
       <div id="preventivaFields" class="hidden space-y-4">
         <div>
-          <label for="planTicket" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nº Ticket</label>
+          <label for="planTicket" class="block text-sm font-medium text-slate-700 mb-1">Nº Ticket</label>
           <input
             id="planTicket"
             type="text"
-            class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500 dark:bg-slate-700 dark:text-white"
+            class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
             placeholder="Ex: 123"
           >
         </div>
@@ -121,64 +121,64 @@
       <!-- Corretiva fields -->
       <div id="corretivaFields" class="hidden space-y-4">
         <div>
-          <label for="planEquipamento" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Equipamento</label>
+          <label for="planEquipamento" class="block text-sm font-medium text-slate-700 mb-1">Equipamento</label>
           <div class="autocomplete-wrap relative">
             <input
               id="planEquipamento"
               type="text"
               required
               autocomplete="off"
-              class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500 dark:bg-slate-700 dark:text-white"
+              class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
               placeholder="Digite o nome do equipamento..."
             >
             <input id="planEquipamentoId" type="hidden" name="equipamento_id">
-            <div class="equipamento-dropdown hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"></div>
+            <div class="equipamento-dropdown hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"></div>
           </div>
         </div>
         <div>
-          <label for="planOs" id="planOsLabel" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nº OS</label>
+          <label for="planOs" id="planOsLabel" class="block text-sm font-medium text-slate-700 mb-1">Nº OS</label>
           <input
             id="planOs"
             type="text"
             required
             pattern="[a-zA-Z0-9]+"
-            class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500 dark:bg-slate-700 dark:text-white"
+            class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
             placeholder="Ex: 123456"
           >
         </div>
       </div>
       <div>
-        <label for="planData" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Data Planejada</label>
+        <label for="planData" class="block text-sm font-medium text-slate-700 mb-1">Data Planejada</label>
         <input
           id="planData"
           type="date"
           required
-          class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500 dark:bg-slate-700 dark:text-white"
+          class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
         >
       </div>
       <div>
-        <label for="planEquipe" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Equipe / Técnico</label>
+        <label for="planEquipe" class="block text-sm font-medium text-slate-700 mb-1">Equipe / Técnico</label>
         <input
           id="planEquipe"
           type="text"
-          class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500 dark:bg-slate-700 dark:text-white"
+          class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
           placeholder="A definir"
         >
       </div>
       <div>
-        <label for="planObs" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Observação</label>
+        <label for="planObs" class="block text-sm font-medium text-slate-700 mb-1">Observação</label>
         <textarea
           id="planObs"
           rows="3"
           maxlength="1000"
-          class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500 dark:bg-slate-700 dark:text-white"
+          class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
         ></textarea>
       </div>
       <div class="flex justify-end gap-3 pt-2">
         <button
           type="button"
           id="btnCancelPlan"
-          class="bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-500 text-slate-900 dark:text-slate-200 px-4 py-2 rounded-xl text-sm transition"
+          class="bg-slate-300 hover:bg-slate-400 text-slate-900 px-4 py-2 rounded-xl text-sm transition"
         >Cancelar</button>
         <button
           type="submit"
@@ -192,30 +192,30 @@
 <!-- Status Update Modal (Preventiva) -->
 <div id="modalStatusPreventiva" class="fixed inset-0 z-50 flex items-center justify-center hidden">
   <div class="absolute inset-0 bg-black/40" id="modalStatusBackdrop"></div>
-  <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4 z-10">
-    <h3 class="text-lg font-semibold text-slate-800 dark:text-white mb-4">Alterar Status</h3>
+  <div class="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4 z-10">
+    <h3 class="text-lg font-semibold text-slate-800 mb-4">Alterar Status</h3>
     <form id="statusForm" novalidate>
       <input type="hidden" id="statusPreventivaId">
       <div class="mb-4">
-        <label for="statusSelect" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Novo Status</label>
+        <label for="statusSelect" class="block text-sm font-medium text-slate-700 mb-1">Novo Status</label>
         <select
           id="statusSelect"
           required
-          class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500 dark:bg-slate-700 dark:text-white"
+          class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
         ></select>
       </div>
       <div class="mb-4">
-        <label for="statusObs" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Observação (opcional)</label>
+        <label for="statusObs" class="block text-sm font-medium text-slate-700 mb-1">Observação (opcional)</label>
         <textarea
           id="statusObs"
           rows="2"
           maxlength="1000"
-          class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500 dark:bg-slate-700 dark:text-white"
+          class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
         ></textarea>
       </div>
       <div class="flex justify-end gap-3">
-        <button type="button" id="btnCancelStatus" class="bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-900 dark:text-slate-200 px-4 py-2 rounded-xl text-sm">Cancelar</button>
-        <button type="submit" class="bg-blue-200 dark:bg-blue-700 hover:bg-blue-300 dark:hover:bg-blue-600 text-blue-800 dark:text-blue-200 px-4 py-2 rounded-xl text-sm font-medium">Confirmar</button>
+        <button type="button" id="btnCancelStatus" class="bg-slate-200 hover:bg-slate-300 text-slate-900 px-4 py-2 rounded-xl text-sm">Cancelar</button>
+        <button type="submit" class="bg-blue-200 hover:bg-blue-300 text-blue-800 px-4 py-2 rounded-xl text-sm font-medium">Confirmar</button>
       </div>
     </form>
   </div>
