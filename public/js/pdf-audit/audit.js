@@ -623,7 +623,7 @@ async function clearReference() {
     _auditSimTimer = null;
   }
   try {
-    await fetch('/app/api/index.php?route=pdf-audit&action=clear-reference');
+    await fetch('/app/api/index.php?route=pdf-audit&action=clear-reference', { method: 'POST' });
   } catch (e) {
     // ignore
   }

@@ -294,6 +294,8 @@ $router->addRoute('pdf-audit', 'POST', function () use ($auth) {
         $ctrl->setReference();
     } elseif ($action === 'audit') {
         $ctrl->audit();
+    } elseif ($action === 'clear-reference') {
+        $ctrl->clearReference();
     } else {
         Response::error('Ação não encontrada', 404);
     }
@@ -306,8 +308,6 @@ $router->addRoute('pdf-audit', 'GET', function () use ($auth) {
         $ctrl->health();
     } elseif ($action === 'get-reference') {
         $ctrl->getReference();
-    } elseif ($action === 'clear-reference') {
-        $ctrl->clearReference();
     } else {
         Response::error('Ação não encontrada', 404);
     }
