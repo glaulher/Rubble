@@ -660,7 +660,13 @@ function copyPlannedWhatsApp() {
             lines.push('*' + local + '* \u2014 ' + (item.localidade || ''));
           }
 
-          var equipName = item.equipamento || 'N/A';
+          var equipName;
+          if (item.tipo === 'preventiva') {
+            var mc = item.machine_count || 0;
+            equipName = mc > 0 ? mc + ' m\u00e1quina' + (mc > 1 ? 's' : '') : 'N/A';
+          } else {
+            equipName = item.equipamento || 'N/A';
+          }
           var cap = item.capacidade || '';
           var itemTipo = item.tipo || 'preventiva';
           var tipoLabel = itemTipo === 'corretiva' ? 'Corretiva' : 'Preventiva';
