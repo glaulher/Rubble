@@ -93,6 +93,7 @@ class TicketTest extends TestCase
             'data_concluido' => null,
             'data_planejada' => null,
             'notificacao_enviada' => 0,
+            'tipo' => 'preventiva',
             'local' => 'Sala B',
             'equipamento' => 'Desktop',
         ];

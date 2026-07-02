@@ -133,6 +133,34 @@ class PlannedActivityController
 
     /*
     |--------------------------------------------------------------------------
+    | UPDATE TEAM
+    |--------------------------------------------------------------------------
+    */
+
+    public function updateTeam(): void
+    {
+        try {
+            $data = Request::body();
+
+            Validator::required($data, ['id', 'equipe']);
+            Validator::integer($data, 'id');
+
+            $result = $this->service->updateTeam($data);
+
+            Cache::deleteByPrefix('equipment_list:');
+            Cache::deleteByPrefix('planned_activities:');
+
+            Response::success('Equipe atualizada com sucesso', $result);
+
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | DELETE
     |--------------------------------------------------------------------------
     */

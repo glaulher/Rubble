@@ -151,14 +151,15 @@ class PvTest extends TestCase
         $this->assertSame(2500.00, $result['valor_total']);
     }
 
-    public function testFromRowCreatesPvWithItems(): void
+    public function testConstructWithItems(): void
     {
         $row = ['id' => '1', 'numero_pv' => '26001', 'local' => 'Sala A', 'equipamento_id' => '5'];
         $itens = [
             new \App\Api\Entities\PvItem(['id' => '1', 'pv_id' => '1', 'fatura' => 'lpu']),
         ];
 
-        $pv = Pv::fromRow($row, $itens);
+        $pv = new Pv($row);
+        $pv->items = $itens;
 
         $this->assertSame(1, $pv->id);
         $this->assertCount(1, $pv->items);

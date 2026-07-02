@@ -100,6 +100,29 @@ class PlannedActivityService
         return ['action' => 'created', 'id' => $id];
     }
 
+    public function updateTeam(array $data): array
+    {
+        $id = (int) ($data['id'] ?? 0);
+        $tipo = trim($data['tipo'] ?? 'corretiva');
+        $equipe = trim($data['equipe'] ?? '');
+
+        if ($id <= 0) {
+            throw new \RuntimeException('ID inválido.');
+        }
+        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+            throw new \RuntimeException('Tipo inválido.');
+        }
+        if ($equipe === '') {
+            throw new \RuntimeException('Nome da equipe é obrigatório.');
+        }
+        if (mb_strlen($equipe) > 100) {
+            throw new \RuntimeException('Nome da equipe muito longo (máx. 100 caracteres).');
+        }
+
+        $this->repository->updateTeam($id, $tipo, $equipe);
+        return ['action' => 'updated', 'id' => $id];
+    }
+
     public function delete(int $id): array
     {
         $existing = $this->repository->getById($id);

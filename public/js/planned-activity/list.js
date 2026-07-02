@@ -131,11 +131,103 @@ function buildPlannedCardHtml(item) {
       '</div>' +
     '</div>' +
     '<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">' +
-      '<span>Equipe: <strong class="text-slate-700">' + escapeHtml(equipe) + '</strong></span>' +
+      '<span class="team-name-wrap">Equipe: <strong class="text-slate-700 team-name-text">' + escapeHtml(equipe) + '</strong>' +
+      (canEdit ? '<button class="inline-flex items-center justify-center text-blue-400 hover:text-blue-600 ml-0.5 align-middle team-edit-btn" data-action="edit-team" data-id="' + item.id + '" data-tipo="' + tipo + '" data-equipe="' + escapeHtml(equipe) + '" aria-label="Editar equipe"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' : '') +
+      '</span>' +
       (material ? '<span>Material: <strong class="text-slate-700">' + escapeHtml(material) + '</strong></span>' : '') +
     '</div>' +
     obsHtml +
   '</div>';
+}
+
+function startTeamInlineEdit(btn) {
+  var card = btn.closest('.planned-card');
+  if (!card) return;
+  var strong = card.querySelector('.team-name-text');
+  if (!strong) return;
+  var currentValue = strong.textContent;
+
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentValue;
+  input.className = 'team-edit-input text-slate-700 dark:text-slate-200 text-xs bg-transparent border border-blue-300 dark:border-blue-600 rounded px-1 py-0.5 w-32 focus:outline-none focus:border-blue-500';
+  input.dataset.originalValue = currentValue;
+  input.dataset.id = btn.dataset.id;
+  input.dataset.tipo = btn.dataset.tipo;
+
+  strong.style.display = 'none';
+  strong.parentNode.insertBefore(input, strong.nextSibling);
+  input.focus();
+  input.select();
+
+  var saved = false;
+
+  function doSave() {
+    if (saved) return;
+    saved = true;
+    saveTeamInlineEdit(input, strong);
+  }
+
+  function doCancel() {
+    if (saved) return;
+    saved = true;
+    cancelTeamInlineEdit(input, strong);
+  }
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      input.blur();
+    } else if (e.key === 'Escape') {
+      doCancel();
+    }
+  });
+
+  input.addEventListener('blur', function () {
+    doSave();
+  });
+}
+
+function saveTeamInlineEdit(input, strong) {
+  var newValue = input.value.trim();
+  var originalValue = input.dataset.originalValue;
+  var id = input.dataset.id;
+  var tipo = input.dataset.tipo;
+
+  if (newValue && newValue !== originalValue) {
+    apiFetch('/app/api/index.php?route=planned-activities', {
+      method: 'PUT',
+      body: JSON.stringify({ id: parseInt(id, 10), equipe: newValue, tipo: tipo }),
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (result) {
+      if (result && result.success) {
+        strong.textContent = newValue;
+      } else {
+        showToast(result && result.message ? result.message : 'Erro ao atualizar equipe.', 'error');
+      }
+      finishTeamEdit(input, strong);
+    })
+    .catch(function () {
+      showToast('Erro ao atualizar equipe.', 'error');
+      finishTeamEdit(input, strong);
+    });
+  } else {
+    finishTeamEdit(input, strong);
+  }
+}
+
+function cancelTeamInlineEdit(input, strong) {
+  finishTeamEdit(input, strong);
+}
+
+function finishTeamEdit(input, strong) {
+  if (input && input.parentNode) {
+    input.parentNode.removeChild(input);
+  }
+  if (strong) {
+    strong.style.display = '';
+  }
 }
 
 function renderPlanned(items, append) {
@@ -725,6 +817,12 @@ function initPlannedActivity() {
         var deleteCard = deleteBtn.closest('.planned-card');
         var deleteTipo = deleteCard ? deleteCard.getAttribute('data-tipo') : 'corretiva';
         if (deleteId) deletePlanned(deleteId, deleteTipo);
+        return;
+      }
+
+      var teamBtn = e.target.closest('.team-edit-btn');
+      if (teamBtn) {
+        startTeamInlineEdit(teamBtn);
         return;
       }
 

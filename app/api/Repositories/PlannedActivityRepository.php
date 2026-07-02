@@ -237,6 +237,15 @@ class PlannedActivityRepository extends BaseRepository
         return $row ? new Ticket($row) : null;
     }
 
+    public function updateTeam(int $id, string $tipo, string $equipe): bool
+    {
+        $table = $tipo === 'preventiva' ? 'atividades_preventivas' : 'registros';
+        $sql = "UPDATE {$table} SET equipe = ? WHERE id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('si', $equipe, $id);
+        return $stmt->execute();
+    }
+
     private function normalizeDateSearch(string $search): string
     {
         if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $search, $m)) {

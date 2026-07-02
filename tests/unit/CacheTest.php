@@ -47,7 +47,7 @@ class CacheTest extends TestCase
     public function testBuildKey(): void
     {
         $key = Cache::buildKey('equipment', ['search' => 'test', 'page' => 0]);
-        $expected = 'equipment_' . md5(serialize(['search' => 'test', 'page' => 0]));
+        $expected = 'equipment:' . md5(serialize(['search' => 'test', 'page' => 0]));
         $this->assertEquals($expected, $key);
     }
 

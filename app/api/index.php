@@ -267,6 +267,9 @@ $router->addRoute('planned-activities', 'GET', function () use ($auth) {
 $router->addRoute('planned-activities', 'POST', function () use ($auth) {
     (new PlannedActivityController($auth->getUser()))->plan();
 });
+$router->addRoute('planned-activities', 'PUT', function () use ($auth) {
+    (new PlannedActivityController($auth->getUser()))->updateTeam();
+});
 $router->addRoute('planned-activities', 'DELETE', function () use ($auth) {
     (new PlannedActivityController($auth->getUser()))->delete();
 });
