@@ -8,6 +8,8 @@ class PreventivaService
 {
     private PreventivaRepository $repository;
 
+    private const DEFAULT_STATUS = 'Planejado';
+
     private const ALLOWED_STATUS_TRANSITIONS = [
         'Planejado' => ['Em Andamento', 'Cancelado', 'Planejado'],
         'Em Andamento' => ['Em Andamento', 'Concluído', 'Cancelado', 'Planejado'],
@@ -63,7 +65,7 @@ class PreventivaService
             'obs' => $auditEntry,
         ];
 
-        $id = $this->repository->create($record);
+        $id = $this->repository->create($record, self::DEFAULT_STATUS);
 
         return ['action' => 'created', 'id' => $id];
     }

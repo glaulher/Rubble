@@ -4,20 +4,21 @@ namespace App\Api\Repositories;
 
 class PreventivaRepository extends BaseRepository
 {
-    public function create(array $data): int
+    public function create(array $data, string $defaultStatus = 'Planejado'): int
     {
         $sql = "
             INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs)
-            VALUES (?, ?, ?, ?, 'Planejado', ?)
+            VALUES (?, ?, ?, ?, ?, ?)
         ";
 
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param(
-            'sssss',
+            'ssssss',
             $data['site'],
             $data['data_planejada'],
             $data['ticket'],
             $data['equipe'],
+            $defaultStatus,
             $data['obs']
         );
         $stmt->execute();
