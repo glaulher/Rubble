@@ -17,6 +17,33 @@ class PvService
         'TR', 'UN.', 'UNIDADE', 'UNIT.',
     ];
 
+    public const LPU_TABLES = [
+        'civil_lpu', 'material_clima_lpu', 'material_chiller_lpu',
+        'servico_clima_lpu', 'servico_chiller_lpu',
+    ];
+
+    public const LPU_ORIGIN_MAP = [
+        'lpu_material_clima'   => 'material_clima_lpu',
+        'lpu_material_chiller' => 'material_chiller_lpu',
+        'lpu_civil'            => 'civil_lpu',
+        'lpu_servico_clima'    => 'servico_clima_lpu',
+        'lpu_servico_chiller'  => 'servico_chiller_lpu',
+    ];
+
+    private const STATUS_PRIORITY = [
+        'SCM negado' => 1,
+        'Aguardando envio' => 2,
+        'Aprovado serv.' => 3,
+        'E-mail de lib. aquisição/serviço' => 4,
+        'Aprovado aquisição/serviço' => 5,
+        'E-mail de aprov. serv. realizado' => 6,
+        'SCM enviado' => 7,
+        'SCM aprovado' => 8,
+        'Cancelado' => 9,
+    ];
+
+    private const DEFAULT_ITEM_STATUS = 'Aguardando envio';
+
     private PvRepository $repository;
     private TicketService $ticketService;
 
@@ -28,7 +55,8 @@ class PvService
 
     public function listAll(int $limit = 20, int $offset = 0, string $search = '', ?string $status = null, ?string $cycle = null, string $sortBy = 'pv.id', string $sortDir = 'DESC'): array
     {
-        $items = $this->repository->listAll($limit, $offset, $search, $status, $cycle, $sortBy, $sortDir);
+        $statusPrioritySql = $this->buildStatusPrioritySql();
+        $items = $this->repository->listAll($limit, $offset, $search, $status, $cycle, $sortBy, $sortDir, $statusPrioritySql);
         return [
             'items' => array_map(fn (Pv $p) => $this->formatListRow($p), $items),
             'total' => $this->repository->count($search, $status, $cycle),
@@ -90,24 +118,24 @@ class PvService
 
     public function lookupLpuItem(string $lpuOrigin, int $itemNumber): ?array
     {
-        $table = PvRepository::LPU_ORIGIN_MAP[$lpuOrigin] ?? null;
+        $table = self::LPU_ORIGIN_MAP[$lpuOrigin] ?? null;
 
         if ($table === null) {
             return null;
         }
 
-        return $this->repository->lookupLpuItem($table, $itemNumber);
+        return $this->repository->lookupLpuItem($table, $itemNumber, self::LPU_TABLES);
     }
 
     public function searchLpuItems(string $lpuOrigin, string $query): array
     {
-        $table = PvRepository::LPU_ORIGIN_MAP[$lpuOrigin] ?? null;
+        $table = self::LPU_ORIGIN_MAP[$lpuOrigin] ?? null;
 
         if ($table === null) {
             return [];
         }
 
-        return $this->repository->searchLpuItems($table, $query);
+        return $this->repository->searchLpuItems($table, $query, 20, self::LPU_TABLES);
     }
 
     public function getItemsForExport(array $pvIds): array
@@ -160,6 +188,7 @@ class PvService
             if (!empty($data['itens']) && is_array($data['itens'])) {
                 foreach ($data['itens'] as $item) {
                     $item['pv_id'] = $pvId;
+                    $item['status'] = $item['status'] ?? self::DEFAULT_ITEM_STATUS;
                     $item['valor_total'] = $this->calculateItemTotalValue($item);
                     $this->repository->saveItem($item);
                 }
@@ -204,6 +233,7 @@ class PvService
 
                 foreach ($data['itens'] as $item) {
                     $item['pv_id'] = (int) $data['id'];
+                    $item['status'] = $item['status'] ?? self::DEFAULT_ITEM_STATUS;
                     $item['valor_total'] = $this->calculateItemTotalValue($item);
                     $this->repository->saveItem($item);
                 }
@@ -369,5 +399,19 @@ class PvService
         }
 
         return $ticketIds;
+    }
+
+    private function buildStatusPrioritySql(): string
+    {
+        $parts = [];
+        foreach (self::STATUS_PRIORITY as $status => $weight) {
+            $parts[] = "WHEN '" . addslashes($status) . "' THEN {$weight}";
+        }
+        return 'CASE pv_item.status ' . implode(' ', $parts) . ' ELSE 99 END';
+    }
+
+    public function getDefaultItemStatus(): string
+    {
+        return self::DEFAULT_ITEM_STATUS;
     }
 }

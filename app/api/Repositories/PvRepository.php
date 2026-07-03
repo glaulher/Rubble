@@ -7,19 +7,6 @@ use App\Api\Entities\PvItem;
 
 class PvRepository extends BaseRepository
 {
-    public const LPU_TABLES = [
-        'civil_lpu', 'material_clima_lpu', 'material_chiller_lpu',
-        'servico_clima_lpu', 'servico_chiller_lpu',
-    ];
-
-    public const LPU_ORIGIN_MAP = [
-        'lpu_material_clima'   => 'material_clima_lpu',
-        'lpu_material_chiller' => 'material_chiller_lpu',
-        'lpu_civil'            => 'civil_lpu',
-        'lpu_servico_clima'    => 'servico_clima_lpu',
-        'lpu_servico_chiller'  => 'servico_chiller_lpu',
-    ];
-
     public const OS_DIR = __DIR__ . '/../../../OS';
     public const LAUDO_DIR = __DIR__ . '/../../../LAUDO';
 
@@ -74,7 +61,7 @@ class PvRepository extends BaseRepository
         return (int) $result->fetch_assoc()['total'];
     }
 
-    public function listAll(int $limit = 20, int $offset = 0, string $search = '', ?string $status = null, ?string $cycle = null, string $sortBy = 'pv.id', string $sortDir = 'DESC'): array
+    public function listAll(int $limit = 20, int $offset = 0, string $search = '', ?string $status = null, ?string $cycle = null, string $sortBy = 'pv.id', string $sortDir = 'DESC', string $statusPrioritySql = ''): array
     {
         $allowedSort = ['pv.numero_pv', 'pv.data', 'pv.local', 'worst_status', 'itens_count', 'valor_total'];
         $sortBy = in_array($sortBy, $allowedSort) ? $sortBy : 'pv.id';
@@ -82,18 +69,20 @@ class PvRepository extends BaseRepository
 
         [$where, $filterTypes, $filterParams] = $this->buildFilterClause($search, $status, $cycle);
 
-        $statusPriority = "CASE pv_item.status
-            WHEN 'SCM negado' THEN 1
-            WHEN 'Aguardando envio' THEN 2
-            WHEN 'Aprovado serv.' THEN 3
-            WHEN 'E-mail de lib. aquisição/serviço' THEN 4
-            WHEN 'Aprovado aquisição/serviço' THEN 5
-            WHEN 'E-mail de aprov. serv. realizado' THEN 6
-            WHEN 'SCM enviado' THEN 7
-            WHEN 'SCM aprovado' THEN 8
-            WHEN 'Cancelado' THEN 9
-            ELSE 99
-        END";
+        if (empty($statusPrioritySql)) {
+            $statusPrioritySql = "CASE pv_item.status
+                WHEN 'SCM negado' THEN 1
+                WHEN 'Aguardando envio' THEN 2
+                WHEN 'Aprovado serv.' THEN 3
+                WHEN 'E-mail de lib. aquisição/serviço' THEN 4
+                WHEN 'Aprovado aquisição/serviço' THEN 5
+                WHEN 'E-mail de aprov. serv. realizado' THEN 6
+                WHEN 'SCM enviado' THEN 7
+                WHEN 'SCM aprovado' THEN 8
+                WHEN 'Cancelado' THEN 9
+                ELSE 99
+            END";
+        }
 
         $sql = "
             WITH os_agg AS (
@@ -105,7 +94,7 @@ class PvRepository extends BaseRepository
             status_agg AS (
                 SELECT pv_id,
                     SUBSTRING_INDEX(
-                        GROUP_CONCAT(status ORDER BY {$statusPriority}),
+                        GROUP_CONCAT(status ORDER BY {$statusPrioritySql}),
                         ',', 1
                     ) AS worst_status
                 FROM pv_item
@@ -348,9 +337,9 @@ class PvRepository extends BaseRepository
         return $row['max_num'] ?? null;
     }
 
-    public function lookupLpuItem(string $table, int $itemNumber): ?array
+    public function lookupLpuItem(string $table, int $itemNumber, array $allowedTables = []): ?array
     {
-        if (!in_array($table, self::LPU_TABLES, true)) {
+        if (!empty($allowedTables) && !in_array($table, $allowedTables, true)) {
             return null;
         }
 
@@ -412,7 +401,7 @@ class PvRepository extends BaseRepository
 
         $stmt = $this->safePrepare($sql);
         $filtroData = $data['filtro_data'] ?? null;
-        $status = $data['status'] ?? 'Aguardando envio';
+        $status = $data['status'];
         $orcamento = $data['orcamento'] ?? null;
         $stmt->bind_param(
             'isssidddddssssss',
@@ -512,12 +501,16 @@ class PvRepository extends BaseRepository
         return $stmt->bind_param('sis', $newStatus, $pvId, $worstStatus) && $stmt->execute();
     }
 
-    public function getWorstStatus(int $pvId): ?string
+    public function getWorstStatus(int $pvId, string $fieldOrder = ''): ?string
     {
+        if (empty($fieldOrder)) {
+            $fieldOrder = "'SCM negado', 'Aguardando envio', 'Aprovado serv.', 'E-mail de lib. aquisição/serviço', 'Aprovado aquisição/serviço', 'E-mail de aprov. serv. realizado', 'SCM enviado', 'SCM aprovado', 'Cancelado'";
+        }
+
         $sql = "
             SELECT status FROM pv_item
             WHERE pv_id = ?
-            ORDER BY FIELD(status, 'SCM negado', 'Aguardando envio', 'Aprovado serv.', 'E-mail de lib. aquisição/serviço', 'Aprovado aquisição/serviço', 'E-mail de aprov. serv. realizado', 'SCM enviado', 'SCM aprovado', 'Cancelado')
+            ORDER BY FIELD(status, {$fieldOrder})
             LIMIT 1
         ";
 
@@ -538,9 +531,9 @@ class PvRepository extends BaseRepository
         return $stmt->execute();
     }
 
-    public function searchLpuItems(string $table, string $query, int $limit = 20): array
+    public function searchLpuItems(string $table, string $query, int $limit = 20, array $allowedTables = []): array
     {
-        if (!in_array($table, self::LPU_TABLES, true)) {
+        if (!empty($allowedTables) && !in_array($table, $allowedTables, true)) {
             return [];
         }
 
