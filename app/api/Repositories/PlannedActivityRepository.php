@@ -167,21 +167,25 @@ class PlannedActivityRepository extends BaseRepository
     public function createFromPlanning(array $data, string $auditLog): int
     {
         $tipo = $data['tipo'] ?? 'preventiva';
+        $status = $data['status'] ?? 'Planejado';
+        $origin = $data['origin'] ?? 'planning';
         $sql = "
             INSERT INTO registros (
                 equipamento_id, os, data, equipe, status, data_planejada, material, obs, origin, tipo
-            ) VALUES (?, ?, CURDATE(), ?, 'Planejado', ?, ?, ?, 'planning', ?)
+            ) VALUES (?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?)
         ";
 
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param(
-            'issssss',
+            'issssssss',
             $data['equipamento_id'],
             $data['os'],
             $data['equipe'],
+            $status,
             $data['data_planejada'],
             $data['material'],
             $auditLog,
+            $origin,
             $tipo
         );
         $stmt->execute();
@@ -189,18 +193,19 @@ class PlannedActivityRepository extends BaseRepository
         return (int) $this->conn->insert_id;
     }
 
-    public function updateToPlanned(int $id, string $dataPlanejada, string $equipe, string $auditLog, string $tipo = 'preventiva'): bool
+    public function updateToPlanned(int $id, string $dataPlanejada, string $equipe, string $auditLog, string $tipo = 'preventiva', string $status = 'Planejado'): bool
     {
         $sql = "
             UPDATE registros
-            SET status = 'Planejado', data_planejada = ?, equipe = ?, obs = ?, tipo = ?,
+            SET status = ?, data_planejada = ?, equipe = ?, obs = ?, tipo = ?,
                 notificacao_enviada = 0
             WHERE id = ?
         ";
 
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param(
-            'ssssi',
+            'sssssi',
+            $status,
             $dataPlanejada,
             $equipe,
             $auditLog,
@@ -210,19 +215,31 @@ class PlannedActivityRepository extends BaseRepository
         return $stmt->execute();
     }
 
-    public function delete(int $id): bool
+    public function delete(int $id, string $origin = '', ?string $plannedDateCondition = ''): bool
     {
-        $sql = "DELETE FROM registros WHERE id = ? AND data_planejada IS NOT NULL AND origin = 'planning'";
+        $sql = "DELETE FROM registros WHERE id = ?";
+        $params = [$id];
+        $types = 'i';
+
+        if ($origin !== '') {
+            $sql .= " AND origin = ?";
+            $params[] = $origin;
+            $types .= 's';
+        }
+        if ($plannedDateCondition !== '') {
+            $sql .= " AND data_planejada IS NOT NULL";
+        }
+
         $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('i', $id);
+        $stmt->bind_param($types, ...$params);
         return $stmt->execute();
     }
 
-    public function unplan(int $id): bool
+    public function unplan(int $id, string $unplanStatus = 'Pendente'): bool
     {
-        $sql = "UPDATE registros SET status = 'Pendente', data_planejada = NULL WHERE id = ? AND data_planejada IS NOT NULL";
+        $sql = "UPDATE registros SET status = ?, data_planejada = NULL WHERE id = ? AND data_planejada IS NOT NULL";
         $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('i', $id);
+        $stmt->bind_param('si', $unplanStatus, $id);
         return $stmt->execute();
     }
 

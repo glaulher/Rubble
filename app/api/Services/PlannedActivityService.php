@@ -8,6 +8,11 @@ class PlannedActivityService
 {
     private PlannedActivityRepository $repository;
 
+    private const DEFAULT_STATUS = 'Planejado';
+    private const UNPLAN_STATUS = 'Pendente';
+    private const DEFAULT_ORIGIN = 'planning';
+    private const DEFAULT_TIPO = 'preventiva';
+
     public function __construct(?PlannedActivityRepository $repository = null)
     {
         $this->repository = $repository ?? new PlannedActivityRepository();
@@ -61,7 +66,7 @@ class PlannedActivityService
             throw new \RuntimeException('Observação deve ter no máximo 1000 caracteres.');
         }
 
-        $tipo = trim($data['tipo'] ?? 'preventiva');
+        $tipo = trim($data['tipo'] ?? self::DEFAULT_TIPO);
         if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
             throw new \RuntimeException('Tipo inválido. Use preventiva ou corretiva.');
         }
@@ -82,20 +87,25 @@ class PlannedActivityService
                 $dataPlanejada,
                 $equipe,
                 $newObs,
-                $tipo
+                $tipo,
+                self::DEFAULT_STATUS
             );
 
             return ['action' => 'updated', 'id' => $existing->id];
         }
 
-        $data['os'] = $os;
-        $data['equipamento_id'] = $equipamentoId;
-        $data['data_planejada'] = $dataPlanejada;
-        $data['equipe'] = $equipe;
-        $data['material'] = $material;
-        $data['tipo'] = $tipo;
+        $insertData = [
+            'os' => $os,
+            'equipamento_id' => $equipamentoId,
+            'data_planejada' => $dataPlanejada,
+            'equipe' => $equipe,
+            'material' => $material,
+            'tipo' => $tipo,
+            'status' => self::DEFAULT_STATUS,
+            'origin' => self::DEFAULT_ORIGIN,
+        ];
 
-        $id = $this->repository->createFromPlanning($data, $auditEntry);
+        $id = $this->repository->createFromPlanning($insertData, $auditEntry);
 
         return ['action' => 'created', 'id' => $id];
     }
@@ -135,12 +145,12 @@ class PlannedActivityService
             throw new \RuntimeException('Registro não possui data planejada.');
         }
 
-        if ($existing->origin === 'planning') {
-            $this->repository->delete($id);
+        if ($existing->origin === self::DEFAULT_ORIGIN) {
+            $this->repository->delete($id, self::DEFAULT_ORIGIN);
             return ['action' => 'deleted'];
         }
 
-        $this->repository->unplan($id);
+        $this->repository->unplan($id, self::UNPLAN_STATUS);
         return ['action' => 'unplanned'];
     }
 }
