@@ -9,7 +9,7 @@ class PreventivaService
     private PreventivaRepository $repository;
 
     private const ALLOWED_STATUS_TRANSITIONS = [
-        'Planejado' => ['Em Andamento', 'Cancelado'],
+        'Planejado' => ['Em Andamento', 'Cancelado', 'Planejado'],
         'Em Andamento' => ['Em Andamento', 'Concluído', 'Cancelado', 'Planejado'],
         'Cancelado' => ['Planejado'],
         'Concluído' => ['Em Andamento'],
