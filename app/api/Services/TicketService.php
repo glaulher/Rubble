@@ -16,6 +16,12 @@ class TicketService
         'conclu%' => 5,
     ];
 
+    private const ALLOWED_STATUS_KEYS = [
+        'projeto clean up', 'planejado', 'pendente', 'em andamento', 'conclu%',
+    ];
+
+    private const DEFAULT_TIPO = 'corretiva';
+
     private TicketRepository $ticketRepository;
     private EquipmentRepository $equipmentRepository;
 
@@ -29,13 +35,15 @@ class TicketService
 
     public function listByItem(int $id): array
     {
-        $tickets = $this->ticketRepository->listByItem($id, self::STATUS_PRIORITY);
+        $statusOrderSql = $this->buildStatusOrderSql(self::STATUS_PRIORITY);
+        $tickets = $this->ticketRepository->listByItem($id, $statusOrderSql);
         return array_map(fn(Ticket $r) => $r->toArray(), $tickets);
     }
 
     public function listByItems(array $ids): array
     {
-        $grouped = $this->ticketRepository->listByItems($ids, self::STATUS_PRIORITY);
+        $statusOrderSql = $this->buildStatusOrderSql(self::STATUS_PRIORITY);
+        $grouped = $this->ticketRepository->listByItems($ids, $statusOrderSql);
         $result = [];
         foreach ($grouped as $eqId => $tickets) {
             $result[(string) $eqId] = array_map(fn(Ticket $t) => $t->toArray(), $tickets);
@@ -51,6 +59,7 @@ class TicketService
         if (isset($data['status']) && $data['status'] === 'Planejado' && empty($data['data_planejada'])) {
             throw new \RuntimeException('Data planejada é obrigatória para o status Planejado');
         }
+        $data['tipo'] = $data['tipo'] ?? self::DEFAULT_TIPO;
         if (!empty($data['os']) && !preg_match('/^[a-zA-Z0-9]+$/', $data['os'])) {
             throw new \RuntimeException('Formato de OS inválido. Use apenas letras e números.');
         }
@@ -307,5 +316,24 @@ class TicketService
             return 'Não';
         }
         return 'Sim';
+    }
+
+    private function buildStatusOrderSql(array $priority): string
+    {
+        $parts = [];
+        foreach ($priority as $status => $weight) {
+            if (!in_array($status, self::ALLOWED_STATUS_KEYS, true)) {
+                continue;
+            }
+            $weight = (int) $weight;
+            $safe = addslashes($status);
+            if (str_contains($status, '%')) {
+                $parts[] = "WHEN LOWER(status) LIKE '{$safe}' THEN {$weight}";
+            } else {
+                $parts[] = "WHEN LOWER(status) = '{$safe}' THEN {$weight}";
+            }
+        }
+        $else = count($priority) + 1;
+        return 'CASE ' . implode(' ', $parts) . " ELSE {$else} END";
     }
 }

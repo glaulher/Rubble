@@ -7,11 +7,11 @@ use App\Api\Entities\Ticket;
 class TicketRepository extends BaseRepository
 {
 
-    public function listByItem(int $itemId, ?array $statusPriority = null): array
+    public function listByItem(int $itemId, string $statusOrderSql = ''): array
     {
         $orderBy = 'id DESC';
-        if ($statusPriority) {
-            $orderBy = $this->buildStatusOrderSql($statusPriority) . ', id DESC';
+        if ($statusOrderSql !== '') {
+            $orderBy = $statusOrderSql . ', id DESC';
         }
 
         $sql = "
@@ -34,7 +34,7 @@ class TicketRepository extends BaseRepository
         return $records;
     }
 
-    public function listByItems(array $ids, ?array $statusPriority = null): array
+    public function listByItems(array $ids, string $statusOrderSql = ''): array
     {
         if (empty($ids)) {
             return [];
@@ -45,8 +45,8 @@ class TicketRepository extends BaseRepository
         $types = str_repeat('i', count($ids));
 
         $orderBy = 'id DESC';
-        if ($statusPriority) {
-            $orderBy = $this->buildStatusOrderSql($statusPriority) . ', id DESC';
+        if ($statusOrderSql !== '') {
+            $orderBy = $statusOrderSql . ', id DESC';
         }
 
         $sql = "
@@ -124,7 +124,7 @@ class TicketRepository extends BaseRepository
 
     public function save(array $data): int
     {
-        $tipo = $data['tipo'] ?? 'corretiva';
+        $tipo = $data['tipo'];
         $sql = "
             INSERT INTO registros (
                 equipamento_id, os, data, equipe, status, data_concluido, data_planejada, material, obs, tipo
@@ -246,32 +246,5 @@ class TicketRepository extends BaseRepository
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $id);
         return $stmt->execute();
-    }
-
-    private const ALLOWED_STATUS_KEYS = [
-        'projeto clean up', 'planejado', 'pendente', 'em andamento', 'conclu%',
-    ];
-
-    private function buildStatusOrderSql(array $priority): string
-    {
-        // Security boundary: ALLOWED_STATUS_KEYS whitelist with strict in_array()
-        // prevents any non-whitelisted value from reaching SQL concatenation.
-        // $priority comes from TicketService::STATUS_PRIORITY (hardcoded constants),
-        // never from user input. real_escape_string() is defense-in-depth.
-        $parts = [];
-        foreach ($priority as $status => $weight) {
-            if (!in_array($status, self::ALLOWED_STATUS_KEYS, true)) {
-                continue;
-            }
-            $weight = (int) $weight;
-            $safe = $this->conn->real_escape_string($status);
-            if (str_contains($status, '%')) {
-                $parts[] = "WHEN LOWER(status) LIKE '{$safe}' THEN {$weight}";
-            } else {
-                $parts[] = "WHEN LOWER(status) = '{$safe}' THEN {$weight}";
-            }
-        }
-        $else = count($priority) + 1;
-        return 'CASE ' . implode(' ', $parts) . " ELSE {$else} END";
     }
 }
