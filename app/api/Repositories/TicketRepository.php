@@ -154,7 +154,7 @@ class TicketRepository extends BaseRepository
 
     public function update(array $data): bool
     {
-        $notifEnv = $data['notificacao_enviada'] ?? 0;
+        $notifEnv = $data['notificacao_enviada'];
         $sql = "
             UPDATE registros
             SET os = ?, data = ?, equipe = ?, status = ?, data_concluido = ?, data_planejada = ?, material = ?, obs = ?, notificacao_enviada = ?

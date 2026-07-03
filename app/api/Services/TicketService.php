@@ -86,6 +86,7 @@ class TicketService
         if (isset($data['status']) && $data['status'] === 'Planejado' && empty($data['data_planejada'])) {
             throw new \RuntimeException('Data planejada é obrigatória para o status Planejado');
         }
+        $data['notificacao_enviada'] = 0;
         if (!empty($data['os']) && !preg_match('/^[a-zA-Z0-9]+$/', $data['os'])) {
             throw new \RuntimeException('Formato de OS inválido. Use apenas letras e números.');
         }
