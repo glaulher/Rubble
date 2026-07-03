@@ -4,10 +4,10 @@ namespace App\Api\Repositories;
 
 class PreventiveCycleRepository extends BaseRepository
 {
-    public function listByCiclo(string $ciclo, int $limit, int $offset, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false, string $valorCaseSql = ''): array
+    public function listByCiclo(string $ciclo, int $limit, int $offset, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false, string $valorCaseSql = '', string $excludedEquipment = '', string $excludedLocation = '', array $scmStatuses = []): array
     {
         $where = 'e.equipamento != ? AND e.local != ?';
-        $whereParams = ['N/A', 'Fornecimento'];
+        $whereParams = [$excludedEquipment, $excludedLocation];
         $whereTypes = 'ss';
 
         if ($search !== '') {
@@ -34,11 +34,11 @@ class PreventiveCycleRepository extends BaseRepository
         }
 
         $scmJoin = '';
-        if ($scmLancados) {
-            $scmJoin = ' INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN (?, ?, ?)';
-            $scmStatuses = ['SCM aprovado', 'SCM verificado', 'SCM enviado'];
+        if ($scmLancados && !empty($scmStatuses)) {
+            $placeholders = implode(',', array_fill(0, count($scmStatuses), '?'));
+            $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN ({$placeholders})";
             $whereParams = array_merge($scmStatuses, $whereParams);
-            $whereTypes = 'sss' . $whereTypes;
+            $whereTypes = str_repeat('s', count($scmStatuses)) . $whereTypes;
         }
 
         if (empty($valorCaseSql)) {
@@ -84,10 +84,10 @@ class PreventiveCycleRepository extends BaseRepository
         return $data;
     }
 
-    public function count(string $ciclo, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): int
+    public function count(string $ciclo, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false, string $excludedEquipment = '', string $excludedLocation = '', array $scmStatuses = []): int
     {
         $where = 'e.equipamento != ? AND e.local != ?';
-        $whereParams = ['N/A', 'Fornecimento'];
+        $whereParams = [$excludedEquipment, $excludedLocation];
         $whereTypes = 'ss';
 
         if ($search !== '') {
@@ -114,11 +114,11 @@ class PreventiveCycleRepository extends BaseRepository
         }
 
         $scmJoin = '';
-        if ($scmLancados) {
-            $scmJoin = ' INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN (?, ?, ?)';
-            $scmStatuses = ['SCM aprovado', 'SCM verificado', 'SCM enviado'];
+        if ($scmLancados && !empty($scmStatuses)) {
+            $placeholders = implode(',', array_fill(0, count($scmStatuses), '?'));
+            $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN ({$placeholders})";
             $whereParams = array_merge($scmStatuses, $whereParams);
-            $whereTypes = 'sss' . $whereTypes;
+            $whereTypes = str_repeat('s', count($scmStatuses)) . $whereTypes;
         }
 
         $sql = "SELECT COUNT(*) AS total
@@ -140,7 +140,7 @@ class PreventiveCycleRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
-    public function summary(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false, string $valorCaseSql = ''): array
+    public function summary(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false, string $valorCaseSql = '', string $excludedEquipment = '', string $excludedLocation = '', array $scmStatuses = []): array
     {
         if (empty($valorCaseSql)) {
             $valorCaseSql = "CASE
@@ -160,10 +160,11 @@ class PreventiveCycleRepository extends BaseRepository
         $params = [$ciclo];
         $types = 's';
         $scmJoin = '';
-        if ($scmLancados) {
-            $scmJoin = ' INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN (?, ?, ?)';
-            array_push($params, 'SCM aprovado', 'SCM verificado', 'SCM enviado');
-            $types .= 'sss';
+        if ($scmLancados && !empty($scmStatuses)) {
+            $placeholders = implode(',', array_fill(0, count($scmStatuses), '?'));
+            $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN ({$placeholders})";
+            array_push($params, ...$scmStatuses);
+            $types .= str_repeat('s', count($scmStatuses));
         }
         $sql = "SELECT
                     COUNT(pci.id) AS checked_count,
@@ -173,9 +174,12 @@ class PreventiveCycleRepository extends BaseRepository
                 INNER JOIN preventive_cycle_items pci
                     ON pci.equipamento_id = e.id AND pci.ciclo = ?
                 {$scmJoin}
-                WHERE e.equipamento != 'N/A' AND e.local != 'Fornecimento'
+                WHERE e.equipamento != ? AND e.local != ?
                 {$obsFilter}
                 {$scmFilter}";
+        $params[] = $excludedEquipment;
+        $params[] = $excludedLocation;
+        $types .= 'ss';
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$params);
         $stmt->execute();
@@ -189,10 +193,10 @@ class PreventiveCycleRepository extends BaseRepository
         ];
     }
 
-    public function listIdsByCiclo(string $ciclo, string $search = '', bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
+    public function listIdsByCiclo(string $ciclo, string $search = '', bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false, string $excludedEquipment = '', string $excludedLocation = '', array $scmStatuses = []): array
     {
         $where = 'e.equipamento != ? AND e.local != ?';
-        $whereParams = ['N/A', 'Fornecimento'];
+        $whereParams = [$excludedEquipment, $excludedLocation];
         $whereTypes = 'ss';
 
         if ($search !== '') {
@@ -224,16 +228,17 @@ class PreventiveCycleRepository extends BaseRepository
             $whereTypes .= 'ss';
         }
 
-        if ($scmLancados) {
-            $where .= ' AND EXISTS (
+        if ($scmLancados && !empty($scmStatuses)) {
+            $placeholders = implode(',', array_fill(0, count($scmStatuses), '?'));
+            $where .= " AND EXISTS (
                 SELECT 1 FROM preventive_cycle_items pci
                 INNER JOIN scm s ON s.scm = pci.scm_number
                 WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
-                AND s.status IN (?, ?, ?)
-            )';
+                AND s.status IN ({$placeholders})
+            )";
             $whereParams[] = $ciclo;
-            $whereParams = array_merge($whereParams, ['SCM aprovado', 'SCM verificado', 'SCM enviado']);
-            $whereTypes .= 'ssss';
+            $whereParams = array_merge($whereParams, $scmStatuses);
+            $whereTypes .= 's' . str_repeat('s', count($scmStatuses));
         }
 
         $sql = "SELECT e.id FROM equipamentos e WHERE {$where} ORDER BY e.local, e.equipamento";
@@ -339,19 +344,21 @@ class PreventiveCycleRepository extends BaseRepository
         return $row ?: null;
     }
 
-    public function scmStatusCount(string $ciclo): array
+    public function scmStatusCount(string $ciclo, string $excludedEquipment = '', string $excludedLocation = '', array $scmStatusOrder = []): array
     {
+        $fieldOrder = !empty($scmStatusOrder) ? implode(', ', array_map(fn($s) => "'{$s}'", $scmStatusOrder)) : "'SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado'";
+
         $sql = "SELECT s.status, COUNT(DISTINCT e.local) AS site_count
                 FROM preventive_cycle_items pci
                 INNER JOIN equipamentos e ON e.id = pci.equipamento_id
                 INNER JOIN scm s ON s.scm = pci.scm_number
                 WHERE pci.ciclo = ?
                   AND pci.scm_number IS NOT NULL AND pci.scm_number != ''
-                  AND e.equipamento != 'N/A' AND e.local != 'Fornecimento'
+                  AND e.equipamento != ? AND e.local != ?
                 GROUP BY s.status
-                ORDER BY FIELD(s.status, 'SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado')";
+                ORDER BY FIELD(s.status, {$fieldOrder})";
         $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('s', $ciclo);
+        $stmt->bind_param('sss', $ciclo, $excludedEquipment, $excludedLocation);
         $stmt->execute();
         $result = $stmt->get_result();
         $counts = [];

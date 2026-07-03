@@ -9,6 +9,13 @@ class PreventiveCycleService
     private PreventiveCycleRepository $repository;
     private EquipmentPriceService $priceService;
 
+    private const EXCLUDED_EQUIPMENT = 'N/A';
+    private const EXCLUDED_LOCATION = 'Fornecimento';
+
+    public const SCM_LANCADOS_STATUSES = ['SCM aprovado', 'SCM verificado', 'SCM enviado'];
+
+    private const SCM_STATUS_ORDER = ['SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado'];
+
     public function __construct(?PreventiveCycleRepository $repository = null, ?EquipmentPriceService $priceService = null)
     {
         $this->repository = $repository ?? new PreventiveCycleRepository();
@@ -18,8 +25,8 @@ class PreventiveCycleService
     public function listAll(string $ciclo, int $limit = 20, int $offset = 0, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
     {
         $valorCaseSql = $this->priceService->getValorCaseSql();
-        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados, $valorCaseSql);
-        $total = $this->repository->count($ciclo, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados);
+        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados, $valorCaseSql, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, self::SCM_LANCADOS_STATUSES);
+        $total = $this->repository->count($ciclo, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, self::SCM_LANCADOS_STATUSES);
         return ['items' => $items, 'total' => $total];
     }
 
@@ -34,7 +41,7 @@ class PreventiveCycleService
     public function summary(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
     {
         $valorCaseSql = $this->priceService->getValorCaseSql();
-        return $this->repository->summary($ciclo, $hasObservacao, $noScm, $scmLancados, $valorCaseSql);
+        return $this->repository->summary($ciclo, $hasObservacao, $noScm, $scmLancados, $valorCaseSql, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, self::SCM_LANCADOS_STATUSES);
     }
 
     public function listIds(string $ciclo, string $search = '', bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
@@ -42,7 +49,7 @@ class PreventiveCycleService
         if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ciclo)) {
             throw new \InvalidArgumentException('Formato de ciclo inválido (use YYYY-MM)');
         }
-        return $this->repository->listIdsByCiclo($ciclo, $search, $hasObservacao, $noScm, $scmLancados);
+        return $this->repository->listIdsByCiclo($ciclo, $search, $hasObservacao, $noScm, $scmLancados, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, self::SCM_LANCADOS_STATUSES);
     }
 
     public function validateScm(string $scmNumber): array
@@ -62,6 +69,6 @@ class PreventiveCycleService
 
     public function scmStatusCount(string $ciclo): array
     {
-        return $this->repository->scmStatusCount($ciclo);
+        return $this->repository->scmStatusCount($ciclo, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, self::SCM_STATUS_ORDER);
     }
 }
