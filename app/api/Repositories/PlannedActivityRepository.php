@@ -193,7 +193,8 @@ class PlannedActivityRepository extends BaseRepository
     {
         $sql = "
             UPDATE registros
-            SET status = 'Planejado', data_planejada = ?, equipe = ?, obs = ?, tipo = ?
+            SET status = 'Planejado', data_planejada = ?, equipe = ?, obs = ?, tipo = ?,
+                notificacao_enviada = 0
             WHERE id = ?
         ";
 

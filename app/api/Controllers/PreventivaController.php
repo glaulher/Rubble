@@ -46,11 +46,17 @@ class PreventivaController
             Validator::integer($data, 'id');
             Validator::max($data, 'obs', 1000);
 
+            $dataPlanejada = isset($data['data_planejada']) ? trim($data['data_planejada']) : null;
+            if ($dataPlanejada === '') {
+                $dataPlanejada = null;
+            }
+
             $result = $this->service->updateStatus(
                 (int) $data['id'],
                 trim($data['status']),
                 trim($data['obs'] ?? ''),
-                (array) $this->currentUser
+                (array) $this->currentUser,
+                $dataPlanejada
             );
 
             Response::success('Status atualizado com sucesso', $result);

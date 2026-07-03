@@ -35,11 +35,17 @@ class PreventivaRepository extends BaseRepository
         return $result->fetch_assoc() ?: null;
     }
 
-    public function updateStatus(int $id, string $status, string $obs): bool
+    public function updateStatus(int $id, string $status, string $obs, ?string $dataPlanejada = null): bool
     {
-        $sql = "UPDATE atividades_preventivas SET status = ?, obs = ? WHERE id = ?";
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('ssi', $status, $obs, $id);
+        if ($dataPlanejada !== null) {
+            $sql = "UPDATE atividades_preventivas SET status = ?, obs = ?, data_planejada = ? WHERE id = ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('sssi', $status, $obs, $dataPlanejada, $id);
+        } else {
+            $sql = "UPDATE atividades_preventivas SET status = ?, obs = ? WHERE id = ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('ssi', $status, $obs, $id);
+        }
         return $stmt->execute();
     }
 

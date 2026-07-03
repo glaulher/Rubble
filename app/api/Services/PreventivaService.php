@@ -68,7 +68,7 @@ class PreventivaService
         return ['action' => 'created', 'id' => $id];
     }
 
-    public function updateStatus(int $id, string $novoStatus, string $obs, array $currentUser): array
+    public function updateStatus(int $id, string $novoStatus, string $obs, array $currentUser, ?string $dataPlanejada = null): array
     {
         $record = $this->repository->getById($id);
 
@@ -97,7 +97,11 @@ class PreventivaService
         }
         $newObs = $existingObs !== '' ? $existingObs . "\n\n" . $newEntry : $newEntry;
 
-        $this->repository->updateStatus($id, $novoStatus, $newObs);
+        if ($dataPlanejada !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dataPlanejada)) {
+            throw new \RuntimeException('Formato de data inválido.');
+        }
+
+        $this->repository->updateStatus($id, $novoStatus, $newObs, $dataPlanejada);
 
         return ['action' => 'status_updated', 'id' => $id, 'status' => $novoStatus];
     }

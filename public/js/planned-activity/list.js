@@ -92,7 +92,7 @@ function buildPlannedCardHtml(item) {
 
   if (tipo === 'preventiva') {
     var machineCount = item.machine_count || 0;
-    extraBtns = iconButtonHtml('edit', 'Alterar status', { 'class': 'planned-status-btn', 'data-id': item.id, 'data-status': item.status || 'Planejado' });
+    extraBtns = iconButtonHtml('edit', 'Alterar status', { 'class': 'planned-status-btn', 'data-id': item.id, 'data-status': item.status || 'Planejado', 'data-date': item.data_planejada || '' });
     if (canEdit) {
       extraBtns += iconButtonHtml('delete', 'Excluir atividade', { 'class': 'planned-delete-btn', 'data-id': item.id });
     }
@@ -814,6 +814,15 @@ function initPlannedActivity() {
     statusBackdrop.addEventListener('click', closeStatusPreventiva);
   }
 
+  var statusSelect = document.getElementById('statusSelect');
+  if (statusSelect) {
+    statusSelect.addEventListener('change', function () {
+      var dateGroup = document.getElementById('statusDataGroup');
+      if (!dateGroup) return;
+      dateGroup.classList.toggle('hidden', this.value !== 'Planejado');
+    });
+  }
+
   var content = document.getElementById('plannedContent');
   if (content) {
     content.addEventListener('click', function (e) {
@@ -836,7 +845,8 @@ function initPlannedActivity() {
       if (statusBtn) {
         var statusId = parseInt(statusBtn.getAttribute('data-id'), 10);
         var currentStatus = statusBtn.getAttribute('data-status');
-        if (statusId) openStatusPreventiva(statusId, currentStatus);
+        var currentDate = statusBtn.getAttribute('data-date');
+        if (statusId) openStatusPreventiva(statusId, currentStatus, currentDate);
         return;
       }
     });
@@ -1002,7 +1012,7 @@ var STATUS_TRANSITIONS = {
   'Conclu\u00eddo': ['Em Andamento'],
 };
 
-function openStatusPreventiva(id, currentStatus) {
+function openStatusPreventiva(id, currentStatus, currentDate) {
   var modal = document.getElementById('modalStatusPreventiva');
   if (!modal) return;
   modal.classList.remove('hidden');
@@ -1026,11 +1036,22 @@ function openStatusPreventiva(id, currentStatus) {
     opt.textContent = s;
     select.appendChild(opt);
   });
+
+  var dateInput = document.getElementById('statusDataPlanejada');
+  if (dateInput && currentDate) {
+    dateInput.value = currentDate;
+  }
+  var dateGroup = document.getElementById('statusDataGroup');
+  if (dateGroup) dateGroup.classList.add('hidden');
 }
 
 function closeStatusPreventiva() {
   var modal = document.getElementById('modalStatusPreventiva');
   if (modal) modal.classList.add('hidden');
+  var dateGroup = document.getElementById('statusDataGroup');
+  if (dateGroup) dateGroup.classList.add('hidden');
+  var dateInput = document.getElementById('statusDataPlanejada');
+  if (dateInput) dateInput.value = '';
 }
 
 function submitStatusPreventiva() {
@@ -1049,9 +1070,15 @@ function submitStatusPreventiva() {
     btn.textContent = 'Salvando...';
   }
 
+  var data_planejada = null;
+  if (status === 'Planejado') {
+    var dateInput = document.getElementById('statusDataPlanejada');
+    data_planejada = dateInput ? dateInput.value : null;
+  }
+
   apiFetch('/app/api/index.php?route=preventiva&action=update-status', {
     method: 'POST',
-    body: JSON.stringify({ id: parseInt(id, 10), status: status, obs: obs }),
+    body: JSON.stringify({ id: parseInt(id, 10), status: status, obs: obs, data_planejada: data_planejada }),
   })
     .then(function (res) { return res.json(); })
     .then(function (result) {
