@@ -154,9 +154,11 @@ class TicketRepository extends BaseRepository
 
     public function update(array $data): bool
     {
+        $resetNotification = ($data['status'] ?? '') === 'Planejado';
         $sql = "
             UPDATE registros
             SET os = ?, data = ?, equipe = ?, status = ?, data_concluido = ?, data_planejada = ?, material = ?, obs = ?
+            " . ($resetNotification ? ", notificacao_enviada = 0" : "") . "
             WHERE id = ?
         ";
 
