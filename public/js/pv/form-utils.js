@@ -120,7 +120,12 @@ async function loadOsList() {
     );
     const result = await response.json();
     const items = result.data || [];
-    pvOsOptions = items.filter((r) => r.os).map((r) => r.os);
+    pvOsOptions = items.filter((r) => r.os).map((r) => ({
+      os: r.os,
+      display: r.equipamento_nome ? `${r.os} — ${r.equipamento_nome}` : r.os,
+      equipamento: r.equipamento_nome,
+      local: r.equipamento_local
+    }));
     return pvOsOptions;
   } catch (err) {
     console.error('Erro ao carregar lista de OS:', err);

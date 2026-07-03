@@ -377,7 +377,7 @@ class PvService
         }
 
         foreach ($osList as $osNumber) {
-            $found = $this->repository->lookupTicketByOs($osNumber);
+            $found = $this->repository->lookupTicketByOsAndEquip($osNumber, $equipamentoId);
 
             if ($found) {
                 $ticketIds[] = (int) $found['id'];

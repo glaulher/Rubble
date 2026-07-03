@@ -13,7 +13,7 @@ class PvController
 {
     private const ALLOWED_SORT = ['pv.id', 'pv.numero_pv', 'pv.data', 'pv.local', 'worst_status', 'itens_count', 'valor_total'];
     private const CYCLE_REGEX = '/^\d{4}-(0[1-9]|1[0-2])$/';
-    private const OS_REGEX = '/^\d{4,7}$/';
+    private const OS_REGEX = '/^[a-zA-Z0-9]{1,20}$/';
 
     private PvService $service;
 
@@ -173,7 +173,7 @@ class PvController
             $osList = array_map('trim', explode(',', $data['os']));
             foreach ($osList as $os) {
                 if ($os !== '' && !preg_match(self::OS_REGEX, $os)) {
-                    Response::error("A OS '$os' tem formato inválido. Use apenas números (4 a 7 dígitos)", 400);
+                    Response::error("A OS '$os' tem formato inválido. Use apenas letras e números (1 a 20 caracteres)", 400);
                     return;
                 }
             }
@@ -233,7 +233,7 @@ class PvController
             $osList = array_map('trim', explode(',', $data['os']));
             foreach ($osList as $os) {
                 if ($os !== '' && !preg_match(self::OS_REGEX, $os)) {
-                    Response::error("A OS '$os' tem formato inválido. Use apenas números (4 a 7 dígitos)", 400);
+                    Response::error("A OS '$os' tem formato inválido. Use apenas letras e números (1 a 20 caracteres)", 400);
                     return;
                 }
             }

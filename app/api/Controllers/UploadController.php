@@ -68,7 +68,7 @@ class UploadController
                 return;
             }
 
-            $osNumber = preg_replace('/[^0-9]/', '', $_POST['os_number'] ?? '');
+            $osNumber = preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['os_number'] ?? '');
             if (empty($osNumber)) {
                 $osNumber = preg_replace('/[^a-zA-Z0-9_-]/', '', pathinfo($file['name'], PATHINFO_FILENAME));
             }

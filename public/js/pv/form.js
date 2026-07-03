@@ -175,8 +175,8 @@ async function savePvForm() {
 
   const osList = data.os.split(',').map(s => s.trim()).filter(s => s);
   for (const os of osList) {
-    if (!/^\d{4,7}$/.test(os)) {
-      showToast(`OS "${os}" tem formato inválido. Use apenas números (4 a 7 dígitos)`, 'error');
+    if (!/^[a-zA-Z0-9]+$/.test(os)) {
+      showToast(`OS "${os}" tem formato inválido. Use apenas letras e números`, 'error');
       return;
     }
   }

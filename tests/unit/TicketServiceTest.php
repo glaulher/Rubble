@@ -78,6 +78,54 @@ class TicketServiceTest extends TestCase
         $this->assertSame(42, $result);
     }
 
+    public function testSaveThrowsWhenOsExceedsMaxLength(): void
+    {
+        $repo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+        $service = new TicketService($repo, $equipRepo);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('OS deve ter no máximo 20 caracteres');
+
+        $service->save(['os' => 'ABCDEFGHIJKLMNOPQRSTU', 'equipamento_id' => '5']);
+    }
+
+    public function testSaveAcceptsAlphaNumericOs(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('save')->willReturn(42);
+
+        $equipRepo = $this->createMockEquipmentRepo();
+        $service = new TicketService($repo, $equipRepo);
+        $result = $service->save(['os' => 'OS001A', 'equipamento_id' => '5']);
+
+        $this->assertSame(42, $result);
+    }
+
+    public function testSaveThrowsWhenOsHasInvalidChars(): void
+    {
+        $repo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+        $service = new TicketService($repo, $equipRepo);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Formato de OS inválido');
+
+        $service->save(['os' => 'OS@123!', 'equipamento_id' => '5']);
+    }
+
+    public function testSaveAcceptsOsUpTo20Chars(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('save')->willReturn(42);
+
+        $equipRepo = $this->createMockEquipmentRepo();
+        $service = new TicketService($repo, $equipRepo);
+        $result = $service->save(['os' => 'ABCDEFGH1234567890', 'equipamento_id' => '5']);
+
+        $this->assertSame(42, $result);
+    }
+
     // --- getById ---
 
     public function testGetByIdReturnsArray(): void
@@ -124,6 +172,30 @@ class TicketServiceTest extends TestCase
         $equipRepo = $this->createMockEquipmentRepo();
         $service = new TicketService($repo, $equipRepo);
         $this->assertFalse($service->update(['id' => '999']));
+    }
+
+    public function testUpdateThrowsWhenOsExceedsMaxLength(): void
+    {
+        $repo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+        $service = new TicketService($repo, $equipRepo);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('OS deve ter no máximo 20 caracteres');
+
+        $service->update(['id' => '1', 'os' => 'ABCDEFGHIJKLMNOPQRSTU']);
+    }
+
+    public function testUpdateThrowsWhenOsHasInvalidChars(): void
+    {
+        $repo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+        $service = new TicketService($repo, $equipRepo);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Formato de OS inválido');
+
+        $service->update(['id' => '1', 'os' => 'OS$%']);
     }
 
     // --- delete ---
@@ -181,7 +253,7 @@ class TicketServiceTest extends TestCase
         $ticketRepo = $this->createMockRepo();
         $equipRepo = $this->createMockEquipmentRepo();
 
-        $ticketRepo->method('findByOs')->with('TASK-001')->willReturn(null);
+        $ticketRepo->method('findByOsAndEquipment')->with('TASK-001', 10)->willReturn(null);
         $ticketRepo->method('save')->willReturn(42);
 
         $equipRepo->method('listByLocal')->with('RSD')->willReturn([
@@ -224,7 +296,7 @@ class TicketServiceTest extends TestCase
         $ticketRepo = $this->createMockRepo();
         $equipRepo = $this->createMockEquipmentRepo();
 
-        $ticketRepo->method('findByOs')->with('TASK-001')->willReturn(
+        $ticketRepo->method('findByOsAndEquipment')->with('TASK-001', 10)->willReturn(
             new Ticket(['id' => 5, 'equipamento_id' => 10, 'os' => 'TASK-001'])
         );
         $ticketRepo->method('update')->willReturn(true);
@@ -268,7 +340,7 @@ class TicketServiceTest extends TestCase
         $ticketRepo = $this->createMockRepo();
         $equipRepo = $this->createMockEquipmentRepo();
 
-        $ticketRepo->method('findByOs')->willReturn(null);
+        $ticketRepo->method('findByOsAndEquipment')->willReturn(null);
         $ticketRepo->method('save')->willReturn(1);
 
         $equipRepo->method('listByLocal')->with('RSD')->willReturn([

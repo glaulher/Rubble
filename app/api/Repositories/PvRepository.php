@@ -647,17 +647,17 @@ class PvRepository extends BaseRepository
         return $grouped;
     }
 
-    public function lookupTicketByOs(string $osNumber): ?array
+    public function lookupTicketByOsAndEquip(string $osNumber, ?int $equipamentoId = null): ?array
     {
         $sql = "
             SELECT id, os
             FROM registros
-            WHERE os = ?
+            WHERE os = ? AND (equipamento_id = ? OR ? IS NULL)
             LIMIT 1
         ";
 
         $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('s', $osNumber);
+        $stmt->bind_param('sii', $osNumber, $equipamentoId, $equipamentoId);
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
@@ -668,10 +668,11 @@ class PvRepository extends BaseRepository
     public function searchTicketsByOs(string $query, int $limit = 20): array
     {
         $sql = "
-            SELECT id, os, data, equipamento_id
-            FROM registros
-            WHERE os LIKE ?
-            ORDER BY id DESC
+            SELECT r.id, r.os, r.data, r.equipamento_id, COALESCE(e.equipamento, '') AS equipamento_nome, COALESCE(e.local, '') AS equipamento_local
+            FROM registros r
+            LEFT JOIN equipamentos e ON e.id = r.equipamento_id
+            WHERE r.os LIKE ?
+            ORDER BY r.id DESC
             LIMIT ?
         ";
 

@@ -244,6 +244,97 @@ class PvServiceTest extends TestCase
         $this->assertSame(42, $result);
     }
 
+    public function testSaveResolvesOsByEquipamentoId(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('getMaxNumberPv')->willReturn('260010');
+        $repo->method('save')->willReturn(42);
+        $repo->method('saveItem')->willReturn(1);
+        $repo->method('getWorstStatus')->willReturn('Aguardando envio');
+        $repo->method('lookupLpuItem')->willReturn(['descricao' => 'Teste', 'valor' => 50.0]);
+
+        $repo->expects($this->once())
+            ->method('lookupTicketByOsAndEquip')
+            ->with('2233345', 5);
+
+        $ticketService = $this->createMock(\App\Api\Services\TicketService::class);
+        $ticketService->method('save')->willReturn(99);
+
+        $service = $this->createService($repo, $ticketService);
+
+        $data = [
+            'local' => 'Sala A',
+            'equipamento_id' => '5',
+            'os' => '2233345',
+            'itens' => [
+                ['fatura' => 'lpu', 'lpu_origem' => 'lpu_material_clima', 'numero_item' => 100, 'quantidade' => 1, 'valor' => 50],
+            ],
+        ];
+
+        $service->save($data);
+    }
+
+    public function testSaveReusesExistingTicketByOsAndEquip(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('getMaxNumberPv')->willReturn('260010');
+        $repo->method('save')->willReturn(42);
+        $repo->method('saveItem')->willReturn(1);
+        $repo->method('getWorstStatus')->willReturn('Aguardando envio');
+        $repo->method('lookupLpuItem')->willReturn(['descricao' => 'Teste', 'valor' => 50.0]);
+
+        $repo->expects($this->once())
+            ->method('lookupTicketByOsAndEquip')
+            ->with('2233345', 5)
+            ->willReturn(['id' => 99, 'os' => '2233345']);
+
+        $service = $this->createService($repo);
+
+        $data = [
+            'local' => 'Sala A',
+            'equipamento_id' => '5',
+            'os' => '2233345',
+            'itens' => [
+                ['fatura' => 'lpu', 'lpu_origem' => 'lpu_material_clima', 'numero_item' => 100, 'quantidade' => 1, 'valor' => 50],
+            ],
+        ];
+
+        $result = $service->save($data);
+
+        $this->assertSame(42, $result);
+    }
+
+    public function testUpdateResolvesOsByEquipamentoId(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('update')->willReturn(true);
+        $repo->method('deleteItemsByPvId')->willReturn(true);
+        $repo->method('saveItem')->willReturn(1);
+        $repo->method('getWorstStatus')->willReturn('Aguardando envio');
+        $repo->method('lookupLpuItem')->willReturn(['descricao' => 'Teste', 'valor' => 100.0]);
+
+        $repo->expects($this->once())
+            ->method('lookupTicketByOsAndEquip')
+            ->with('2233345', 5);
+
+        $ticketService = $this->createMock(\App\Api\Services\TicketService::class);
+        $ticketService->method('save')->willReturn(99);
+
+        $service = $this->createService($repo, $ticketService);
+
+        $data = [
+            'id' => '1',
+            'local' => 'Sala A',
+            'equipamento_id' => '5',
+            'os' => '2233345',
+            'itens' => [
+                ['fatura' => 'lpu', 'lpu_origem' => 'lpu_material_clima', 'numero_item' => 100, 'quantidade' => 1, 'valor' => 100],
+            ],
+        ];
+
+        $service->update($data);
+    }
+
     public function testSaveThrowsForInvalidLpuItem(): void
     {
         $repo = $this->createMockRepo();

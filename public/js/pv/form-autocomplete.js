@@ -391,6 +391,15 @@ function setupOsAutocomplete() {
     inputSelector: '#os',
     dropdownSelector: '.os-dropdown',
     dataSource: () => pvOsOptions,
+    filterFn: (items, q) => {
+      if (!q) return [...items];
+      const lower = q.toLowerCase();
+      return items.filter(item => item.os.toLowerCase().includes(lower));
+    },
+    formatItem: item => item.display || item.os,
+    onSelect: (item, input) => {
+      input.value = item.os;
+    },
     onBlur: ({ hide }) => { hide(); }
   });
 }

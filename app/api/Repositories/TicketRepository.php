@@ -211,6 +211,18 @@ class TicketRepository extends BaseRepository
         return $row ? new Ticket($row) : null;
     }
 
+    public function findByOsAndEquipment(string $os, int $equipamentoId): ?Ticket
+    {
+        $sql = "SELECT * FROM registros WHERE os = ? AND equipamento_id = ? LIMIT 1";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('si', $os, $equipamentoId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+
+        return $row ? new Ticket($row) : null;
+    }
+
     public function listScheduledToNotify(): array
     {
         $sql = "

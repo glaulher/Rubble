@@ -60,19 +60,15 @@ class TicketService
             throw new \RuntimeException('Data planejada é obrigatória para o status Planejado');
         }
         $data['tipo'] = $data['tipo'] ?? self::DEFAULT_TIPO;
-        if (!empty($data['os']) && !preg_match('/^[a-zA-Z0-9]+$/', $data['os'])) {
-            throw new \RuntimeException('Formato de OS inválido. Use apenas letras e números.');
-        }
-        try {
-            return $this->ticketRepository->save($data);
-        } catch (\mysqli_sql_exception $e) {
-            if ($e->getCode() === 1062) {
-                throw new \RuntimeException(
-                    "OS \"" . ($data['os'] ?? '') . "\" já cadastrada ou já foi utilizada"
-                );
+        if (!empty($data['os'])) {
+            if (!preg_match('/^[a-zA-Z0-9]+$/', $data['os'])) {
+                throw new \RuntimeException('Formato de OS inválido. Use apenas letras e números.');
             }
-            throw $e;
+            if (strlen($data['os']) > 20) {
+                throw new \RuntimeException('OS deve ter no máximo 20 caracteres.');
+            }
         }
+        return $this->ticketRepository->save($data);
     }
 
     public function getById(int $id): ?array
@@ -96,19 +92,15 @@ class TicketService
             throw new \RuntimeException('Data planejada é obrigatória para o status Planejado');
         }
         $data['notificacao_enviada'] = 0;
-        if (!empty($data['os']) && !preg_match('/^[a-zA-Z0-9]+$/', $data['os'])) {
-            throw new \RuntimeException('Formato de OS inválido. Use apenas letras e números.');
-        }
-        try {
-            return $this->ticketRepository->update($data);
-        } catch (\mysqli_sql_exception $e) {
-            if ($e->getCode() === 1062) {
-                throw new \RuntimeException(
-                    "OS \"" . ($data['os'] ?? '') . "\" já cadastrada ou já foi utilizada"
-                );
+        if (!empty($data['os'])) {
+            if (!preg_match('/^[a-zA-Z0-9]+$/', $data['os'])) {
+                throw new \RuntimeException('Formato de OS inválido. Use apenas letras e números.');
             }
-            throw $e;
+            if (strlen($data['os']) > 20) {
+                throw new \RuntimeException('OS deve ter no máximo 20 caracteres.');
+            }
         }
+        return $this->ticketRepository->update($data);
     }
 
     public function delete(int $id): bool
@@ -177,7 +169,7 @@ class TicketService
                 }
 
                 foreach ($matchedEquipments as $equipment) {
-                    $existing = $this->ticketRepository->findByOs($row['tarefa']);
+                    $existing = $this->ticketRepository->findByOsAndEquipment($row['tarefa'], $equipment->id);
 
                     if ($existing && mb_strtolower($existing->status ?? '', 'UTF-8') === 'planejado') {
                         $skipped++;
@@ -202,21 +194,8 @@ class TicketService
                         $this->ticketRepository->update($ticketData);
                         $updated++;
                     } else {
-                        try {
-                            $this->ticketRepository->save($ticketData);
-                            $imported++;
-                        } catch (\mysqli_sql_exception $e) {
-                            if ($e->getCode() === 1062) {
-                                $newExisting = $this->ticketRepository->findByOs($row['tarefa']);
-                                if ($newExisting) {
-                                    $ticketData['id'] = $newExisting->id;
-                                    $this->ticketRepository->update($ticketData);
-                                    $updated++;
-                                }
-                            } else {
-                                throw $e;
-                            }
-                        }
+                        $this->ticketRepository->save($ticketData);
+                        $imported++;
                     }
                 }
             } catch (\Throwable $e) {

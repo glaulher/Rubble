@@ -41,6 +41,9 @@ class PlannedActivityService
         if ($os === '' || !preg_match('/^[a-zA-Z0-9]+$/', $os)) {
             throw new \RuntimeException('Formato de OS inválido. Use apenas letras e números.');
         }
+        if (strlen($os) > 20) {
+            throw new \RuntimeException('OS deve ter no máximo 20 caracteres.');
+        }
 
         if ($equipamentoId <= 0) {
             throw new \RuntimeException('Equipamento obrigatório.');
