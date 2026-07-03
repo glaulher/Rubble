@@ -90,17 +90,22 @@ class EquipmentPriceRepository extends BaseRepository
         return $stmt->affected_rows > 0;
     }
 
-    public function getActiveRules(): array
+    public function getActiveRules(array $priorityOrder = []): array
     {
+        $orderBy = 'id';
+        if (!empty($priorityOrder)) {
+            $cases = [];
+            foreach ($priorityOrder as $name => $rank) {
+                $cases[] = "WHEN '" . $this->conn->real_escape_string($name) . "' THEN " . (int) $rank;
+            }
+            $elseRank = count($priorityOrder) + 1;
+            $orderBy = 'CASE nome ' . implode(' ', $cases) . " ELSE {$elseRank} END";
+        }
+
         $stmt = $this->safePrepare(
             "SELECT nome, equipamento_pattern, locais_especiais, mercado, valor
              FROM equipamento_precos WHERE ativo = 1
-             ORDER BY CASE nome
-                 WHEN 'chiller_especial' THEN 1
-                 WHEN 'chiller' THEN 2
-                 WHEN 'tr' THEN 3
-                 ELSE 4
-             END"
+             ORDER BY {$orderBy}"
         );
         $stmt->execute();
         $result = $stmt->get_result();
@@ -113,18 +118,7 @@ class EquipmentPriceRepository extends BaseRepository
         return $rules;
     }
 
-    public function resolvePrice(string $equipamento, ?string $local, ?float $capacidade, ?array $rules = null, ?string $mercadoEquipamento = null): float
-    {
-        $rules ??= $this->getActiveRules();
-
-        if (empty($rules)) {
-            return 0.0;
-        }
-
-        return $this->matchRule($rules, $equipamento, $local, $mercadoEquipamento, $capacidade ?? 0.0);
-    }
-
-    public function sumValueByFilter(string $search = '', ?string $location = null): float
+    public function sumValueByFilter(string $search = '', ?string $location = null, string $valorCaseSql = ''): float
     {
         $conditions = ["e.equipamento != 'N/A'"];
         $params = [];
@@ -155,14 +149,18 @@ class EquipmentPriceRepository extends BaseRepository
 
         $where = implode(' AND ', $conditions);
 
-        $sql = "SELECT COALESCE(SUM(
-            CASE
+        if (empty($valorCaseSql)) {
+            $valorCaseSql = "CASE
                 WHEN e.equipamento LIKE '%chiller%' AND e.local IN ('MCEBC','RJDQC91','TNGBR','CPSCL') THEN 3850.00
                 WHEN e.equipamento LIKE '%chiller%' AND e.mercado = 'Empresarial' THEN 3642.14
                 WHEN e.equipamento LIKE '%chiller%' AND e.mercado = 'Pessoal' THEN 3642.14
                 WHEN e.mercado = 'Residencial' THEN e.capacidade * 94.00
                 ELSE 0
-            END
+            END";
+        }
+
+        $sql = "SELECT COALESCE(SUM(
+            {$valorCaseSql}
         ), 0) AS total
         FROM equipamentos e
         LEFT JOIN enderecos en ON en.id = e.endereco_id
@@ -234,36 +232,4 @@ class EquipmentPriceRepository extends BaseRepository
         return (int) ($row['cnt'] ?? 0);
     }
 
-    private function matchRule(array $rules, string $equipamento, ?string $local, ?string $mercadoEquipamento, float $capacidade): float
-    {
-        foreach ($rules as $rule) {
-            if (!empty($rule['mercado'])) {
-                if (empty($mercadoEquipamento) || strtolower($mercadoEquipamento) !== strtolower($rule['mercado'])) {
-                    continue;
-                }
-            }
-
-            if (!empty($rule['equipamento_pattern'])) {
-                $pattern = $rule['equipamento_pattern'];
-                $regex = '/^' . str_replace(['%', '_'], ['.*', '.'], preg_quote($pattern, '/')) . '$/i';
-                if (!preg_match($regex, $equipamento)) {
-                    continue;
-                }
-            }
-
-            if (!empty($rule['locais_especiais'])) {
-                $locaisArray = array_map('trim', explode(',', $rule['locais_especiais']));
-                if (!in_array($local, $locaisArray, true)) {
-                    continue;
-                }
-            }
-
-            if ($rule['nome'] === 'tr') {
-                return round($capacidade * (float) $rule['valor'], 2);
-            }
-            return (float) $rule['valor'];
-        }
-
-        return 0.0;
-    }
 }

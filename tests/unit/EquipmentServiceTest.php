@@ -16,7 +16,6 @@ class EquipmentServiceTest extends TestCase
     {
         $priceRepo = $this->createMock(EquipmentPriceRepository::class);
         $priceRepo->method('getActiveRules')->willReturn([]);
-        $priceRepo->method('resolvePrice')->willReturn(0.0);
         $priceRepo->method('sumValueByFilter')->willReturn(0.0);
         return $priceRepo;
     }

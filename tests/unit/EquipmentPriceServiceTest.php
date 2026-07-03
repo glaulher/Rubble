@@ -254,13 +254,8 @@ class EquipmentPriceServiceTest extends TestCase
         ];
 
         $repo = $this->createMockRepo();
-        $repo->method('resolvePrice')->willReturnCallback(
-            fn(string $equipamento, ?string $local, ?float $capacidade, ?array $r, ?string $m) =>
-                $this->callResolvePrice($rules, $equipamento, $local, $capacidade)
-        );
-
         $service = $this->createService($repo);
-        $result = $service->resolvePrice('SELF TR 01', 'RSD', 10.0, $rules);
+        $result = $service->resolvePrice('SELF TR 01', 'RSD', 10.0, $rules, 'Residencial');
 
         $this->assertSame(940.0, $result);
     }
@@ -278,10 +273,8 @@ class EquipmentPriceServiceTest extends TestCase
         ];
 
         $repo = $this->createMockRepo();
-        $repo->method('resolvePrice')->willReturn(3642.14);
-
         $service = $this->createService($repo);
-        $result = $service->resolvePrice('CHILLER 01', 'RJDQC91', null, $rules);
+        $result = $service->resolvePrice('CHILLER 01', 'RJDQC91', null, $rules, 'Empresarial');
 
         $this->assertSame(3642.14, $result);
     }
@@ -289,24 +282,27 @@ class EquipmentPriceServiceTest extends TestCase
     public function testResolvePriceReturnsZeroWhenNoRulesMatch(): void
     {
         $repo = $this->createMockRepo();
-        $repo->method('resolvePrice')->willReturn(0.0);
-
         $service = $this->createService($repo);
         $result = $service->resolvePrice('UNKNOWN', 'RSD', 10.0, []);
 
         $this->assertSame(0.0, $result);
     }
 
-    public function testResolvePriceDelegatesToRepository(): void
+    public function testResolvePriceUsesRulesFromRepositoryWhenNotProvided(): void
     {
         $repo = $this->createMockRepo();
-        $repo->expects($this->once())
-            ->method('resolvePrice')
-            ->with('SELF TR 01', 'RSD', 10.0, null, 'Residencial')
-            ->willReturn(940.0);
+        $repo->method('getActiveRules')->willReturn([
+            [
+                'nome' => 'tr',
+                'equipamento_pattern' => '%TR%',
+                'locais_especiais' => null,
+                'mercado' => null,
+                'valor' => '94.00',
+            ],
+        ]);
 
         $service = $this->createService($repo);
-        $result = $service->resolvePrice('SELF TR 01', 'RSD', 10.0, null, 'Residencial');
+        $result = $service->resolvePrice('SELF TR 01', 'RSD', 10.0);
 
         $this->assertSame(940.0, $result);
     }
@@ -329,21 +325,4 @@ class EquipmentPriceServiceTest extends TestCase
         $this->assertSame('tr', $result[0]['nome']);
     }
 
-    private function callResolvePrice(array $rules, string $equipamento, ?string $local, ?float $capacidade): float
-    {
-        foreach ($rules as $rule) {
-            if (!empty($rule['equipamento_pattern'])) {
-                $pattern = $rule['equipamento_pattern'];
-                $regex = '/^' . str_replace(['%', '_'], ['.*', '.'], preg_quote($pattern, '/')) . '$/i';
-                if (!preg_match($regex, $equipamento)) {
-                    continue;
-                }
-            }
-            if ($rule['nome'] === 'tr') {
-                return round($capacidade * (float) $rule['valor'], 2);
-            }
-            return (float) $rule['valor'];
-        }
-        return 0.0;
-    }
 }

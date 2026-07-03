@@ -10,6 +10,7 @@ class EquipmentService
 {
     private EquipmentRepository $equipmentRepository;
     private TicketRepository $ticketRepository;
+    private EquipmentPriceService $priceService;
     private EquipmentPriceRepository $priceRepository;
 
     public function __construct(
@@ -20,6 +21,7 @@ class EquipmentService
         $this->equipmentRepository = $equipmentRepository ?? new EquipmentRepository();
         $this->ticketRepository = $ticketRepository ?? new TicketRepository();
         $this->priceRepository = $priceRepository ?? new EquipmentPriceRepository();
+        $this->priceService = new EquipmentPriceService($this->priceRepository);
     }
 
     public function listAll(int $limit = 20, ?array $keyset = null, string $search = '', ?string $location = null, ?string $exactName = null): array
@@ -29,7 +31,7 @@ class EquipmentService
         $ids = array_map(fn($e) => $e->id, $equipments);
         $ticketSummary = $this->ticketRepository->listTicketSummaryByEquipmentIds($ids);
         $pendingPvsByEquipment = $this->equipmentRepository->getPendingPvCountByEquipmentIds($ids) ?? [];
-        $priceRules = $this->priceRepository->getActiveRules();
+        $priceRules = $this->priceService->getActiveRules();
 
         $items = [];
         foreach ($equipments as $e) {
@@ -66,7 +68,7 @@ class EquipmentService
             $item['pvs_pendentes_count'] = $pendingPv['total'];
             $item['pvs_pendentes'] = $pendingPv['pvs'];
 
-            $item['valor_tr'] = $this->priceRepository->resolvePrice(
+            $item['valor_tr'] = $this->priceService->resolvePrice(
                 $e->equipment,
                 $e->location,
                 $e->capacity,
@@ -81,7 +83,7 @@ class EquipmentService
             'items' => $items,
             'total' => $this->equipmentRepository->count($search, $location, $exactName),
             'total_os' => $this->equipmentRepository->countOS($search),
-            'total_valor' => $this->priceRepository->sumValueByFilter($search, $location),
+            'total_valor' => $this->priceRepository->sumValueByFilter($search, $location, $this->priceService->getValorCaseSql()),
         ];
     }
 

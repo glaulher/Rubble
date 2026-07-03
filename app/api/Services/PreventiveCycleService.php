@@ -7,15 +7,18 @@ use App\Api\Repositories\PreventiveCycleRepository;
 class PreventiveCycleService
 {
     private PreventiveCycleRepository $repository;
+    private EquipmentPriceService $priceService;
 
-    public function __construct(?PreventiveCycleRepository $repository = null)
+    public function __construct(?PreventiveCycleRepository $repository = null, ?EquipmentPriceService $priceService = null)
     {
         $this->repository = $repository ?? new PreventiveCycleRepository();
+        $this->priceService = $priceService ?? new EquipmentPriceService();
     }
 
     public function listAll(string $ciclo, int $limit = 20, int $offset = 0, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
     {
-        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados);
+        $valorCaseSql = $this->priceService->getValorCaseSql();
+        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados, $valorCaseSql);
         $total = $this->repository->count($ciclo, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados);
         return ['items' => $items, 'total' => $total];
     }
@@ -30,7 +33,8 @@ class PreventiveCycleService
 
     public function summary(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
     {
-        return $this->repository->summary($ciclo, $hasObservacao, $noScm, $scmLancados);
+        $valorCaseSql = $this->priceService->getValorCaseSql();
+        return $this->repository->summary($ciclo, $hasObservacao, $noScm, $scmLancados, $valorCaseSql);
     }
 
     public function listIds(string $ciclo, string $search = '', bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array

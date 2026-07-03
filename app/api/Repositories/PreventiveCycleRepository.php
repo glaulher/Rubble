@@ -4,18 +4,7 @@ namespace App\Api\Repositories;
 
 class PreventiveCycleRepository extends BaseRepository
 {
-    private function valorCaseSql(): string
-    {
-        return "CASE
-            WHEN e.equipamento LIKE '%chiller%' AND e.local IN ('MCEBC','RJDQC91','TNGBR','CPSCL') THEN 3850.00
-            WHEN e.equipamento LIKE '%chiller%' AND e.mercado = 'Empresarial' THEN 3642.14
-            WHEN e.equipamento LIKE '%chiller%' AND e.mercado = 'Pessoal' THEN 3642.14
-            WHEN e.mercado = 'Residencial' THEN e.capacidade * 94.00
-            ELSE 0
-        END";
-    }
-
-    public function listByCiclo(string $ciclo, int $limit, int $offset, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
+    public function listByCiclo(string $ciclo, int $limit, int $offset, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false, string $valorCaseSql = ''): array
     {
         $where = 'e.equipamento != ? AND e.local != ?';
         $whereParams = ['N/A', 'Fornecimento'];
@@ -52,7 +41,15 @@ class PreventiveCycleRepository extends BaseRepository
             $whereTypes = 'sss' . $whereTypes;
         }
 
-        $valorCase = $this->valorCaseSql();
+        if (empty($valorCaseSql)) {
+            $valorCaseSql = "CASE
+                WHEN e.equipamento LIKE '%chiller%' AND e.local IN ('MCEBC','RJDQC91','TNGBR','CPSCL') THEN 3850.00
+                WHEN e.equipamento LIKE '%chiller%' AND e.mercado = 'Empresarial' THEN 3642.14
+                WHEN e.equipamento LIKE '%chiller%' AND e.mercado = 'Pessoal' THEN 3642.14
+                WHEN e.mercado = 'Residencial' THEN e.capacidade * 94.00
+                ELSE 0
+            END";
+        }
 
         $sql = "SELECT
                     e.id AS equipamento_id,
@@ -62,7 +59,7 @@ class PreventiveCycleRepository extends BaseRepository
                     e.localidade,
                     e.local_scm,
                     e.mercado,
-                    {$valorCase} AS valor,
+                    {$valorCaseSql} AS valor,
                     pci.id AS item_id,
                     pci.observacao,
                     pci.scm_number,
@@ -143,9 +140,17 @@ class PreventiveCycleRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
-    public function summary(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
+    public function summary(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false, string $valorCaseSql = ''): array
     {
-        $valorCase = $this->valorCaseSql();
+        if (empty($valorCaseSql)) {
+            $valorCaseSql = "CASE
+                WHEN e.equipamento LIKE '%chiller%' AND e.local IN ('MCEBC','RJDQC91','TNGBR','CPSCL') THEN 3850.00
+                WHEN e.equipamento LIKE '%chiller%' AND e.mercado = 'Empresarial' THEN 3642.14
+                WHEN e.equipamento LIKE '%chiller%' AND e.mercado = 'Pessoal' THEN 3642.14
+                WHEN e.mercado = 'Residencial' THEN e.capacidade * 94.00
+                ELSE 0
+            END";
+        }
         $obsFilter = $hasObservacao
             ? "AND pci.observacao IS NOT NULL AND pci.observacao != ''"
             : "AND (pci.observacao IS NULL OR pci.observacao = '')";
@@ -162,7 +167,7 @@ class PreventiveCycleRepository extends BaseRepository
         }
         $sql = "SELECT
                     COUNT(pci.id) AS checked_count,
-                    COALESCE(SUM({$valorCase}), 0) AS total_valor,
+                    COALESCE(SUM({$valorCaseSql}), 0) AS total_valor,
                     COUNT(DISTINCT e.local) AS site_count
                 FROM equipamentos e
                 INNER JOIN preventive_cycle_items pci
