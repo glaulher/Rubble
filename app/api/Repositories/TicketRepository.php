@@ -154,11 +154,10 @@ class TicketRepository extends BaseRepository
 
     public function update(array $data): bool
     {
-        $resetNotification = ($data['status'] ?? '') === 'Planejado';
+        $notifEnv = $data['notificacao_enviada'] ?? 0;
         $sql = "
             UPDATE registros
-            SET os = ?, data = ?, equipe = ?, status = ?, data_concluido = ?, data_planejada = ?, material = ?, obs = ?
-            " . ($resetNotification ? ", notificacao_enviada = 0" : "") . "
+            SET os = ?, data = ?, equipe = ?, status = ?, data_concluido = ?, data_planejada = ?, material = ?, obs = ?, notificacao_enviada = ?
             WHERE id = ?
         ";
 
@@ -166,7 +165,7 @@ class TicketRepository extends BaseRepository
         $completionDate = $data['data_concluido'] ?? null;
         $plannedDate = $data['data_planejada'] ?? null;
         $stmt->bind_param(
-            'ssssssssi',
+            'sssssssssi',
             $data['os'],
             $data['data'],
             $data['equipe'],
@@ -175,6 +174,7 @@ class TicketRepository extends BaseRepository
             $plannedDate,
             $data['material'],
             $data['obs'],
+            $notifEnv,
             $data['id']
         );
         return $stmt->execute();
