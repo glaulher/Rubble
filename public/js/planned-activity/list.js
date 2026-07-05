@@ -520,9 +520,21 @@ function setupPlannedFilters() {
 
   if (dateFromInput) {
     dateFromInput.addEventListener('change', applyFilters);
+    dateFromInput.addEventListener('click', function () {
+      if (this.value !== '') {
+        this.value = '';
+        applyFilters();
+      }
+    });
   }
   if (dateToInput) {
     dateToInput.addEventListener('change', applyFilters);
+    dateToInput.addEventListener('click', function () {
+      if (this.value !== '') {
+        this.value = '';
+        applyFilters();
+      }
+    });
   }
   if (statusSelect) {
     statusSelect.addEventListener('change', applyFilters);
