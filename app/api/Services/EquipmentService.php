@@ -8,6 +8,7 @@ use App\Api\Repositories\TicketRepository;
 
 class EquipmentService
 {
+    public const PENDING_PV_EXCLUDED_STATUS = 'SCM aprovado';
     private EquipmentRepository $equipmentRepository;
     private TicketRepository $ticketRepository;
     private EquipmentPriceService $priceService;
@@ -30,7 +31,7 @@ class EquipmentService
 
         $ids = array_map(fn($e) => $e->id, $equipments);
         $ticketSummary = $this->ticketRepository->listTicketSummaryByEquipmentIds($ids);
-        $pendingPvsByEquipment = $this->equipmentRepository->getPendingPvCountByEquipmentIds($ids) ?? [];
+        $pendingPvsByEquipment = $this->equipmentRepository->getPendingPvCountByEquipmentIds($ids, self::PENDING_PV_EXCLUDED_STATUS) ?? [];
         $priceRules = $this->priceService->getActiveRules();
 
         $items = [];

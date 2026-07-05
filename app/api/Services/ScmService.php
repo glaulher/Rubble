@@ -76,7 +76,7 @@ class ScmService
                 $mappedStatus = self::STATUS_MAP[$statusUpper] ?? ($first['STATUS'] ?? '');
 
                 $site = trim($first['SITE'] ?? '');
-                $equipamentoId = $this->repository->resolveEquipmentId($site);
+                $equipamentoId = $this->resolveEquipmentId($site);
 
                 $parentData = [
                     'scm'              => trim($scmCode),
@@ -157,6 +157,19 @@ class ScmService
             $grouped[$scmCode]['items'][] = $row;
         }
         return $grouped;
+    }
+
+    public function resolveEquipmentId(string $site): ?int
+    {
+        $eq = $this->repository->findEquipmentByLocalScm($site);
+        if ($eq !== null) {
+            return (int) $eq['id'];
+        }
+        $eq = $this->repository->findEquipmentByEnderecoLike($site);
+        if ($eq !== null) {
+            return (int) $eq['id'];
+        }
+        return null;
     }
 
     public function delete(int $id): bool

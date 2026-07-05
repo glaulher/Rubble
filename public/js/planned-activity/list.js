@@ -9,6 +9,8 @@ let plannedDateTo = '';
 let plannedStatusFilter = '';
 let plannedEquipOptions = [];
 let plannedLocalOptions = [];
+let plannedLoadingStuckCount = 0;
+let plannedLoadingTimestamp = 0;
 
 const PLANNED_LIMIT = 20;
 const PLANNED_CSS = '.planned-card { transition: all 0.2s ease; }';
@@ -314,6 +316,7 @@ function loadPlanned(silent) {
   if (plannedLoading) return;
 
   plannedLoading = true;
+  plannedLoadingTimestamp = Date.now();
 
   if (silent) {
     plannedPage = 0;
@@ -329,9 +332,17 @@ function loadPlanned(silent) {
     params.set('search', plannedSearch);
   }
 
-  apiFetch('/app/api/index.php?route=planned-activities&' + params.toString())
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function () {
+    controller.abort();
+    plannedLoading = false;
+    console.warn('[PlannedActivity] loadPlanned timeout - resetting lock');
+  }, 15000);
+
+  apiFetch('/app/api/index.php?route=planned-activities&' + params.toString(), { signal: controller.signal })
     .then(function (res) { return res.json(); })
     .then(function (result) {
+      clearTimeout(timeoutId);
       plannedLoading = false;
 
       if (!result || !result.data) return;
@@ -361,6 +372,8 @@ function loadPlanned(silent) {
       plannedHash = JSON.stringify(newItems);
     })
     .catch(function (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') return;
       plannedLoading = false;
       console.error('Erro ao carregar atividades:', err);
     });
@@ -858,8 +871,27 @@ function initPlannedActivity() {
     setupPlanAutocompletes();
   });
 
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && plannedLoading && Date.now() - plannedLoadingTimestamp > 5000) {
+      plannedLoading = false;
+      plannedLoadingStuckCount = 0;
+      loadPlanned(false);
+    }
+  });
+
   PollingManager.start('planned-activity', function () {
-    if (!document.hidden) loadPlanned(true);
+    if (document.hidden) return;
+    if (plannedLoading) {
+      plannedLoadingStuckCount++;
+      if (plannedLoadingStuckCount > 2) {
+        plannedLoading = false;
+        plannedLoadingStuckCount = 0;
+        loadPlanned(true);
+      }
+      return;
+    }
+    plannedLoadingStuckCount = 0;
+    loadPlanned(true);
   }, 30000);
 
   loadPlanned(false);

@@ -183,17 +183,18 @@ class ScmRepository extends BaseRepository
         }
     }
 
-    public function resolveEquipmentId(string $site): ?int
+    public function findEquipmentByLocalScm(string $localScm): ?array
     {
         $sql = "SELECT id FROM equipamentos WHERE local_scm = ? LIMIT 1";
         $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('s', $site);
+        $stmt->bind_param('s', $localScm);
         $stmt->execute();
         $result = $stmt->get_result();
-        if ($result->num_rows > 0) {
-            return (int) $result->fetch_assoc()['id'];
-        }
+        return $result->num_rows > 0 ? $result->fetch_assoc() : null;
+    }
 
+    public function findEquipmentByEnderecoLike(string $site): ?array
+    {
         $sql = "SELECT e.id FROM equipamentos e
                 JOIN enderecos en ON en.id = e.endereco_id
                 WHERE en.local_do_endereco LIKE ?
@@ -203,11 +204,7 @@ class ScmRepository extends BaseRepository
         $stmt->bind_param('s', $like);
         $stmt->execute();
         $result = $stmt->get_result();
-        if ($result->num_rows > 0) {
-            return (int) $result->fetch_assoc()['id'];
-        }
-
-        return null;
+        return $result->num_rows > 0 ? $result->fetch_assoc() : null;
     }
 
     public function segments(): array

@@ -31,19 +31,28 @@ class DashboardRepository extends BaseRepository
         return $counts;
     }
 
-    public function topSites(): array
+    public function topSites(?array $activeStatuses = null): array
     {
-        $result = $this->queryOrFail("
+        $statuses = $activeStatuses ?? ['pendente', 'planejado', 'projeto clean up'];
+        $placeholders = implode(',', array_fill(0, count($statuses), '?'));
+        $types = str_repeat('s', count($statuses));
+
+        $sql = "
             SELECT e.local, COUNT(*) as problemas
             FROM registros r
             JOIN equipamentos e ON e.id = r.equipamento_id AND e.equipamento != 'N/A'
-            WHERE LOWER(r.status) IN ('pendente', 'planejado', 'projeto clean up')
+            WHERE LOWER(r.status) IN ({$placeholders})
             GROUP BY e.local
             ORDER BY problemas DESC
             LIMIT 10
-        ");
+        ";
 
-        return $result->fetch_all(MYSQLI_ASSOC);
+        $stmt = $this->safePrepare($sql);
+        if (!empty($types)) {
+            $stmt->bind_param($types, ...$statuses);
+        }
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
     public function topMachines(): array

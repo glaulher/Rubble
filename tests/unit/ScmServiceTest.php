@@ -139,6 +139,51 @@ class ScmServiceTest extends TestCase
         $this->assertContains('RSD', $result);
     }
 
+    // --- resolveEquipmentId ---
+
+    public function testResolveEquipmentIdReturnsExactMatch(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('findEquipmentByLocalScm')
+            ->with('RSD')
+            ->willReturn(['id' => 5]);
+        $repo->expects($this->never())
+            ->method('findEquipmentByEnderecoLike');
+
+        $service = $this->createService($repo);
+        $result = $service->resolveEquipmentId('RSD');
+
+        $this->assertSame(5, $result);
+    }
+
+    public function testResolveEquipmentIdFallsBackToFuzzy(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('findEquipmentByLocalScm')
+            ->with('RSD')
+            ->willReturn(null);
+        $repo->method('findEquipmentByEnderecoLike')
+            ->with('RSD')
+            ->willReturn(['id' => 10]);
+
+        $service = $this->createService($repo);
+        $result = $service->resolveEquipmentId('RSD');
+
+        $this->assertSame(10, $result);
+    }
+
+    public function testResolveEquipmentIdReturnsNullWhenNoMatch(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('findEquipmentByLocalScm')->willReturn(null);
+        $repo->method('findEquipmentByEnderecoLike')->willReturn(null);
+
+        $service = $this->createService($repo);
+        $result = $service->resolveEquipmentId('UNKNOWN');
+
+        $this->assertNull($result);
+    }
+
     // --- importBatch ---
 
     public function testImportBatchWithEmptyRows(): void
@@ -231,7 +276,7 @@ class ScmServiceTest extends TestCase
     public function testImportBatchCreatesNewRecord(): void
     {
         $repo = $this->createMockRepo();
-        $repo->method('resolveEquipmentId')->willReturn(10);
+        $repo->method('findEquipmentByLocalScm')->willReturn(['id' => 10]);
         $repo->method('findByScmCode')->willReturnOnConsecutiveCalls(null, ['id' => 1]);
         $repo->method('upsert')->willReturn(true);
         $repo->method('upsertItems')->willReturn(true);
@@ -272,7 +317,7 @@ class ScmServiceTest extends TestCase
     public function testImportBatchUpdatesExistingRecord(): void
     {
         $repo = $this->createMockRepo();
-        $repo->method('resolveEquipmentId')->willReturn(10);
+        $repo->method('findEquipmentByLocalScm')->willReturn(['id' => 10]);
         $repo->method('findByScmCode')->willReturnOnConsecutiveCalls(
             ['id' => 5],
             ['id' => 5]
@@ -314,7 +359,7 @@ class ScmServiceTest extends TestCase
     public function testImportBatchMapsNegadoStatus(): void
     {
         $repo = $this->createMockRepo();
-        $repo->method('resolveEquipmentId')->willReturn(10);
+        $repo->method('findEquipmentByLocalScm')->willReturn(['id' => 10]);
         $repo->method('findByScmCode')->willReturnOnConsecutiveCalls(null, ['id' => 1]);
         $repo->method('upsert')->willReturn(true);
         $repo->method('upsertItems')->willReturn(true);
@@ -355,7 +400,7 @@ class ScmServiceTest extends TestCase
     public function testImportBatchGroupsMultipleItemsByScm(): void
     {
         $repo = $this->createMockRepo();
-        $repo->method('resolveEquipmentId')->willReturn(10);
+        $repo->method('findEquipmentByLocalScm')->willReturn(['id' => 10]);
         $repo->method('findByScmCode')->willReturnOnConsecutiveCalls(null, ['id' => 1]);
         $repo->method('upsert')->willReturn(true);
         $repo->method('upsertItems')->willReturn(true);

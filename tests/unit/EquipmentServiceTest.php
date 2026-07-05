@@ -28,6 +28,28 @@ class EquipmentServiceTest extends TestCase
         return new EquipmentService($equipRepo, $ticketRepo, $priceRepo ?? $this->createPriceMock());
     }
 
+    public function testListAllPassesExcludedStatusToPendingPvQuery(): void
+    {
+        $equipRepo = $this->createMock(EquipmentRepository::class);
+        $ticketRepo = $this->createMock(TicketRepository::class);
+        $priceRepo = $this->createPriceMock();
+
+        $equipRepo->method('listAll')->willReturn([
+            new Equipment(['id' => 1, 'local' => 'Sala A', 'equipamento' => 'Notebook']),
+        ]);
+        $equipRepo->method('count')->willReturn(1);
+        $equipRepo->method('countOS')->willReturn(0);
+        $ticketRepo->method('listTicketSummaryByEquipmentIds')->willReturn([]);
+        $priceRepo->method('sumValueByFilter')->willReturn(0.0);
+
+        $equipRepo->expects($this->once())
+            ->method('getPendingPvCountByEquipmentIds')
+            ->with([1], EquipmentService::PENDING_PV_EXCLUDED_STATUS);
+
+        $service = new EquipmentService($equipRepo, $ticketRepo, $priceRepo);
+        $service->listAll();
+    }
+
     public function testListAllReturnsFormattedItems(): void
     {
         $equipRepo = $this->createMock(EquipmentRepository::class);

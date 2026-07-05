@@ -11,6 +11,40 @@ class PvDashboardServiceTest extends TestCase
         return $this->createMock(PvDashboardRepository::class);
     }
 
+    public function testGetStatsPassesConstantsToRepository(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('statusCounts')->willReturn([]);
+        $repo->method('pvByMonth')->willReturn([]);
+        $repo->method('listLocations')->willReturn([]);
+        $repo->method('totalPvCount')->willReturn(0);
+        $repo->method('totalPvValue')->willReturn(0.0);
+        $repo->method('topEquipment')->willReturn([]);
+
+        $repo->expects($this->once())
+            ->method('financialByMonth')
+            ->with(null, null, null, PvDashboardService::FATURADO_STATUS, PvDashboardService::PREVISAO_EXCLUDE_STATUSES)
+            ->willReturn([]);
+
+        $repo->expects($this->once())
+            ->method('topLocations')
+            ->with(null, null, null, PvDashboardService::APPROVED_STATUS)
+            ->willReturn([]);
+
+        $repo->expects($this->once())
+            ->method('topMaterials')
+            ->with(null, null, null, PvDashboardService::MATERIAL_LPU_ORIGINS)
+            ->willReturn([]);
+
+        $repo->expects($this->once())
+            ->method('topServices')
+            ->with(null, null, null, PvDashboardService::SERVICE_LPU_ORIGINS)
+            ->willReturn([]);
+
+        $service = new PvDashboardService($repo);
+        $service->getStats();
+    }
+
     public function testGetStatsReturnsExpectedStructure(): void
     {
         $repo = $this->createMockRepo();

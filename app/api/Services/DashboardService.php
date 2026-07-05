@@ -6,6 +6,8 @@ use App\Api\Repositories\DashboardRepository;
 
 class DashboardService
 {
+    public const ACTIVE_STATUSES = ['pendente', 'planejado', 'projeto clean up'];
+
     private DashboardRepository $repository;
 
     private const STATUS_MAP = [
@@ -44,7 +46,7 @@ class DashboardService
 
         $totalTickets = array_sum($statusCounts);
 
-        $topSites = $this->repository->topSites();
+        $topSites = $this->repository->topSites(self::ACTIVE_STATUSES);
         $topMachines = $this->repository->topMachines();
         $topTechnicians = $this->repository->topTechnicians();
 

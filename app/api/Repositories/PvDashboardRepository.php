@@ -64,31 +64,41 @@ class PvDashboardRepository extends BaseRepository
         return $result->fetch_all(MYSQLI_ASSOC);
     }
 
-    public function financialByMonth(?string $periodStart = null, ?string $periodEnd = null, ?string $location = null): array
+    public function financialByMonth(?string $periodStart = null, ?string $periodEnd = null, ?string $location = null, string $faturadoStatus = 'SCM aprovado', array $previsaoExcludeStatuses = ['SCM aprovado', 'Cancelado']): array
     {
         [$filter, $params, $types] = $this->buildFilterParams($periodStart, $periodEnd, $location);
+
+        $excludePlaceholders = implode(',', array_fill(0, count($previsaoExcludeStatuses), '?'));
+        $faturadoStatus = addslashes($faturadoStatus);
+
         $sql = "
             SELECT DATE_FORMAT(pv.data, '%Y-%m') as mes,
-                COALESCE(SUM(CASE WHEN pi.status = 'SCM aprovado' THEN pi.valor_total ELSE 0 END), 0) as faturado,
-                COALESCE(SUM(CASE WHEN pi.status != 'SCM aprovado' AND pi.status != 'Cancelado' THEN pi.valor_total ELSE 0 END), 0) as previsao
+                COALESCE(SUM(CASE WHEN pi.status = '{$faturadoStatus}' THEN pi.valor_total ELSE 0 END), 0) as faturado,
+                COALESCE(SUM(CASE WHEN pi.status NOT IN ({$excludePlaceholders}) THEN pi.valor_total ELSE 0 END), 0) as previsao
             FROM pv
             JOIN pv_item pi ON pi.pv_id = pv.id
             WHERE pv.data IS NOT NULL {$filter}
             GROUP BY DATE_FORMAT(pv.data, '%Y-%m')
             ORDER BY mes ASC
         ";
-        $result = $this->executePreparedQuery($sql, $params, $types);
+
+        $allParams = array_merge($params, array_values($previsaoExcludeStatuses));
+        $allTypes = $types . str_repeat('s', count($previsaoExcludeStatuses));
+
+        $result = $this->executePreparedQuery($sql, $allParams, $allTypes);
         return $result->fetch_all(MYSQLI_ASSOC);
     }
 
-    public function topLocations(?string $periodStart = null, ?string $periodEnd = null, ?string $location = null): array
+    public function topLocations(?string $periodStart = null, ?string $periodEnd = null, ?string $location = null, string $approvedStatus = 'SCM aprovado'): array
     {
         [$filter, $params, $types] = $this->buildFilterParams($periodStart, $periodEnd, $location);
+        $approvedStatus = addslashes($approvedStatus);
+
         $sql = "
             SELECT pv.local, COALESCE(SUM(pi.valor_total), 0) as totalValue, COUNT(DISTINCT pv.id) as pvCount
             FROM pv
             JOIN pv_item pi ON pi.pv_id = pv.id
-            WHERE EXISTS (SELECT 1 FROM pv_item pi2 WHERE pi2.pv_id = pv.id AND pi2.status = 'SCM aprovado') {$filter}
+            WHERE EXISTS (SELECT 1 FROM pv_item pi2 WHERE pi2.pv_id = pv.id AND pi2.status = '{$approvedStatus}') {$filter}
             GROUP BY pv.local
             ORDER BY totalValue DESC
             LIMIT 10
@@ -97,35 +107,47 @@ class PvDashboardRepository extends BaseRepository
         return $result->fetch_all(MYSQLI_ASSOC);
     }
 
-    public function topMaterials(?string $periodStart = null, ?string $periodEnd = null, ?string $location = null): array
+    public function topMaterials(?string $periodStart = null, ?string $periodEnd = null, ?string $location = null, array $lpuOrigins = ['lpu_material_clima', 'lpu_material_chiller']): array
     {
         [$filter, $params, $types] = $this->buildFilterParams($periodStart, $periodEnd, $location);
+
+        $placeholders = implode(',', array_fill(0, count($lpuOrigins), '?'));
         $sql = "
             SELECT pi.descricao_lpu, pi.descricao, COALESCE(SUM(pi.quantidade), 0) as quantidade, COALESCE(SUM(pi.valor_total), 0) as valorTotal
             FROM pv_item pi
             JOIN pv ON pv.id = pi.pv_id
-            WHERE pi.lpu_origem IN ('lpu_material_clima', 'lpu_material_chiller') {$filter}
+            WHERE pi.lpu_origem IN ({$placeholders}) {$filter}
             GROUP BY pi.descricao_lpu, pi.descricao
             ORDER BY valorTotal DESC
             LIMIT 10
         ";
-        $result = $this->executePreparedQuery($sql, $params, $types);
+
+        $allParams = array_merge($params, array_values($lpuOrigins));
+        $allTypes = $types . str_repeat('s', count($lpuOrigins));
+
+        $result = $this->executePreparedQuery($sql, $allParams, $allTypes);
         return $result->fetch_all(MYSQLI_ASSOC);
     }
 
-    public function topServices(?string $periodStart = null, ?string $periodEnd = null, ?string $location = null): array
+    public function topServices(?string $periodStart = null, ?string $periodEnd = null, ?string $location = null, array $lpuOrigins = ['lpu_servico_clima', 'lpu_servico_chiller', 'lpu_civil']): array
     {
         [$filter, $params, $types] = $this->buildFilterParams($periodStart, $periodEnd, $location);
+
+        $placeholders = implode(',', array_fill(0, count($lpuOrigins), '?'));
         $sql = "
             SELECT pi.descricao_lpu, pi.descricao, COALESCE(SUM(pi.quantidade), 0) as quantidade, COALESCE(SUM(pi.valor_total), 0) as valorTotal
             FROM pv_item pi
             JOIN pv ON pv.id = pi.pv_id
-            WHERE pi.lpu_origem IN ('lpu_servico_clima', 'lpu_servico_chiller', 'lpu_civil') {$filter}
+            WHERE pi.lpu_origem IN ({$placeholders}) {$filter}
             GROUP BY pi.descricao_lpu, pi.descricao
             ORDER BY valorTotal DESC
             LIMIT 10
         ";
-        $result = $this->executePreparedQuery($sql, $params, $types);
+
+        $allParams = array_merge($params, array_values($lpuOrigins));
+        $allTypes = $types . str_repeat('s', count($lpuOrigins));
+
+        $result = $this->executePreparedQuery($sql, $allParams, $allTypes);
         return $result->fetch_all(MYSQLI_ASSOC);
     }
 

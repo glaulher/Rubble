@@ -62,6 +62,27 @@ class DashboardServiceTest extends TestCase
         $this->assertSame('Tech A', $result['topTechnicians'][0]['equipe']);
     }
 
+    public function testGetStatsPassesActiveStatusesToTopSites(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('statusCounts')->willReturn([]);
+        $repo->method('topSites')->willReturn([]);
+        $repo->method('topMachines')->willReturn([]);
+        $repo->method('topTechnicians')->willReturn([]);
+        $repo->method('avgResolutionByMachine')->willReturn([]);
+        $repo->method('avgResolutionByMonth')->willReturn([]);
+        $repo->method('avgResolutionByTechnician')->willReturn([]);
+
+        $expected = DashboardService::ACTIVE_STATUSES;
+
+        $repo->expects($this->once())
+            ->method('topSites')
+            ->with($expected);
+
+        $service = new DashboardService($repo);
+        $service->getStats();
+    }
+
     public function testGetStatsWithEmptyData(): void
     {
         $repo = $this->createMockRepo();

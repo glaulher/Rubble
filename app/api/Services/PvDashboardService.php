@@ -6,6 +6,12 @@ use App\Api\Repositories\PvDashboardRepository;
 
 class PvDashboardService
 {
+    public const FATURADO_STATUS = 'SCM aprovado';
+    public const PREVISAO_EXCLUDE_STATUSES = ['SCM aprovado', 'Cancelado'];
+    public const APPROVED_STATUS = 'SCM aprovado';
+    public const MATERIAL_LPU_ORIGINS = ['lpu_material_clima', 'lpu_material_chiller'];
+    public const SERVICE_LPU_ORIGINS = ['lpu_servico_clima', 'lpu_servico_chiller', 'lpu_civil'];
+
     private PvDashboardRepository $repository;
 
     private const STATUS_GROUPS = [
@@ -45,10 +51,22 @@ class PvDashboardService
     public function getStats(?string $periodStart = null, ?string $periodEnd = null, ?string $location = null, ?string $statusGroup = null): array
     {
         $statusCounts = $this->repository->statusCounts($periodStart, $periodEnd, $location);
-        $financialByMonth = $this->repository->financialByMonth($periodStart, $periodEnd, $location);
-        $topLocations = $this->repository->topLocations($periodStart, $periodEnd, $location);
-        $topMaterials = $this->repository->topMaterials($periodStart, $periodEnd, $location);
-        $topServices = $this->repository->topServices($periodStart, $periodEnd, $location);
+        $financialByMonth = $this->repository->financialByMonth(
+            $periodStart, $periodEnd, $location,
+            self::FATURADO_STATUS, self::PREVISAO_EXCLUDE_STATUSES
+        );
+        $topLocations = $this->repository->topLocations(
+            $periodStart, $periodEnd, $location,
+            self::APPROVED_STATUS
+        );
+        $topMaterials = $this->repository->topMaterials(
+            $periodStart, $periodEnd, $location,
+            self::MATERIAL_LPU_ORIGINS
+        );
+        $topServices = $this->repository->topServices(
+            $periodStart, $periodEnd, $location,
+            self::SERVICE_LPU_ORIGINS
+        );
         $topEquipment = $this->repository->topEquipment($periodStart, $periodEnd, $location);
         $pvByMonth = $this->repository->pvByMonth($periodStart, $periodEnd, $location);
         $locations = $this->repository->listLocations();

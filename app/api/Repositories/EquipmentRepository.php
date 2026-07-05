@@ -205,7 +205,7 @@ class EquipmentRepository extends BaseRepository
         return (int) $row[0] > 0;
     }
 
-    public function getPendingPvCountByEquipmentIds(array $ids): array
+    public function getPendingPvCountByEquipmentIds(array $ids, string $excludedStatus = 'SCM aprovado'): array
     {
         if (empty($ids)) {
             return [];
@@ -213,6 +213,7 @@ class EquipmentRepository extends BaseRepository
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $types = str_repeat('i', count($ids));
+        $excludedStatus = addslashes($excludedStatus);
 
         $sql = "
             SELECT pv.equipamento_id, COUNT(*) as total,
@@ -228,7 +229,7 @@ class EquipmentRepository extends BaseRepository
                 GROUP BY po.pv_id
             ) os_list ON os_list.pv_id = pv.id
             WHERE pv.equipamento_id IN ({$placeholders})
-            AND EXISTS (SELECT 1 FROM pv_item pi WHERE pi.pv_id = pv.id AND pi.status != 'SCM aprovado')
+            AND EXISTS (SELECT 1 FROM pv_item pi WHERE pi.pv_id = pv.id AND pi.status != '{$excludedStatus}')
             GROUP BY pv.equipamento_id
         ";
 
