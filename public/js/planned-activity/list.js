@@ -775,6 +775,13 @@ function initPlannedActivity() {
   setupPlannedFilters();
   setupPlannedInfiniteScroll();
 
+  var dateFromEl = document.getElementById('plannedDateFrom');
+  if (dateFromEl) dateFromEl.value = plannedDateFrom;
+  var dateToEl = document.getElementById('plannedDateTo');
+  if (dateToEl) dateToEl.value = plannedDateTo;
+  var statusEl = document.getElementById('plannedStatusFilter');
+  if (statusEl) statusEl.value = plannedStatusFilter;
+
   var btnNew = document.getElementById('btnNewPlanned');
   if (btnNew) {
     btnNew.addEventListener('click', openPlanModal);
