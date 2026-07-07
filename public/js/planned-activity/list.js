@@ -82,11 +82,14 @@ function buildPlannedCardHtml(item) {
     : '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-blue-100 text-blue-700">Preventiva</span>';
   var equipe = item.equipe || 'A definir';
   var obs = item.obs || '';
-
-  var obsHtml = '';
-  if (obs) {
-    obsHtml = '<div class="mt-2 text-xs text-slate-600 whitespace-pre-line leading-relaxed border-t border-slate-100 dark:border-slate-700 pt-2">' + escapeHtml(obs) + '</div>';
-  }
+  var obsDisplay = obs ? escapeHtml(obs) : '<span class="text-slate-400 italic">Adicionar observação...</span>';
+  var obsIcon = canEdit ? '<button class="inline-flex items-center justify-center text-blue-400 hover:text-blue-600 align-middle obs-edit-btn shrink-0" data-action="edit-obs" aria-label="Editar observação"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' : '';
+  var obsHtml = '<div class="mt-2 text-xs border-t border-slate-100 dark:border-slate-700 pt-2">' +
+    '<div class="flex items-start gap-2 obs-container">' +
+      '<span class="text-slate-600 whitespace-pre-line leading-relaxed flex-1 obs-text">' + obsDisplay + '</span>' +
+      obsIcon +
+    '</div>' +
+  '</div>';
 
   var canEdit = false;
   if (typeof getUser === 'function') {
@@ -115,8 +118,9 @@ function buildPlannedCardHtml(item) {
       extraBtns += iconButtonHtml('delete', 'Excluir atividade', { 'class': 'planned-delete-btn', 'data-id': item.id });
     }
   } else {
+    extraBtns = iconButtonHtml('edit', 'Alterar status', { 'class': 'planned-corretiva-status-btn', 'data-id': item.id, 'data-status': item.status || 'Pendente' });
     if (canEdit) {
-      extraBtns = iconButtonHtml('delete', 'Excluir atividade', { 'class': 'planned-delete-btn', 'data-id': item.id });
+      extraBtns += iconButtonHtml('delete', 'Excluir atividade', { 'class': 'planned-delete-btn', 'data-id': item.id });
     }
   }
 
@@ -246,6 +250,164 @@ function finishTeamEdit(input, strong) {
   if (strong) {
     strong.style.display = '';
   }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Inline Observation Edit
+|--------------------------------------------------------------------------
+*/
+
+function startObsInlineEdit(btn) {
+  var container = btn.closest('.obs-container');
+  if (!container) return;
+  var span = container.querySelector('.obs-text');
+  if (!span) return;
+  var currentText = span.textContent;
+  var placeholder = span.querySelector('.text-slate-400');
+  var currentValue = placeholder ? '' : currentText;
+
+  var textarea = document.createElement('textarea');
+  textarea.value = currentValue;
+  textarea.className = 'obs-edit-input text-xs w-full bg-transparent border border-blue-300 dark:border-blue-600 rounded px-1 py-0.5 focus:outline-none focus:border-blue-500';
+  textarea.dataset.originalValue = currentValue;
+  textarea.style.minHeight = '40px';
+  textarea.maxLength = 1000;
+
+  var card = btn.closest('.planned-card');
+  if (card) {
+    textarea.dataset.id = card.dataset.id;
+    textarea.dataset.tipo = card.dataset.tipo;
+  }
+
+  span.style.display = 'none';
+  span.parentNode.insertBefore(textarea, span.nextSibling);
+  textarea.focus();
+
+  var saved = false;
+
+  function doSave() {
+    if (saved) return;
+    saved = true;
+    saveObsInlineEdit(textarea, span);
+  }
+
+  function doCancel() {
+    if (saved) return;
+    saved = true;
+    cancelObsEdit(textarea, span);
+  }
+
+  textarea.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      textarea.blur();
+    } else if (e.key === 'Escape') {
+      doCancel();
+    }
+  });
+
+  textarea.addEventListener('blur', function () {
+    doSave();
+  });
+}
+
+function saveObsInlineEdit(textarea, span) {
+  var newValue = textarea.value.trim();
+  var originalValue = textarea.dataset.originalValue;
+  var id = textarea.dataset.id;
+  var tipo = textarea.dataset.tipo;
+
+  if (newValue !== originalValue) {
+    apiFetch('/app/api/index.php?route=planned-activities&action=update-obs', {
+      method: 'PUT',
+      body: JSON.stringify({ id: parseInt(id, 10), tipo: tipo, obs: newValue }),
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (result) {
+      if (result && result.success) {
+        var displayText = newValue ? escapeHtml(newValue) : '<span class="text-slate-400 italic">Adicionar observação...</span>';
+        span.innerHTML = displayText;
+      } else {
+        showToast(result && result.message ? result.message : 'Erro ao atualizar observação.', 'error');
+      }
+      finishObsEdit(textarea, span);
+    })
+    .catch(function () {
+      showToast('Erro ao atualizar observação.', 'error');
+      finishObsEdit(textarea, span);
+    });
+  } else {
+    finishObsEdit(textarea, span);
+  }
+}
+
+function cancelObsEdit(textarea, span) {
+  finishObsEdit(textarea, span);
+}
+
+function finishObsEdit(textarea, span) {
+  if (textarea && textarea.parentNode) {
+    textarea.parentNode.removeChild(textarea);
+  }
+  if (span) {
+    span.style.display = '';
+  }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Corretiva Status Modal
+|--------------------------------------------------------------------------
+*/
+
+const CORRETIVA_STATUSES = ['Concluído', 'Pendente', 'Em andamento', 'Planejado', 'Projeto Clean up'];
+
+function openCorretivaStatusModal(id, currentStatus) {
+  var modal = document.getElementById('modalStatusCorretiva');
+  if (!modal) return;
+  document.getElementById('corretivaStatusId').value = id;
+
+  var select = document.getElementById('corretivaStatusSelect');
+  select.innerHTML = '';
+  CORRETIVA_STATUSES.forEach(function (s) {
+    var opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    if (s === currentStatus) opt.selected = true;
+    select.appendChild(opt);
+  });
+
+  modal.classList.remove('hidden');
+}
+
+function submitCorretivaStatus() {
+  var id = parseInt(document.getElementById('corretivaStatusId').value, 10);
+  var status = document.getElementById('corretivaStatusSelect').value;
+  if (!id || !status) return;
+
+  apiFetch('/app/api/index.php?route=planned-activities&action=update-status', {
+    method: 'PUT',
+    body: JSON.stringify({ id: id, status: status }),
+  })
+  .then(function (res) { return res.json(); })
+  .then(function (result) {
+    if (result && result.success) {
+      showToast('Status atualizado com sucesso.', 'success');
+      closeCorretivaStatusModal();
+      if (_plannedScroll) _plannedScroll.refresh();
+    } else {
+      showToast(result && result.message ? result.message : 'Erro ao atualizar status.', 'error');
+    }
+  })
+  .catch(function () {
+    showToast('Erro ao atualizar status.', 'error');
+  });
+}
+
+function closeCorretivaStatusModal() {
+  var modal = document.getElementById('modalStatusCorretiva');
+  if (modal) modal.classList.add('hidden');
 }
 
 function renderPlanned(items, append) {
@@ -923,6 +1085,24 @@ function initPlannedActivity() {
     });
   }
 
+  var corretivaStatusForm = document.getElementById('corretivaStatusForm');
+  if (corretivaStatusForm) {
+    corretivaStatusForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      submitCorretivaStatus();
+    });
+  }
+
+  var btnCancelCorrStatus = document.querySelector('.btn-cancel-corretiva-status');
+  if (btnCancelCorrStatus) {
+    btnCancelCorrStatus.addEventListener('click', closeCorretivaStatusModal);
+  }
+
+  var corrStatusBackdrop = document.getElementById('modalCorretivaStatusBackdrop');
+  if (corrStatusBackdrop) {
+    corrStatusBackdrop.addEventListener('click', closeCorretivaStatusModal);
+  }
+
   var content = document.getElementById('plannedContent');
   if (content) {
     content.addEventListener('click', function (e) {
@@ -947,6 +1127,20 @@ function initPlannedActivity() {
         var currentStatus = statusBtn.getAttribute('data-status');
         var currentDate = statusBtn.getAttribute('data-date');
         if (statusId) openStatusPreventiva(statusId, currentStatus, currentDate);
+        return;
+      }
+
+      var corretivaStatusBtn = e.target.closest('.planned-corretiva-status-btn');
+      if (corretivaStatusBtn) {
+        var corrId = parseInt(corretivaStatusBtn.getAttribute('data-id'), 10);
+        var corrStatus = corretivaStatusBtn.getAttribute('data-status');
+        if (corrId) openCorretivaStatusModal(corrId, corrStatus);
+        return;
+      }
+
+      var obsBtn = e.target.closest('[data-action="edit-obs"]');
+      if (obsBtn) {
+        startObsInlineEdit(obsBtn);
         return;
       }
 

@@ -276,7 +276,15 @@ $router->addRoute('planned-activities', 'POST', function () use ($auth) {
     }
 });
 $router->addRoute('planned-activities', 'PUT', function () use ($auth) {
-    (new PlannedActivityController($auth->getUser()))->updateTeam();
+    $ctrl = new PlannedActivityController($auth->getUser());
+    $action = $_GET['action'] ?? '';
+    if ($action === 'update-obs') {
+        $ctrl->updateObs();
+    } elseif ($action === 'update-status') {
+        $ctrl->updateCorretivaStatus();
+    } else {
+        $ctrl->updateTeam();
+    }
 });
 $router->addRoute('planned-activities', 'DELETE', function () use ($auth) {
     (new PlannedActivityController($auth->getUser()))->delete();

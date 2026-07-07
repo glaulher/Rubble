@@ -191,6 +191,69 @@ class PlannedActivityController
 
     /*
     |--------------------------------------------------------------------------
+    | UPDATE OBSERVATION
+    |--------------------------------------------------------------------------
+    */
+
+    public function updateObs(): void
+    {
+        try {
+            $data = Request::body();
+
+            Validator::required($data, ['id', 'tipo']);
+            Validator::integer($data, 'id');
+
+            $id = (int) $data['id'];
+            $tipo = trim($data['tipo']);
+            $obs = trim($data['obs'] ?? '');
+
+            $result = $this->service->updateObs($id, $tipo, $obs);
+
+            Cache::deleteByPrefix('equipment_list:');
+            Cache::deleteByPrefix('planned_activities:');
+
+            Response::success('Observação atualizada com sucesso', $result);
+
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE CORRETIVA STATUS
+    |--------------------------------------------------------------------------
+    */
+
+    public function updateCorretivaStatus(): void
+    {
+        try {
+            $data = Request::body();
+
+            Validator::required($data, ['id', 'status']);
+            Validator::integer($data, 'id');
+
+            $id = (int) $data['id'];
+            $status = trim($data['status']);
+
+            $result = $this->service->updateCorretivaStatus($id, $status);
+
+            Cache::deleteByPrefix('equipment_list:');
+            Cache::deleteByPrefix('planned_activities:');
+
+            Response::success('Status atualizado com sucesso', $result);
+
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | DELETE
     |--------------------------------------------------------------------------
     */

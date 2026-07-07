@@ -264,6 +264,29 @@ class PlannedActivityRepository extends BaseRepository
         return $stmt->execute();
     }
 
+    public function updateObs(int $id, string $tipo, string $obs): bool
+    {
+        $table = $tipo === 'preventiva' ? 'atividades_preventivas' : 'registros';
+        $sql = "UPDATE {$table} SET obs = ? WHERE id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('si', $obs, $id);
+        return $stmt->execute();
+    }
+
+    public function updateCorretivaStatus(int $id, string $status, ?string $dataConcluido = null): bool
+    {
+        if ($dataConcluido !== null && $status === 'Concluído') {
+            $sql = "UPDATE registros SET status = ?, data_concluido = ? WHERE id = ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('ssi', $status, $dataConcluido, $id);
+        } else {
+            $sql = "UPDATE registros SET status = ? WHERE id = ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('si', $status, $id);
+        }
+        return $stmt->execute();
+    }
+
     private function normalizeDateSearch(string $search): string
     {
         if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $search, $m)) {
