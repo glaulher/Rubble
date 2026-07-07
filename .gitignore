@@ -19,4 +19,5 @@ __pycache__/
 .rubble-pdf-checker-cache/
 _debug*.php
 check_scm_db.php
+.worktrees/
 docker-compose.override.yml
