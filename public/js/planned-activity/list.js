@@ -81,6 +81,15 @@ function buildPlannedCardHtml(item) {
     ? '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-amber-100 text-amber-700">Corretiva</span>'
     : '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-blue-100 text-blue-700">Preventiva</span>';
   var equipe = item.equipe || 'A definir';
+
+  var canEdit = false;
+  if (typeof getUser === 'function') {
+    var user = getUser();
+    if (user && (user.role === 'admin' || user.role === 'coordenador')) {
+      canEdit = true;
+    }
+  }
+
   var obs = item.obs || '';
   var obsDisplay = obs ? escapeHtml(obs) : '<span class="text-slate-400 italic">Adicionar observação...</span>';
   var obsIcon = canEdit ? '<button class="inline-flex items-center justify-center text-blue-400 hover:text-blue-600 align-middle obs-edit-btn shrink-0" data-action="edit-obs" aria-label="Editar observação"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' : '';
@@ -90,14 +99,6 @@ function buildPlannedCardHtml(item) {
       obsIcon +
     '</div>' +
   '</div>';
-
-  var canEdit = false;
-  if (typeof getUser === 'function') {
-    var user = getUser();
-    if (user && (user.role === 'admin' || user.role === 'coordenador')) {
-      canEdit = true;
-    }
-  }
 
   var actionsHtml = canEdit
     ? '<div class="flex items-center gap-1">' +
