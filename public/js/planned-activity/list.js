@@ -400,6 +400,18 @@ function syncPlannedCards(newItems, total) {
   applyRoleVisibility();
 }
 
+function scheduleNextLoad() {
+  if (plannedAllLoaded || plannedLoading) return;
+  var sentinel = document.getElementById('plannedSentinel');
+  if (!sentinel) return;
+  requestAnimationFrame(function () {
+    var rect = sentinel.getBoundingClientRect();
+    if (rect.top <= window.innerHeight + 300) {
+      loadPlanned(false);
+    }
+  });
+}
+
 function loadPlanned(silent) {
   if (plannedAllLoaded && !silent) return;
   if (plannedLoading) return;
@@ -460,6 +472,8 @@ function loadPlanned(silent) {
 
       renderPlanned(newItems, plannedPage > 1);
       plannedHash = JSON.stringify(newItems);
+
+      scheduleNextLoad();
     })
     .catch(function (err) {
       clearTimeout(timeoutId);
