@@ -1,20 +1,21 @@
-function debounce(fn, delay) {
-  var timer = null;
-  return function () {
-    var args = arguments;
-    var ctx = this;
-    clearTimeout(timer);
-    timer = setTimeout(function () { fn.apply(ctx, args); }, delay);
-  };
-}
-
-var _infiniteScrollInstances = {};
-var _preserveSimpleScroll = typeof globalThis.createInfiniteScroll === 'function'
-  ? globalThis.createInfiniteScroll : null;
-
-globalThis.createInfiniteScroll = function createInfiniteScroll(config, loadFn) {
+/**
+ * createInfiniteScroll — Factory for infinite scroll with polling support.
+ *
+ * @param {Object} config
+ * @param {string} config.sentinelId  - ID of the sentinel element for IntersectionObserver
+ * @param {number} [config.limit=20]  - Items per page
+ * @param {number} [config.timeout=15000] - AbortController timeout (ms)
+ * @param {number} [config.pollingInterval=0] - Polling interval (ms, 0 = disabled)
+ * @param {(params: {page: number, offset: number, limit: number, data: Array}, opts: {signal: AbortSignal}) => Promise<{data: Array, total: number}>} config.fetchFn
+ * @param {(items: Array) => void} [config.renderFn] - Called for each scroll batch
+ * @param {(items: Array, total: number) => void} [config.renderFullFn] - Called on polling (replaces renderFn if set)
+ * @param {(state: {page: number, total: number, data: Array, allLoaded: boolean, isPolling: boolean}) => void} [config.afterLoadFn]
+ * @param {() => string} [config.getFilterHash] - Returns hash for polling skip detection
+ * @param {(err: Error) => void} [config.onError]
+ * @returns {{init: Function, load: Function, reset: Function, destroy: Function, getState: Function}|null}
+ */
+export function createInfiniteScroll(config, loadFn) {
   if (typeof config === 'string') {
-    if (_preserveSimpleScroll) return _preserveSimpleScroll(config, loadFn);
     var sentinel = document.getElementById(config);
     if (!sentinel) return null;
     var observer = new IntersectionObserver(function (entries) {
@@ -23,7 +24,6 @@ globalThis.createInfiniteScroll = function createInfiniteScroll(config, loadFn) 
       }
     }, { rootMargin: '300px' });
     observer.observe(sentinel);
-    _infiniteScrollInstances[config] = observer;
     return observer;
   }
 
@@ -247,6 +247,22 @@ globalThis.createInfiniteScroll = function createInfiniteScroll(config, loadFn) 
     },
   };
 
-  _infiniteScrollInstances[config.sentinelId] = instance;
   return instance;
+}
+
+/**
+ * debounce — Returns a debounced version of the given function.
+ *
+ * @param {Function} fn
+ * @param {number} delay - Delay in milliseconds
+ * @returns {Function}
+ */
+export function debounce(fn, delay) {
+  var timer = null;
+  return function () {
+    var args = arguments;
+    var ctx = this;
+    clearTimeout(timer);
+    timer = setTimeout(function () { fn.apply(ctx, args); }, delay);
+  };
 }

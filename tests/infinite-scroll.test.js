@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { readFileSync } from "fs";
 import { resolve } from "path";
 
 var INTERSECTION_CALLBACK = null;
@@ -36,8 +35,7 @@ function triggerIntersection(isIntersecting) {
 }
 
 // ─── Production implementation ──────────────────────────────────────────────
-var prodCode = readFileSync(resolve(__dirname, '../public/js/components/infinite-scroll.js'), 'utf-8');
-eval(prodCode);
+var { createInfiniteScroll } = await import(resolve(__dirname, '../public/js/components/infinite-scroll.js'));
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 

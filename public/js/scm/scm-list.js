@@ -1,5 +1,7 @@
 // public/js/scm/scm-list.js
 
+import { createInfiniteScroll, debounce } from '/public/js/components/infinite-scroll.js';
+
 let scmList = [];
 var _scmScroll = null;
 let _scmTotal = 0;
@@ -732,3 +734,5 @@ function formatDateBr(date) {
     if (parts.length !== 3) return date;
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
+
+globalThis.initScm = initScm;

@@ -1,4 +1,6 @@
-﻿function hubRecase(str) {
+﻿import { debounce } from '/public/js/components/infinite-scroll.js';
+
+function hubRecase(str) {
   if (!str || str !== str.toUpperCase()) return str;
   const u = str.toUpperCase();
   if (u.startsWith('HUB ') || u.startsWith('HEADEND ')) {
@@ -162,25 +164,25 @@ function render(list, append = false) {
       'clean',
     ];
     const isStatusSearch =
-      currentSearch !== '' &&
-      statusKeywords.some((kw) => currentSearch.includes(kw));
+      globalThis.currentSearch !== '' &&
+      statusKeywords.some((kw) => globalThis.currentSearch.includes(kw));
 
     if (isStatusSearch) {
-      counter.textContent = totalOS;
+      counter.textContent = globalThis.totalOS;
       label.textContent = 'OS cadastradas';
       if (valueEl) {
         valueEl.textContent = '';
         valueEl.style.display = 'none';
       }
     } else {
-      counter.textContent = totalEquipment;
+      counter.textContent = globalThis.totalEquipment;
       label.textContent = 'máquinas cadastradas';
 
       if (valueEl) {
         const isAdminOrCoord =
           userRole === 'admin' || userRole === 'coordenador';
-        if (isAdminOrCoord && totalValor > 0) {
-          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        if (isAdminOrCoord && globalThis.totalValor > 0) {
+          valueEl.textContent = `\u2014 R$ ${globalThis.totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
           valueEl.style.display = '';
         } else {
           valueEl.textContent = '';
@@ -292,24 +294,24 @@ function syncHomeCards(newEquipment) {
       'clean',
     ];
     const isStatusSearch =
-      currentSearch !== '' &&
-      statusKeywords.some((kw) => currentSearch.includes(kw));
+      globalThis.currentSearch !== '' &&
+      statusKeywords.some((kw) => globalThis.currentSearch.includes(kw));
     if (isStatusSearch) {
-      counter.textContent = totalOS;
+      counter.textContent = globalThis.totalOS;
       label.textContent = 'OS cadastradas';
       if (valueEl) {
         valueEl.textContent = '';
         valueEl.style.display = 'none';
       }
     } else {
-      counter.textContent = totalEquipment;
+      counter.textContent = globalThis.totalEquipment;
       label.textContent = 'máquinas cadastradas';
 
       if (valueEl) {
         const isAdminOrCoord =
           userRole === 'admin' || userRole === 'coordenador';
-        if (isAdminOrCoord && totalValor > 0) {
-          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        if (isAdminOrCoord && globalThis.totalValor > 0) {
+          valueEl.textContent = `\u2014 R$ ${globalThis.totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
           valueEl.style.display = '';
         } else {
           valueEl.textContent = '';
@@ -423,7 +425,7 @@ function syncHomeCards(newEquipment) {
 }
 
 function resetState(search) {
-  currentSearch = search || '';
+  globalThis.currentSearch = search || '';
 
   const content = document.getElementById('content');
 
@@ -431,7 +433,7 @@ function resetState(search) {
     content.innerHTML = '';
   }
 
-  if (_homeScroll) _homeScroll.reset().init();
+  if (globalThis._homeScroll) globalThis._homeScroll.reset().init();
 }
 
 function setupSearch() {
@@ -605,7 +607,7 @@ function buildTicketHtml(r, canEdit) {
 }
 
 async function loadEquipmentSummary() {
-  const search = currentSearch || '';
+  const search = globalThis.currentSearch || '';
   const statusKeywords = ['pendente', 'conclu', 'planej', 'andamento', 'clean'];
   const isStatusSearch =
     search !== '' && statusKeywords.some((kw) => search.includes(kw));
@@ -622,15 +624,15 @@ async function loadEquipmentSummary() {
         result.total_equipment;
     }
     if (result.total_valor !== undefined) {
-      totalValor = result.total_valor;
+      globalThis.totalValor = result.total_valor;
       const valueEl = document.getElementById('counterValue');
       if (valueEl) {
         const currentUser = getUser();
         const userRole = currentUser ? currentUser.role : '';
         const isAdminOrCoord =
           userRole === 'admin' || userRole === 'coordenador';
-        if (isAdminOrCoord && totalValor > 0) {
-          valueEl.textContent = `\u2014 R$ ${totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        if (isAdminOrCoord && globalThis.totalValor > 0) {
+          valueEl.textContent = `\u2014 R$ ${globalThis.totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
           valueEl.style.display = '';
         } else {
           valueEl.textContent = '';
@@ -644,10 +646,10 @@ async function loadEquipmentSummary() {
 }
 
 function initHome() {
-  currentSearch = '';
-  totalEquipment = 0;
-  totalOS = 0;
-  totalValor = 0;
+  globalThis.currentSearch = '';
+  globalThis.totalEquipment = 0;
+  globalThis.totalOS = 0;
+  globalThis.totalValor = 0;
 
   const content = document.getElementById('content');
 
@@ -671,12 +673,12 @@ function initHome() {
   const searchInput = document.getElementById('searchInput');
 
   if (searchInput) {
-    searchInput.value = currentSearch || '';
+    searchInput.value = globalThis.currentSearch || '';
   }
 
   setupSearch();
   setupHomeScroll();
-  _homeScroll.init();
+  globalThis._homeScroll.init();
 
   loadEquipmentSummary();
 
@@ -696,3 +698,5 @@ function initHome() {
     })
     .catch((err) => console.error('Erro ao verificar notificações:', err));
 }
+
+globalThis.initHome = initHome;

@@ -1,3 +1,5 @@
+import { createInfiniteScroll } from '/public/js/components/infinite-scroll.js';
+
 var _cycleCurrent = '';
 var _cycleSelectedIds = new Set();
 var _cycleTotal = 0;
@@ -51,6 +53,8 @@ function initPreventiveCycle() {
 
   _cycleSetupEvents();
 }
+
+globalThis.initPreventiveCycle = initPreventiveCycle;
 
 function _cycleSetupEvents() {
   if (document._cycleSetupDone) return;

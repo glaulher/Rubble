@@ -1,3 +1,5 @@
+import { createInfiniteScroll } from '/public/js/components/infinite-scroll.js';
+
 let equipmentLimit = 20;
 let equipmentList = [];
 let equipmentSearch = '';
@@ -45,7 +47,9 @@ async function initEquipmentManager() {
         if (!result.success) {
           showToast('Erro ao carregar equipamentos', 'error');
           return { data: [], total: 0 };
-        }
+}
+
+globalThis.initEquipmentManager = initEquipmentManager;
         return { data: result.data || [], total: 0 };
       } catch (e) {
         showToast('Erro ao carregar equipamentos', 'error');

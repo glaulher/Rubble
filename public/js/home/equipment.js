@@ -1,18 +1,21 @@
-let currentSearch = '';
-let limit = 20;
-let totalEquipment = 0;
-let totalOS = 0;
-let totalValor = 0;
-let _homeScroll = null;
+import { createInfiniteScroll } from '/public/js/components/infinite-scroll.js';
+
+globalThis.currentSearch = '';
+globalThis.totalEquipment = 0;
+globalThis.totalOS = 0;
+globalThis.totalValor = 0;
+globalThis._homeScroll = null;
+
+var limit = 20;
 
 function setupHomeScroll() {
-  _homeScroll = createInfiniteScroll({
+  globalThis._homeScroll = createInfiniteScroll({
     sentinelId: 'sentinel',
     limit: limit,
     pollingInterval: 30000,
     timeout: 15000,
     fetchFn: function (params, opts) {
-      var url = '/app/api/index.php?route=equipment&limit=' + params.limit + '&search=' + encodeURIComponent(currentSearch);
+      var url = '/app/api/index.php?route=equipment&limit=' + params.limit + '&search=' + encodeURIComponent(globalThis.currentSearch);
       if (params.offset > 0 && params.data.length > 0) {
         var lastItem = params.data[params.data.length - 1];
         url += '&last_local=' + encodeURIComponent(lastItem.local || '') + '&last_equipamento=' + encodeURIComponent(lastItem.equipamento || '') + '&last_id=' + lastItem.id;
@@ -21,10 +24,10 @@ function setupHomeScroll() {
       }
       return fetch(url, opts).then(function (r) { return r.json(); }).then(function (result) {
         if (!result || !result.data) return { data: [], total: 0 };
-        totalEquipment = result.total || result.data.length;
-        totalOS = result.total_os || 0;
-        totalValor = result.total_valor || 0;
-        return { data: result.data, total: totalEquipment };
+        globalThis.totalEquipment = result.total || result.data.length;
+        globalThis.totalOS = result.total_os || 0;
+        globalThis.totalValor = result.total_valor || 0;
+        return { data: result.data, total: globalThis.totalEquipment };
       });
     },
     renderFn: function (items) {
@@ -34,13 +37,15 @@ function setupHomeScroll() {
       syncHomeCards(items);
     },
     getFilterHash: function () {
-      return currentSearch;
+      return globalThis.currentSearch;
     },
     onError: function (err) {
       console.error('Erro ao carregar equipamentos:', err);
     },
   });
 }
+
+globalThis.setupHomeScroll = setupHomeScroll;
 
 async function deleteTicket(id, button, osNumber) {
   const numericId = Number(id);
@@ -82,7 +87,7 @@ async function deleteTicket(id, button, osNumber) {
 
     if (equipCard) {
       const equipId = equipCard.dataset.equipId;
-      var scrollData = _homeScroll ? _homeScroll.getState().data : [];
+      var scrollData = globalThis._homeScroll ? globalThis._homeScroll.getState().data : [];
       const equip = scrollData.find(e => String(e.id) === String(equipId));
       if (equip && equip.tickets_count > 0) {
         equip.tickets_count--;
@@ -103,6 +108,8 @@ async function deleteTicket(id, button, osNumber) {
     showToast('Erro ao excluir registro');
   }
 }
+
+globalThis.deleteTicket = deleteTicket;
 
 function parseCSVToJSON(text) {
   if (!text || text.trim() === '') return [];
@@ -205,6 +212,8 @@ async function importOS() {
   input.click();
 }
 
+globalThis.importOS = importOS;
+
 const CSV_CHUNK = 500;
 
 async function generateCSVReport() {
@@ -213,7 +222,7 @@ async function generateCSVReport() {
     var total;
 
     while (true) {
-      var url = '/app/api/index.php?route=equipment&limit=' + CSV_CHUNK + '&search=' + encodeURIComponent(currentSearch);
+      var url = '/app/api/index.php?route=equipment&limit=' + CSV_CHUNK + '&search=' + encodeURIComponent(globalThis.currentSearch);
       if (allEquipment.length > 0) {
         var lastItem = allEquipment[allEquipment.length - 1];
         url += '&last_local=' + encodeURIComponent(lastItem.local || '') + '&last_equipamento=' + encodeURIComponent(lastItem.equipamento || '') + '&last_id=' + lastItem.id;
@@ -249,12 +258,12 @@ async function generateCSVReport() {
     var header = 'LOCAL;LOCALIDADE;EQUIPAMENTO;CAPACIDADE;STATUS;OS;DATA;DATA_PLANEJADA;DATA_CONCLUSAO;MATERIAL;OBSERVACAO';
 
     downloadCSV(
-      currentSearch && currentSearch.trim() !== ''
-        ? 'report_' + currentSearch + '.csv'
+      globalThis.currentSearch && globalThis.currentSearch.trim() !== ''
+        ? 'report_' + globalThis.currentSearch + '.csv'
         : 'report_complete.csv',
       header,
       function (addRow) {
-        var searchTerm = (currentSearch || '').toLowerCase().trim();
+        var searchTerm = (globalThis.currentSearch || '').toLowerCase().trim();
         var searchNorm = searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
         var statusKeywords = ['pendente', 'conclu', 'planej', 'andamento', 'clean'];
@@ -305,3 +314,5 @@ async function generateCSVReport() {
     showToast('Erro ao gerar relatório', 'error');
   }
 }
+
+globalThis.generateCSVReport = generateCSVReport;

@@ -1,3 +1,5 @@
+import { createInfiniteScroll } from '/public/js/components/infinite-scroll.js';
+
 let plannedSearch = '';
 let plannedDateFrom = '';
 let plannedDateTo = '';
@@ -927,6 +929,8 @@ function initPlannedActivity() {
 
   _plannedScroll.init();
 }
+
+globalThis.initPlannedActivity = initPlannedActivity;
 
 function submitPlan() {
   var dataPlanejada = document.getElementById('planData');

@@ -1,14 +1,16 @@
+import { createInfiniteScroll, debounce } from '/public/js/components/infinite-scroll.js';
+
 let pvLimit = 20;
 let pvList = [];
 var _pvScroll = null;
-let pvSearch = '';
-let pvStatusFilter = '';
-let pvCycleFilter = '';
-let pvSortBy = 'pv.id';
-let pvSortDir = 'DESC';
-let pvEmailPvId = null;
-let pvEmailPvData = null;
-let selectedPvIds = [];
+globalThis.globalThis.pvSearch = '';
+globalThis.globalThis.pvStatusFilter = '';
+globalThis.globalThis.pvCycleFilter = '';
+globalThis.globalThis.pvSortBy = 'pv.id';
+globalThis.globalThis.pvSortDir = 'DESC';
+globalThis.globalThis.pvEmailPvId = null;
+globalThis.globalThis.pvEmailPvData = null;
+globalThis.globalThis.selectedPvIds = [];
 
 function copyOs(os) {
   if (!os || os === '-') return;
@@ -160,13 +162,13 @@ function syncPvTable(newItems) {
 }
 
 function resetPvState(search, status, cycle, keepSort) {
-  selectedPvIds = [];
-  pvSearch = search;
-  pvStatusFilter = status;
-  pvCycleFilter = cycle || '';
+  globalThis.selectedPvIds = [];
+  globalThis.pvSearch = search;
+  globalThis.pvStatusFilter = status;
+  globalThis.pvCycleFilter = cycle || '';
   if (!keepSort) {
-    pvSortBy = 'pv.id';
-    pvSortDir = 'DESC';
+    globalThis.pvSortBy = 'pv.id';
+    globalThis.pvSortDir = 'DESC';
   }
   pvList = [];
 
@@ -283,10 +285,10 @@ function setupPvInfiniteScroll() {
     pollingInterval: 30000,
     fetchFn: function (params, opts) {
       var offset = params.offset;
-      var url = '/app/api/index.php?route=pv&limit=' + pvLimit + '&offset=' + offset + '&search=' + encodeURIComponent(pvSearch);
-      if (pvStatusFilter) url += '&status=' + encodeURIComponent(pvStatusFilter);
-      if (pvCycleFilter) url += '&ciclo=' + encodeURIComponent(pvCycleFilter);
-      if (pvSortBy) url += '&sort_by=' + encodeURIComponent(pvSortBy) + '&sort_dir=' + encodeURIComponent(pvSortDir);
+      var url = '/app/api/index.php?route=pv&limit=' + pvLimit + '&offset=' + offset + '&search=' + encodeURIComponent(globalThis.pvSearch);
+      if (globalThis.pvStatusFilter) url += '&status=' + encodeURIComponent(globalThis.pvStatusFilter);
+      if (globalThis.pvCycleFilter) url += '&ciclo=' + encodeURIComponent(globalThis.pvCycleFilter);
+      if (globalThis.pvSortBy) url += '&sort_by=' + encodeURIComponent(globalThis.pvSortBy) + '&sort_dir=' + encodeURIComponent(globalThis.pvSortDir);
       return fetch(url, opts).then(function (r) { return r.json(); }).then(function (result) {
         _pvTotalValor = result.total_valor || 0;
         return { data: result.data, total: result.total || 0 };
@@ -302,7 +304,7 @@ function setupPvInfiniteScroll() {
       updatePvCounter(state.total, _pvTotalValor);
     },
     getFilterHash: function () {
-      return pvSearch + '|' + pvStatusFilter + '|' + pvCycleFilter;
+      return globalThis.pvSearch + '|' + globalThis.pvStatusFilter + '|' + globalThis.pvCycleFilter;
     },
     onError: function (err) {
       console.error('Erro ao carregar PVs:', err);
@@ -314,11 +316,11 @@ function setupPvSort() {
   document.querySelectorAll('#pvTable thead th[data-sort]').forEach((th) => {
     th.addEventListener('click', function () {
       const col = this.dataset.sort;
-      if (pvSortBy === col) {
-        pvSortDir = pvSortDir === 'ASC' ? 'DESC' : 'ASC';
+      if (globalThis.pvSortBy === col) {
+        globalThis.pvSortDir = globalThis.pvSortDir === 'ASC' ? 'DESC' : 'ASC';
       } else {
-        pvSortBy = col;
-        pvSortDir = 'ASC';
+        globalThis.pvSortBy = col;
+        globalThis.pvSortDir = 'ASC';
       }
       document
         .querySelectorAll('#pvTable thead th .sort-icon')
@@ -326,8 +328,8 @@ function setupPvSort() {
           el.textContent = '';
         });
       const icon = this.querySelector('.sort-icon');
-      if (icon) icon.textContent = pvSortDir === 'ASC' ? '\u25B2' : '\u25BC';
-      resetPvState(pvSearch, pvStatusFilter, pvCycleFilter, true);
+      if (icon) icon.textContent = globalThis.pvSortDir === 'ASC' ? '\u25B2' : '\u25BC';
+      resetPvState(globalThis.pvSearch, globalThis.pvStatusFilter, globalThis.pvCycleFilter, true);
     });
   });
 }
@@ -336,7 +338,7 @@ function updateBatchButton() {
   const batchBtn = document.getElementById('batchEmailBtn');
   const selectedCountEl = document.getElementById('selectedCount');
   if (!batchBtn || !selectedCountEl) return;
-  const count = selectedPvIds.length;
+  const count = globalThis.selectedPvIds.length;
   if (count > 0) {
     batchBtn.classList.remove('hidden');
     selectedCountEl.textContent = count;
@@ -357,9 +359,9 @@ function setupPvCheckboxes() {
     if (!cb) return;
     const id = parseInt(cb.dataset.pvId);
     if (cb.checked) {
-      if (!selectedPvIds.includes(id)) selectedPvIds.push(id);
+      if (!globalThis.selectedPvIds.includes(id)) globalThis.selectedPvIds.push(id);
     } else {
-      selectedPvIds = selectedPvIds.filter((v) => v !== id);
+      globalThis.selectedPvIds = globalThis.selectedPvIds.filter((v) => v !== id);
     }
     updateBatchButton();
   });
@@ -370,18 +372,18 @@ function setupPvCheckboxes() {
       cb.checked = checked;
       const id = parseInt(cb.dataset.pvId);
       if (checked) {
-        if (!selectedPvIds.includes(id)) selectedPvIds.push(id);
+        if (!globalThis.selectedPvIds.includes(id)) globalThis.selectedPvIds.push(id);
       } else {
-        selectedPvIds = selectedPvIds.filter((v) => v !== id);
+        globalThis.selectedPvIds = globalThis.selectedPvIds.filter((v) => v !== id);
       }
     });
     updateBatchButton();
   });
 
   batchBtn.addEventListener('click', async function () {
-    if (selectedPvIds.length === 0) return;
+    if (globalThis.selectedPvIds.length === 0) return;
     try {
-      const ids = selectedPvIds.join(',');
+      const ids = globalThis.selectedPvIds.join(',');
       const res = await fetch(
         `/app/api/index.php?route=pv&action=list-by-ids&ids=${ids}`
       );
@@ -390,7 +392,7 @@ function setupPvCheckboxes() {
         openPvEmailModal({
           batch: true,
           pvs: result.data.pvs,
-          ids: selectedPvIds.slice(),
+          ids: globalThis.selectedPvIds.slice(),
         });
       } else {
         showToast('Erro ao carregar PVs selecionadas', 'error');
@@ -406,7 +408,7 @@ function setupPvCheckboxes() {
 
 function initPv() {
   pvList = [];
-  selectedPvIds = [];
+  globalThis.selectedPvIds = [];
 
   const tbody = document.getElementById('pvTableBody');
   if (tbody) tbody.innerHTML = '';
@@ -415,13 +417,13 @@ function initPv() {
   if (empty) empty.classList.add('hidden');
 
   const searchInputPv = document.getElementById('searchInputPv');
-  if (searchInputPv) searchInputPv.value = pvSearch;
+  if (searchInputPv) searchInputPv.value = globalThis.pvSearch;
 
   const statusFilterInput = document.getElementById('statusFilter');
-  if (statusFilterInput) statusFilterInput.value = pvStatusFilter;
+  if (statusFilterInput) statusFilterInput.value = globalThis.pvStatusFilter;
 
   const cicloFilterInput = document.getElementById('cicloFilter');
-  if (cicloFilterInput) cicloFilterInput.value = pvCycleFilter;
+  if (cicloFilterInput) cicloFilterInput.value = globalThis.pvCycleFilter;
 
   setupPvSearch();
   setupPvStatusFilter();
@@ -451,3 +453,6 @@ function initPv() {
 
   if (_pvScroll) _pvScroll.init();
 }
+
+globalThis.resetPvState = resetPvState;
+globalThis.initPv = initPv;
