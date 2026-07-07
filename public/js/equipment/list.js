@@ -47,9 +47,7 @@ async function initEquipmentManager() {
         if (!result.success) {
           showToast('Erro ao carregar equipamentos', 'error');
           return { data: [], total: 0 };
-}
-
-globalThis.initEquipmentManager = initEquipmentManager;
+        }
         return { data: result.data || [], total: 0 };
       } catch (e) {
         showToast('Erro ao carregar equipamentos', 'error');
@@ -66,6 +64,8 @@ globalThis.initEquipmentManager = initEquipmentManager;
   }).init();
   setupEquipmentSearch();
 }
+
+globalThis.initEquipmentManager = initEquipmentManager;
 
 function navigateEquipmentFormHandler() { window.location.hash = '#/equipmentForm'; }
 

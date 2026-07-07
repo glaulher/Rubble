@@ -226,6 +226,7 @@ function initScm() {
         importBtn.addEventListener('click', () => importScm());
     }
 
+    if (_scmScroll) _scmScroll.destroy();
     setupScmScroll();
     _scmScroll.init();
 }

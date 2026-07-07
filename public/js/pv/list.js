@@ -3,14 +3,14 @@ import { createInfiniteScroll, debounce } from '/public/js/components/infinite-s
 let pvLimit = 20;
 let pvList = [];
 var _pvScroll = null;
-globalThis.globalThis.pvSearch = '';
-globalThis.globalThis.pvStatusFilter = '';
-globalThis.globalThis.pvCycleFilter = '';
-globalThis.globalThis.pvSortBy = 'pv.id';
-globalThis.globalThis.pvSortDir = 'DESC';
-globalThis.globalThis.pvEmailPvId = null;
-globalThis.globalThis.pvEmailPvData = null;
-globalThis.globalThis.selectedPvIds = [];
+globalThis.pvSearch = '';
+globalThis.pvStatusFilter = '';
+globalThis.pvCycleFilter = '';
+globalThis.pvSortBy = 'pv.id';
+globalThis.pvSortDir = 'DESC';
+globalThis.pvEmailPvId = null;
+globalThis.pvEmailPvData = null;
+globalThis.selectedPvIds = [];
 
 function copyOs(os) {
   if (!os || os === '-') return;
@@ -429,6 +429,7 @@ function initPv() {
   setupPvStatusFilter();
   setupPvCycleFilter();
   setupPvSort();
+  if (_pvScroll) _pvScroll.destroy();
   setupPvInfiniteScroll();
   setupPvCheckboxes();
 

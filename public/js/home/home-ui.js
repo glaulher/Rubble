@@ -700,3 +700,6 @@ function initHome() {
 }
 
 globalThis.initHome = initHome;
+globalThis.render = render;
+globalThis.syncHomeCards = syncHomeCards;
+globalThis.hubRecase = hubRecase;

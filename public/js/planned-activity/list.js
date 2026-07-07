@@ -810,6 +810,7 @@ function initPlannedActivity() {
   if (contentEl) contentEl.innerHTML = '';
 
   setupPlannedFilters();
+  if (_plannedScroll) _plannedScroll.destroy();
   setupPlannedScroll();
 
   var dateFromEl = document.getElementById('plannedDateFrom');
