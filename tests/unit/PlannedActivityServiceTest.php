@@ -111,4 +111,80 @@ class PlannedActivityServiceTest extends TestCase
 
         $this->assertSame('updated', $result['action']);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | duplicateDay() tests
+    |--------------------------------------------------------------------------
+    */
+
+    public function testDuplicateDayThrowsWhenSameDate(): void
+    {
+        $service = $this->createService($this->createMockRepo());
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('A data de destino deve ser diferente');
+
+        $service->duplicateDay('2026-07-15', '2026-07-15');
+    }
+
+    public function testDuplicateDayThrowsWhenInvalidSourceFormat(): void
+    {
+        $service = $this->createService($this->createMockRepo());
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Formato da data de origem inválido');
+
+        $service->duplicateDay('15/07/2026', '2026-07-16');
+    }
+
+    public function testDuplicateDayThrowsWhenInvalidTargetFormat(): void
+    {
+        $service = $this->createService($this->createMockRepo());
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Formato da data de destino inválido');
+
+        $service->duplicateDay('2026-07-15', '16/07/2026');
+    }
+
+    public function testDuplicateDayThrowsWhenNoItemsFound(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('findByDate')->willReturn([]);
+
+        $service = $this->createService($repo);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Nenhuma atividade encontrada');
+
+        $service->duplicateDay('2026-07-15', '2026-07-16');
+    }
+
+    public function testDuplicateDayDuplicatesPreventivaAndCorretiva(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('findByDate')->willReturn([
+            ['id' => 1, 'tipo' => 'preventiva'],
+            ['id' => 2, 'tipo' => 'corretiva'],
+            ['id' => 3, 'tipo' => 'preventiva'],
+        ]);
+
+        $repo->expects($this->exactly(2))
+            ->method('duplicatePreventivaToDate')
+            ->withConsecutive(
+                [1, '2026-07-16', 'Planejado'],
+                [3, '2026-07-16', 'Planejado'],
+            );
+
+        $repo->expects($this->exactly(1))
+            ->method('duplicateCorretivaToDate')
+            ->with(2, '2026-07-16', 'Planejado', 'planning');
+
+        $service = $this->createService($repo);
+        $result = $service->duplicateDay('2026-07-15', '2026-07-16');
+
+        $this->assertSame('duplicated', $result['action']);
+        $this->assertSame(3, $result['count']);
+    }
 }

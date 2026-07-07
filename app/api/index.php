@@ -267,7 +267,13 @@ $router->addRoute('planned-activities', 'GET', function () use ($auth) {
     }
 });
 $router->addRoute('planned-activities', 'POST', function () use ($auth) {
-    (new PlannedActivityController($auth->getUser()))->plan();
+    $ctrl = new PlannedActivityController($auth->getUser());
+    $action = $_GET['action'] ?? '';
+    if ($action === 'duplicate') {
+        $ctrl->duplicate();
+    } else {
+        $ctrl->plan();
+    }
 });
 $router->addRoute('planned-activities', 'PUT', function () use ($auth) {
     (new PlannedActivityController($auth->getUser()))->updateTeam();

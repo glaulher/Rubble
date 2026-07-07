@@ -95,6 +95,36 @@ class PlannedActivityController
 
     /*
     |--------------------------------------------------------------------------
+    | DUPLICATE DAY
+    |--------------------------------------------------------------------------
+    */
+
+    public function duplicate(): void
+    {
+        try {
+            $data = Request::body();
+
+            Validator::required($data, ['source_date', 'target_date']);
+
+            $sourceDate = trim($data['source_date']);
+            $targetDate = trim($data['target_date']);
+
+            $result = $this->service->duplicateDay($sourceDate, $targetDate);
+
+            Cache::deleteByPrefix('equipment_list:');
+            Cache::deleteByPrefix('planned_activities:');
+
+            Response::success('Programação duplicada com sucesso', $result);
+
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | PLAN (Criar ou atualizar para Planejado)
     |--------------------------------------------------------------------------
     */

@@ -271,4 +271,75 @@ class PlannedActivityRepository extends BaseRepository
         }
         return $search;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DUPLICATE DAY
+    |--------------------------------------------------------------------------
+    */
+
+    public function findByDate(string $date): array
+    {
+        $sql = "
+            SELECT 'preventiva' AS tipo, id, site, ticket AS os, data_planejada, equipe, status, obs
+            FROM atividades_preventivas
+            WHERE data_planejada = ?
+            UNION ALL
+            SELECT 'corretiva' AS tipo, id, '' AS site, os, data_planejada, equipe, status, obs
+            FROM registros
+            WHERE data_planejada = ? AND tipo = 'corretiva'
+        ";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('ss', $date, $date);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $items = [];
+        while ($row = $result->fetch_assoc()) {
+            $items[] = $row;
+        }
+        return $items;
+    }
+
+    public function duplicatePreventivaToDate(int $id, string $targetDate, string $status): int
+    {
+        $sql = "
+            INSERT INTO atividades_preventivas (site, ticket, data_planejada, equipe, status, obs)
+            SELECT site, ticket, ?, equipe, ?, obs
+            FROM atividades_preventivas
+            WHERE id = ?
+        ";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('ssi', $targetDate, $status, $id);
+        $stmt->execute();
+        return (int) $this->conn->insert_id;
+    }
+
+    public function duplicateCorretivaToDate(int $id, string $targetDate, string $status, string $origin): int
+    {
+        $sql = "
+            INSERT INTO registros (equipamento_id, os, data, equipe, status, data_planejada, material, obs, origin, tipo)
+            SELECT equipamento_id, os, CURDATE(), equipe, ?, ?, material, obs, ?, 'corretiva'
+            FROM registros
+            WHERE id = ?
+        ";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('sssi', $status, $targetDate, $origin, $id);
+        $stmt->execute();
+        return (int) $this->conn->insert_id;
+    }
+
+    public function isDateFree(string $date, int $id, string $tipo): bool
+    {
+        if ($tipo === 'preventiva') {
+            $sql = "SELECT COUNT(*) AS cnt FROM atividades_preventivas WHERE data_planejada = ? AND id = ?";
+        } else {
+            $sql = "SELECT COUNT(*) AS cnt FROM registros WHERE data_planejada = ? AND id = ? AND tipo = 'corretiva'";
+        }
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('si', $date, $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return ($row['cnt'] ?? 0) > 0;
+    }
 }

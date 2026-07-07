@@ -25,6 +25,18 @@ const PLANNED_MESES = [
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
 ];
 
+const DIAS_SEMANA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+
+function duplicateDayIconHtml(dateStr) {
+  if (!canEditPlanned()) return '';
+  var safeDate = dateStr.replace(/"/g, '\\"');
+  return '<button class="inline-flex items-center justify-center text-slate-400 hover:text-emerald-600 ml-2 align-middle transition-colors" data-action="duplicate-day" data-date="' + safeDate + '" aria-label="Duplicar programação deste dia" title="Duplicar programação">' +
+    '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' +
+    '</svg>' +
+  '</button>';
+}
+
 function formatDateTimeline(dateStr) {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
@@ -32,7 +44,9 @@ function formatDateTimeline(dateStr) {
   const ano = parseInt(parts[0], 10);
   const mes = parseInt(parts[1], 10) - 1;
   const dia = parseInt(parts[2], 10);
-  return dia + ' de ' + PLANNED_MESES[mes] + ' de ' + ano;
+  const dt = new Date(ano, mes, dia);
+  const diaSemana = DIAS_SEMANA[dt.getDay()];
+  return diaSemana + ', ' + dia + ' de ' + PLANNED_MESES[mes] + ' de ' + ano;
 }
 
 function plannedStatusBadgeHtml(status) {
@@ -40,6 +54,12 @@ function plannedStatusBadgeHtml(status) {
   const lower = status.toLowerCase().trim();
   const colorClass = PLANNED_STATUS_BADGES[lower] || 'bg-slate-100 text-slate-700';
   return '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium ' + colorClass + '">' + escapeHtml(status) + '</span>';
+}
+
+function canEditPlanned() {
+  if (typeof getUser !== 'function') return false;
+  var user = getUser();
+  return user && (user.role === 'admin' || user.role === 'coordenador');
 }
 
 function buildPlannedCardHtml(item) {
@@ -286,7 +306,7 @@ function renderPlanned(items, append) {
     }
 
     html += '<div class="timeline-group" data-date="' + safeDate + '">' +
-      '<h2 class="text-lg font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">' + escapeHtml(dateLabel) + '</h2>' +
+      '<h2 class="text-lg font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">' + escapeHtml(dateLabel) + duplicateDayIconHtml(dateKey) + '</h2>' +
       '<div class="space-y-3">';
 
     groupItems.forEach(function (item) {
@@ -366,7 +386,7 @@ function syncPlannedCards(newItems, total) {
     } else {
       var dateLabel = dateKey === 'sem_data' ? 'Sem data' : formatDateTimeline(dateKey);
       var groupHtml = '<div class="timeline-group" data-date="' + safeDate + '">' +
-        '<h2 class="text-lg font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">' + escapeHtml(dateLabel) + '</h2>' +
+        '<h2 class="text-lg font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">' + escapeHtml(dateLabel) + duplicateDayIconHtml(dateKey) + '</h2>' +
         '<div class="space-y-3">';
       groupItems.forEach(function (item) {
         groupHtml += buildPlannedCardHtml(item);
@@ -866,6 +886,16 @@ function initPlannedActivity() {
     });
   }
 
+  var btnConfirmDup = document.getElementById('btnConfirmDuplicate');
+  if (btnConfirmDup) {
+    btnConfirmDup.addEventListener('click', confirmDuplicate);
+  }
+
+  var btnCancelDup = document.getElementById('btnCancelDuplicate');
+  if (btnCancelDup) {
+    btnCancelDup.addEventListener('click', closeDuplicateModal);
+  }
+
   var btnCancelStatus = document.getElementById('btnCancelStatus');
   if (btnCancelStatus) {
     btnCancelStatus.addEventListener('click', closeStatusPreventiva);
@@ -917,6 +947,13 @@ function initPlannedActivity() {
         var currentStatus = statusBtn.getAttribute('data-status');
         var currentDate = statusBtn.getAttribute('data-date');
         if (statusId) openStatusPreventiva(statusId, currentStatus, currentDate);
+        return;
+      }
+
+      var dupBtn = e.target.closest('[data-action="duplicate-day"]');
+      if (dupBtn) {
+        var dupDate = dupBtn.getAttribute('data-date');
+        if (dupDate) showDuplicateModal(dupDate, formatDateTimeline(dupDate));
         return;
       }
     });
@@ -1118,6 +1155,61 @@ function closeStatusPreventiva() {
   if (dateGroup) dateGroup.classList.add('hidden');
   var dateInput = document.getElementById('statusDataPlanejada');
   if (dateInput) dateInput.value = '';
+}
+
+var _duplicateSourceDate = null;
+
+function showDuplicateModal(sourceDate, dateLabel) {
+  var modal = document.getElementById('modalDuplicateDay');
+  var label = document.getElementById('duplicateDayLabel');
+  var input = document.getElementById('duplicateTargetDate');
+  if (!modal || !label || !input) return;
+  _duplicateSourceDate = sourceDate;
+  label.innerHTML = 'Duplicar atividades de <strong>' + escapeHtml(dateLabel) + '</strong> para:';
+  input.value = '';
+  modal.classList.remove('hidden');
+}
+
+function closeDuplicateModal() {
+  var modal = document.getElementById('modalDuplicateDay');
+  if (modal) modal.classList.add('hidden');
+  _duplicateSourceDate = null;
+}
+
+function confirmDuplicate() {
+  var sourceDate = _duplicateSourceDate;
+  var targetDate = document.getElementById('duplicateTargetDate');
+  if (!sourceDate) { showToast('Data de origem não definida.', 'error'); return; }
+  if (!targetDate || !targetDate.value) { showToast('Selecione a data de destino.', 'error'); targetDate.focus(); return; }
+
+  if (targetDate.value === sourceDate) {
+    showToast('A data de destino deve ser diferente da data de origem.', 'error');
+    return;
+  }
+
+  var btn = document.getElementById('btnConfirmDuplicate');
+  if (btn) { btn.disabled = true; btn.textContent = 'Duplicando...'; }
+
+  apiFetch('/app/api/index.php?route=planned-activities&action=duplicate', {
+    method: 'POST',
+    body: JSON.stringify({ source_date: sourceDate, target_date: targetDate.value }),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (result) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Duplicar'; }
+      if (result && result.success) {
+        showToast('Programação duplicada com sucesso! ' + (result.data && result.data.count ? result.data.count + ' atividades' : ''), 'success');
+        closeDuplicateModal();
+        resetPlannedState('');
+      } else {
+        showToast(result && result.message ? result.message : 'Erro ao duplicar.', 'error');
+      }
+    })
+    .catch(function (err) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Duplicar'; }
+      showToast('Erro ao duplicar programação.', 'error');
+      console.error('Erro ao duplicar:', err);
+    });
 }
 
 function submitStatusPreventiva() {

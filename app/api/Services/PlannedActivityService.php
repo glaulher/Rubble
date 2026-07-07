@@ -136,6 +136,40 @@ class PlannedActivityService
         return ['action' => 'updated', 'id' => $id];
     }
 
+    public function duplicateDay(string $sourceDate, string $targetDate): array
+    {
+        if ($sourceDate === $targetDate) {
+            throw new \RuntimeException('A data de destino deve ser diferente da data de origem.');
+        }
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $sourceDate)) {
+            throw new \RuntimeException('Formato da data de origem inválido.');
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $targetDate)) {
+            throw new \RuntimeException('Formato da data de destino inválido.');
+        }
+
+        $items = $this->repository->findByDate($sourceDate);
+        if (empty($items)) {
+            throw new \RuntimeException('Nenhuma atividade encontrada na data de origem.');
+        }
+
+        $status = self::DEFAULT_STATUS; // 'Planejado'
+        $origin = self::DEFAULT_ORIGIN; // 'planning'
+        $count = 0;
+
+        foreach ($items as $item) {
+            if ($item['tipo'] === 'preventiva') {
+                $this->repository->duplicatePreventivaToDate((int) $item['id'], $targetDate, $status);
+            } else {
+                $this->repository->duplicateCorretivaToDate((int) $item['id'], $targetDate, $status, $origin);
+            }
+            $count++;
+        }
+
+        return ['action' => 'duplicated', 'count' => $count];
+    }
+
     public function delete(int $id): array
     {
         $existing = $this->repository->getById($id);
