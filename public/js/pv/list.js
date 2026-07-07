@@ -1,8 +1,6 @@
-let pvPage = 0;
 let pvLimit = 20;
-let pvLoading = false;
-let pvAllLoaded = false;
 let pvList = [];
+var _pvScroll = null;
 let pvSearch = '';
 let pvStatusFilter = '';
 let pvCycleFilter = '';
@@ -11,7 +9,6 @@ let pvSortDir = 'DESC';
 let pvEmailPvId = null;
 let pvEmailPvData = null;
 let selectedPvIds = [];
-let lastPvHash = '';
 
 function copyOs(os) {
   if (!os || os === '-') return;
@@ -40,83 +37,6 @@ function fallbackCopy(text) {
     showToast('Erro ao copiar', 'error');
   }
   document.body.removeChild(textarea);
-}
-
-async function loadPvs(isPolling) {
-  if (pvLoading) return;
-
-  if (isPolling) {
-    pvLoading = true;
-    try {
-      let url = `/app/api/index.php?route=pv&limit=${pvLimit}&offset=0&search=${encodeURIComponent(pvSearch)}`;
-      if (pvStatusFilter) url += `&status=${encodeURIComponent(pvStatusFilter)}`;
-      if (pvCycleFilter) url += `&ciclo=${encodeURIComponent(pvCycleFilter)}`;
-      if (pvSortBy) url += `&sort_by=${encodeURIComponent(pvSortBy)}&sort_dir=${encodeURIComponent(pvSortDir)}`;
-
-      const response = await fetch(url);
-      const result = await response.json();
-
-      const newHash = result._hash || JSON.stringify(result);
-      if (newHash === lastPvHash) {
-        pvLoading = false;
-        return;
-      }
-      lastPvHash = newHash;
-
-      const newItems = result.data || [];
-      pvList = newItems;
-      pvAllLoaded = newItems.length < pvLimit;
-      pvPage = 1;
-
-      syncPvTable(newItems);
-      updatePvCounter(result.total, result.total_valor);
-    } catch (error) {
-      console.error('Erro ao carregar PVs:', error);
-    } finally {
-      pvLoading = false;
-    }
-    return;
-  }
-
-  if (pvAllLoaded) return;
-
-  pvLoading = true;
-
-  try {
-    const offset = pvPage * pvLimit;
-    let url = `/app/api/index.php?route=pv&limit=${pvLimit}&offset=${offset}&search=${encodeURIComponent(pvSearch)}`;
-
-    if (pvStatusFilter) {
-      url += `&status=${encodeURIComponent(pvStatusFilter)}`;
-    }
-
-    if (pvCycleFilter) {
-      url += `&ciclo=${encodeURIComponent(pvCycleFilter)}`;
-    }
-
-    if (pvSortBy) {
-      url += `&sort_by=${encodeURIComponent(pvSortBy)}&sort_dir=${encodeURIComponent(pvSortDir)}`;
-    }
-
-    const response = await fetch(url);
-    const result = await response.json();
-
-    const newItems = result.data || [];
-
-    if (newItems.length < pvLimit) {
-      pvAllLoaded = true;
-    }
-
-    pvList.push(...newItems);
-    renderPvs(newItems, true);
-    pvPage++;
-
-    updatePvCounter(result.total, result.total_valor);
-  } catch (error) {
-    console.error('Erro ao carregar PVs:', error);
-  } finally {
-    pvLoading = false;
-  }
 }
 
 function buildPvRowHtml(pv) {
@@ -248,38 +168,34 @@ function resetPvState(search, status, cycle, keepSort) {
     pvSortBy = 'pv.id';
     pvSortDir = 'DESC';
   }
-  pvPage = 0;
-  pvAllLoaded = false;
-  pvLoading = false;
   pvList = [];
-  lastPvHash = '';
 
   const tbody = document.getElementById('pvTableBody');
   if (tbody) tbody.innerHTML = '';
 
   const empty = document.getElementById('pvEmpty');
   if (empty) empty.classList.add('hidden');
+
+  if (_pvScroll) _pvScroll.reset().init();
 }
 
 function setupPvSearch() {
   const searchInputPv = document.getElementById('searchInputPv');
   if (!searchInputPv) return;
 
-  searchInputPv.addEventListener('click', async function () {
+  searchInputPv.addEventListener('click', function () {
     if (this.value.trim() !== '') {
       this.value = '';
       const status = document.getElementById('statusFilter').value;
       const ciclo = document.getElementById('cicloFilter').value;
       resetPvState('', status, ciclo, true);
-      await loadPvs();
     }
   });
 
-  const onSearch = debounce(async () => {
+  const onSearch = debounce(function () {
     const status = document.getElementById('statusFilter').value;
     const ciclo = document.getElementById('cicloFilter').value;
     resetPvState(searchInputPv.value.toLowerCase().trim(), status, ciclo, true);
-    await loadPvs();
   }, 1000);
 
   searchInputPv.addEventListener('input', onSearch);
@@ -298,7 +214,7 @@ function setupPvStatusFilter() {
   const filter = document.getElementById('statusFilter');
   if (!filter) return;
 
-  filter.addEventListener('click', async function () {
+  filter.addEventListener('click', function () {
     if (this.value.trim() !== '') {
       this.value = '';
       const search = document
@@ -307,18 +223,16 @@ function setupPvStatusFilter() {
         .trim();
       const ciclo = document.getElementById('cicloFilter').value;
       resetPvState(search, '', ciclo, true);
-      await loadPvs();
     }
   });
 
-  filter.addEventListener('input', async function () {
+  filter.addEventListener('input', function () {
     const search = document
       .getElementById('searchInputPv')
-      .value.toLowerCase()
-      .trim();
+        .value.toLowerCase()
+        .trim();
     const ciclo = document.getElementById('cicloFilter').value;
     resetPvState(search, this.value, ciclo, true);
-    await loadPvs();
   });
 }
 
@@ -326,7 +240,7 @@ function setupPvCycleFilter() {
   const filter = document.getElementById('cicloFilter');
   if (!filter) return;
 
-  filter.addEventListener('click', async function () {
+  filter.addEventListener('click', function () {
     if (this.value.trim() !== '') {
       this.value = '';
       const search = document
@@ -335,7 +249,6 @@ function setupPvCycleFilter() {
         .trim();
       const status = document.getElementById('statusFilter').value;
       resetPvState(search, status, '', true);
-      await loadPvs();
     }
   });
 
@@ -348,7 +261,7 @@ function setupPvCycleFilter() {
     });
   }
 
-  filter.addEventListener('input', async function () {
+  filter.addEventListener('input', function () {
     const val = this.value.trim();
     if (val.length > 0 && val.length < 4) return;
 
@@ -358,12 +271,43 @@ function setupPvCycleFilter() {
       .trim();
     const status = document.getElementById('statusFilter').value;
     resetPvState(search, status, val, true);
-    await loadPvs();
   });
 }
 
 function setupPvInfiniteScroll() {
-  createInfiniteScroll('sentinel', () => loadPvs());
+  var _pvTotalValor = 0;
+
+  _pvScroll = createInfiniteScroll({
+    sentinelId: 'sentinel',
+    limit: pvLimit,
+    pollingInterval: 30000,
+    fetchFn: function (params, opts) {
+      var offset = params.offset;
+      var url = '/app/api/index.php?route=pv&limit=' + pvLimit + '&offset=' + offset + '&search=' + encodeURIComponent(pvSearch);
+      if (pvStatusFilter) url += '&status=' + encodeURIComponent(pvStatusFilter);
+      if (pvCycleFilter) url += '&ciclo=' + encodeURIComponent(pvCycleFilter);
+      if (pvSortBy) url += '&sort_by=' + encodeURIComponent(pvSortBy) + '&sort_dir=' + encodeURIComponent(pvSortDir);
+      return fetch(url, opts).then(function (r) { return r.json(); }).then(function (result) {
+        _pvTotalValor = result.total_valor || 0;
+        return { data: result.data, total: result.total || 0 };
+      });
+    },
+    renderFn: function (items) {
+      renderPvs(items, true);
+    },
+    renderFullFn: function (items) {
+      syncPvTable(items);
+    },
+    afterLoadFn: function (state) {
+      updatePvCounter(state.total, _pvTotalValor);
+    },
+    getFilterHash: function () {
+      return pvSearch + '|' + pvStatusFilter + '|' + pvCycleFilter;
+    },
+    onError: function (err) {
+      console.error('Erro ao carregar PVs:', err);
+    },
+  });
 }
 
 function setupPvSort() {
@@ -384,7 +328,6 @@ function setupPvSort() {
       const icon = this.querySelector('.sort-icon');
       if (icon) icon.textContent = pvSortDir === 'ASC' ? '\u25B2' : '\u25BC';
       resetPvState(pvSearch, pvStatusFilter, pvCycleFilter, true);
-      loadPvs();
     });
   });
 }
@@ -462,12 +405,8 @@ function setupPvCheckboxes() {
 }
 
 function initPv() {
-  pvPage = 0;
-  pvAllLoaded = false;
-  pvLoading = false;
   pvList = [];
   selectedPvIds = [];
-  lastPvHash = '';
 
   const tbody = document.getElementById('pvTableBody');
   if (tbody) tbody.innerHTML = '';
@@ -510,7 +449,5 @@ function initPv() {
   document.querySelector('[data-action="close-status-modal"]')
     ?.addEventListener('click', closeStatusModal);
 
-  PollingManager.start('pv', function () { loadPvs(true); }, 30000);
-
-  loadPvs();
+  if (_pvScroll) _pvScroll.init();
 }

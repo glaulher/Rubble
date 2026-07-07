@@ -1,7 +1,7 @@
 var _cycleCurrent = '';
 var _cycleSelectedIds = new Set();
 var _cycleTotal = 0;
-var _cyclePage = 0;
+var _cycleScroll = null;
 var _cycleLimit = 20;
 var _cycleDirtyChecks = new Map();
 var _cycleFilter = 'all';
@@ -30,12 +30,12 @@ function initPreventiveCycle() {
   _cycleCurrent = '';
   _cycleSelectedIds = new Set();
   _cycleTotal = 0;
-  _cyclePage = 0;
   _cycleDirtyChecks = new Map();
   _cycleFilter = 'all';
   _cycleScmValidationCache = {};
   _cycleSummaryData = null;
   _cycleScmData = null;
+  if (_cycleScroll) { _cycleScroll.destroy(); _cycleScroll = null; }
 
   var sel = document.getElementById('selectAllCycle');
   if (sel) sel.checked = false;
@@ -65,14 +65,9 @@ function _cycleSetupEvents() {
       clearTimeout(cycleTimer);
       cycleTimer = setTimeout(function () {
         _cycleCurrent = val;
-        _cyclePage = 0;
         _cycleSelectedIds = new Set();
         _cycleDirtyChecks = new Map();
         _cycleScmValidationCache = {};
-        var sel = document.getElementById('selectAllCycle');
-        if (sel) sel.checked = false;
-        var content = document.getElementById('cycleContent');
-        if (content) content.innerHTML = '';
         _cycleLoadList(val);
       }, 300);
     }
@@ -137,26 +132,14 @@ function _cycleSetupEvents() {
     searchInput.addEventListener('click', function () {
       if (this.value.trim() !== '') {
         this.value = '';
-        _cyclePage = 0;
-        _cycleSelectedIds = new Set();
-        var sel = document.getElementById('selectAllCycle');
-        if (sel) sel.checked = false;
-        var content = document.getElementById('cycleContent');
-        if (content) content.innerHTML = '';
         _cycleLoadList(_cycleCurrent);
       }
     });
     searchInput.addEventListener('input', function () {
       clearTimeout(timer);
       timer = setTimeout(function () {
-        _cyclePage = 0;
-        _cycleSelectedIds = new Set();
         _cycleSummaryData = null;
         _cycleScmData = null;
-        var sel = document.getElementById('selectAllCycle');
-        if (sel) sel.checked = false;
-        var content = document.getElementById('cycleContent');
-        if (content) content.innerHTML = '';
         _cycleLoadList(_cycleCurrent);
       }, 1000);
     });
@@ -166,29 +149,13 @@ function _cycleSetupEvents() {
   filterRadios.forEach(function (radio) {
     radio.addEventListener('change', function () {
       _cycleFilter = this.value;
-      _cyclePage = 0;
-      _cycleSelectedIds = new Set();
       _cycleSummaryData = null;
       _cycleScmData = null;
-      var sel = document.getElementById('selectAllCycle');
-      if (sel) sel.checked = false;
-      var content = document.getElementById('cycleContent');
-      if (content) content.innerHTML = '';
       _cycleLoadList(_cycleCurrent);
     });
   });
 
-  var sentinel = document.getElementById('cycleSentinel');
-  if (sentinel) {
-    if (window._cycleObserver) window._cycleObserver.disconnect();
-    window._cycleObserver = new IntersectionObserver(function (entries) {
-      if (entries[0].isIntersecting && _cycleCurrent) {
-        _cyclePage++;
-        _cycleLoadList(_cycleCurrent, true);
-      }
-    }, { rootMargin: '300px' });
-    window._cycleObserver.observe(sentinel);
-  }
+  _cycleSetupScroll();
 
   if (window.PollingManager) {
     PollingManager.start('preventive-summary', function () {
@@ -213,38 +180,57 @@ function _cycleSetupEvents() {
   }
 }
 
-function _cycleLoadList(ciclo, append) {
-  if (append === undefined) append = false;
+function _cycleSetupScroll() {
+  if (_cycleScroll) _cycleScroll.destroy();
+  _cycleScroll = createInfiniteScroll({
+    sentinelId: 'cycleSentinel',
+    limit: _cycleLimit,
+    fetchFn: function (params, opts) {
+      if (!_cycleCurrent) return Promise.resolve({ data: [], total: 0 });
+      var searchEl = document.getElementById('cycleSearch');
+      var search = searchEl ? searchEl.value.trim() : '';
+      var url = '/app/api/index.php?route=preventive-cycle&ciclo=' + encodeURIComponent(_cycleCurrent)
+        + '&limit=' + params.limit + '&offset=' + params.offset;
+      if (search) url += '&search=' + encodeURIComponent(search);
+      if (_cycleFilter === 'selecionados') url += '&checked=1';
+      if (_cycleFilter === 'observacao') url += '&has_observacao=1';
+      if (_cycleFilter === 'sem_scm') url += '&no_scm=1';
+      if (_cycleFilter === 'lancados') url += '&scm_lancados=1';
+      return apiFetch(url, opts)
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+          if (!result.success) return { data: [], total: 0 };
+          return { data: result.data || [], total: result.total || 0 };
+        });
+    },
+    renderFn: function (items) {
+      _cycleRenderCards(items, true);
+    },
+    afterLoadFn: function (state) {
+      _cycleTotal = state.total;
+      _cycleFetchSummary(_cycleCurrent);
+      _cycleFetchScmStatusCount(_cycleCurrent);
+    },
+    getFilterHash: function () {
+      var searchEl = document.getElementById('cycleSearch');
+      return (_cycleCurrent || '') + '|' + (_cycleFilter || 'all') + '|' + (searchEl ? searchEl.value.trim() : '');
+    },
+    onError: function (err) {
+      console.warn('[preventive-cycle]', err);
+    },
+  });
+}
+
+function _cycleLoadList(ciclo) {
   if (!ciclo) return;
-  var offset = append ? _cyclePage * _cycleLimit : 0;
-  var searchEl = document.getElementById('cycleSearch');
-  var search = searchEl ? searchEl.value.trim() : '';
-
-  var url = '/app/api/index.php?route=preventive-cycle&ciclo=' + encodeURIComponent(ciclo)
-    + '&limit=' + _cycleLimit + '&offset=' + offset;
-  if (search) url += '&search=' + encodeURIComponent(search);
-  if (_cycleFilter === 'selecionados') url += '&checked=1';
-  if (_cycleFilter === 'observacao') url += '&has_observacao=1';
-  if (_cycleFilter === 'sem_scm') url += '&no_scm=1';
-  if (_cycleFilter === 'lancados') url += '&scm_lancados=1';
-
-  apiFetch(url)
-    .then(function (r) { return r.json(); })
-    .then(function (result) {
-      if (!result.success) return;
-      var items = result.data || [];
-      _cycleTotal = result.total || 0;
-
-      if (!append) {
-        var content = document.getElementById('cycleContent');
-        if (content) content.innerHTML = '';
-      }
-
-      _cycleRenderCards(items, append);
-      _cycleFetchSummary(ciclo);
-      _cycleFetchScmStatusCount(ciclo);
-    })
-    .catch(function (e) { console.warn('[preventive-cycle]', e); });
+  _cycleSelectedIds = new Set();
+  _cycleSummaryData = null;
+  _cycleScmData = null;
+  var sel = document.getElementById('selectAllCycle');
+  if (sel) sel.checked = false;
+  var content = document.getElementById('cycleContent');
+  if (content) content.innerHTML = '';
+  if (_cycleScroll) _cycleScroll.reset().init();
 }
 
 function _cycleRenderCards(items, append) {
@@ -483,11 +469,7 @@ function _cycleSave() {
     .then(function (result) {
       if (result.success) {
         if (typeof showToast === 'function') showToast('Ciclo salvo com sucesso', 'success');
-        _cyclePage = 0;
-        _cycleSelectedIds = new Set();
         _cycleDirtyChecks = new Map();
-        var selectAllEl = document.getElementById('selectAllCycle');
-        if (selectAllEl) selectAllEl.checked = false;
         _cycleLoadList(_cycleCurrent);
       } else {
         if (typeof showToast === 'function') showToast(result.message || 'Erro ao salvar ciclo', 'error');

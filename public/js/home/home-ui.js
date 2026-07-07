@@ -423,25 +423,15 @@ function syncHomeCards(newEquipment) {
 }
 
 function resetState(search) {
-  currentSearch = search;
-
-  page = 0;
-
-  allLoaded = false;
-
-  loading = false;
-
-  equipment = [];
-
-  filteredEquipment = [];
-
-  lastHomeHash = '';
+  currentSearch = search || '';
 
   const content = document.getElementById('content');
 
   if (content) {
     content.innerHTML = '';
   }
+
+  if (_homeScroll) _homeScroll.reset().init();
 }
 
 function setupSearch() {
@@ -449,27 +439,18 @@ function setupSearch() {
 
   if (!searchInput) return;
 
-  searchInput.addEventListener('click', async function () {
+  searchInput.addEventListener('click', function () {
     if (this.value.trim() !== '') {
       this.value = '';
-
       resetState('');
-
-      await loadEquipment();
     }
   });
 
-  const onSearch = debounce(async () => {
+  const onSearch = debounce(function () {
     resetState(searchInput.value.toLowerCase().trim());
-
-    await loadEquipment();
   }, 1000);
 
   searchInput.addEventListener('input', onSearch);
-}
-
-function setupInfiniteScroll() {
-  createInfiniteScroll('sentinel', () => loadEquipment());
 }
 
 function getExpandedIds() {
@@ -663,17 +644,10 @@ async function loadEquipmentSummary() {
 }
 
 function initHome() {
-  page = 0;
-
-  allLoaded = false;
-
-  loading = false;
-
-  equipment = [];
-
-  filteredEquipment = [];
-
-  lastHomeHash = '';
+  currentSearch = '';
+  totalEquipment = 0;
+  totalOS = 0;
+  totalValor = 0;
 
   const content = document.getElementById('content');
 
@@ -701,19 +675,10 @@ function initHome() {
   }
 
   setupSearch();
+  setupHomeScroll();
+  _homeScroll.init();
 
-  setupInfiniteScroll();
-
-  PollingManager.start(
-    'home',
-    function () {
-      loadEquipment(true);
-    },
-    30000
-  );
   loadEquipmentSummary();
-
-  loadEquipment(false);
 
   fetch('/app/api/index.php?route=notify')
     .then((r) => r.json())

@@ -77,7 +77,6 @@ async function confirmStatusChange() {
     showToast(result.message, 'success');
     closeStatusModal();
     resetPvState(pvSearch, pvStatusFilter, pvCycleFilter, true);
-    await loadPvs();
   } catch (err) {
     console.error(err);
     showToast('Erro ao alterar status', 'error');

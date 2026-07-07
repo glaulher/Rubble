@@ -1,16 +1,10 @@
-let plannedData = [];
-let plannedPage = 0;
-let plannedAllLoaded = false;
-let plannedLoading = false;
 let plannedSearch = '';
-let plannedHash = '';
 let plannedDateFrom = '';
 let plannedDateTo = '';
 let plannedStatusFilter = '';
 let plannedEquipOptions = [];
 let plannedLocalOptions = [];
-let plannedLoadingStuckCount = 0;
-let plannedLoadingTimestamp = 0;
+let _plannedScroll = null;
 
 const PLANNED_LIMIT = 20;
 const PLANNED_CSS = '.planned-card { transition: all 0.2s ease; }';
@@ -400,87 +394,51 @@ function syncPlannedCards(newItems, total) {
   applyRoleVisibility();
 }
 
-function scheduleNextLoad() {
-  if (plannedAllLoaded || plannedLoading) return;
-  var sentinel = document.getElementById('plannedSentinel');
-  if (!sentinel) return;
-  requestAnimationFrame(function () {
-    var rect = sentinel.getBoundingClientRect();
-    if (rect.top <= window.innerHeight + 300) {
-      loadPlanned(false);
-    }
-  });
+function resetPlannedState(newSearch) {
+  plannedSearch = newSearch || '';
+  window._plannedTotal = 0;
+  var content = document.getElementById('plannedContent');
+  if (content) content.innerHTML = '';
+  if (_plannedScroll) _plannedScroll.reset().init();
 }
 
-function loadPlanned(silent) {
-  if (plannedAllLoaded && !silent) return;
-  if (plannedLoading) return;
-
-  plannedLoading = true;
-  plannedLoadingTimestamp = Date.now();
-
-  if (silent) {
-    plannedPage = 0;
-  }
-
-  var params = new URLSearchParams();
-  params.set('limit', PLANNED_LIMIT);
-  params.set('offset', plannedPage * PLANNED_LIMIT);
-  if (plannedDateFrom) params.set('date_from', plannedDateFrom);
-  if (plannedDateTo) params.set('date_to', plannedDateTo);
-  if (plannedStatusFilter) params.set('status', plannedStatusFilter);
-  if (plannedSearch) {
-    params.set('search', plannedSearch);
-  }
-
-  var controller = new AbortController();
-  var timeoutId = setTimeout(function () {
-    controller.abort();
-    plannedLoading = false;
-    console.warn('[PlannedActivity] loadPlanned timeout - resetting lock');
-  }, 15000);
-
-  apiFetch('/app/api/index.php?route=planned-activities&' + params.toString(), { signal: controller.signal })
-    .then(function (res) { return res.json(); })
-    .then(function (result) {
-      clearTimeout(timeoutId);
-      plannedLoading = false;
-
-      if (!result || !result.data) return;
-
-      var newItems = result.data.items || [];
-      var total = result.data.total || 0;
-      window._plannedTotal = total;
-
-      if (silent) {
-        var newHash = JSON.stringify(newItems);
-        if (newHash === plannedHash) return;
-        plannedHash = newHash;
-        syncPlannedCards(newItems, total);
-        plannedData = newItems;
-        plannedAllLoaded = newItems.length < PLANNED_LIMIT;
-        plannedPage = 1;
-        return;
-      }
-
-      if (newItems.length < PLANNED_LIMIT) {
-        plannedAllLoaded = true;
-      }
-
-      plannedData = plannedData.concat(newItems);
-      plannedPage++;
-
-      renderPlanned(newItems, plannedPage > 1);
-      plannedHash = JSON.stringify(newItems);
-
-      scheduleNextLoad();
-    })
-    .catch(function (err) {
-      clearTimeout(timeoutId);
-      if (err.name === 'AbortError') return;
-      plannedLoading = false;
+function setupPlannedScroll() {
+  _plannedScroll = createInfiniteScroll({
+    sentinelId: 'plannedSentinel',
+    limit: PLANNED_LIMIT,
+    pollingInterval: 30000,
+    timeout: 15000,
+    fetchFn: function (params, opts) {
+      var urlParams = new URLSearchParams();
+      urlParams.set('limit', params.limit);
+      urlParams.set('offset', params.offset);
+      if (plannedDateFrom) urlParams.set('date_from', plannedDateFrom);
+      if (plannedDateTo) urlParams.set('date_to', plannedDateTo);
+      if (plannedStatusFilter) urlParams.set('status', plannedStatusFilter);
+      if (plannedSearch) urlParams.set('search', plannedSearch);
+      return apiFetch('/app/api/index.php?route=planned-activities&' + urlParams.toString(), opts)
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+          if (!result || !result.data) return { data: [], total: 0 };
+          return { data: result.data.items || [], total: result.data.total || 0 };
+        });
+    },
+    renderFn: function (items) {
+      renderPlanned(items, true);
+    },
+    renderFullFn: function (items, total) {
+      syncPlannedCards(items, total);
+    },
+    afterLoadFn: function (state) {
+      window._plannedTotal = state.total;
+    },
+    getFilterHash: function () {
+      return plannedDateFrom + '|' + plannedDateTo + '|' + plannedStatusFilter + '|' + plannedSearch;
+    },
+    onError: function (err) {
       console.error('Erro ao carregar atividades:', err);
-    });
+    },
+  });
 }
 
 function openPlanModal() {
@@ -571,19 +529,6 @@ function setupPlanAutocompletes() {
   });
 }
 
-function resetPlannedState(newSearch) {
-  plannedData = [];
-  plannedPage = 0;
-  plannedAllLoaded = false;
-  plannedLoading = false;
-  plannedSearch = newSearch || '';
-  plannedHash = '';
-  window._plannedTotal = 0;
-
-  var content = document.getElementById('plannedContent');
-  if (content) content.innerHTML = '';
-}
-
 function setupPlannedFilters() {
   var dateFromInput = document.getElementById('plannedDateFrom');
   var dateToInput = document.getElementById('plannedDateTo');
@@ -599,7 +544,6 @@ function setupPlannedFilters() {
       plannedSearch = newSearch;
     }
     resetPlannedState(plannedSearch);
-    loadPlanned(false);
   }
 
   var debounceTimer;
@@ -617,7 +561,6 @@ function setupPlannedFilters() {
         var match = val.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
         plannedSearch = match ? match[3] + '-' + match[2] + '-' + match[1] : val;
         resetPlannedState(plannedSearch);
-        loadPlanned(false);
       }, 1000);
     });
   }
@@ -841,7 +784,6 @@ function setupPlannedSearch() {
     if (this.value !== '') {
       this.value = '';
       resetPlannedState('');
-      loadPlanned(false);
     }
   });
 
@@ -852,32 +794,21 @@ function setupPlannedSearch() {
       var match = val.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
       var searchVal = match ? match[3] + '-' + match[2] + '-' + match[1] : val;
       resetPlannedState(searchVal);
-      loadPlanned(false);
     }, 1000);
   });
 }
 
-function setupPlannedInfiniteScroll() {
-  var sentinel = document.getElementById('plannedSentinel');
-  if (!sentinel) return;
-
-  var observer = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting && !plannedAllLoaded && !plannedLoading) {
-        loadPlanned(false);
-      }
-    });
-  }, { rootMargin: '300px' });
-
-  observer.observe(sentinel);
-  window._plannedObserver = observer;
-}
-
 function initPlannedActivity() {
-  resetPlannedState('');
+  plannedSearch = '';
+  plannedDateFrom = '';
+  plannedDateTo = '';
+  plannedStatusFilter = '';
+  window._plannedTotal = 0;
+  var contentEl = document.getElementById('plannedContent');
+  if (contentEl) contentEl.innerHTML = '';
 
   setupPlannedFilters();
-  setupPlannedInfiniteScroll();
+  setupPlannedScroll();
 
   var dateFromEl = document.getElementById('plannedDateFrom');
   if (dateFromEl) dateFromEl.value = plannedDateFrom;
@@ -994,30 +925,7 @@ function initPlannedActivity() {
     setupPlanAutocompletes();
   });
 
-  document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && plannedLoading && Date.now() - plannedLoadingTimestamp > 5000) {
-      plannedLoading = false;
-      plannedLoadingStuckCount = 0;
-      loadPlanned(false);
-    }
-  });
-
-  PollingManager.start('planned-activity', function () {
-    if (document.hidden) return;
-    if (plannedLoading) {
-      plannedLoadingStuckCount++;
-      if (plannedLoadingStuckCount > 2) {
-        plannedLoading = false;
-        plannedLoadingStuckCount = 0;
-        loadPlanned(true);
-      }
-      return;
-    }
-    plannedLoadingStuckCount = 0;
-    loadPlanned(true);
-  }, 30000);
-
-  loadPlanned(false);
+  _plannedScroll.init();
 }
 
 function submitPlan() {
@@ -1117,7 +1025,6 @@ function submitPlan() {
         }
         closePlanModal();
         resetPlannedState('');
-        loadPlanned(false);
       } else {
         showToast(result && result.message ? result.message : 'Erro ao salvar', 'error');
       }
@@ -1151,7 +1058,6 @@ function deletePlanned(id, tipo) {
         .then(function (result) {
           showToast(result && result.message ? result.message : 'Atividade removida com sucesso!', 'success');
           resetPlannedState('');
-          loadPlanned(false);
         })
         .catch(function (err) {
           showToast('Erro ao excluir atividade.', 'error');
@@ -1245,7 +1151,6 @@ function submitStatusPreventiva() {
         showToast('Status atualizado com sucesso!', 'success');
         closeStatusPreventiva();
         resetPlannedState('');
-        loadPlanned(false);
       } else {
         showToast(result && result.message ? result.message : 'Erro ao atualizar status.', 'error');
       }

@@ -1,89 +1,45 @@
-let equipment = [];
-let filteredEquipment = [];
+let currentSearch = '';
+let limit = 20;
 let totalEquipment = 0;
 let totalOS = 0;
 let totalValor = 0;
-let currentSearch = '';
-let page = 0;
-let limit = 20;
-let loading = false;
-let allLoaded = false;
-let lastHomeHash = '';
+let _homeScroll = null;
 
-async function loadEquipment(isPolling) {
-  if (loading) return;
-
-  if (isPolling) {
-    loading = true;
-    try {
-      const response = await fetch(
-        `/app/api/index.php?route=equipment&limit=${limit}&offset=0&search=${encodeURIComponent(currentSearch)}`
-      );
-      const result = await response.json();
-
-      const newHash = result._hash || JSON.stringify(result);
-      if (newHash === lastHomeHash) {
-        loading = false;
-        return;
+function setupHomeScroll() {
+  _homeScroll = createInfiniteScroll({
+    sentinelId: 'sentinel',
+    limit: limit,
+    pollingInterval: 30000,
+    timeout: 15000,
+    fetchFn: function (params, opts) {
+      var url = '/app/api/index.php?route=equipment&limit=' + params.limit + '&search=' + encodeURIComponent(currentSearch);
+      if (params.offset > 0 && params.data.length > 0) {
+        var lastItem = params.data[params.data.length - 1];
+        url += '&last_local=' + encodeURIComponent(lastItem.local || '') + '&last_equipamento=' + encodeURIComponent(lastItem.equipamento || '') + '&last_id=' + lastItem.id;
+      } else {
+        url += '&offset=' + params.offset;
       }
-      lastHomeHash = newHash;
-
-      const newItems = result.data || [];
-      totalEquipment = result.total || 0;
-      totalOS = result.total_os || 0;
-      totalValor = result.total_valor || 0;
-
-      equipment = [...newItems, ...equipment.slice(newItems.length)];
-      filteredEquipment = [...equipment];
-      allLoaded = newItems.length < limit;
-      page = 1;
-
-      syncHomeCards(equipment);
-    } catch (error) {
-      console.error('Erro ao carregar equipamentos:', error);
-    } finally {
-      loading = false;
-    }
-    return;
-  }
-
-  if (allLoaded) return;
-
-  loading = true;
-
-  try {
-    let url = `/app/api/index.php?route=equipment&limit=${limit}&search=${encodeURIComponent(currentSearch)}`;
-    if (equipment.length > 0) {
-      var lastItem = equipment[equipment.length - 1];
-      url += `&last_local=${encodeURIComponent(lastItem.local || '')}&last_equipamento=${encodeURIComponent(lastItem.equipamento || '')}&last_id=${lastItem.id}`;
-    }
-
-    const response = await fetch(url);
-
-    const result = await response.json();
-
-    const newItems = result.data || [];
-
-    totalEquipment = result.total || 0;
-    totalOS = result.total_os || 0;
-    totalValor = result.total_valor || 0;
-
-    if (newItems.length < limit) {
-      allLoaded = true;
-    }
-
-    equipment.push(...newItems);
-
-    filteredEquipment = [...equipment];
-
-    render(newItems, true);
-
-    page++;
-  } catch (error) {
-    console.error('Erro ao carregar equipamentos:', error);
-  } finally {
-    loading = false;
-  }
+      return fetch(url, opts).then(function (r) { return r.json(); }).then(function (result) {
+        if (!result || !result.data) return { data: [], total: 0 };
+        totalEquipment = result.total || result.data.length;
+        totalOS = result.total_os || 0;
+        totalValor = result.total_valor || 0;
+        return { data: result.data, total: totalEquipment };
+      });
+    },
+    renderFn: function (items) {
+      render(items, true);
+    },
+    renderFullFn: function (items) {
+      syncHomeCards(items);
+    },
+    getFilterHash: function () {
+      return currentSearch;
+    },
+    onError: function (err) {
+      console.error('Erro ao carregar equipamentos:', err);
+    },
+  });
 }
 
 async function deleteTicket(id, button, osNumber) {
@@ -126,7 +82,8 @@ async function deleteTicket(id, button, osNumber) {
 
     if (equipCard) {
       const equipId = equipCard.dataset.equipId;
-      const equip = equipment.find(e => String(e.id) === String(equipId));
+      var scrollData = _homeScroll ? _homeScroll.getState().data : [];
+      const equip = scrollData.find(e => String(e.id) === String(equipId));
       if (equip && equip.tickets_count > 0) {
         equip.tickets_count--;
       }

@@ -155,7 +155,6 @@ async function sendPvEmail() {
       }
       closePvEmailModal();
       resetPvState(pvSearch, pvStatusFilter, pvCycleFilter, true);
-      await loadPvs();
     } else {
       showToast(result.message, 'error');
     }

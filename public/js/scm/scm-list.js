@@ -1,10 +1,9 @@
 // public/js/scm/scm-list.js
 
 let scmList = [];
-let scmPage = 0;
-let scmAllLoaded = false;
-let scmLoading = false;
-let lastScmHash = '';
+var _scmScroll = null;
+let _scmTotal = 0;
+let _scmTotalValor = 0;
 let currentScmSearch = '';
 let scmDateFrom = '';
 let scmDateTo = '';
@@ -72,7 +71,6 @@ function setupScmCicloAutocomplete() {
             this.value = '';
             scmCicloFilter = '';
             resetScmState();
-            loadScm();
             hideDropdown();
             return;
         }
@@ -123,7 +121,6 @@ function setupScmCicloAutocomplete() {
                 scmCicloFilter = selected.dataset.value;
                 hideDropdown();
                 resetScmState();
-                loadScm();
             }
             return;
         }
@@ -137,7 +134,6 @@ function setupScmCicloAutocomplete() {
         scmCicloFilter = target.dataset.value;
         hideDropdown();
         resetScmState();
-        loadScm();
     });
 
     document.addEventListener('click', function (e) {
@@ -156,10 +152,6 @@ function initScm() {
     window._scmInitialized = true;
 
     scmList = [];
-    scmPage = 0;
-    scmAllLoaded = false;
-    scmLoading = false;
-    lastScmHash = '';
     currentScmSearch = '';
     scmDateFrom = '';
     scmDateTo = '';
@@ -188,7 +180,6 @@ function initScm() {
         searchInput.addEventListener('input', debounce(() => {
             currentScmSearch = searchInput.value.toLowerCase().trim();
             resetScmState();
-            loadScm();
         }, 1000));
 
         searchInput.addEventListener('click', () => {
@@ -196,7 +187,6 @@ function initScm() {
                 searchInput.value = '';
                 currentScmSearch = '';
                 resetScmState();
-                loadScm();
             }
         });
     }
@@ -205,7 +195,6 @@ function initScm() {
         dateFromInput.addEventListener('change', () => {
             scmDateFrom = dateFromInput.value;
             resetScmState();
-            loadScm();
         });
     }
 
@@ -213,7 +202,6 @@ function initScm() {
         dateToInput.addEventListener('change', () => {
             scmDateTo = dateToInput.value;
             resetScmState();
-            loadScm();
         });
     }
 
@@ -222,7 +210,6 @@ function initScm() {
         statusSelect.addEventListener('change', () => {
             scmStatusFilter = statusSelect.value;
             resetScmState();
-            loadScm();
         });
     }
 
@@ -237,14 +224,8 @@ function initScm() {
         importBtn.addEventListener('click', () => importScm());
     }
 
-    createInfiniteScroll('scmSentinel', () => {
-        if (!scmAllLoaded && !scmLoading) {
-            loadScm();
-        }
-    });
-
-    PollingManager.start('scm', () => loadScm(true), 30000);
-    loadScm();
+    setupScmScroll();
+    _scmScroll.init();
 }
 
 function initSegmentMultiSelect() {
@@ -296,7 +277,6 @@ function renderSegmentDropdown() {
             renderSegmentDropdown();
             updateSegmentLabel();
             resetScmState();
-            loadScm();
         });
         dropdown.dataset.delegated = '1';
     }
@@ -381,7 +361,6 @@ function renderSiteDropdown() {
             renderSiteDropdown();
             updateSiteLabel();
             resetScmState();
-            loadScm();
         });
         dropdown.dataset.delegated = '1';
     }
@@ -416,62 +395,51 @@ function updateSiteLabel() {
     }
 }
 
+function setupScmScroll() {
+    _scmScroll = createInfiniteScroll({
+        sentinelId: 'scmSentinel',
+        limit: 20,
+        pollingInterval: 30000,
+        fetchFn: function (params, opts) {
+            var url = '/app/api/index.php?route=scm&limit=' + params.limit + '&offset=' + params.offset;
+            if (scmDateFrom) url += '&date_from=' + encodeURIComponent(scmDateFrom);
+            if (scmDateTo) url += '&date_to=' + encodeURIComponent(scmDateTo);
+            if (scmSegmentFilter && scmSegmentFilter.size > 0) {
+                url += '&segmento=' + Array.from(scmSegmentFilter).map(encodeURIComponent).join(',');
+            }
+            if (scmSiteFilter && scmSiteFilter.size > 0) {
+                url += '&sites=' + Array.from(scmSiteFilter).map(encodeURIComponent).join(',');
+            }
+            if (scmStatusFilter) url += '&status=' + encodeURIComponent(scmStatusFilter);
+            if (scmCicloFilter) url += '&ciclo=' + encodeURIComponent(scmCicloFilter);
+            if (currentScmSearch) url += '&search=' + encodeURIComponent(currentScmSearch);
+            return apiFetch(url, opts).then(function (r) { return r.json(); }).then(function (result) {
+                _scmTotal = result.total || 0;
+                _scmTotalValor = result.total_valor || 0;
+                return { data: result.data || [], total: _scmTotal };
+            });
+        },
+        renderFn: function (items) {
+            renderScm(items, true);
+            updateScmCounter(_scmTotal, _scmTotalValor);
+        },
+        renderFullFn: function (items, total) {
+            syncScmCards(items);
+            updateScmCounter(total, _scmTotalValor);
+        },
+        onError: function (err) {
+            console.error('Erro ao carregar SCM:', err);
+        },
+    });
+}
+
 function resetScmState() {
     scmList = [];
-    scmPage = 0;
-    scmAllLoaded = false;
-    scmLoading = false;
     const content = document.getElementById('scmContent');
     if (content) content.innerHTML = '';
+    if (_scmScroll) _scmScroll.reset().init();
 }
 
-async function loadScm(isPolling = false) {
-    if (scmLoading && !isPolling) return;
-    scmLoading = true;
-
-    try {
-        const offset = isPolling ? 0 : scmPage * 20;
-        let url = `/app/api/index.php?route=scm&limit=20&offset=${offset}&search=${encodeURIComponent(currentScmSearch)}`;
-        if (scmDateFrom) url += `&date_from=${encodeURIComponent(scmDateFrom)}`;
-        if (scmDateTo) url += `&date_to=${encodeURIComponent(scmDateTo)}`;
-        if (scmSegmentFilter.size > 0) url += `&segmento=${encodeURIComponent([...scmSegmentFilter].join(','))}`;
-        if (scmSiteFilter.size > 0) url += `&sites=${encodeURIComponent([...scmSiteFilter].join(','))}`;
-        if (scmStatusFilter) url += `&status=${encodeURIComponent(scmStatusFilter)}`;
-        if (scmCicloFilter) url += `&ciclo=${encodeURIComponent(scmCicloFilter)}`;
-        const response = await fetch(url);
-        const result = await response.json();
-
-        if (!result.success) return;
-
-        const newItems = result.data || [];
-
-        if (isPolling) {
-            const newHash = JSON.stringify(newItems);
-            if (newHash === lastScmHash) {
-                scmLoading = false;
-                return;
-            }
-            lastScmHash = newHash;
-            scmList = newItems;
-            syncScmCards(newItems);
-            updateScmCounter(result.total, result.total_valor);
-            scmPage = 1;
-            scmAllLoaded = newItems.length < 20;
-            return;
-        }
-
-        scmList.push(...newItems);
-        renderScm(newItems, true);
-        updateScmCounter(result.total, result.total_valor);
-        scmPage++;
-        scmAllLoaded = newItems.length < 20;
-        lastScmHash = JSON.stringify(scmList);
-    } catch (error) {
-        console.error('Erro ao carregar SCM:', error);
-    } finally {
-        scmLoading = false;
-    }
-}
 
 function renderScm(items, append = false) {
     const content = document.getElementById('scmContent');
@@ -644,7 +612,6 @@ async function deleteScm(id) {
         if (result.success) {
             showToast('SCM excluído com sucesso', 'success');
             resetScmState();
-            loadScm();
         } else {
             showToast(result.message || 'Erro ao excluir', 'error');
         }

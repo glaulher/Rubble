@@ -1,14 +1,9 @@
-let equipmentPage = 0;
 let equipmentLimit = 20;
-let equipmentLoading = false;
-let equipmentAllLoaded = false;
 let equipmentList = [];
 let equipmentSearch = '';
+var _equipmentScroll = null;
 
 async function initEquipmentManager() {
-  equipmentPage = 0;
-  equipmentLoading = false;
-  equipmentAllLoaded = false;
   equipmentList = [];
   equipmentSearch = '';
   const input = document.getElementById('equipmentSearchInput');
@@ -35,51 +30,40 @@ async function initEquipmentManager() {
       }
     });
   }
-  await loadEquipments();
+  if (_equipmentScroll) _equipmentScroll.destroy();
+  _equipmentScroll = createInfiniteScroll({
+    sentinelId: 'sentinel',
+    limit: equipmentLimit,
+    fetchFn: async function (params, opts) {
+      var url = '/app/api/index.php?route=equipment-management&limit=' + params.limit + '&offset=' + params.offset;
+      if (equipmentSearch) {
+        url += '&search=' + encodeURIComponent(equipmentSearch);
+      }
+      try {
+        var response = await fetch(url, opts);
+        var result = await response.json();
+        if (!result.success) {
+          showToast('Erro ao carregar equipamentos', 'error');
+          return { data: [], total: 0 };
+        }
+        return { data: result.data || [], total: 0 };
+      } catch (e) {
+        showToast('Erro ao carregar equipamentos', 'error');
+        return { data: [], total: 0 };
+      }
+    },
+    renderFn: function () {
+      equipmentList = _equipmentScroll.getState().data;
+      renderEquipments();
+    },
+    onError: function () {
+      showToast('Erro ao carregar equipamentos', 'error');
+    }
+  }).init();
   setupEquipmentSearch();
-  createInfiniteScroll('sentinel', loadEquipments);
 }
 
 function navigateEquipmentFormHandler() { window.location.hash = '#/equipmentForm'; }
-
-async function loadEquipments() {
-  if (equipmentLoading || equipmentAllLoaded) return;
-
-  equipmentLoading = true;
-  var el = document.getElementById('equipmentLoading');
-  if (el) el.classList.remove('hidden');
-
-  try {
-    const offset = equipmentPage * equipmentLimit;
-    let url = '/app/api/index.php?route=equipment-management&limit=' + equipmentLimit + '&offset=' + offset;
-    if (equipmentSearch) {
-      url += '&search=' + encodeURIComponent(equipmentSearch);
-    }
-
-    const response = await fetch(url);
-    const result = await response.json();
-
-    if (!result.success) {
-      showToast('Erro ao carregar equipamentos', 'error');
-      return;
-    }
-
-    const items = result.data || [];
-    if (items.length < equipmentLimit) {
-      equipmentAllLoaded = true;
-    }
-
-    equipmentList = equipmentPage === 0 ? items : equipmentList.concat(items);
-    equipmentPage++;
-    renderEquipments();
-  } catch (e) {
-    showToast('Erro ao carregar equipamentos', 'error');
-  } finally {
-    equipmentLoading = false;
-    var el = document.getElementById('equipmentLoading');
-    if (el) el.classList.add('hidden');
-  }
-}
 
 function renderEquipments() {
   const tbody = document.getElementById('equipmentTableBody');
@@ -135,10 +119,8 @@ function setupEquipmentSearch() {
     if (this.value !== '') {
       this.value = '';
       equipmentSearch = '';
-      equipmentPage = 0;
-      equipmentAllLoaded = false;
       equipmentList = [];
-      loadEquipments();
+      _equipmentScroll.reset().init();
     }
   });
 
@@ -147,10 +129,8 @@ function setupEquipmentSearch() {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function() {
       equipmentSearch = input.value.trim();
-      equipmentPage = 0;
-      equipmentAllLoaded = false;
       equipmentList = [];
-      loadEquipments();
+      _equipmentScroll.reset().init();
     }, 500);
   });
 }
@@ -174,10 +154,8 @@ async function deleteEquipment(id) {
     const result = await response.json();
     if (result.success) {
       showToast('Equipamento excluído com sucesso', 'success');
-      equipmentPage = 0;
-      equipmentAllLoaded = false;
       equipmentList = [];
-      await loadEquipments();
+      _equipmentScroll.reset().init();
     } else {
       showToast(result.message || 'Erro ao excluir', 'error');
     }
