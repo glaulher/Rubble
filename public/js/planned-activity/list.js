@@ -311,6 +311,95 @@ function renderPlanned(items, append) {
   applyRoleVisibility();
 }
 
+function syncPlannedCards(newItems, total) {
+  var content = document.getElementById('plannedContent');
+  if (!content) return;
+
+  var counter = document.getElementById('plannedCounter');
+  if (counter) counter.textContent = total + ' atividades';
+
+  if (!newItems || newItems.length === 0) {
+    if (content.children.length > 0) {
+      content.innerHTML = '<div class="text-center py-20 text-slate-500"><p class="text-lg">Nenhuma atividade planejada encontrada.</p></div>';
+    }
+    return;
+  }
+
+  var newIds = {};
+  newItems.forEach(function (item) { newIds[item.id] = true; });
+
+  var newGrouped = {};
+  newItems.forEach(function (item) {
+    var key = item.data_planejada || 'sem_data';
+    if (!newGrouped[key]) newGrouped[key] = [];
+    newGrouped[key].push(item);
+  });
+
+  var newDates = Object.keys(newGrouped).sort(function (a, b) {
+    if (a === 'sem_data') return 1;
+    if (b === 'sem_data') return -1;
+    return b.localeCompare(a);
+  });
+
+  Array.from(content.querySelectorAll('.timeline-group')).forEach(function (group) {
+    if (!newGrouped[group.getAttribute('data-date')]) {
+      group.remove();
+    }
+  });
+
+  newDates.forEach(function (dateKey) {
+    var groupItems = newGrouped[dateKey];
+    var safeDate = dateKey.replace(/"/g, '\\"');
+    var existingGroup = content.querySelector('.timeline-group[data-date="' + safeDate + '"]');
+
+    if (existingGroup) {
+      var cardsContainer = existingGroup.querySelector('.space-y-3');
+      if (!cardsContainer) return;
+
+      Array.from(cardsContainer.querySelectorAll('.planned-card')).forEach(function (card) {
+        var id = parseInt(card.getAttribute('data-id'), 10);
+        if (!newIds[id]) card.remove();
+      });
+
+      groupItems.forEach(function (item) {
+        var existingCard = cardsContainer.querySelector('.planned-card[data-id="' + item.id + '"]');
+        if (!existingCard) {
+          cardsContainer.insertAdjacentHTML('beforeend', buildPlannedCardHtml(item));
+        }
+      });
+    } else {
+      var dateLabel = dateKey === 'sem_data' ? 'Sem data' : formatDateTimeline(dateKey);
+      var groupHtml = '<div class="timeline-group" data-date="' + safeDate + '">' +
+        '<h2 class="text-lg font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">' + escapeHtml(dateLabel) + '</h2>' +
+        '<div class="space-y-3">';
+      groupItems.forEach(function (item) {
+        groupHtml += buildPlannedCardHtml(item);
+      });
+      groupHtml += '</div></div>';
+
+      var insertBeforeEl = null;
+      for (var i = 0; i < content.children.length; i++) {
+        var child = content.children[i];
+        if (child.classList && child.classList.contains('timeline-group')) {
+          var childDate = child.getAttribute('data-date');
+          if (childDate && dateKey > childDate) {
+            insertBeforeEl = child;
+            break;
+          }
+        }
+      }
+
+      if (insertBeforeEl) {
+        insertBeforeEl.insertAdjacentHTML('beforebegin', groupHtml);
+      } else {
+        content.insertAdjacentHTML('beforeend', groupHtml);
+      }
+    }
+  });
+
+  applyRoleVisibility();
+}
+
 function loadPlanned(silent) {
   if (plannedAllLoaded && !silent) return;
   if (plannedLoading) return;
@@ -355,9 +444,10 @@ function loadPlanned(silent) {
         var newHash = JSON.stringify(newItems);
         if (newHash === plannedHash) return;
         plannedHash = newHash;
-        var content = document.getElementById('plannedContent');
-        if (content) content.innerHTML = '';
-        renderPlanned(newItems, false);
+        syncPlannedCards(newItems, total);
+        plannedData = newItems;
+        plannedAllLoaded = newItems.length < PLANNED_LIMIT;
+        plannedPage = 1;
         return;
       }
 
@@ -615,7 +705,7 @@ function copyPlannedWhatsApp() {
       var dates = Object.keys(grouped).sort(function (a, b) {
         if (a === 'sem_data') return 1;
         if (b === 'sem_data') return -1;
-        return b.localeCompare(a);
+        return a.localeCompare(b);
       });
 
       function toDDMMYYYY(dateStr) {
