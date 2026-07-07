@@ -187,4 +187,136 @@ class PlannedActivityServiceTest extends TestCase
         $this->assertSame('duplicated', $result['action']);
         $this->assertSame(3, $result['count']);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | updateObs() tests
+    |--------------------------------------------------------------------------
+    */
+
+    public function testUpdateObsSuccessForPreventiva(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updateObs')
+            ->with(1, 'preventiva', 'Nova observação')
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $result = $service->updateObs(1, 'preventiva', 'Nova observação');
+
+        $this->assertSame('updated', $result['action']);
+        $this->assertSame(1, $result['id']);
+    }
+
+    public function testUpdateObsSuccessForCorretiva(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updateObs')
+            ->with(2, 'corretiva', 'Obs corretiva')
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $result = $service->updateObs(2, 'corretiva', 'Obs corretiva');
+
+        $this->assertSame('updated', $result['action']);
+    }
+
+    public function testUpdateObsThrowsOnInvalidId(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('ID inválido');
+
+        $service->updateObs(0, 'preventiva', 'obs');
+    }
+
+    public function testUpdateObsThrowsOnInvalidTipo(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Tipo inválido');
+
+        $service->updateObs(1, 'invalido', 'obs');
+    }
+
+    public function testUpdateObsThrowsWhenObsTooLong(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Observação deve ter no máximo 1000 caracteres');
+
+        $service->updateObs(1, 'preventiva', str_repeat('x', 1001));
+    }
+
+    public function testUpdateObsAcceptsEmptyObs(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('updateObs')->willReturn(true);
+
+        $service = $this->createService($repo);
+        $result = $service->updateObs(1, 'preventiva', '');
+
+        $this->assertSame('updated', $result['action']);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | updateCorretivaStatus() tests
+    |--------------------------------------------------------------------------
+    */
+
+    public function testUpdateCorretivaStatusSuccess(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updateCorretivaStatus')
+            ->with(1, 'Em Andamento', null)
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $result = $service->updateCorretivaStatus(1, 'Em Andamento');
+
+        $this->assertSame('updated', $result['action']);
+        $this->assertSame(1, $result['id']);
+    }
+
+    public function testUpdateCorretivaStatusConcluidoSetsData(): void
+    {
+        $today = date('Y-m-d');
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updateCorretivaStatus')
+            ->with(1, 'Concluído', $today)
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $result = $service->updateCorretivaStatus(1, 'Concluído');
+
+        $this->assertSame('updated', $result['action']);
+    }
+
+    public function testUpdateCorretivaStatusThrowsOnInvalidId(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('ID inválido');
+
+        $service->updateCorretivaStatus(0, 'Concluído');
+    }
+
+    public function testUpdateCorretivaStatusThrowsOnInvalidStatus(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Status inválido');
+
+        $service->updateCorretivaStatus(1, 'Status Inexistente');
+    }
 }

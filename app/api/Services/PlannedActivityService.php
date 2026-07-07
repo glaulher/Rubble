@@ -13,6 +13,10 @@ class PlannedActivityService
     private const DEFAULT_ORIGIN = 'planning';
     private const DEFAULT_TIPO = 'preventiva';
 
+    private const ALLOWED_CORRETIVA_STATUSES = [
+        'Concluído', 'Pendente', 'Em andamento', 'Planejado', 'Projeto Clean up',
+    ];
+
     public function __construct(?PlannedActivityRepository $repository = null)
     {
         $this->repository = $repository ?? new PlannedActivityRepository();
@@ -133,6 +137,44 @@ class PlannedActivityService
         }
 
         $this->repository->updateTeam($id, $tipo, $equipe);
+        return ['action' => 'updated', 'id' => $id];
+    }
+
+    public function updateObs(int $id, string $tipo, string $obs): array
+    {
+        if ($id <= 0) {
+            throw new \RuntimeException('ID inválido.');
+        }
+        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+            throw new \RuntimeException('Tipo inválido.');
+        }
+        if (mb_strlen($obs) > 1000) {
+            throw new \RuntimeException('Observação deve ter no máximo 1000 caracteres.');
+        }
+
+        $this->repository->updateObs($id, $tipo, $obs);
+        return ['action' => 'updated', 'id' => $id];
+    }
+
+    public function updateCorretivaStatus(int $id, string $status): array
+    {
+        if ($id <= 0) {
+            throw new \RuntimeException('ID inválido.');
+        }
+
+        $cleanStatus = mb_convert_case(trim($status), MB_CASE_TITLE, 'UTF-8');
+
+        $allowedLower = array_map('mb_strtolower', self::ALLOWED_CORRETIVA_STATUSES);
+        if (!in_array(mb_strtolower($cleanStatus), $allowedLower, true)) {
+            throw new \RuntimeException('Status inválido.');
+        }
+
+        $dataConcluido = null;
+        if ($cleanStatus === 'Concluído') {
+            $dataConcluido = date('Y-m-d');
+        }
+
+        $this->repository->updateCorretivaStatus($id, $cleanStatus, $dataConcluido);
         return ['action' => 'updated', 'id' => $id];
     }
 
