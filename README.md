@@ -23,11 +23,12 @@ For full technical documentation (API reference, database schema, architecture, 
 - **Equipment Pricing** — Admin-only CRUD with rule-based pricing (TR/Chiller), mercado filter, home page value badges
 - **SCM (Service Control)** — CSV import with auto-detected delimiter, status mapping, multi-select dropdown filters (site/segmento), market cross-validation badge, PV status sync on import
 - **Preventive Cycle** — Cycle-based equipment tracking with checkbox/radio filters (observacao/selecionados/sem_scm/lancados), bulk check-all/uncheck-all, SCM validation per card, real-time valor badge
-- **PDF Audit** — CLIP-based AI report validation against reference PDFs; reference upload with progress simulation; OCR mode for non-AI validation; collapsible cards with photo comparison table
-- **Planned Activities** — Site-level preventive planning (atividades_preventivas) + corrective ticket planning (registros), status workflow, CSV export, tooltips on action buttons
+- **PDF Audit** — CLIP-based AI report validation against reference PDFs; reference upload with progress simulation; OCR mode for non-AI validation; collapsible cards with photo comparison table; clear-reference via POST (not GET) for security
+- **Planned Activities** — Site-level preventive planning (atividades_preventivas) + corrective ticket planning (registros), status workflow, inline observation editing (pencil icon), inline team name editing, duplicate-day button, day-of-week labels, CSV export, date rescheduling, notification reset on status change
 - **CSV Export** — Equipment + ticket rows filtered by search term, per-ticket status in each row; PV items export with Windows-1252 encoding
 - **PDF Report** — PV items PDF via html2canvas + jsPDF with wrapped text and Memorial de Calculo; Dashboard PDF with smart page breaks
 - **CSV Import** — OS import from CSV with UTF-8/Latin-1 detection, site code extraction, tag-based equipment matching
+- **ES Modules** — `infinite-scroll.js` and callers converted to ES modules (`type="module"`); single tested factory replaces 6 hand-rolled infinite scroll implementations
 - **Real-Time Polling** — 30s with APCu cache (file fallback), hash comparison for incremental DOM, random jitter to prevent thundering herd, Visibility API pause/resume
 - **Keyset Pagination** — Efficient infinite scroll via `WHERE e.id > ? LIMIT ?` instead of `LIMIT/OFFSET`
 - **FULLTEXT Search** — `MATCH ... AGAINST` in BOOLEAN MODE for equipment search ≥ 3 chars (fallback LIKE for shorter queries)
@@ -144,7 +145,7 @@ bun test
 │   ├── auth.js                    # Login, logout, token, auth guard
 │   ├── router.js                  # Hash-based SPA router
 │   ├── utils/                     # utils, csv, upload, report, polling
-│   ├── components/                # button, modal, messagebox, pagination
+│       ├── components/                # button, modal, messagebox, pagination, infinite-scroll
 │   ├── home/                      # home-ui, equipment, form
 │   ├── pv/                        # constants, form-utils, form, list, modals, dashboard
 │   ├── user/                      # list, form (admin)
@@ -186,7 +187,7 @@ Script load order (index.html): `sidebar.js` → `auth.js` → libs (chart, html
 | `users` | GET, POST, PUT, DELETE | User CRUD (admin) |
 | `scm` | GET, POST, DELETE | `listAll()`, `getById()`, `import()`, `delete()`, `segments()`, `sites()` |
 | `preventive-cycle` | GET, POST | `listAll()`, `summary()`, `save()`, `check-all()`, `uncheck-all()`, `scmStatusCount()`, `validateScm()` |
-| `planned-activities` | GET, POST, DELETE | `listAll()`, `exportCsv()`, `plan()`, `delete()` |
+| `planned-activities` | GET, POST, PUT, DELETE | `listAll()`, `exportCsv()`, `plan()`, `duplicate()`, `updateTeam()`, `updateObs()`, `updateCorretivaStatus()`, `delete()` |
 | `preventiva` | POST, DELETE | `plan()`, `updateStatus()`, `delete()` |
 | `pdf-audit` | GET, POST | `setReference()`, `audit()`, `getReference()`, `clearReference()`, `health()` |
 | `notify` | GET | Cron trigger |

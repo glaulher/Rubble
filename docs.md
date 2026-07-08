@@ -15,13 +15,14 @@ Rubble é um sistema de gestão de manutenção de equipamentos de climatizaçã
 | Camada | Tecnologia |
 |--------|-----------|
 | Backend | PHP 8.4 puro (mysqli), PHPMailer |
-| Frontend | JS puro (sem framework), Tailwind v4 via CDN + fallback local |
+| Frontend | JS puro (sem framework, ES modules em `type="module"`), Tailwind v4 via CDN + fallback local |
 | Database | MariaDB 11.4, charset utf8mb4 |
 | Cache | APCu (Docker) / file-based (local) |
 | PDF | html2canvas + jsPDF (client-side) |
+| Microservice | Python 3.12 + FastAPI + CLIP (ViT-B/32) — `rubble-pdf-checker/` |
 | Email | PHPMailer (SMTP) |
 | Auth | JWT HMAC-SHA256 (custom) |
-| Server | Apache 2.4 + PHP (portable via USBWebserver) |
+| Server | Apache 2.4 + PHP (portable via USBWebserver) / Nginx + PHP-FPM (Docker) |
 | Deploy | Docker Compose + Traefik (SSL) + DuckDNS |
 | Testes | PHPUnit 11 (PHP) + Bun/Happy-DOM (JS) |
 
@@ -33,10 +34,14 @@ Controller → Service → Repository → Entity
 
 - **Controllers:** Handle HTTP requests, validate input, delegate to services
 - **Services:** Business logic, validation rules, data transformation
-- **Repositories:** Data access (SQL queries, CRUD)
+- **Repositories:** Data access (SQL queries, CRUD) — sem business logic
 - **Entities:** Typed properties, data mapping
 
 Sem framework. Sem IOC container. Autoloader manual (`config/autoloader.php`).
+
+**Princípio de separação:** Toda regra de negócio pertence aos Services, nunca aos Repositories. Exemplos: `getFornecimentoId()` (PvService), `STATUS_PRIORITY` (TicketService), `STATUS_MAP` (DashboardService), `resolveOsToTicketIds()` (TicketService). Vazamentos identificados e corrigidos em refatoração (2026-07-03).
+
+**ES Modules:** Componentes compartilhados (`infinite-scroll.js`, `button.js`) usam ES modules (`export/import`). Views que os usam precisam de `<script type="module">`. Módulos que não usam `export` são scripts regulares.
 
 ### Router + Middlewares
 
@@ -521,17 +526,66 @@ Validate SCM number against database.
 
 List all planned activities (preventiva + corretiva via UNION ALL).
 
-**Query Params:** `search`, `status`, `type`, `limit`, `offset`
+**Query Params:** `search`, `status`, `type`, `limit`, `offset`, `date_from`, `date_to`
 
 #### `POST ?route=planned-activities&action=plan`
 
 Create planned activity (preventiva or corretiva).
 
+#### `POST ?route=planned-activities&action=duplicate`
+
+Duplicate all activities from one day to another.
+
+**Request:**
+```json
+{
+  "from_date": "2026-07-01",
+  "to_date": "2026-07-02"
+}
+```
+
+#### `PUT ?route=planned-activities&action=update-obs`
+
+Update observation for a planned activity (inline pencil edit).
+
+**Request:**
+```json
+{
+  "id": 123,
+  "obs": "Nova observação"
+}
+```
+
+#### `PUT ?route=planned-activities&action=update-team`
+
+Update team name for a planned activity (inline pencil edit).
+
+**Request:**
+```json
+{
+  "id": 123,
+  "equipe": "Equipe Alpha"
+}
+```
+
+#### `PUT ?route=planned-activities&action=update-status`
+
+Update status for a corrective planned activity.
+
+**Request:**
+```json
+{
+  "id": 123,
+  "status": "Concluído",
+  "data_conclusao": "2026-07-05"
+}
+```
+
 #### `DELETE ?route=planned-activities&action=delete`
 
 Delete planned activity.
 
-#### `GET ?route=planned-activities&action=exportCsv`
+#### `GET ?route=planned-activities&action=export-csv`
 
 Export as CSV.
 
@@ -545,7 +599,7 @@ Create site-level preventive activity.
 
 #### `POST ?route=preventiva&action=updateStatus`
 
-Update status: Planejado → Em Andamento → Concluído / Cancelado.
+Update status: Planejado → Em Andamento → Concluído / Cancelado. Also supports Planejado → Planejado for date rescheduling. Resets notification flag when returning to Planejado.
 
 #### `DELETE ?route=preventiva&action=delete`
 
@@ -571,7 +625,7 @@ Get current reference metadata.
 
 #### `POST ?route=pdf-audit&action=clearReference`
 
-Clear current reference.
+Clear current reference. Changed from GET to POST for security (prevent unauthorized access via CSRF/link prefetch).
 
 #### `GET ?route=pdf-audit&action=health`
 
@@ -649,19 +703,11 @@ Request → CorsMiddleware → AuthMiddleware → RateLimitMiddleware → Router
 | `login_attempts` | Rate limiting login |
 | `rate_limits` | Rate limiting genérico |
 | `token_blacklist` | Tokens JWT revogados |
+| `user_activity` | Atividade de usuários (last_activity + IP) |
 
 ### Schema Principal
 
 ```sql
-CREATE TABLE usuarios (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    username    VARCHAR(50)  NOT NULL UNIQUE,
-    password    VARCHAR(255) NOT NULL,
-    nome        VARCHAR(100) NOT NULL,
-    role        ENUM('admin','supervisor','coordenador','administrativo','cliente') NOT NULL DEFAULT 'cliente',
-    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE scm (
     id              INT AUTO_INCREMENT PRIMARY KEY,
     scm             VARCHAR(100) NOT NULL UNIQUE,
@@ -742,6 +788,16 @@ CREATE TABLE rate_limits (
     request_count INT NOT NULL DEFAULT 1,
     UNIQUE KEY uk_rate (ip_address, endpoint, window_start)
 );
+
+CREATE TABLE user_activity (
+    user_id     INT NOT NULL PRIMARY KEY,
+    username    VARCHAR(50) NOT NULL,
+    nome        VARCHAR(100) NOT NULL,
+    role        VARCHAR(20) NOT NULL,
+    last_activity DATETIME NOT NULL,
+    ip_address  VARCHAR(45) DEFAULT NULL,
+    INDEX idx_user_activity (last_activity)
+);
 ```
 
 ### Migrations
@@ -767,10 +823,13 @@ Principais migrations:
 - 031: Índices de performance (`idx_pv_item_pv_status`, `idx_pv_item_scm`)
 - 032: Índice rate_limits (`idx_rate_limits_lookup`)
 - 033: Token blacklist (`token_blacklist` table + cleanup cron)
-- 034: PV timestamps `timestamp` → `datetime`
 - 035: Role `administrativo` adicionada em usuarios
+- 037: Campo `origin` (ENUM ticket/planning) em registros
 - 038: Campo `tipo` (ENUM preventiva/corretiva) em registros
 - 039: Tabela `atividades_preventivas` (site-level planned activities)
+- 040: Fix default de `tipo` em registros
+- 041: Tabela `user_activity` (track user activity + IP)
+- 042: Remove UNIQUE constraint de `registros.os` (permite mesma OS para múltiplos equipamentos)
 
 ---
 
@@ -883,16 +942,22 @@ Principais migrations:
 
 ### Planned Activities (Atividades Planejadas)
 
-- **Rotas:** `planned-activities` (listAll, exportCsv, plan, delete) + `preventiva` (plan, updateStatus, delete)
+- **Rotas:** `planned-activities` (listAll, exportCsv, plan, duplicate, updateTeam, updateObs, updateCorretivaStatus, delete) + `preventiva` (plan, updateStatus, delete)
 - **Tipos:** `preventiva` (site-level, sem OS, com ticket) e `corretiva` (per-equipment, com OS, em `registros`)
 - **Preventiva:** Armazenada em `atividades_preventivas` (tabela dedicada). Site-level: sem campo equipamento, com ticket e contagem de máquinas por subquery.
 - **Corretiva:** Armazenada em `registros` com `origin='planning'`. Hard DELETE ao deletar.
 - **UNION ALL:** Feed unificado via `PlannedActivityRepository::listAll()` — merge de `atividades_preventivas` (tipo=preventiva) com `registros` (tipo=corretiva, origin=planning), ordenado por `data_planejada DESC`
-- **Status transitions (preventiva):** Planejado → Em Andamento/Cancelado, Em Andamento → Concluído/Cancelado, Cancelado → Planejado, Concluído → terminal
+- **Inline editing (pencil icons):** Observação (`updateObs`) e equipe (`updateTeam`) editáveis inline — botão lápis ao lado do texto, substituído por input ao clicar, salva com Enter/blur
+- **Corretiva status modal:** Modal dedicado para alterar status de atividades corretivas, com data de conclusão e date rescheduling
+- **Duplicate-day button:** Duplica todas as atividades de um dia para outro via modal
+- **Day-of-week labels:** Dia da semana exibido no header de cada dia (ex: "segunda-feira, 7 de julho de 2026")
+- **Status transitions (preventiva):** Planejado → Em Andamento/Cancelado/Planejado (rescheduling), Em Andamento → Concluído/Cancelado, Cancelado → Planejado, Concluído → terminal
+- **Notification reset:** Ao retornar para Planejado, `notificacao_enviada` é resetado (re-dispara notificação)
 - **Form toggle:** Campo tipo (Selecione/Preventiva/Corretiva) alterna campos: preventiva = site + ticket; corretiva = equipamento + OS
 - **Botões de ação:** Usam `iconButtonHtml()` — status (edit/azul com tooltip "Alterar status"), delete (vermelho com tooltip "Excluir atividade")
 - **Dark mode:** Botões de formulário usam classes únicas (sem `dark:` variants) — cores dark gerenciadas via `.dark .bg-*` e `.dark .text-*` em `default.css`
 - **CSV export:** Paginação em chunks de 500 via offset, reutiliza `listAll()` com filtro por ciclo + busca
+- **Filtros:** Busca, status, data início/fim. Click-to-clear em filtros de data. Filtros restaurados ao voltar do form.
 - **Permissões:** Admin CRUD completo, coordenador CRUD sem DELETE, supervisor/cliente leitura apenas
 
 ---
@@ -947,6 +1012,14 @@ Principais migrations:
 - **Incremental DOM:** Atualiza in-place, preserva estado expandido, remove obsoletos
 - **Hash comparison:** MD5 server-side incluso na resposta JSON — frontend compara hash antes de processar dados
 - **PollingManager:** Classe em `utils/polling.js` com `start(name, fn, interval)`, `stop(name)`, `stopAll()`. Router chama `stopAll()` em toda navegação.
+
+### ES Modules
+
+- `components/infinite-scroll.js` e `components/button.js` são ES modules com `export`
+- Views que os usam precisam de `<script type="module">` no `index.html`
+- Módulos com `type="module"` têm escopo próprio — funções globais (como `getUser()`, `escapeHtml()`) continuam acessíveis via `window`/`globalThis`
+- **Factory pattern:** `createInfiniteScroll()` substitui 6 implementações manuais de scroll infinito
+- **Import paths** devem ser absolutos: `'/public/js/components/infinite-scroll.js'` (não relativos)
 
 ### Autocomplete Customizado
 
@@ -1137,6 +1210,11 @@ Status está em `pv_item`, não em `pv` (migration 010). Queries devem JOINar co
 - **`importante`:** Filtros SCM multi-select: ao desmarcar o 1º item com Todos ativo, pré-popular `Set` com todos os itens e remover apenas o desmarcado. Não `delete()` em Set vazio.
 - **Dark mode buttons:** `default.css` com `.dark .bg-*` + `!important` é a fonte de verdade. `dark:` variants NÃO devem ser usadas (conflitam com `prefers-color-scheme` do CDN). Adicionar overrides em `default.css` conforme necessário.
 - **schema.sql vs .gitignore:** `*.sql` está no `.gitignore`. Para commitar schema, comentar temporariamente. `git add -f` não funciona com padrões do `.gitignore`.
+- **var hoisting em funções:** `var canEdit = false` declarado DEPOIS de uso (`var obsIcon = canEdit ? ...`) resulta em `undefined` (falsy). Sempre declarar variáveis antes do uso, ou usar `let`/`const` que são block-scoped e dão ReferenceError em vez de `undefined`.
+- **PDF audit clearReference via POST:** Migrado de GET para POST para prevenir acesso não autorizado via CSRF/link prefetch. Frontend (`audit.js`) e backend (`PdfAuditController`) devem usar POST.
+- **OS alfanumérica:** Campo `registros.os` aceita 1-20 chars alfanuméricos (migration 042 remove UNIQUE constraint). Permite mesma OS para múltiplos equipamentos.
+- **Timezone API:** Bootstrap da API (`index.php`) define `date_default_timezone_set('America/Sao_Paulo')`. Todos os `date()` e `strtotime()` usam BRT.
+- **Repository→Service refactoring:** Toda regra de negócio foi movida de Repositories para Services (2026-07-03). Repositories expõem apenas data access. Exemplos: `getFornecimentoId()`, `STATUS_PRIORITY`, `STATUS_MAP`, `resolveOsToTicketIds()`.
 
 ---
 
@@ -1192,4 +1270,4 @@ Status está em `pv_item`, não em `pv` (migration 010). Queries devem JOINar co
 
 ---
 
-*Documentação gerada a partir do AGENTS.md. Última atualização: 2026-06-29.*
+*Documentação gerada a partir do AGENTS.md. Última atualização: 2026-07-07.*
