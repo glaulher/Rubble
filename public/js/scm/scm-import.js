@@ -33,7 +33,6 @@ async function importScm() {
             if (result.success) {
                 showToast(result.message, 'success');
                 resetScmState();
-                loadScm();
             } else {
                 showToast(result.message || 'Erro na importação', 'error');
             }

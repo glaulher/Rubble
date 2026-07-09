@@ -737,3 +737,4 @@ function formatDateBr(date) {
 }
 
 globalThis.initScm = initScm;
+globalThis.resetScmState = resetScmState;
