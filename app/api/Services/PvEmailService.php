@@ -64,9 +64,9 @@ class PvEmailService
             $osVal = $pv['os'] ?? '';
             if (!is_string($osVal) || $osVal === '') continue;
             $parts = array_map('trim', explode(',', $osVal));
-            $allOsNumbers = array_merge($allOsNumbers, $parts);
+            array_push($allOsNumbers, ...$parts);
         }
-        $allOsNumbers = array_unique($allOsNumbers);
+        $allOsNumbers = array_values(array_unique(array_filter($allOsNumbers)));
         $osStr = implode(', ', $allOsNumbers);
         $allPvNums = implode(', ', array_map(fn($p) => $p['numero_pv'] ?? '-', $pvs));
 
@@ -93,8 +93,202 @@ class PvEmailService
         }
         $orcamentoPaths = self::resolveOrcamentoPaths($items);
 
-        $body = $this->buildBody($firstPv, $items, $subjectKey, true);
+        $body = $this->buildBatchBody($pvs, $subjectKey);
         return self::configureMailer($pdfPaths, $reportPaths, $orcamentoPaths, $subjects[$subjectKey], $body, $envKey);
+    }
+
+    private function buildBatchBody(array $pvs, string $subjectKey): string
+    {
+        $e = fn(?string $v): string => htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8');
+
+        if ($subjectKey === 'servicos') {
+            $intro = "Solicitamos, por favor, a aprovação para o faturamento dos itens tabelados abaixo.";
+            $closing = 'Ficamos no aguardo do retorno';
+        } else {
+            $intro = "Solicitamos, por gentileza, a análise dos materiais relacionados na tabela abaixo, necessários para darmos continuidade ao reparo da(s) máquina(s).";
+            $closing = 'Ficamos no aguardo do retorno para seguimento das tratativas.';
+        }
+
+        $tablesHtml = '';
+        foreach ($pvs as $pv) {
+            $pvItems = $pv['itens'] ?? [];
+            if (empty($pvItems)) continue;
+            $tablesHtml .= $this->buildSinglePvTableHtml($pv, $pvItems);
+        }
+
+        return "
+            <div style='font-family:Arial,sans-serif;padding:20px;max-width:800px;'>
+                <p>Olá, pessoal,</p>
+                <p>{$intro}</p>
+                <p>{$closing}</p>
+                {$tablesHtml}
+                <p style='margin-top:24px;color:#64748b;font-size:12px;'>E-mail automático do sistema Rubble.</p>
+            </div>
+        ";
+    }
+
+    private function buildSinglePvTableHtml(array $pv, array $items): string
+    {
+        $e = fn(?string $v): string => htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8');
+
+        $pvNum = $e($pv['numero_pv'] ?? '-');
+        $local = $e($pv['local'] ?? '');
+        $equipamento = $e($pv['equipamento'] ?? '');
+        $capacidade = !empty($pv['capacidade']) ? number_format((float) $pv['capacidade'], 0, ',', '.') . ' TR' : '';
+
+        $equipInfo = '';
+        if ($equipamento !== '') {
+            $equipInfo = ' - ' . $equipamento;
+            if ($capacidade !== '') {
+                $equipInfo .= ' - ' . $capacidade;
+            }
+        }
+
+        $hasLaudo = false;
+        $hasFlpu = false;
+        foreach ($items as $item) {
+            if (!empty($item['laudo']) && $item['laudo'] !== 'N/A') $hasLaudo = true;
+            if (($item['fatura'] ?? '') === 'flpu') $hasFlpu = true;
+        }
+
+        $flpuTh = $hasFlpu
+            ? "<th style='padding:10px;border:1px solid #ddd;text-align:right;font-size:12px;'>Valor s/ BDI</th><th style='padding:10px;border:1px solid #ddd;text-align:right;font-size:12px;'>BDI (%)</th>"
+            : '';
+        $reportTh = $hasLaudo ? "<th style='padding:10px;border:1px solid #ddd;text-align:center;font-size:12px;'>Laudo</th>" : '';
+
+        $rowsHtml = '';
+        foreach ($items as $item) {
+            $lpuOrigin = $item['lpu_origem'] ?? '';
+            $lpuLabel = '';
+            if ($lpuOrigin) {
+                $lpuLabel = str_replace('lpu_', '', $lpuOrigin);
+                $lpuLabel = str_replace('_', ' ', $lpuLabel);
+                $lpuLabel = ucwords($lpuLabel);
+            } else {
+                $lpuLabel = 'FLPU';
+            }
+            $itemNumber = $e((string)($item['numero_item'] ?? '-'));
+            $lpuDescription = $e($item['descricao_lpu'] ?? '-');
+            $description = $e($item['descricao'] ?? '-');
+            $value = isset($item['valor']) ? number_format((float) $item['valor'], 2, ',', '.') : '-';
+            $flpuSource = $item['valor_flpu'] ?? $item['valor'] ?? null;
+            $flpuValue = $flpuSource !== null ? number_format((float) $flpuSource, 2, ',', '.') : '-';
+            $qty = $e((string)($item['quantidade'] ?? '-'));
+            $bdi = isset($item['bdi']) ? $item['bdi'] . '%' : '-';
+            $totalValue = isset($item['valor_total']) ? number_format((float) $item['valor_total'], 2, ',', '.') : '-';
+            $reportItem = $e($item['laudo'] ?? '');
+
+            $reportCell = $hasLaudo ? "<td style='padding:8px;border:1px solid #ddd;text-align:center;'>{$reportItem}</td>" : '';
+            $flpuCell1 = $hasFlpu ? "<td style='padding:8px;border:1px solid #ddd;text-align:right;'>R$ {$flpuValue}</td>" : '';
+            $flpuCell2 = $hasFlpu ? "<td style='padding:8px;border:1px solid #ddd;text-align:right;'>{$bdi}</td>" : '';
+
+            $rowsHtml .= "
+                <tr>
+                    <td style='padding:8px;border:1px solid #ddd;'>{$lpuLabel}</td>
+                    <td style='padding:8px;border:1px solid #ddd;'>{$itemNumber}</td>
+                    <td style='padding:8px;border:1px solid #ddd;'>{$lpuDescription}</td>
+                    <td style='padding:8px;border:1px solid #ddd;'>{$description}</td>
+                    <td style='padding:8px;border:1px solid #ddd;text-align:right;'>R$ {$value}</td>
+                    {$flpuCell1}
+                    {$flpuCell2}
+                    {$reportCell}
+                    <td style='padding:8px;border:1px solid #ddd;text-align:right;'>{$qty}</td>
+                    <td style='padding:8px;border:1px solid #ddd;text-align:right;'>R$ {$totalValue}</td>
+                </tr>
+            ";
+        }
+
+        $subtotal = array_sum(array_map(fn($i) => (float) ($i['valor_total'] ?? 0), $items));
+        $formattedSubtotal = number_format($subtotal, 2, ',', '.');
+
+        $colspan = 6;
+        if ($hasFlpu) $colspan += 2;
+        if ($hasLaudo) $colspan += 1;
+
+        $memorialHtml = '';
+        $hasFilter = false;
+        foreach ($items as $item) {
+            if (!empty($item['filtro_data'])) { $hasFilter = true; break; }
+        }
+        if ($hasFilter) {
+            $memorialRows = '';
+            foreach ($items as $item) {
+                if (empty($item['filtro_data'])) continue;
+                $fd = json_decode($item['filtro_data'], true);
+                if (!$fd) continue;
+                $itemNum = $e($item['numero_item'] ?? '-');
+                $desc = $e($item['descricao'] ?? '-');
+                $tamanho = $e($fd['tamanho'] ?? '-');
+                $pecas = $fd['qtd_pecas'] ?? 0;
+                $areaPlaca = isset($fd['area_placa']) ? number_format((float)$fd['area_placa'], 4, ',', '.') : '-';
+                $areaTotal = isset($fd['area_plana_total']) ? number_format((float)$fd['area_plana_total'], 4, ',', '.') : '-';
+                $qtdCobrar = $fd['qtd_cobrar'] ?? 0;
+                $memorialRows .= "
+                    <tr>
+                        <td style='padding:8px;border:1px solid #ddd;'>{$itemNum}</td>
+                        <td style='padding:8px;border:1px solid #ddd;'>{$desc}</td>
+                        <td style='padding:8px;border:1px solid #ddd;'>{$tamanho}</td>
+                        <td style='padding:8px;border:1px solid #ddd;text-align:right;'>{$pecas}</td>
+                        <td style='padding:8px;border:1px solid #ddd;text-align:right;'>{$areaPlaca}</td>
+                        <td style='padding:8px;border:1px solid #ddd;text-align:right;'>{$areaTotal}</td>
+                        <td style='padding:8px;border:1px solid #ddd;text-align:right;font-weight:bold;'>{$qtdCobrar}</td>
+                    </tr>
+                ";
+            }
+            $memorialHtml = "
+                <div style='margin-top:16px;margin-bottom:12px;'>
+                    <h3 style='font-size:14px;font-weight:bold;color:#334155;margin-bottom:8px;'>Memorial de Cálculo</h3>
+                    <table cellpadding='0' cellspacing='0' border='0' style='border-collapse:collapse;width:100%;'>
+                        <thead>
+                            <tr style='background-color:#f1f5f9;'>
+                                <th style='padding:10px;border:1px solid #ddd;text-align:left;font-size:12px;'>Nº Item</th>
+                                <th style='padding:10px;border:1px solid #ddd;text-align:left;font-size:12px;'>Descrição</th>
+                                <th style='padding:10px;border:1px solid #ddd;text-align:left;font-size:12px;'>Tamanho</th>
+                                <th style='padding:10px;border:1px solid #ddd;text-align:right;font-size:12px;'>Peças</th>
+                                <th style='padding:10px;border:1px solid #ddd;text-align:right;font-size:12px;'>Área placa (m²)</th>
+                                <th style='padding:10px;border:1px solid #ddd;text-align:right;font-size:12px;'>Área total (m²)</th>
+                                <th style='padding:10px;border:1px solid #ddd;text-align:right;font-size:12px;'>Qtd cobrar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {$memorialRows}
+                        </tbody>
+                    </table>
+                </div>
+            ";
+        }
+
+        return "
+            <div style='margin-top:24px;border-top:2px solid #cbd5e1;padding-top:16px;'>
+                <h2 style='font-size:15px;font-weight:bold;color:#1e293b;margin-bottom:2px;'>PV {$pvNum}{$equipInfo}</h2>
+                <p style='font-size:12px;color:#64748b;margin-bottom:12px;'>{$local}</p>
+                {$memorialHtml}
+                <table cellpadding='0' cellspacing='0' border='0' style='border-collapse:collapse;width:100%;'>
+                    <thead>
+                        <tr style='background-color:#f1f5f9;'>
+                            <th style='padding:10px;border:1px solid #ddd;text-align:left;font-size:12px;'>LPU Origem</th>
+                            <th style='padding:10px;border:1px solid #ddd;text-align:left;font-size:12px;'>Nº</th>
+                            <th style='padding:10px;border:1px solid #ddd;text-align:left;font-size:12px;'>Descrição LPU</th>
+                            <th style='padding:10px;border:1px solid #ddd;text-align:left;font-size:12px;'>Especificação</th>
+                            <th style='padding:10px;border:1px solid #ddd;text-align:right;font-size:12px;'>Valor LPU</th>
+                            {$flpuTh}
+                            {$reportTh}
+                            <th style='padding:10px;border:1px solid #ddd;text-align:right;font-size:12px;'>Qtd</th>
+                            <th style='padding:10px;border:1px solid #ddd;text-align:right;font-size:12px;'>Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {$rowsHtml}
+                    </tbody>
+                    <tfoot>
+                        <tr style='background-color:#f8fafc;'>
+                            <td colspan='{$colspan}' style='padding:10px;border:1px solid #ddd;text-align:right;font-weight:bold;'>Subtotal</td>
+                            <td style='padding:10px;border:1px solid #ddd;text-align:right;font-weight:bold;'>R$ {$formattedSubtotal}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        ";
     }
 
     private static function resolvePdfPaths(array $osNumbers): array|string
