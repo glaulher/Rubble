@@ -543,7 +543,9 @@ function syncPlannedCards(newItems, total) {
 
       groupItems.forEach(function (item) {
         var existingCard = cardsContainer.querySelector('.planned-card[data-id="' + item.id + '"]');
-        if (!existingCard) {
+        if (existingCard) {
+          existingCard.outerHTML = buildPlannedCardHtml(item);
+        } else {
           cardsContainer.insertAdjacentHTML('beforeend', buildPlannedCardHtml(item));
         }
       });
