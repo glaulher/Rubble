@@ -162,12 +162,15 @@ class PlannedActivityService
             throw new \RuntimeException('ID inválido.');
         }
 
-        $cleanStatus = mb_convert_case(trim($status), MB_CASE_TITLE, 'UTF-8');
+        $cleanStatus = trim($status);
 
         $allowedLower = array_map('mb_strtolower', self::ALLOWED_CORRETIVA_STATUSES);
-        if (!in_array(mb_strtolower($cleanStatus), $allowedLower, true)) {
+        $idx = array_search(mb_strtolower($cleanStatus), $allowedLower, true);
+        if ($idx === false) {
             throw new \RuntimeException('Status inválido.');
         }
+
+        $cleanStatus = self::ALLOWED_CORRETIVA_STATUSES[$idx];
 
         $dataConcluido = null;
         if ($cleanStatus === 'Concluído') {
