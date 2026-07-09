@@ -274,6 +274,60 @@ function render(list, append = false) {
   if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
 }
 
+function buildPvSectionHtml(e) {
+  return '<div class="bg-red-50 rounded-xl p-4 border border-red-200 mb-3">' +
+    '<p class="text-sm font-semibold text-red-700 mb-2">' +
+    'PV' + (e.pvs_pendentes_count > 1 ? 's' : '') + ' n\u00e3o faturada' + (e.pvs_pendentes_count > 1 ? 's' : '') + ' (' + e.pvs_pendentes_count + ')' +
+    '</p>' +
+    '<div class="flex flex-wrap gap-2">' +
+    e.pvs_pendentes.split(', ').map(function (pv) {
+      return '<span class="bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-mono">' + formatPvDisplay(pv) + '</span>';
+    }).join('') +
+    '</div></div>';
+}
+
+function updateCardInPlace(card, e, canEdit) {
+  var badgesContainer = card.querySelector('.mt-2.flex-wrap');
+  if (!badgesContainer) return;
+
+  var capBadge = badgesContainer.querySelector('.bg-blue-100');
+  var html = capBadge ? capBadge.outerHTML : '';
+
+  if (e.valor_tr) {
+    html += '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-sm font-semibold" data-role="admin coordenador">' +
+      'R$ ' + e.valor_tr.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) +
+      '</span>';
+  }
+
+  if (e.tickets_count > 0) {
+    html += '<span class="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-sm">' +
+      e.tickets_count + ' OS</span>';
+  }
+
+  if (e.pvs_pendentes_count > 0) {
+    html += '<button data-pv-toggle-id="' + e.id + '" class="pv-toggle-btn bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-full text-sm font-semibold transition">' +
+      e.pvs_pendentes_count + ' PV' + (e.pvs_pendentes_count > 1 ? 's' : '') + ' n\u00e3o faturada' + (e.pvs_pendentes_count > 1 ? 's' : '') +
+      '</button>';
+  }
+
+  badgesContainer.innerHTML = html;
+
+  var detEl = card.querySelector('#det' + e.id);
+  if (detEl) {
+    var existingPvSection = detEl.querySelector('.bg-red-50');
+    if (e.pvs_pendentes_count > 0) {
+      var pvHtml = buildPvSectionHtml(e);
+      if (existingPvSection) {
+        existingPvSection.outerHTML = pvHtml;
+      } else {
+        detEl.insertAdjacentHTML('afterbegin', pvHtml);
+      }
+    } else {
+      if (existingPvSection) existingPvSection.remove();
+    }
+  }
+}
+
 function syncHomeCards(newEquipment) {
   const content = document.getElementById('content');
   if (!content) return;
@@ -326,37 +380,12 @@ function syncHomeCards(newEquipment) {
     existingCards[card.dataset.equipId] = card;
   });
 
-  const newById = {};
-  const newByLocal = {};
-  newEquipment.forEach((e) => {
-    newById[e.id] = e;
-    if (!newByLocal[e.local]) newByLocal[e.local] = [];
-    newByLocal[e.local].push(e);
-  });
-
   const seenIds = {};
-  const expandedToReload = [];
   newEquipment.forEach((e) => {
     seenIds[e.id] = true;
     const existing = existingCards[e.id];
     if (existing) {
-      const detEl = existing.querySelector('#det' + e.id);
-      const wasExpanded = detEl && !detEl.classList.contains('hidden');
-      const hadTicketsLoaded = wasExpanded && detEl.dataset.loaded === 'true';
-
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = buildEquipmentCardHtml(e, canEdit);
-      const newCard = tempDiv.firstElementChild;
-      const newDetEl = newCard.querySelector('#det' + e.id);
-
-      if (wasExpanded && newDetEl) {
-        newDetEl.classList.remove('hidden');
-        if (hadTicketsLoaded) {
-          expandedToReload.push({ equipId: e.id, container: newDetEl });
-        }
-      }
-
-      existing.replaceWith(newCard);
+      updateCardInPlace(existing, e, canEdit);
     } else {
       const escapedLocal = e.local.replace(/"/g, '\\"');
       let siteGroup = content.querySelector(
@@ -373,7 +402,7 @@ function syncHomeCards(newEquipment) {
               <span class="text-base font-medium text-slate-600 mx-1">-</span>
               <span class="text-base font-medium text-slate-600">${escapeHtml(hubRecase(e.local_scm ?? ''))}</span>
               <span class="hidden md:inline text-base font-medium text-slate-600 mx-1">&mdash;</span>
-             
+              
               
               <span class="hidden md:inline text-base font-medium text-slate-600">${escapeHtml(e.local_do_endereco ?? '')}</span>
               <span class="text-base font-normal text-slate-600">${escapeHtml(formatAddress(e.endereco ? '- ' + e.endereco : ''))}</span>
@@ -415,10 +444,6 @@ function syncHomeCards(newEquipment) {
         }
       }
     }
-  });
-
-  expandedToReload.forEach(({ equipId, container }) => {
-    loadTicketsForEquipment(equipId, container);
   });
 
   if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
