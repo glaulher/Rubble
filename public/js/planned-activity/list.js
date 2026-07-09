@@ -1445,7 +1445,7 @@ function submitStatusPreventiva() {
       if (result && result.success) {
         showToast('Status atualizado com sucesso!', 'success');
         closeStatusPreventiva();
-        resetPlannedState('');
+        if (_plannedScroll) _plannedScroll.load(true);
       } else {
         showToast(result && result.message ? result.message : 'Erro ao atualizar status.', 'error');
       }
