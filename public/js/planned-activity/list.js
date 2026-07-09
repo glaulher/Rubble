@@ -9,7 +9,6 @@ let plannedLocalOptions = [];
 let _plannedScroll = null;
 
 const PLANNED_LIMIT = 20;
-const PLANNED_CSS = '.planned-card { transition: all 0.2s ease; }';
 
 const PLANNED_STATUS_BADGES = {
   'planejado': 'bg-amber-100 text-amber-700',
@@ -126,7 +125,6 @@ function buildPlannedCardHtml(item) {
   }
 
   var headerHtml = '';
-  var bodyHtml = '';
 
   if (tipo === 'preventiva') {
     headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
