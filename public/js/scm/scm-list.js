@@ -526,9 +526,7 @@ function buildScmCardHtml(s) {
             ${segmentoBadge}
         </div>
         <div class="mt-3 flex gap-3">
-            <button class="scm-toggle-btn bg-slate-200 hover:bg-slate-300 text-slate-900 px-3 py-1 rounded-xl text-sm transition-colors" data-toggle-id="${s.id}">
-                Ver
-            </button>
+            ${buttonHtml('neutral', 'Ver', { class: 'scm-toggle-btn text-sm', 'data-toggle-id': s.id })}
         </div>
         <div class="scm-details hidden mt-3" id="scmDet${s.id}">
             <div class="text-sm text-slate-500 italic">Carregando detalhes...</div>

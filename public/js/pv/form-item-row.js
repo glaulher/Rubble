@@ -75,9 +75,7 @@ function getItemRowHtml(index, data, lpuOptions) {
             <input type="checkbox" class="item-filter-checkbox rounded border-slate-300" data-index="${index}" ${parsedFiltro ? 'checked' : ''}>
             Filtro de Ar
           </label>
-          <button type="button" class="item-filter-btn text-xs bg-sky-200 hover:bg-sky-300 text-sky-800 rounded-xl px-3 py-2 font-medium transition ${parsedFiltro ? '' : 'hidden'}" data-index="${index}">
-            Calcular
-          </button>
+          ${buttonHtml('secondary', 'Calcular', { class: 'item-filter-btn text-xs ' + (parsedFiltro ? '' : 'hidden'), 'data-index': index, type: 'button' })}
         </div>
         <div class="md:col-span-2 lg:col-span-3">
           <label class="block text-xs font-semibold text-slate-900 mb-1">Descri\u00e7\u00e3o LPU</label>
@@ -114,10 +112,7 @@ function getItemRowHtml(index, data, lpuOptions) {
               <input type="text" maxlength="12" class="item-laudo w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
                 value="${escapeHtml(d.laudo || 'N/A')}" data-index="${index}">
             </div>
-            <button type="button" data-action="upload-report" data-item-index="${index}"
-              class="bg-sky-200 hover:bg-sky-300 text-sky-800 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition">
-              Upload
-            </button>
+            ${buttonHtml('secondary', 'Upload', { class: 'whitespace-nowrap', 'data-action': 'upload-report', 'data-item-index': index, type: 'button' })}
           </div>
         </div>
         <div class="item-orcamento-group-${index} ${d.fatura === 'flpu' ? '' : 'hidden'}">
@@ -128,10 +123,7 @@ function getItemRowHtml(index, data, lpuOptions) {
                 value="${escapeHtml(d.orcamento || '')}" data-index="${index}"
                 placeholder="Arquivos separados por v\u00edrgula">
             </div>
-            <button type="button" data-action="upload-orcamento" data-item-index="${index}"
-              class="bg-sky-200 hover:bg-sky-300 text-sky-800 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition">
-              Upload
-            </button>
+            ${buttonHtml('secondary', 'Upload', { class: 'whitespace-nowrap', 'data-action': 'upload-orcamento', 'data-item-index': index, type: 'button' })}
           </div>
         </div>
       </div>

@@ -89,13 +89,7 @@ function buildEquipmentCardHtml(e, canEdit) {
                 : ''
             }
 
-            <button
-              data-toggle-id="${e.id}"
-              class="toggle-details-btn bg-slate-200 hover:bg-slate-300 text-slate-900 px-5 py-2 rounded-xl font-medium transition">
-
-              Ver
-
-            </button>
+            ${buttonHtml('neutral', 'Ver', { class: 'toggle-details-btn', 'data-toggle-id': e.id })}
 
           </div>
 

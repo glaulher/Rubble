@@ -9,7 +9,31 @@ var ICON_SVG = {
   delete: '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
 };
 
-function iconButtonHtml(type, tooltip, attrs, tooltipPos) {
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+var BUTTON_STYLES = {
+  primary:   { bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300', text: 'text-emerald-800' },
+  secondary: { bg: 'bg-sky-200',     hover: 'hover:bg-sky-300',     text: 'text-sky-800' },
+  submit:    { bg: 'bg-blue-200',    hover: 'hover:bg-blue-300',    text: 'text-blue-800' },
+  danger:    { bg: 'bg-red-200',     hover: 'hover:bg-red-300',     text: 'text-red-800' },
+  neutral:   { bg: 'bg-slate-300',   hover: 'hover:bg-slate-400',   text: 'text-slate-900' }
+};
+
+var BUTTON_SIZES = {
+  sm: 'px-3 py-1.5 text-sm',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-5 py-2.5 text-base'
+};
+
+export function iconButtonHtml(type, tooltip, attrs, tooltipPos) {
   var c = ICON_COLORS[type] || ICON_COLORS.edit;
   var svg = ICON_SVG[type] || ICON_SVG.edit;
   var extraClass = (attrs && attrs.class) ? ' ' + attrs.class : '';
@@ -34,3 +58,24 @@ function iconButtonHtml(type, tooltip, attrs, tooltipPos) {
     '</span>' +
   '</div>';
 }
+
+export function buttonHtml(type, label, attrs, size) {
+  var style = BUTTON_STYLES[type] || BUTTON_STYLES.neutral;
+  var sizeClass = BUTTON_SIZES[size] || BUTTON_SIZES.md;
+  var extraClass = (attrs && attrs.class) ? ' ' + attrs.class : '';
+
+  var attrStr = '';
+  if (attrs) {
+    for (var k in attrs) {
+      if (k === 'class') continue;
+      attrStr += ' ' + k + '="' + escapeHtml(String(attrs[k])) + '"';
+    }
+  }
+
+  return '<button class="' + style.bg + ' ' + style.hover + ' ' + style.text + ' ' + sizeClass + ' rounded-xl font-medium transition cursor-pointer' + extraClass + '"' + attrStr + '>' +
+    escapeHtml(label) +
+  '</button>';
+}
+
+globalThis.iconButtonHtml = iconButtonHtml;
+globalThis.buttonHtml = buttonHtml;

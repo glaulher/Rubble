@@ -566,7 +566,7 @@ function buildAuditCardHtml(result) {
         ${result.fields?.situacao_final
           ? `<p class="mt-2 text-sm text-slate-500">Situação Final: <strong class="text-slate-700">${escapeHtml(result.fields.situacao_final)}</strong></p>`
           : ''}
-        <button data-toggle-id="${escapeHtml(safeId)}" class="toggle-details-btn bg-slate-200 hover:bg-slate-300 text-slate-900 px-4 py-1.5 rounded-xl font-medium transition text-sm mt-3">Ver</button>
+        ${buttonHtml('neutral', 'Ver', { class: 'toggle-details-btn text-sm mt-3', 'data-toggle-id': escapeHtml(safeId) })}
       </div>
       <div id="det-${escapeHtml(safeId)}" class="hidden border-t border-slate-200 p-5 pt-4">${errorsHtml}${nokHtml}${photoHtml}${fieldsHtml}${photoComparisonHtml}</div>
     </div>
