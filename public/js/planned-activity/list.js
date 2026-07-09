@@ -396,12 +396,13 @@ function submitCorretivaStatus() {
     if (result && result.success) {
       showToast('Status atualizado com sucesso.', 'success');
       closeCorretivaStatusModal();
-      if (_plannedScroll) _plannedScroll.refresh();
+      if (_plannedScroll) _plannedScroll.load(true);
     } else {
       showToast(result && result.message ? result.message : 'Erro ao atualizar status.', 'error');
     }
   })
-  .catch(function () {
+  .catch(function (err) {
+    console.error('updateCorretivaStatus error:', err);
     showToast('Erro ao atualizar status.', 'error');
   });
 }
