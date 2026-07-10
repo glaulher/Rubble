@@ -95,6 +95,71 @@ class PlannedActivityController
 
     /*
     |--------------------------------------------------------------------------
+    | REORDER (Drag-to-Reorder within same date)
+    |--------------------------------------------------------------------------
+    */
+
+    public function reorder(): void
+    {
+        try {
+            $data = Request::body();
+
+            Validator::required($data, ['tipo', 'data_planejada']);
+
+            $order = $data['order'] ?? [];
+            if (!is_array($order) || empty($order)) {
+                Response::error('Ordem inválida.', 400);
+                return;
+            }
+            $tipo = trim($data['tipo']);
+            $dataPlanejada = trim($data['data_planejada']);
+
+            $result = $this->service->reorder($order, $tipo, $dataPlanejada);
+
+            Cache::deleteByPrefix('planned_activities:');
+
+            Response::success('Ordem atualizada com sucesso', $result);
+
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | MOVE DATE (Drag card to different date group)
+    |--------------------------------------------------------------------------
+    */
+
+    public function moveDate(): void
+    {
+        try {
+            $data = Request::body();
+
+            Validator::required($data, ['id', 'tipo', 'source_date', 'target_date']);
+
+            $id = (int) $data['id'];
+            $tipo = trim($data['tipo']);
+            $sourceDate = trim($data['source_date']);
+            $targetDate = trim($data['target_date']);
+
+            $result = $this->service->moveDate($id, $tipo, $sourceDate, $targetDate);
+
+            Cache::deleteByPrefix('planned_activities:');
+
+            Response::success('Atividade movida com sucesso', $result);
+
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | DUPLICATE DAY
     |--------------------------------------------------------------------------
     */
@@ -149,7 +214,7 @@ class PlannedActivityController
             Cache::deleteByPrefix('equipment_list:');
 
             if ($result['action'] === 'updated') {
-                Response::success('OS atualizada para Planejado com sucesso', $result, 200);
+                Response::success('Atividade adicionada ao novo dia', $result, 200);
             } else {
                 Response::success('Atividade planejada com sucesso', $result, 201);
             }
@@ -266,12 +331,18 @@ class PlannedActivityController
             Validator::required($data, ['id']);
             Validator::integer($data, 'id');
 
-            $result = $this->service->delete((int) $data['id']);
+            $dataPlanejada = isset($data['data_planejada']) && $data['data_planejada'] !== ''
+                ? trim($data['data_planejada'])
+                : null;
+
+            $result = $this->service->delete((int) $data['id'], $dataPlanejada);
 
             Cache::deleteByPrefix('equipment_list:');
 
             if ($result['action'] === 'deleted') {
                 Response::success('Atividade excluída permanentemente');
+            } elseif ($result['action'] === 'date_removed') {
+                Response::success('Agendamento removido desta data');
             } else {
                 Response::success('Atividade desmarcada — registro voltou para Pendente na home');
             }

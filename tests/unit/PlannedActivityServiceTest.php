@@ -170,16 +170,18 @@ class PlannedActivityServiceTest extends TestCase
             ['id' => 3, 'tipo' => 'preventiva'],
         ]);
 
+        $preventivaCalls = [];
         $repo->expects($this->exactly(2))
             ->method('duplicatePreventivaToDate')
-            ->withConsecutive(
-                [1, '2026-07-16', 'Planejado'],
-                [3, '2026-07-16', 'Planejado'],
-            );
+            ->willReturnCallback(function ($id, $date, $status) use (&$preventivaCalls) {
+                $preventivaCalls[] = [$id, $date, $status];
+                return $id;
+            });
 
         $repo->expects($this->exactly(1))
             ->method('duplicateCorretivaToDate')
-            ->with(2, '2026-07-16', 'Planejado', 'planning');
+            ->with(2, '2026-07-16', 'Planejado', 'planning')
+            ->willReturn(2);
 
         $service = $this->createService($repo);
         $result = $service->duplicateDay('2026-07-15', '2026-07-16');
@@ -275,11 +277,11 @@ class PlannedActivityServiceTest extends TestCase
         $repo = $this->createMockRepo();
         $repo->expects($this->once())
             ->method('updateCorretivaStatus')
-            ->with(1, 'Em Andamento', null)
+            ->with(1, 'Em andamento', null)
             ->willReturn(true);
 
         $service = $this->createService($repo);
-        $result = $service->updateCorretivaStatus(1, 'Em Andamento');
+        $result = $service->updateCorretivaStatus(1, 'Em andamento');
 
         $this->assertSame('updated', $result['action']);
         $this->assertSame(1, $result['id']);
@@ -318,5 +320,149 @@ class PlannedActivityServiceTest extends TestCase
         $this->expectExceptionMessage('Status inválido');
 
         $service->updateCorretivaStatus(1, 'Status Inexistente');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | reorder() tests
+    |--------------------------------------------------------------------------
+    */
+
+    public function testReorderThrowsWhenOrderEmpty(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Ordem inválida');
+
+        $service->reorder([], 'corretiva', '2026-07-15');
+    }
+
+    public function testReorderThrowsWhenTipoInvalido(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Tipo inválido');
+
+        $service->reorder([1, 2, 3], 'invalido', '2026-07-15');
+    }
+
+    public function testReorderThrowsWhenDateInvalid(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Formato de data inválido');
+
+        $service->reorder([1, 2, 3], 'corretiva', '15/07/2026');
+    }
+
+    public function testReorderSuccessPreventiva(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('batchUpdateSortOrder')
+            ->with([3, 1, 2], 'preventiva', '2026-07-15');
+
+        $service = $this->createService($repo);
+        $result = $service->reorder([3, 1, 2], 'preventiva', '2026-07-15');
+
+        $this->assertSame('reordered', $result['action']);
+    }
+
+    public function testReorderSuccessCorretiva(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('batchUpdateSortOrder')
+            ->with([5, 8, 3], 'corretiva', '2026-07-15');
+
+        $service = $this->createService($repo);
+        $result = $service->reorder([5, 8, 3], 'corretiva', '2026-07-15');
+
+        $this->assertSame('reordered', $result['action']);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | moveDate() tests
+    |--------------------------------------------------------------------------
+    */
+
+    public function testMoveDateThrowsInvalidId(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('ID inválido');
+
+        $service->moveDate(0, 'corretiva', '2026-07-15', '2026-07-16');
+    }
+
+    public function testMoveDateThrowsInvalidTipo(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Tipo inválido');
+
+        $service->moveDate(1, 'invalido', '2026-07-15', '2026-07-16');
+    }
+
+    public function testMoveDateThrowsInvalidSourceDate(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Formato da data de origem inválido');
+
+        $service->moveDate(1, 'corretiva', '15/07/2026', '2026-07-16');
+    }
+
+    public function testMoveDateThrowsInvalidTargetDate(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Formato da data de destino inválido');
+
+        $service->moveDate(1, 'corretiva', '2026-07-15', '16/07/2026');
+    }
+
+    public function testMoveDateThrowsSameDate(): void
+    {
+        $service = $this->createService();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('A data de destino deve ser diferente da data de origem.');
+
+        $service->moveDate(1, 'corretiva', '2026-07-15', '2026-07-15');
+    }
+
+    public function testMoveDateSuccessPreventiva(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('moveDate')
+            ->with(1, 'preventiva', '2026-07-15', '2026-07-16');
+
+        $service = $this->createService($repo);
+        $result = $service->moveDate(1, 'preventiva', '2026-07-15', '2026-07-16');
+
+        $this->assertSame('moved', $result['action']);
+    }
+
+    public function testMoveDateSuccessCorretiva(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('moveDate')
+            ->with(2, 'corretiva', '2026-07-10', '2026-07-11');
+
+        $service = $this->createService($repo);
+        $result = $service->moveDate(2, 'corretiva', '2026-07-10', '2026-07-11');
+
+        $this->assertSame('moved', $result['action']);
     }
 }

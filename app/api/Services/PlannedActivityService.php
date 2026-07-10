@@ -89,14 +89,15 @@ class PlannedActivityService
             $existingObs = $existing->notes ?? '';
             $newObs = $existingObs !== '' ? $existingObs . "\n\n" . $auditEntry : $auditEntry;
 
-            $this->repository->updateToPlanned(
+            $this->repository->updatePlanningFields(
                 $existing->id,
-                $dataPlanejada,
                 $equipe,
                 $newObs,
                 $tipo,
                 self::DEFAULT_STATUS
             );
+
+            $this->repository->addPlannedDate($existing->id, $dataPlanejada);
 
             return ['action' => 'updated', 'id' => $existing->id];
         }
@@ -113,6 +114,8 @@ class PlannedActivityService
         ];
 
         $id = $this->repository->createFromPlanning($insertData, $auditEntry);
+
+        $this->repository->addPlannedDate($id, $dataPlanejada);
 
         return ['action' => 'created', 'id' => $id];
     }
@@ -215,7 +218,53 @@ class PlannedActivityService
         return ['action' => 'duplicated', 'count' => $count];
     }
 
-    public function delete(int $id): array
+    public function reorder(array $order, string $tipo, string $dataPlanejada): array
+    {
+        if (empty($order)) {
+            throw new \RuntimeException('Ordem inválida.');
+        }
+
+        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+            throw new \RuntimeException('Tipo inválido.');
+        }
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dataPlanejada)) {
+            throw new \RuntimeException('Formato de data inválido.');
+        }
+
+        $this->repository->batchUpdateSortOrder($order, $tipo, $dataPlanejada);
+
+        return ['action' => 'reordered'];
+    }
+
+    public function moveDate(int $id, string $tipo, string $sourceDate, string $targetDate): array
+    {
+        if ($id <= 0) {
+            throw new \RuntimeException('ID inválido.');
+        }
+
+        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+            throw new \RuntimeException('Tipo inválido.');
+        }
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $sourceDate)) {
+            throw new \RuntimeException('Formato da data de origem inválido.');
+        }
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $targetDate)) {
+            throw new \RuntimeException('Formato da data de destino inválido.');
+        }
+
+        if ($sourceDate === $targetDate) {
+            throw new \RuntimeException('A data de destino deve ser diferente da data de origem.');
+        }
+
+        $this->repository->moveDate($id, $tipo, $sourceDate, $targetDate);
+
+        return ['action' => 'moved'];
+    }
+
+    public function delete(int $id, ?string $dataPlanejada = null): array
     {
         $existing = $this->repository->getById($id);
 
@@ -223,15 +272,32 @@ class PlannedActivityService
             throw new \RuntimeException('Registro não encontrado.');
         }
 
-        if ($existing->plannedDate === null) {
-            throw new \RuntimeException('Registro não possui data planejada.');
+        if ($existing->tipo !== 'corretiva') {
+            $this->repository->delete($id);
+            return ['action' => 'deleted'];
         }
 
+        if ($dataPlanejada !== null) {
+            $this->repository->removePlannedDate($id, $dataPlanejada);
+
+            $remaining = $this->repository->countPlannedDates($id);
+            if ($remaining === 0) {
+                if ($existing->origin === self::DEFAULT_ORIGIN) {
+                    $this->repository->delete($id, self::DEFAULT_ORIGIN);
+                    return ['action' => 'deleted'];
+                }
+                $this->repository->unplan($id, self::UNPLAN_STATUS);
+                return ['action' => 'unplanned'];
+            }
+
+            return ['action' => 'date_removed'];
+        }
+
+        $this->repository->removeAllPlannedDates($id);
         if ($existing->origin === self::DEFAULT_ORIGIN) {
             $this->repository->delete($id, self::DEFAULT_ORIGIN);
             return ['action' => 'deleted'];
         }
-
         $this->repository->unplan($id, self::UNPLAN_STATUS);
         return ['action' => 'unplanned'];
     }

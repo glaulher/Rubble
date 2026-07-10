@@ -647,6 +647,23 @@ ALTER TABLE `scm`
 --
 ALTER TABLE `scm_items`
   ADD CONSTRAINT `fk_scm_items_scm` FOREIGN KEY (`scm_id`) REFERENCES `scm` (`id`) ON DELETE CASCADE;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `planejamento_datas`
+-- Permite que uma atividade corretiva (registros) apareça em múltiplas datas
+--
+
+CREATE TABLE IF NOT EXISTS `planejamento_datas` (
+  `id`              INT AUTO_INCREMENT PRIMARY KEY,
+  `registro_id`     INT NOT NULL,
+  `data_planejada`  DATE NOT NULL,
+  `sort_order`      INT NOT NULL DEFAULT 0,
+  `created_at`      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`registro_id`) REFERENCES `registros` (`id`) ON DELETE CASCADE,
+  UNIQUE KEY `uk_registro_data` (`registro_id`, `data_planejada`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

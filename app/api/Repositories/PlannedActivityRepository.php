@@ -12,11 +12,12 @@ class PlannedActivityRepository extends BaseRepository
         [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status);
 
         $sql = "
-            SELECT id, local, equipamento, capacidade, local_scm, localidade, os, data_planejada, equipe, status, obs, tipo, machine_count
+            SELECT id, local, equipamento, capacidade, local_scm, localidade, os, data_planejada, equipe, status, obs, tipo, machine_count, sort_order
             FROM (
                 SELECT ap.id, ap.site AS local, '' AS equipamento, '' AS capacidade, '' AS local_scm, '' AS localidade,
                        ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.obs, 'preventiva' AS tipo,
-                       (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count
+                       (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count,
+                       ap.sort_order
                 FROM atividades_preventivas ap
                 WHERE {$pw}
 
@@ -24,12 +25,14 @@ class PlannedActivityRepository extends BaseRepository
 
                 SELECT r.id, COALESCE(e.local, ''), COALESCE(e.equipamento, ''), COALESCE(e.capacidade, ''),
                        COALESCE(e.local_scm, ''), COALESCE(e.localidade, ''),
-                       r.os, r.data_planejada, r.equipe, r.status, r.obs, r.tipo, 0 AS machine_count
+                       r.os, pd.data_planejada, r.equipe, r.status, r.obs, r.tipo, 0 AS machine_count,
+                       pd.sort_order
                 FROM registros r
+                JOIN planejamento_datas pd ON pd.registro_id = r.id
                 LEFT JOIN equipamentos e ON e.id = r.equipamento_id
                 WHERE {$cw}
             ) AS combined
-            ORDER BY data_planejada DESC, id DESC
+            ORDER BY data_planejada DESC, sort_order ASC, id DESC
             LIMIT ? OFFSET ?
         ";
 
@@ -61,7 +64,10 @@ class PlannedActivityRepository extends BaseRepository
             FROM (
                 SELECT ap.id FROM atividades_preventivas ap WHERE {$pw}
                 UNION ALL
-                SELECT r.id FROM registros r LEFT JOIN equipamentos e ON e.id = r.equipamento_id WHERE {$cw}
+                SELECT pd.id FROM registros r
+                JOIN planejamento_datas pd ON pd.registro_id = r.id
+                LEFT JOIN equipamentos e ON e.id = r.equipamento_id
+                WHERE {$cw}
             ) AS combined
         ";
 
@@ -81,17 +87,17 @@ class PlannedActivityRepository extends BaseRepository
 
     private function buildCorretivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status): array
     {
-        $where = 'r.data_planejada IS NOT NULL AND r.tipo = \'corretiva\'';
+        $where = 'r.tipo = \'corretiva\'';
         $params = [];
         $types = '';
 
         if ($dateFrom !== null && $dateFrom !== '') {
-            $where .= ' AND r.data_planejada >= ?';
+            $where .= ' AND pd.data_planejada >= ?';
             $params[] = $dateFrom;
             $types .= 's';
         }
         if ($dateTo !== null && $dateTo !== '') {
-            $where .= ' AND r.data_planejada <= ?';
+            $where .= ' AND pd.data_planejada <= ?';
             $params[] = $dateTo;
             $types .= 's';
         }
@@ -106,11 +112,11 @@ class PlannedActivityRepository extends BaseRepository
             $searchTerm = '%' . $search . '%';
             if (mb_strlen($search) >= 3) {
                 $safeSearch = $this->conn->real_escape_string($search);
-                $where .= " AND (MATCH(e.local, e.equipamento, e.localidade) AGAINST('+{$safeSearch}*' IN BOOLEAN MODE) OR r.obs LIKE ? OR r.os LIKE ? OR r.data_planejada LIKE ? OR r.tipo LIKE ?)";
+                $where .= " AND (MATCH(e.local, e.equipamento, e.localidade) AGAINST('+{$safeSearch}*' IN BOOLEAN MODE) OR r.obs LIKE ? OR r.os LIKE ? OR pd.data_planejada LIKE ? OR r.tipo LIKE ?)";
                 array_push($params, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
                 $types .= 'ssss';
             } else {
-                $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.obs LIKE ? OR r.os LIKE ? OR r.data_planejada LIKE ? OR r.tipo LIKE ?)';
+                $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.obs LIKE ? OR r.os LIKE ? OR pd.data_planejada LIKE ? OR r.tipo LIKE ?)';
                 array_push($params, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
                 $types .= 'sssssss';
             }
@@ -215,7 +221,54 @@ class PlannedActivityRepository extends BaseRepository
         return $stmt->execute();
     }
 
-    public function delete(int $id, string $origin = '', ?string $plannedDateCondition = ''): bool
+    public function updatePlanningFields(int $id, string $equipe, string $auditLog, string $tipo, string $status): bool
+    {
+        $sql = "
+            UPDATE registros
+            SET status = ?, equipe = ?, obs = ?, tipo = ?, notificacao_enviada = 0
+            WHERE id = ?
+        ";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('ssssi', $status, $equipe, $auditLog, $tipo, $id);
+        return $stmt->execute();
+    }
+
+    public function addPlannedDate(int $registroId, string $data): bool
+    {
+        $sql = "INSERT IGNORE INTO planejamento_datas (registro_id, data_planejada) VALUES (?, ?)";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('is', $registroId, $data);
+        return $stmt->execute();
+    }
+
+    public function removePlannedDate(int $registroId, string $data): bool
+    {
+        $sql = "DELETE FROM planejamento_datas WHERE registro_id = ? AND data_planejada = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('is', $registroId, $data);
+        return $stmt->execute();
+    }
+
+    public function countPlannedDates(int $registroId): int
+    {
+        $sql = "SELECT COUNT(*) AS total FROM planejamento_datas WHERE registro_id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $registroId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return (int) ($row['total'] ?? 0);
+    }
+
+    public function removeAllPlannedDates(int $registroId): bool
+    {
+        $sql = "DELETE FROM planejamento_datas WHERE registro_id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $registroId);
+        return $stmt->execute();
+    }
+
+    public function delete(int $id, string $origin = ''): bool
     {
         $sql = "DELETE FROM registros WHERE id = ?";
         $params = [$id];
@@ -225,9 +278,6 @@ class PlannedActivityRepository extends BaseRepository
             $sql .= " AND origin = ?";
             $params[] = $origin;
             $types .= 's';
-        }
-        if ($plannedDateCondition !== '') {
-            $sql .= " AND data_planejada IS NOT NULL";
         }
 
         $stmt = $this->safePrepare($sql);
@@ -301,6 +351,71 @@ class PlannedActivityRepository extends BaseRepository
     |--------------------------------------------------------------------------
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | SORT ORDER (Drag-to-Reorder)
+    |--------------------------------------------------------------------------
+    */
+
+    public function batchUpdateSortOrder(array $order, string $tipo, string $data): void
+    {
+        if (empty($order)) {
+            return;
+        }
+
+        if ($tipo === 'preventiva') {
+            $caseSql = '';
+            $ids = [];
+            foreach ($order as $position => $id) {
+                $caseSql .= "WHEN ? THEN ? ";
+                $ids[] = (int) $id;
+                $ids[] = $position + 1;
+            }
+            $placeholders = implode(',', array_fill(0, count($order), '?'));
+            $types = str_repeat('ii', count($order)) . str_repeat('i', count($order));
+            $allParams = array_merge($ids, array_map('intval', $order));
+
+            $sql = "UPDATE atividades_preventivas SET sort_order = CASE id {$caseSql} END WHERE id IN ({$placeholders})";
+        } else {
+            $caseSql = '';
+            $ids = [];
+            foreach ($order as $position => $id) {
+                $caseSql .= "WHEN ? THEN ? ";
+                $ids[] = (int) $id;
+                $ids[] = $position + 1;
+            }
+            $types = str_repeat('ii', count($order)) . 's';
+            $allParams = array_merge($ids, [$data]);
+
+            $sql = "UPDATE planejamento_datas SET sort_order = CASE registro_id {$caseSql} END WHERE data_planejada = ?";
+        }
+
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param($types, ...$allParams);
+        $stmt->execute();
+    }
+
+    public function moveDate(int $id, string $tipo, string $sourceDate, string $targetDate): void
+    {
+        if ($tipo === 'preventiva') {
+            $sql = "UPDATE atividades_preventivas SET data_planejada = ?, sort_order = 0 WHERE id = ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('si', $targetDate, $id);
+        } else {
+            // Insert into planejamento_datas (with sort_order=0 to go to bottom)
+            $sql = "INSERT IGNORE INTO planejamento_datas (registro_id, data_planejada, sort_order) VALUES (?, ?, 0)";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('is', $id, $targetDate);
+            $stmt->execute();
+
+            // Remove from source date
+            $sql = "DELETE FROM planejamento_datas WHERE registro_id = ? AND data_planejada = ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('is', $id, $sourceDate);
+        }
+        $stmt->execute();
+    }
+
     public function findByDate(string $date): array
     {
         $sql = "
@@ -308,9 +423,10 @@ class PlannedActivityRepository extends BaseRepository
             FROM atividades_preventivas
             WHERE data_planejada = ?
             UNION ALL
-            SELECT 'corretiva' AS tipo, id, '' AS site, os, data_planejada, equipe, status, obs
-            FROM registros
-            WHERE data_planejada = ? AND tipo = 'corretiva'
+            SELECT DISTINCT 'corretiva' AS tipo, r.id, '' AS site, r.os, pd.data_planejada, r.equipe, r.status, r.obs
+            FROM registros r
+            JOIN planejamento_datas pd ON pd.registro_id = r.id
+            WHERE pd.data_planejada = ? AND r.tipo = 'corretiva'
         ";
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('ss', $date, $date);
@@ -339,16 +455,8 @@ class PlannedActivityRepository extends BaseRepository
 
     public function duplicateCorretivaToDate(int $id, string $targetDate, string $status, string $origin): int
     {
-        $sql = "
-            INSERT INTO registros (equipamento_id, os, data, equipe, status, data_planejada, material, obs, origin, tipo)
-            SELECT equipamento_id, os, CURDATE(), equipe, ?, ?, material, obs, ?, 'corretiva'
-            FROM registros
-            WHERE id = ?
-        ";
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('sssi', $status, $targetDate, $origin, $id);
-        $stmt->execute();
-        return (int) $this->conn->insert_id;
+        $this->addPlannedDate($id, $targetDate);
+        return $id;
     }
 
     public function isDateFree(string $date, int $id, string $tipo): bool
@@ -356,7 +464,7 @@ class PlannedActivityRepository extends BaseRepository
         if ($tipo === 'preventiva') {
             $sql = "SELECT COUNT(*) AS cnt FROM atividades_preventivas WHERE data_planejada = ? AND id = ?";
         } else {
-            $sql = "SELECT COUNT(*) AS cnt FROM registros WHERE data_planejada = ? AND id = ? AND tipo = 'corretiva'";
+            $sql = "SELECT COUNT(*) AS cnt FROM planejamento_datas WHERE data_planejada = ? AND registro_id = ?";
         }
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('si', $date, $id);

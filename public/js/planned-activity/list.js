@@ -110,6 +110,7 @@ function buildPlannedCardHtml(item) {
       '</div>';
 
   var extraBtns = '';
+  var safeDate = (item.data_planejada || '').replace(/"/g, '\\"');
 
   if (tipo === 'preventiva') {
     var machineCount = item.machine_count || 0;
@@ -120,7 +121,7 @@ function buildPlannedCardHtml(item) {
   } else {
     extraBtns = iconButtonHtml('edit', 'Alterar status', { 'class': 'planned-corretiva-status-btn', 'data-id': item.id, 'data-status': item.status || 'Pendente' });
     if (canEdit) {
-      extraBtns += iconButtonHtml('delete', 'Excluir atividade', { 'class': 'planned-delete-btn', 'data-id': item.id });
+      extraBtns += iconButtonHtml('delete', 'Remover deste dia', { 'class': 'planned-delete-btn', 'data-id': item.id, 'data-date': safeDate });
     }
   }
 
@@ -129,18 +130,19 @@ function buildPlannedCardHtml(item) {
   if (tipo === 'preventiva') {
     headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
       '<span class="font-semibold text-sm text-slate-800">' + escapeHtml(local) + '</span>' +
-      (item.os ? '<span class="text-sm text-slate-600">Ticket ' + escapeHtml(item.os) + '</span>' : '') +
+      (item.os ? '<span class="text-sm text-slate-600 cursor-pointer hover:text-blue-600 hover:underline transition" data-action="copy-os" data-os="' + escapeHtml(item.os) + '" title="Clique para copiar">Ticket ' + escapeHtml(item.os) + '</span>' : '') +
       (machineCount > 0 ? '<span class="text-xs text-slate-500">\u2014 ' + machineCount + ' m\u00e1quina' + (machineCount > 1 ? 's' : '') + '</span>' : '') +
     '</div>';
   } else {
     headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
-      '<span class="font-semibold text-sm text-slate-800">OS ' + escapeHtml(item.os || '') + '</span>' +
+      '<span class="font-semibold text-sm text-slate-800 cursor-pointer hover:text-blue-600 hover:underline transition" data-action="copy-os" data-os="' + escapeHtml(item.os || '') + '" title="Clique para copiar">OS ' + escapeHtml(item.os || '') + '</span>' +
       '<span class="text-sm text-slate-600">' + escapeHtml(equipName) + '</span>' +
       capacidadeHtml +
     '</div>';
   }
 
-  return '<div class="planned-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '" data-tipo="' + tipo + '">' +
+  var cardDateAttr = tipo === 'corretiva' ? ' data-date="' + safeDate + '"' : '';
+  return '<div class="planned-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" draggable="true" data-id="' + item.id + '" data-tipo="' + tipo + '"' + cardDateAttr + '>' +
     '<div class="flex items-start justify-between gap-3">' +
       '<div class="flex-1 min-w-0">' +
         headerHtml +
@@ -159,6 +161,33 @@ function buildPlannedCardHtml(item) {
     '</div>' +
     obsHtml +
   '</div>';
+}
+
+function copyOs(os) {
+  if (!os || os === '-') return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(os)
+      .then(function () { showToast('N\u00ba OS copiado: ' + os, 'success'); })
+      .catch(function () { fallbackCopy(os); });
+  } else {
+    fallbackCopy(os);
+  }
+}
+
+function fallbackCopy(text) {
+  var textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    showToast('N\u00ba OS copiado: ' + text, 'success');
+  } catch (_e) {
+    showToast('Erro ao copiar', 'error');
+  }
+  document.body.removeChild(textarea);
 }
 
 function startTeamInlineEdit(btn) {
@@ -503,9 +532,6 @@ function syncPlannedCards(newItems, total) {
     return;
   }
 
-  var newIds = {};
-  newItems.forEach(function (item) { newIds[item.id] = true; });
-
   var newGrouped = {};
   newItems.forEach(function (item) {
     var key = item.data_planejada || 'sem_data';
@@ -534,9 +560,13 @@ function syncPlannedCards(newItems, total) {
       var cardsContainer = existingGroup.querySelector('.space-y-3');
       if (!cardsContainer) return;
 
+      // Build per-group ID set so same id in different dates is handled correctly
+      var groupIds = {};
+      groupItems.forEach(function (item) { groupIds[item.id] = true; });
+
       Array.from(cardsContainer.querySelectorAll('.planned-card')).forEach(function (card) {
         var id = parseInt(card.getAttribute('data-id'), 10);
-        if (!newIds[id]) card.remove();
+        if (!groupIds[id]) card.remove();
       });
 
       groupItems.forEach(function (item) {
@@ -1113,7 +1143,8 @@ function initPlannedActivity() {
         var deleteId = parseInt(deleteBtn.getAttribute('data-id'), 10);
         var deleteCard = deleteBtn.closest('.planned-card');
         var deleteTipo = deleteCard ? deleteCard.getAttribute('data-tipo') : 'corretiva';
-        if (deleteId) deletePlanned(deleteId, deleteTipo);
+        var deleteDate = deleteBtn.getAttribute('data-date') || '';
+        if (deleteId) deletePlanned(deleteId, deleteTipo, deleteDate);
         return;
       }
 
@@ -1151,6 +1182,124 @@ function initPlannedActivity() {
         var dupDate = dupBtn.getAttribute('data-date');
         if (dupDate) showDuplicateModal(dupDate, formatDateTimeline(dupDate));
         return;
+      }
+
+      var copyBtn = e.target.closest('[data-action="copy-os"]');
+      if (copyBtn) {
+        copyOs(copyBtn.getAttribute('data-os'));
+        return;
+      }
+    });
+
+    // --- Drag and Drop (reorder + move date) ---
+    _dragState = {};
+
+    content.addEventListener('dragstart', function (e) {
+      var card = e.target.closest('.planned-card');
+      if (!card) return;
+      var id = card.getAttribute('data-id');
+      var tipo = card.getAttribute('data-tipo');
+      var date = card.getAttribute('data-date');
+      if (!date) {
+        var group = card.closest('.timeline-group');
+        if (group) date = group.getAttribute('data-date') || '';
+      } else {
+        date = date || '';
+      }
+      if (!id) return;
+      _dragState = { id: id, tipo: tipo, sourceDate: date, card: card };
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', id);
+    });
+
+    content.addEventListener('dragend', function (e) {
+      var card = e.target.closest('.planned-card');
+      if (card) card.classList.remove('dragging');
+      document.querySelectorAll('.planned-card.drag-over').forEach(function (c) { c.classList.remove('drag-over'); });
+      document.querySelectorAll('.timeline-group.drag-over').forEach(function (g) { g.classList.remove('drag-over'); });
+      _dragState = {};
+    });
+
+    content.addEventListener('dragover', function (e) {
+      if (!_dragState.id) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      // Continuous highlight: clear all, apply to current target only
+      document.querySelectorAll('.planned-card.drag-over').forEach(function (c) { c.classList.remove('drag-over'); });
+      document.querySelectorAll('.timeline-group.drag-over').forEach(function (g) { g.classList.remove('drag-over'); });
+
+      var card = e.target.closest('.planned-card');
+      var group = e.target.closest('.timeline-group');
+      if (card && card !== _dragState.card) {
+        card.classList.add('drag-over');
+      } else if (group && !card) {
+        group.classList.add('drag-over');
+      }
+    });
+
+    content.addEventListener('drop', function (e) {
+      if (!_dragState.id) return;
+      e.preventDefault();
+      var srcId = _dragState.id;
+      var srcTipo = _dragState.tipo;
+      var srcDate = _dragState.sourceDate;
+
+      document.querySelectorAll('.planned-card.drag-over').forEach(function (c) { c.classList.remove('drag-over'); });
+      document.querySelectorAll('.timeline-group.drag-over').forEach(function (g) { g.classList.remove('drag-over'); });
+
+      var targetCard = e.target.closest('.planned-card');
+      var targetGroup = e.target.closest('.timeline-group');
+
+      if (!targetGroup) return;
+
+      var targetDate = targetGroup.getAttribute('data-date');
+
+      if (targetCard && targetCard !== _dragState.card && targetDate === srcDate) {
+        // Same group reorder — optimistic DOM update
+        var cardsContainer = targetGroup.querySelector('.space-y-3');
+        if (!cardsContainer) return;
+        cardsContainer.insertBefore(_dragState.card, targetCard);
+
+        var cardEls = Array.from(cardsContainer.querySelectorAll('.planned-card'));
+        var order = cardEls.map(function (c) { return parseInt(c.getAttribute('data-id'), 10); });
+
+        apiFetch('/app/api/index.php?route=planned-activities&action=reorder', {
+          method: 'POST',
+          body: JSON.stringify({ tipo: srcTipo, data_planejada: srcDate, order: order }),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (result) {
+            if (!result || !result.success) {
+              resetPlannedState('');
+            }
+          })
+          .catch(function () { resetPlannedState(''); });
+      } else if (targetDate && targetDate !== srcDate) {
+        // Cross-group move
+        var payload = { id: parseInt(srcId, 10), tipo: srcTipo, source_date: srcDate, target_date: targetDate };
+        apiFetch('/app/api/index.php?route=planned-activities&action=move-date', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (result) {
+            if (result && result.success) {
+              resetPlannedState('');
+            } else {
+              showToast(result && result.message ? result.message : 'Erro ao mover atividade.', 'error');
+            }
+          })
+          .catch(function () { showToast('Erro ao mover atividade.', 'error'); });
+        // Move card optimistically (removes from source group)
+        var srcGroup = _dragState.card.closest('.timeline-group');
+        if (srcGroup) {
+          _dragState.card.remove();
+          if (srcGroup.querySelectorAll('.planned-card').length === 0) {
+            srcGroup.remove();
+          }
+        }
       }
     });
   }
@@ -1257,7 +1406,7 @@ function submitPlan() {
 
       if (result && result.success) {
         if (result.data && result.data.action === 'updated') {
-          showToast('OS atualizada para Planejado com sucesso!', 'success');
+          showToast('Atividade adicionada ao novo dia!', 'success');
         } else {
           showToast('Atividade registrada com sucesso!', 'success');
         }
@@ -1277,20 +1426,29 @@ function submitPlan() {
     });
 }
 
-function deletePlanned(id, tipo) {
+function deletePlanned(id, tipo, dataPlanejada) {
   if (typeof confirmDelete !== 'function') return;
 
   var route = tipo === 'preventiva'
     ? '/app/api/index.php?route=preventiva'
     : '/app/api/index.php?route=planned-activities';
 
-  confirmDelete('Excluir Atividade', 'Tem certeza que deseja excluir esta atividade planejada?', 'atividade #' + id)
+  var msg = tipo === 'corretiva' && dataPlanejada
+    ? 'Remover agendamento do dia <strong>' + escapeHtml(dataPlanejada) + '</strong>?'
+    : 'Tem certeza que deseja excluir esta atividade planejada?';
+
+  confirmDelete('Excluir Atividade', msg, 'atividade #' + id)
     .then(function (confirmed) {
       if (!confirmed) return;
 
+      var payload = { id: id };
+      if (tipo === 'corretiva' && dataPlanejada) {
+        payload.data_planejada = dataPlanejada;
+      }
+
       apiFetch(route, {
         method: 'DELETE',
-        body: JSON.stringify({ id: id }),
+        body: JSON.stringify(payload),
       })
         .then(function (res) { return res.json(); })
         .then(function (result) {
@@ -1354,6 +1512,7 @@ function closeStatusPreventiva() {
 }
 
 var _duplicateSourceDate = null;
+var _dragState = {};
 
 function showDuplicateModal(sourceDate, dateLabel) {
   var modal = document.getElementById('modalDuplicateDay');

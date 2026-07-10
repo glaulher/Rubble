@@ -365,6 +365,39 @@ button:disabled { cursor: not-allowed; }
   animation: skeleton-breathe 2.5s ease-in-out infinite;
 }
 
+/* Copy OS/Ticket hover — dark mode */
+.dark [data-action="copy-os"]:hover {
+  color: #60a5fa !important;
+  text-decoration: underline !important;
+}
+
+/* Drag and Drop visual feedback */
+.planned-card.dragging {
+  opacity: 0.4 !important;
+  border-style: dashed !important;
+}
+
+.planned-card.drag-over {
+  border-color: #3b82f6 !important;
+  border-width: 2px !important;
+  border-style: dashed !important;
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+.dark .planned-card.drag-over {
+  border-color: #60a5fa !important;
+  background-color: rgba(96, 165, 250, 0.1) !important;
+}
+
+.timeline-group.drag-over {
+  border-left: 3px solid #3b82f6 !important;
+  padding-left: 0.75rem !important;
+}
+
+.dark .timeline-group.drag-over {
+  border-left-color: #60a5fa !important;
+}
+
 #skeletonTitle {
   color: var(--text-muted);
   font-size: 1.5rem;

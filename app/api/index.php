@@ -271,6 +271,10 @@ $router->addRoute('planned-activities', 'POST', function () use ($auth) {
     $action = $_GET['action'] ?? '';
     if ($action === 'duplicate') {
         $ctrl->duplicate();
+    } elseif ($action === 'reorder') {
+        $ctrl->reorder();
+    } elseif ($action === 'move-date') {
+        $ctrl->moveDate();
     } else {
         $ctrl->plan();
     }
