@@ -442,8 +442,7 @@ function closeCorretivaStatusModal() {
 function renderPlanned(items, append) {
   var counter = document.getElementById('plannedCounter');
   if (counter) {
-    var total = typeof window._plannedTotal !== 'undefined' ? window._plannedTotal : items.length;
-    counter.textContent = total + ' atividades';
+    counter.textContent = items.length + ' atividades';
   }
 
   var content = document.getElementById('plannedContent');
@@ -647,6 +646,8 @@ function setupPlannedScroll() {
     },
     afterLoadFn: function (state) {
       window._plannedTotal = state.total;
+      var counter = document.getElementById('plannedCounter');
+      if (counter) counter.textContent = state.total + ' atividades';
     },
     getFilterHash: function () {
       return plannedDateFrom + '|' + plannedDateTo + '|' + plannedStatusFilter + '|' + plannedSearch;
