@@ -398,6 +398,10 @@ button:disabled { cursor: not-allowed; }
   border-left-color: #60a5fa !important;
 }
 
+/* Drag handle cursor */
+.drag-handle { cursor: grab !important; }
+.drag-handle:active { cursor: grabbing !important; }
+
 #skeletonTitle {
   color: var(--text-muted);
   font-size: 1.5rem;

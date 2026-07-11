@@ -89,6 +89,16 @@ function buildPlannedCardHtml(item) {
     }
   }
 
+  var mercado = item.mercado || '';
+  var mercadoBadge = '';
+  if (mercado) {
+    var m = mercado.toLowerCase();
+    var corMercado = m === 'residencial'
+      ? 'bg-emerald-100 text-emerald-700'
+      : 'bg-purple-100 text-purple-700';
+    mercadoBadge = '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium ' + corMercado + '">' + escapeHtml(mercado) + '</span>';
+  }
+
   var obs = item.obs || '';
   var obsDisplay = obs ? escapeHtml(obs) : '<span class="text-slate-400 italic">Adicionar observação...</span>';
   var obsIcon = canEdit ? '<button class="inline-flex items-center justify-center text-blue-400 hover:text-blue-600 align-middle obs-edit-btn shrink-0" data-action="edit-obs" aria-label="Editar observação"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' : '';
@@ -99,15 +109,11 @@ function buildPlannedCardHtml(item) {
     '</div>' +
   '</div>';
 
-  var actionsHtml = canEdit
-    ? '<div class="flex items-center gap-1">' +
-        tipoBadge +
-        statusBadge +
-      '</div>'
-    : '<div class="flex items-center gap-1">' +
-        tipoBadge +
-        statusBadge +
-      '</div>';
+  var actionsHtml = '<div class="flex items-center gap-1">' +
+      mercadoBadge +
+      tipoBadge +
+      statusBadge +
+    '</div>';
 
   var extraBtns = '';
   var safeDate = (item.data_planejada || '').replace(/"/g, '\\"');
@@ -142,24 +148,36 @@ function buildPlannedCardHtml(item) {
   }
 
   var cardDateAttr = tipo === 'corretiva' ? ' data-date="' + safeDate + '"' : '';
-  return '<div class="planned-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" draggable="true" data-id="' + item.id + '" data-tipo="' + tipo + '"' + cardDateAttr + '>' +
-    '<div class="flex items-start justify-between gap-3">' +
+  var dragHandleHtml = '<div class="drag-handle shrink-0 mt-1" draggable="true" title="Arrastar para reordenar" style="cursor: grab; touch-action: none;">' +
+    '<svg class="w-5 h-5 text-slate-300 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-300 transition-colors" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+      '<circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>' +
+      '<circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>' +
+      '<circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/>' +
+    '</svg>' +
+  '</div>';
+  return '<div class="planned-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '" data-tipo="' + tipo + '"' + cardDateAttr + '>' +
+    '<div class="flex items-start gap-3">' +
+      dragHandleHtml +
       '<div class="flex-1 min-w-0">' +
-        headerHtml +
-        (tipo !== 'preventiva' ? localHtml : '') +
-      '</div>' +
-      '<div class="flex items-center gap-2 shrink-0">' +
-        actionsHtml +
-        extraBtns +
+        '<div class="flex items-start justify-between gap-3">' +
+          '<div class="flex-1 min-w-0">' +
+            headerHtml +
+            (tipo !== 'preventiva' ? localHtml : '') +
+          '</div>' +
+          '<div class="flex items-center gap-2 shrink-0">' +
+            actionsHtml +
+            extraBtns +
+          '</div>' +
+        '</div>' +
+        '<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">' +
+          '<span class="team-name-wrap">Equipe: <strong class="text-slate-700 team-name-text">' + escapeHtml(equipe) + '</strong>' +
+          (canEdit ? '<button class="inline-flex items-center justify-center text-blue-400 hover:text-blue-600 ml-0.5 align-middle team-edit-btn" data-action="edit-team" data-id="' + item.id + '" data-tipo="' + tipo + '" data-equipe="' + escapeHtml(equipe) + '" aria-label="Editar equipe"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' : '') +
+          '</span>' +
+          (material ? '<span>Material: <strong class="text-slate-700">' + escapeHtml(material) + '</strong></span>' : '') +
+        '</div>' +
+        obsHtml +
       '</div>' +
     '</div>' +
-    '<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">' +
-      '<span class="team-name-wrap">Equipe: <strong class="text-slate-700 team-name-text">' + escapeHtml(equipe) + '</strong>' +
-      (canEdit ? '<button class="inline-flex items-center justify-center text-blue-400 hover:text-blue-600 ml-0.5 align-middle team-edit-btn" data-action="edit-team" data-id="' + item.id + '" data-tipo="' + tipo + '" data-equipe="' + escapeHtml(equipe) + '" aria-label="Editar equipe"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' : '') +
-      '</span>' +
-      (material ? '<span>Material: <strong class="text-slate-700">' + escapeHtml(material) + '</strong></span>' : '') +
-    '</div>' +
-    obsHtml +
   '</div>';
 }
 
@@ -1196,6 +1214,8 @@ function initPlannedActivity() {
     _dragState = {};
 
     content.addEventListener('dragstart', function (e) {
+      var handle = e.target.closest('.drag-handle');
+      if (!handle) return;
       var card = e.target.closest('.planned-card');
       if (!card) return;
       var id = card.getAttribute('data-id');

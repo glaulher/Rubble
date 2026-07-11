@@ -12,12 +12,12 @@ class PlannedActivityRepository extends BaseRepository
         [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status);
 
         $sql = "
-            SELECT id, local, equipamento, capacidade, local_scm, localidade, os, data_planejada, equipe, status, obs, tipo, machine_count, sort_order
+            SELECT id, local, equipamento, capacidade, local_scm, localidade, os, data_planejada, equipe, status, obs, tipo, machine_count, sort_order, mercado
             FROM (
                 SELECT ap.id, ap.site AS local, '' AS equipamento, '' AS capacidade, '' AS local_scm, '' AS localidade,
                        ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.obs, 'preventiva' AS tipo,
                        (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count,
-                       ap.sort_order
+                       ap.sort_order, '' AS mercado
                 FROM atividades_preventivas ap
                 WHERE {$pw}
 
@@ -26,7 +26,7 @@ class PlannedActivityRepository extends BaseRepository
                 SELECT r.id, COALESCE(e.local, ''), COALESCE(e.equipamento, ''), COALESCE(e.capacidade, ''),
                        COALESCE(e.local_scm, ''), COALESCE(e.localidade, ''),
                        r.os, pd.data_planejada, r.equipe, r.status, r.obs, r.tipo, 0 AS machine_count,
-                       pd.sort_order
+                       pd.sort_order, COALESCE(e.mercado, '') AS mercado
                 FROM registros r
                 JOIN planejamento_datas pd ON pd.registro_id = r.id
                 LEFT JOIN equipamentos e ON e.id = r.equipamento_id
