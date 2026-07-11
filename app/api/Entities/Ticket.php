@@ -19,6 +19,9 @@ class Ticket
     public ?string $tipo;
     public ?string $local;
     public ?string $equipment;
+    public ?string $sla_days;
+    public ?string $sla_include_saturday;
+    public ?string $sla_include_sunday;
 
     public function __construct(array $data)
     {
@@ -37,6 +40,9 @@ class Ticket
         $this->tipo = $data['tipo'] ?? 'preventiva';
         $this->local = $data['local'] ?? null;
         $this->equipment = $data['equipamento'] ?? null;
+        $this->sla_days = $data['sla_days'] ?? null;
+        $this->sla_include_saturday = $data['sla_include_saturday'] ?? null;
+        $this->sla_include_sunday = $data['sla_include_sunday'] ?? null;
     }
 
     public function toArray(): array

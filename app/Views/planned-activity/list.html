@@ -165,6 +165,31 @@
           placeholder="A definir"
         >
       </div>
+      <!-- SLA -->
+      <div class="border-t border-slate-200 pt-4">
+        <label class="block text-sm font-medium text-slate-700 mb-2">SLA (dias programados)</label>
+        <div class="flex items-center gap-4">
+          <input
+            id="planSlaDays"
+            type="number"
+            min="1"
+            max="90"
+            class="w-20 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+            placeholder="4"
+          >
+          <label class="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer">
+            <input type="checkbox" id="planSlaSat" class="rounded border-slate-300 text-sky-600">
+            Sáb
+          </label>
+          <label class="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer">
+            <input type="checkbox" id="planSlaSun" class="rounded border-slate-300 text-sky-600">
+            Dom
+          </label>
+        </div>
+        <div id="slaPreview" class="mt-2 text-xs text-slate-400 hidden">
+          <span id="slaPreviewText"></span>
+        </div>
+      </div>
       <div>
         <label for="planObs" class="block text-sm font-medium text-slate-700 mb-1">Observação</label>
         <textarea
@@ -247,6 +272,104 @@
       <div class="flex justify-end gap-3">
         <button type="button" class="btn-cancel-corretiva-status bg-slate-200 hover:bg-slate-300 text-slate-900 px-4 py-2 rounded-xl text-sm">Cancelar</button>
         <button type="submit" class="bg-blue-200 hover:bg-blue-300 text-blue-800 px-4 py-2 rounded-xl text-sm font-medium">Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: EXTENDER SLA -->
+<div id="modalExtendSla" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl mx-4">
+    <h2 class="text-lg font-semibold text-slate-800 mb-1">Estender SLA</h2>
+    <p id="extendSlaInfo" class="text-sm text-slate-500 mb-4"></p>
+    <form id="extendSlaForm" class="space-y-4" novalidate>
+      <input type="hidden" id="extendSlaId">
+      <input type="hidden" id="extendSlaTipo">
+      <div>
+        <label for="extendSlaDays" class="block text-sm font-medium text-slate-700 mb-1">Dias extras</label>
+        <input
+          id="extendSlaDays"
+          type="number"
+          min="1"
+          max="30"
+          required
+          class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+          placeholder="Ex: 3"
+        >
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">Justificativa</label>
+        <div id="extendSlaReasons" class="space-y-2">
+          <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input type="radio" name="sla_justification" value="Condições climáticas" class="accent-sky-600">
+            Condições climáticas
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input type="radio" name="sla_justification" value="Material parceiro" class="accent-sky-600">
+            Material parceiro
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input type="radio" name="sla_justification" value="Sem acesso" class="accent-sky-600">
+            Sem acesso
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input type="radio" name="sla_justification" value="Material cliente" class="accent-sky-600">
+            Material cliente
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input type="radio" name="sla_justification" value="Reprogramado equipe parceiro" class="accent-sky-600">
+            Reprogramado equipe parceiro
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input type="radio" name="sla_justification" value="Reprogramado equipe cliente" class="accent-sky-600">
+            Reprogramado equipe cliente
+          </label>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" id="btnCancelExtendSla" class="bg-slate-300 hover:bg-slate-400 text-slate-900 px-4 py-2 rounded-xl text-sm transition">Cancelar</button>
+        <button type="submit" class="bg-amber-200 hover:bg-amber-300 text-amber-800 px-4 py-2 rounded-xl text-sm font-medium">Estender</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: DEFINIR SLA -->
+<div id="modalSetSla" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl mx-4">
+    <h2 class="text-lg font-semibold text-slate-800 mb-4">Definir SLA</h2>
+    <p id="setSlaInfo" class="text-sm text-slate-500 mb-4"></p>
+    <form id="setSlaForm" class="space-y-4" novalidate>
+      <input type="hidden" id="setSlaId">
+      <input type="hidden" id="setSlaTipo">
+      <div>
+        <label for="setSlaDays" class="block text-sm font-medium text-slate-700 mb-1">Dias programados (SLA)</label>
+        <input
+          id="setSlaDays"
+          type="number"
+          min="1"
+          max="90"
+          required
+          class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+          placeholder="Ex: 4"
+        >
+      </div>
+      <div class="flex items-center gap-4">
+        <label class="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer">
+          <input type="checkbox" id="setSlaSat" class="rounded border-slate-300 text-sky-600">
+          Sáb
+        </label>
+        <label class="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer">
+          <input type="checkbox" id="setSlaSun" class="rounded border-slate-300 text-sky-600">
+          Dom
+        </label>
+      </div>
+      <div id="setSlaPreview" class="mt-1 text-xs text-slate-400 hidden">
+        <span id="setSlaPreviewText"></span>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" id="btnCancelSetSla" class="bg-slate-300 hover:bg-slate-400 text-slate-900 px-4 py-2 rounded-xl text-sm transition">Cancelar</button>
+        <button type="submit" class="bg-sky-200 hover:bg-sky-300 text-sky-800 px-4 py-2 rounded-xl text-sm font-medium">Definir</button>
       </div>
     </form>
   </div>

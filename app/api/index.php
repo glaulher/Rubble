@@ -275,6 +275,10 @@ $router->addRoute('planned-activities', 'POST', function () use ($auth) {
         $ctrl->reorder();
     } elseif ($action === 'move-date') {
         $ctrl->moveDate();
+    } elseif ($action === 'extend-sla') {
+        $ctrl->extendSla();
+    } elseif ($action === 'set-sla') {
+        $ctrl->setSla();
     } else {
         $ctrl->plan();
     }

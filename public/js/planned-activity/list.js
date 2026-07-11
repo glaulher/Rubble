@@ -118,14 +118,22 @@ function buildPlannedCardHtml(item) {
   var extraBtns = '';
   var safeDate = (item.data_planejada || '').replace(/"/g, '\\"');
 
+  var hasSla = item.sla_days && parseInt(item.sla_days, 10) > 0;
+
   if (tipo === 'preventiva') {
     var machineCount = item.machine_count || 0;
     extraBtns = iconButtonHtml('edit', 'Alterar status', { 'class': 'planned-status-btn', 'data-id': item.id, 'data-status': item.status || 'Planejado', 'data-date': item.data_planejada || '' });
+    if (!hasSla && canEdit) {
+      extraBtns += '<button class="inline-flex items-center justify-center bg-sky-100 hover:bg-sky-200 text-sky-600 p-2 rounded-xl relative group" data-action="set-sla" data-id="' + item.id + '" data-tipo="preventiva" aria-label="Definir SLA"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="absolute right-0 top-[50px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap border border-slate-600 z-50">Definir SLA</span></button>';
+    }
     if (canEdit) {
       extraBtns += iconButtonHtml('delete', 'Excluir atividade', { 'class': 'planned-delete-btn', 'data-id': item.id });
     }
   } else {
     extraBtns = iconButtonHtml('edit', 'Alterar status', { 'class': 'planned-corretiva-status-btn', 'data-id': item.id, 'data-status': item.status || 'Pendente' });
+    if (!hasSla && canEdit) {
+      extraBtns += '<button class="inline-flex items-center justify-center bg-sky-100 hover:bg-sky-200 text-sky-600 p-2 rounded-xl relative group" data-action="set-sla" data-id="' + item.id + '" data-tipo="corretiva" data-date="' + safeDate + '" aria-label="Definir SLA"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="absolute right-0 top-[50px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap border border-slate-600 z-50">Definir SLA</span></button>';
+    }
     if (canEdit) {
       extraBtns += iconButtonHtml('delete', 'Remover deste dia', { 'class': 'planned-delete-btn', 'data-id': item.id, 'data-date': safeDate });
     }
@@ -165,18 +173,40 @@ function buildPlannedCardHtml(item) {
     '</span>' +
     (material ? '<span>Material: <strong class="text-slate-700">' + escapeHtml(material) + '</strong></span>' : '') +
     '</div>' +
+    buildSlaLineHtml(item) +
     obsHtml;
 
-  var dragHandleHtml = '<div class="drag-handle shrink-0 mt-4" draggable="true" title="Arrastar para reordenar" style="cursor: grab; touch-action: none;">' +
-    '<svg class="w-5 h-5 text-slate-300 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-300 transition-colors" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
-      '<circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>' +
-      '<circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>' +
-      '<circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/>' +
-    '</svg>' +
-  '</div>';
+function buildSlaLineHtml(item) {
+  var slaDays = parseInt(item.sla_days, 10);
+  if (!slaDays || slaDays <= 0) return '';
+  var slaDayNum = parseInt(item.sla_day_number, 10) || 0;
+  var exceeded = slaDayNum > slaDays ? slaDayNum - slaDays : 0;
+  var lineClass = exceeded > 0 ? 'text-amber-600' : 'text-slate-500';
+  var text = '';
+  if (exceeded > 0) {
+    text = slaDayNum + ' de ' + slaDays + ' · ' + exceeded + ' excedente' + (exceeded > 1 ? 's' : '');
+  } else {
+    text = slaDayNum + ' de ' + slaDays + ' dia' + (slaDays > 1 ? 's' : '') + ' programado' + (slaDays > 1 ? 's' : '');
+  }
+  return '<div class="mt-2 text-xs ' + lineClass + ' flex items-center gap-1">' +
+    '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
+    '<span>' + text + ' programados</span>' +
+    (canEditPlanned() ? '<button class="inline-flex items-center justify-center text-slate-400 hover:text-amber-500 ml-0.5 align-middle extend-sla-btn" data-action="extend-sla" data-id="' + item.id + '" data-tipo="' + (item.tipo || 'corretiva') + '" aria-label="Estender SLA"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>' : '') +
+    '</div>';
+}
+
+  var dragHandleHtml = canEditPlanned()
+    ? '<div class="drag-handle shrink-0 mt-4" draggable="true" title="Arrastar para reordenar" style="cursor: grab; touch-action: none;">' +
+      '<svg class="w-5 h-5 text-slate-300 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-300 transition-colors" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+        '<circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>' +
+        '<circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>' +
+        '<circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/>' +
+      '</svg>' +
+    '</div>'
+    : '';
   return '<div class="planned-card-wrapper flex items-start gap-1.5">' +
     dragHandleHtml +
-    '<div class="planned-card flex-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '" data-tipo="' + tipo + '"' + cardDateAttr + '>' +
+    '<div class="planned-card flex-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '" data-tipo="' + tipo + '"' + cardDateAttr + ' data-sla-day-number="' + (item.sla_day_number || '') + '">' +
       cardContentHtml +
     '</div>' +
   '</div>';
@@ -1161,6 +1191,80 @@ function initPlannedActivity() {
     corrStatusBackdrop.addEventListener('click', closeCorretivaStatusModal);
   }
 
+  // --- SLA Preview ---
+  var slaDays = document.getElementById('planSlaDays');
+  var slaSat = document.getElementById('planSlaSat');
+  var slaSun = document.getElementById('planSlaSun');
+  var slaData = document.getElementById('planData');
+  function updateSlaPreview() {
+    var days = slaDays && parseInt(slaDays.value, 10);
+    var dt = slaData && slaData.value;
+    var preview = document.getElementById('slaPreview');
+    var text = document.getElementById('slaPreviewText');
+    if (!days || days < 1 || !dt) {
+      if (preview) preview.classList.add('hidden');
+      return;
+    }
+    var includeSat = slaSat ? slaSat.checked : false;
+    var includeSun = slaSun ? slaSun.checked : false;
+    var dates = generateSlaDateList(dt, days, includeSat, includeSun);
+    if (preview) preview.classList.remove('hidden');
+    if (text) text.textContent = days + ' dia' + (days > 1 ? 's' : '') + ': ' + dates.join(', ');
+  }
+  if (slaDays) slaDays.addEventListener('input', updateSlaPreview);
+  if (slaSat) slaSat.addEventListener('change', updateSlaPreview);
+  if (slaSun) slaSun.addEventListener('change', updateSlaPreview);
+  if (slaData) slaData.addEventListener('change', updateSlaPreview);
+
+  // --- Extend SLA Modal ---
+  var btnCancelExtend = document.getElementById('btnCancelExtendSla');
+  if (btnCancelExtend) {
+    btnCancelExtend.addEventListener('click', closeExtendSlaModal);
+  }
+  var extendForm = document.getElementById('extendSlaForm');
+  if (extendForm) {
+    extendForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      submitExtendSla();
+    });
+  }
+
+  // --- Set SLA Modal ---
+  var btnCancelSetSla = document.getElementById('btnCancelSetSla');
+  if (btnCancelSetSla) {
+    btnCancelSetSla.addEventListener('click', closeSetSlaModal);
+  }
+  var setSlaForm = document.getElementById('setSlaForm');
+  if (setSlaForm) {
+    setSlaForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      submitSetSla();
+    });
+  }
+  // SLA preview
+  var setSlaDays = document.getElementById('setSlaDays');
+  var setSlaSat = document.getElementById('setSlaSat');
+  var setSlaSun = document.getElementById('setSlaSun');
+  var setSlaData = document.getElementById('planData');
+  function updateSetSlaPreview() {
+    var days = setSlaDays && parseInt(setSlaDays.value, 10);
+    var dt = setSlaData && setSlaData.value;
+    var preview = document.getElementById('setSlaPreview');
+    var text = document.getElementById('setSlaPreviewText');
+    if (!days || days < 1 || !dt) {
+      if (preview) preview.classList.add('hidden');
+      return;
+    }
+    var includeSat = setSlaSat ? setSlaSat.checked : false;
+    var includeSun = setSlaSun ? setSlaSun.checked : false;
+    var dates = generateSlaDateList(dt, days, includeSat, includeSun);
+    if (preview) preview.classList.remove('hidden');
+    if (text) text.textContent = days + ' dia' + (days > 1 ? 's' : '') + ': ' + dates.join(', ');
+  }
+  if (setSlaDays) setSlaDays.addEventListener('input', updateSetSlaPreview);
+  if (setSlaSat) setSlaSat.addEventListener('change', updateSetSlaPreview);
+  if (setSlaSun) setSlaSun.addEventListener('change', updateSetSlaPreview);
+
   var content = document.getElementById('plannedContent');
   if (content) {
     content.addEventListener('click', function (e) {
@@ -1170,7 +1274,8 @@ function initPlannedActivity() {
         var deleteCard = deleteBtn.closest('.planned-card');
         var deleteTipo = deleteCard ? deleteCard.getAttribute('data-tipo') : 'corretiva';
         var deleteDate = deleteBtn.getAttribute('data-date') || '';
-        if (deleteId) deletePlanned(deleteId, deleteTipo, deleteDate);
+        var deleteSlaDay = deleteCard ? parseInt(deleteCard.getAttribute('data-sla-day-number'), 10) || null : null;
+        if (deleteId) deletePlanned(deleteId, deleteTipo, deleteDate, deleteSlaDay);
         return;
       }
 
@@ -1213,6 +1318,22 @@ function initPlannedActivity() {
       var copyBtn = e.target.closest('[data-action="copy-os"]');
       if (copyBtn) {
         copyOs(copyBtn.getAttribute('data-os'));
+        return;
+      }
+
+      var extendBtn = e.target.closest('[data-action="extend-sla"]');
+      if (extendBtn) {
+        var extId = parseInt(extendBtn.getAttribute('data-id'), 10);
+        var extTipo = extendBtn.getAttribute('data-tipo');
+        if (extId) openExtendSlaModal(extId, extTipo);
+        return;
+      }
+
+      var setSlaBtn = e.target.closest('[data-action="set-sla"]');
+      if (setSlaBtn) {
+        var setSlaId = parseInt(setSlaBtn.getAttribute('data-id'), 10);
+        var setSlaTipo = setSlaBtn.getAttribute('data-tipo');
+        if (setSlaId) openSetSlaModal(setSlaId, setSlaTipo);
         return;
       }
     });
@@ -1416,6 +1537,12 @@ function submitPlan() {
       obs: obs.value.trim() || '',
       tipo: 'corretiva',
     };
+    var slaDays = document.getElementById('planSlaDays');
+    if (slaDays && slaDays.value) {
+      payload.sla_days = parseInt(slaDays.value, 10);
+      payload.sla_include_saturday = document.getElementById('planSlaSat').checked ? 1 : 0;
+      payload.sla_include_sunday = document.getElementById('planSlaSun').checked ? 1 : 0;
+    }
   }
 
   var btn = document.querySelector('#planForm button[type="submit"]');
@@ -1457,7 +1584,7 @@ function submitPlan() {
     });
 }
 
-function deletePlanned(id, tipo, dataPlanejada) {
+function deletePlanned(id, tipo, dataPlanejada, slaDayNumber) {
   if (typeof confirmDelete !== 'function') return;
 
   var route = tipo === 'preventiva'
@@ -1475,6 +1602,9 @@ function deletePlanned(id, tipo, dataPlanejada) {
       var payload = { id: id };
       if (tipo === 'corretiva' && dataPlanejada) {
         payload.data_planejada = dataPlanejada;
+      }
+      if (slaDayNumber) {
+        payload.sla_day_number = slaDayNumber;
       }
 
       apiFetch(route, {
@@ -1540,6 +1670,158 @@ function closeStatusPreventiva() {
   if (dateGroup) dateGroup.classList.add('hidden');
   var dateInput = document.getElementById('statusDataPlanejada');
   if (dateInput) dateInput.value = '';
+}
+
+function generateSlaDateList(startDate, days, includeSat, includeSun) {
+  var dates = [];
+  var current = new Date(startDate + 'T12:00:00');
+  var created = 0;
+  var dayNum = 1;
+  while (created < days) {
+    var dow = current.getDay();
+    var isSat = dow === 6;
+    var isSun = dow === 0;
+    if ((isSat && !includeSat) || (isSun && !includeSun)) {
+      current.setDate(current.getDate() + 1);
+      continue;
+    }
+    if (dayNum > 1) {
+      var dd = String(current.getDate()).padStart(2, '0');
+      var mm = String(current.getMonth() + 1).padStart(2, '0');
+      var yyyy = current.getFullYear();
+      dates.push(dd + '/' + mm);
+    }
+    current.setDate(current.getDate() + 1);
+    dayNum++;
+    created++;
+  }
+  return dates;
+}
+
+function openExtendSlaModal(id, tipo) {
+  var modal = document.getElementById('modalExtendSla');
+  var info = document.getElementById('extendSlaInfo');
+  var idInput = document.getElementById('extendSlaId');
+  var tipoInput = document.getElementById('extendSlaTipo');
+  var daysInput = document.getElementById('extendSlaDays');
+  var radios = document.querySelectorAll('input[name="sla_justification"]');
+  if (!modal) return;
+  if (idInput) idInput.value = id;
+  if (tipoInput) tipoInput.value = tipo;
+  if (info) info.textContent = 'Estendendo SLA da atividade #' + id + ' (' + tipo + ')';
+  if (daysInput) daysInput.value = '';
+  radios.forEach(function (r) { r.checked = false; });
+  modal.classList.remove('hidden');
+}
+
+function closeExtendSlaModal() {
+  var modal = document.getElementById('modalExtendSla');
+  if (modal) modal.classList.add('hidden');
+}
+
+function submitExtendSla() {
+  var id = document.getElementById('extendSlaId');
+  var tipo = document.getElementById('extendSlaTipo');
+  var days = document.getElementById('extendSlaDays');
+  var selected = document.querySelector('input[name="sla_justification"]:checked');
+  if (!id || !id.value) { showToast('ID inválido.', 'error'); return; }
+  if (!days || !days.value || parseInt(days.value, 10) < 1) { showToast('Informe a quantidade de dias extras.', 'error'); if (days) days.focus(); return; }
+  if (!selected) { showToast('Selecione uma justificativa.', 'error'); return; }
+
+  var btn = document.querySelector('#extendSlaForm button[type="submit"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Estendendo...'; }
+
+  apiFetch('/app/api/index.php?route=planned-activities&action=extend-sla', {
+    method: 'POST',
+    body: JSON.stringify({
+      id: parseInt(id.value, 10),
+      tipo: tipo ? tipo.value : 'corretiva',
+      extra_days: parseInt(days.value, 10),
+      justification: selected.value,
+    }),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (result) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Estender'; }
+      if (result && result.success) {
+        showToast('SLA estendido em ' + (result.data && result.data.extra_days ? result.data.extra_days : days.value) + ' dia(s)!', 'success');
+        closeExtendSlaModal();
+        resetPlannedState('');
+      } else {
+        showToast(result && result.message ? result.message : 'Erro ao estender SLA.', 'error');
+      }
+    })
+    .catch(function (err) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Estender'; }
+      showToast('Erro ao estender SLA.', 'error');
+      console.error('Erro ao estender SLA:', err);
+    });
+}
+
+function openSetSlaModal(id, tipo) {
+  var modal = document.getElementById('modalSetSla');
+  var info = document.getElementById('setSlaInfo');
+  var idInput = document.getElementById('setSlaId');
+  var tipoInput = document.getElementById('setSlaTipo');
+  var daysInput = document.getElementById('setSlaDays');
+  var sat = document.getElementById('setSlaSat');
+  var sun = document.getElementById('setSlaSun');
+  var preview = document.getElementById('setSlaPreview');
+  if (!modal) return;
+  if (idInput) idInput.value = id;
+  if (tipoInput) tipoInput.value = tipo;
+  if (info) info.textContent = 'Definindo SLA da atividade #' + id + ' (' + tipo + ')';
+  if (daysInput) daysInput.value = '';
+  if (sat) sat.checked = false;
+  if (sun) sun.checked = false;
+  if (preview) preview.classList.add('hidden');
+  modal.classList.remove('hidden');
+  if (daysInput) daysInput.focus();
+}
+
+function closeSetSlaModal() {
+  var modal = document.getElementById('modalSetSla');
+  if (modal) modal.classList.add('hidden');
+}
+
+function submitSetSla() {
+  var id = document.getElementById('setSlaId');
+  var tipo = document.getElementById('setSlaTipo');
+  var days = document.getElementById('setSlaDays');
+  if (!id || !id.value) { showToast('ID inválido.', 'error'); return; }
+  var slaDays = days ? parseInt(days.value, 10) : 0;
+  if (!slaDays || slaDays < 1) { showToast('Informe a quantidade de dias (mínimo 1).', 'error'); if (days) days.focus(); return; }
+  if (slaDays > 90) { showToast('Máximo 90 dias.', 'error'); if (days) days.focus(); return; }
+
+  var btn = document.querySelector('#setSlaForm button[type="submit"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
+  apiFetch('/app/api/index.php?route=planned-activities&action=set-sla', {
+    method: 'POST',
+    body: JSON.stringify({
+      id: parseInt(id.value, 10),
+      tipo: tipo ? tipo.value : 'corretiva',
+      sla_days: slaDays,
+      sla_include_saturday: document.getElementById('setSlaSat').checked ? 1 : 0,
+      sla_include_sunday: document.getElementById('setSlaSun').checked ? 1 : 0,
+    }),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (result) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Definir'; }
+      if (result && result.success) {
+        showToast('SLA de ' + slaDays + ' dia(s) definido!', 'success');
+        closeSetSlaModal();
+        resetPlannedState('');
+      } else {
+        showToast(result && result.message ? result.message : 'Erro ao definir SLA.', 'error');
+      }
+    })
+    .catch(function (err) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Definir'; }
+      showToast('Erro ao definir SLA.', 'error');
+      console.error('Erro ao definir SLA:', err);
+    });
 }
 
 var _duplicateSourceDate = null;

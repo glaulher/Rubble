@@ -12,12 +12,13 @@ class PlannedActivityRepository extends BaseRepository
         [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status);
 
         $sql = "
-            SELECT id, local, equipamento, capacidade, local_scm, localidade, os, data_planejada, equipe, status, obs, tipo, machine_count, sort_order, mercado
+            SELECT id, local, equipamento, capacidade, local_scm, localidade, os, data_planejada, equipe, status, obs, tipo, machine_count, sort_order, mercado, sla_days, sla_include_saturday, sla_include_sunday, sla_day_number
             FROM (
                 SELECT ap.id, ap.site AS local, '' AS equipamento, '' AS capacidade, '' AS local_scm, '' AS localidade,
                        ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.obs, 'preventiva' AS tipo,
                        (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count,
-                       ap.sort_order, '' AS mercado
+                       ap.sort_order, '' AS mercado,
+                       ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number
                 FROM atividades_preventivas ap
                 WHERE {$pw}
 
@@ -26,7 +27,8 @@ class PlannedActivityRepository extends BaseRepository
                 SELECT r.id, COALESCE(e.local, ''), COALESCE(e.equipamento, ''), COALESCE(e.capacidade, ''),
                        COALESCE(e.local_scm, ''), COALESCE(e.localidade, ''),
                        r.os, pd.data_planejada, r.equipe, r.status, r.obs, r.tipo, 0 AS machine_count,
-                       pd.sort_order, COALESCE(e.mercado, '') AS mercado
+                       pd.sort_order, COALESCE(e.mercado, '') AS mercado,
+                       r.sla_days, r.sla_include_saturday, r.sla_include_sunday, pd.sla_day_number
                 FROM registros r
                 JOIN planejamento_datas pd ON pd.registro_id = r.id
                 LEFT JOIN equipamentos e ON e.id = r.equipamento_id
@@ -175,28 +177,76 @@ class PlannedActivityRepository extends BaseRepository
         $tipo = $data['tipo'] ?? 'preventiva';
         $status = $data['status'] ?? 'Planejado';
         $origin = $data['origin'] ?? 'planning';
-        $sql = "
-            INSERT INTO registros (
-                equipamento_id, os, data, equipe, status, data_planejada, material, obs, origin, tipo
-            ) VALUES (?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?)
-        ";
+        $hasSla = !empty($data['sla_days']) && (int) $data['sla_days'] > 0;
 
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param(
-            'issssssss',
-            $data['equipamento_id'],
-            $data['os'],
-            $data['equipe'],
-            $status,
-            $data['data_planejada'],
-            $data['material'],
-            $auditLog,
-            $origin,
-            $tipo
-        );
+        if ($hasSla) {
+            $sql = "
+                INSERT INTO registros (
+                    equipamento_id, os, data, equipe, status, data_planejada, material, obs, origin, tipo,
+                    sla_days, sla_include_saturday, sla_include_sunday
+                ) VALUES (?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ";
+            $stmt = $this->safePrepare($sql);
+            $slaDays = (int) $data['sla_days'];
+            $includeSat = !empty($data['sla_include_saturday']) ? 1 : 0;
+            $includeSun = !empty($data['sla_include_sunday']) ? 1 : 0;
+            $stmt->bind_param(
+                'issssssssiii',
+                $data['equipamento_id'],
+                $data['os'],
+                $data['equipe'],
+                $status,
+                $data['data_planejada'],
+                $data['material'],
+                $auditLog,
+                $origin,
+                $tipo,
+                $slaDays,
+                $includeSat,
+                $includeSun
+            );
+        } else {
+            $sql = "
+                INSERT INTO registros (
+                    equipamento_id, os, data, equipe, status, data_planejada, material, obs, origin, tipo
+                ) VALUES (?, ?, CURDATE(), ?, ?, ?, ?, ?, ?, ?)
+            ";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param(
+                'issssssss',
+                $data['equipamento_id'],
+                $data['os'],
+                $data['equipe'],
+                $status,
+                $data['data_planejada'],
+                $data['material'],
+                $auditLog,
+                $origin,
+                $tipo
+            );
+        }
         $stmt->execute();
 
         return (int) $this->conn->insert_id;
+    }
+
+    public function updateSlaFields(int $id, int $slaDays, int $includeSat, int $includeSun): void
+    {
+        $sql = "UPDATE registros SET sla_days = ?, sla_include_saturday = ?, sla_include_sunday = ? WHERE id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('iiii', $slaDays, $includeSat, $includeSun, $id);
+        $stmt->execute();
+    }
+
+    public function getLastPlannedDate(int $registroId): string
+    {
+        $sql = "SELECT data_planejada FROM planejamento_datas WHERE registro_id = ? ORDER BY sla_day_number DESC, data_planejada DESC LIMIT 1";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $registroId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row['data_planejada'] ?? date('Y-m-d');
     }
 
     public function updateToPlanned(int $id, string $dataPlanejada, string $equipe, string $auditLog, string $tipo = 'preventiva', string $status = 'Planejado'): bool
@@ -233,12 +283,67 @@ class PlannedActivityRepository extends BaseRepository
         return $stmt->execute();
     }
 
-    public function addPlannedDate(int $registroId, string $data): bool
+    public function addPlannedDate(int $registroId, string $data, int $slaDayNumber = 0): bool
     {
-        $sql = "INSERT IGNORE INTO planejamento_datas (registro_id, data_planejada) VALUES (?, ?)";
+        $sql = "INSERT IGNORE INTO planejamento_datas (registro_id, data_planejada, sla_day_number) VALUES (?, ?, ?)";
         $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('is', $registroId, $data);
+        $stmt->bind_param('isi', $registroId, $data, $slaDayNumber);
         return $stmt->execute();
+    }
+
+    public function createPreventivaSlaCard(int $originalId, string $targetDate, int $slaDayNumber): int
+    {
+        $sql = "
+            INSERT INTO atividades_preventivas (site, ticket, data_planejada, equipe, status, obs, sla_days, sla_include_saturday, sla_include_sunday, sla_day_number)
+            SELECT site, ticket, ?, equipe, 'Planejado', obs, sla_days, sla_include_saturday, sla_include_sunday, ?
+            FROM atividades_preventivas
+            WHERE id = ?
+        ";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('sii', $targetDate, $slaDayNumber, $originalId);
+        $stmt->execute();
+        return (int) $this->conn->insert_id;
+    }
+
+    public function addSlaExtension(int $registroId, string $tipo, int $extraDays, string $justification): int
+    {
+        $idCol = $tipo === 'preventiva' ? 'preventiva_id' : 'registro_id';
+        $sql = "INSERT INTO sla_extensions ({$idCol}, tipo, extra_days, justification) VALUES (?, ?, ?, ?)";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('isis', $registroId, $tipo, $extraDays, $justification);
+        $stmt->execute();
+        return (int) $this->conn->insert_id;
+    }
+
+    public function getSlaExtensionsTotal(int $parentId, string $tipo): int
+    {
+        $idCol = $tipo === 'preventiva' ? 'preventiva_id' : 'registro_id';
+        $sql = "SELECT COALESCE(SUM(extra_days), 0) AS total FROM sla_extensions WHERE {$idCol} = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $parentId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return (int) ($row['total'] ?? 0);
+    }
+
+    public function getPreventivaById(int $id): ?array
+    {
+        $sql = "SELECT * FROM atividades_preventivas WHERE id = ? LIMIT 1";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row ?: null;
+    }
+
+    public function updatePreventivaSlaFields(int $id, int $slaDays, int $includeSat, int $includeSun): void
+    {
+        $sql = "UPDATE atividades_preventivas SET sla_days = ?, sla_include_saturday = ?, sla_include_sunday = ? WHERE id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('iiii', $slaDays, $includeSat, $includeSun, $id);
+        $stmt->execute();
     }
 
     public function removePlannedDate(int $registroId, string $data): bool
@@ -472,5 +577,74 @@ class PlannedActivityRepository extends BaseRepository
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
         return ($row['cnt'] ?? 0) > 0;
+    }
+
+    public function getPlannedDateInfo(int $registroId, string $data): ?array
+    {
+        $sql = "SELECT sla_day_number FROM planejamento_datas WHERE registro_id = ? AND data_planejada = ? LIMIT 1";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('is', $registroId, $data);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row ?: null;
+    }
+
+    public function decrementCorretivaSlaDays(int $registroId): void
+    {
+        $sql = "UPDATE registros SET sla_days = GREATEST(COALESCE(sla_days, 0) - 1, 0) WHERE id = ? AND sla_days > 0";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $registroId);
+        $stmt->execute();
+    }
+
+    public function decrementPreventivaSlaDays(int $id): void
+    {
+        $sql = "UPDATE atividades_preventivas SET sla_days = GREATEST(COALESCE(sla_days, 0) - 1, 0) WHERE id = ? AND sla_days > 0";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+    }
+
+    public function setSlaFields(int $id, string $tipo, int $slaDays, int $includeSat, int $includeSun): void
+    {
+        $table = $tipo === 'preventiva' ? 'atividades_preventivas' : 'registros';
+        if ($tipo === 'preventiva') {
+            $sql = "UPDATE {$table} SET sla_days = ?, sla_include_saturday = ?, sla_include_sunday = ? WHERE id = ?";
+        } else {
+            $sql = "UPDATE {$table} SET sla_days = ?, sla_include_saturday = ?, sla_include_sunday = ? WHERE id = ?";
+        }
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('iiii', $slaDays, $includeSat, $includeSun, $id);
+        $stmt->execute();
+    }
+
+    public function getMaxSlaDayNumber(int $parentId, string $tipo): int
+    {
+        if ($tipo === 'preventiva') {
+            $sql = "SELECT COALESCE(MAX(sla_day_number), 0) AS max FROM atividades_preventivas WHERE id = ?";
+        } else {
+            $sql = "SELECT COALESCE(MAX(sla_day_number), 0) AS max FROM planejamento_datas WHERE registro_id = ?";
+        }
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $parentId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return (int) ($row['max'] ?? 0);
+    }
+
+    public function setCardDayNumber(int $parentId, string $data, string $tipo, int $dayNum): void
+    {
+        if ($tipo === 'preventiva') {
+            $sql = "UPDATE atividades_preventivas SET sla_day_number = ? WHERE id = ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('ii', $dayNum, $parentId);
+        } else {
+            $sql = "UPDATE planejamento_datas SET sla_day_number = ? WHERE registro_id = ? AND data_planejada = ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('iis', $dayNum, $parentId, $data);
+        }
+        $stmt->execute();
     }
 }

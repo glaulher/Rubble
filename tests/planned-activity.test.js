@@ -294,3 +294,137 @@ describe("openCorretivaStatusModal", () => {
     expect(document.getElementById('modalStatusCorretiva').classList.contains('hidden')).toBeFalse();
   });
 });
+
+/*
+|--------------------------------------------------------------------------
+| SLA Line Helper
+|--------------------------------------------------------------------------
+*/
+
+function canEditPlanned() { return true; }
+
+function buildSlaLineHtml(item) {
+  var slaDays = parseInt(item.sla_days, 10);
+  if (!slaDays || slaDays <= 0) return '';
+  var slaDayNum = parseInt(item.sla_day_number, 10) || 0;
+  var exceeded = slaDayNum > slaDays ? slaDayNum - slaDays : 0;
+  var lineClass = exceeded > 0 ? 'text-amber-600' : 'text-slate-500';
+  var text = '';
+  if (exceeded > 0) {
+    text = slaDayNum + ' de ' + slaDays + ' · ' + exceeded + ' excedente' + (exceeded > 1 ? 's' : '');
+  } else {
+    text = slaDayNum + ' de ' + slaDays + ' dia' + (slaDays > 1 ? 's' : '') + ' programado' + (slaDays > 1 ? 's' : '');
+  }
+  return '<div class="mt-2 text-xs ' + lineClass + '">' +
+    '<span>' + text + ' programados</span>' +
+    '</div>';
+}
+
+describe("buildSlaLineHtml", () => {
+  it("returns empty for items without sla_days", () => {
+    expect(buildSlaLineHtml({})).toBe('');
+    expect(buildSlaLineHtml({ sla_days: null })).toBe('');
+    expect(buildSlaLineHtml({ sla_days: 0 })).toBe('');
+  });
+
+  it("shows normal SLA display for day within limits", () => {
+    var html = buildSlaLineHtml({ sla_days: '4', sla_day_number: '2' });
+    expect(html).toContain('2 de 4');
+    expect(html).toContain('dias programados');
+    expect(html).not.toContain('excedente');
+  });
+
+  it("uses singular for 1 day", () => {
+    var html = buildSlaLineHtml({ sla_days: '1', sla_day_number: '1' });
+    expect(html).toContain('1 de 1');
+    expect(html).toContain('dia programado');
+    expect(html).not.toContain('dias');
+  });
+
+  it("shows exceeded count when sla_day_number exceeds sla_days", () => {
+    var html = buildSlaLineHtml({ sla_days: '6', sla_day_number: '8' });
+    expect(html).toContain('8 de 6');
+    expect(html).toContain('2 excedentes');
+  });
+
+  it("uses singular for 1 exceeded day", () => {
+    var html = buildSlaLineHtml({ sla_days: '6', sla_day_number: '7' });
+    expect(html).toContain('7 de 6');
+    expect(html).toContain('1 excedente');
+    expect(html).not.toContain('excedentes');
+  });
+
+  it("adds amber class when exceeded", () => {
+    var html = buildSlaLineHtml({ sla_days: '3', sla_day_number: '5' });
+    expect(html).toContain('text-amber-600');
+  });
+
+  it("uses slate class when not exceeded", () => {
+    var html = buildSlaLineHtml({ sla_days: '5', sla_day_number: '3' });
+    expect(html).toContain('text-slate-500');
+  });
+
+  it("returns empty when sla_days decremented to 0", () => {
+    expect(buildSlaLineHtml({ sla_days: '0', sla_day_number: '1' })).toBe('');
+  });
+});
+
+/*
+|--------------------------------------------------------------------------
+| SLA Date List Generator
+|--------------------------------------------------------------------------
+*/
+
+function generateSlaDateList(startDate, days, includeSat, includeSun) {
+  var dates = [];
+  var current = new Date(startDate + 'T12:00:00');
+  var created = 0;
+  var dayNum = 1;
+  while (created < days) {
+    var dow = current.getDay();
+    var isSat = dow === 6;
+    var isSun = dow === 0;
+    if ((isSat && !includeSat) || (isSun && !includeSun)) {
+      current.setDate(current.getDate() + 1);
+      continue;
+    }
+    if (dayNum > 1) {
+      var dd = String(current.getDate()).padStart(2, '0');
+      var mm = String(current.getMonth() + 1).padStart(2, '0');
+      var yyyy = current.getFullYear();
+      dates.push(dd + '/' + mm);
+    }
+    current.setDate(current.getDate() + 1);
+    dayNum++;
+    created++;
+  }
+  return dates;
+}
+
+describe("generateSlaDateList", () => {
+  it("generates correct dates for weekdays only starting Mon", () => {
+    // Monday 2026-07-06, SLA=4, no weekends
+    var dates = generateSlaDateList('2026-07-06', 4, false, false);
+    expect(dates.length).toBe(3);
+    expect(dates[0]).toBe('07/07'); // Tue
+    expect(dates[1]).toBe('08/07'); // Wed
+    expect(dates[2]).toBe('09/07'); // Thu
+  });
+
+  it("skips weekends when includeSat=false, includeSun=false", () => {
+    // Thursday 2026-07-09, SLA=4, no weekends
+    var dates = generateSlaDateList('2026-07-09', 4, false, false);
+    expect(dates.length).toBe(3);
+    expect(dates[0]).toBe('10/07'); // Fri
+    expect(dates[1]).toBe('13/07'); // Mon (skip Sat+Sun)
+    expect(dates[2]).toBe('14/07'); // Tue
+  });
+
+  it("includes weekends when both checkboxes are checked", () => {
+    // Saturday 2026-07-11, SLA=4
+    var dates = generateSlaDateList('2026-07-11', 3, true, true);
+    expect(dates.length).toBe(2);
+    expect(dates[0]).toBe('12/07'); // Sun
+    expect(dates[1]).toBe('13/07'); // Mon
+  });
+});

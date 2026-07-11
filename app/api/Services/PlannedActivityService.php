@@ -85,6 +85,10 @@ class PlannedActivityService
 
         $existing = $this->repository->findByOsAndEquipment($os, $equipamentoId);
 
+        $hasSla = !empty($data['sla_days']) && (int) $data['sla_days'] > 0;
+        $includeSat = !empty($data['sla_include_saturday']);
+        $includeSun = !empty($data['sla_include_sunday']);
+
         if ($existing) {
             $existingObs = $existing->notes ?? '';
             $newObs = $existingObs !== '' ? $existingObs . "\n\n" . $auditEntry : $auditEntry;
@@ -97,7 +101,18 @@ class PlannedActivityService
                 self::DEFAULT_STATUS
             );
 
+            if ($hasSla) {
+                $slaDays = (int) $data['sla_days'];
+                $this->repository->updateSlaFields($existing->id, $slaDays, $includeSat ? 1 : 0, $includeSun ? 1 : 0);
+            }
+
             $this->repository->addPlannedDate($existing->id, $dataPlanejada);
+
+            if ($hasSla) {
+                $slaDays = (int) $data['sla_days'];
+                $slaDates = $this->generateSlaDates($dataPlanejada, $slaDays, $includeSat, $includeSun);
+                $this->createSlaCards($existing->id, $slaDates, $tipo, $existing->id);
+            }
 
             return ['action' => 'updated', 'id' => $existing->id];
         }
@@ -111,13 +126,142 @@ class PlannedActivityService
             'tipo' => $tipo,
             'status' => self::DEFAULT_STATUS,
             'origin' => self::DEFAULT_ORIGIN,
+            'sla_days' => $hasSla ? (int) $data['sla_days'] : null,
+            'sla_include_saturday' => $includeSat,
+            'sla_include_sunday' => $includeSun,
         ];
 
         $id = $this->repository->createFromPlanning($insertData, $auditEntry);
 
-        $this->repository->addPlannedDate($id, $dataPlanejada);
+        if ($hasSla) {
+            $slaDays = (int) $data['sla_days'];
+            $slaDates = $this->generateSlaDates($dataPlanejada, $slaDays, $includeSat, $includeSun);
+            $this->createSlaCards($id, $slaDates, $tipo, $id);
+        } else {
+            $this->repository->addPlannedDate($id, $dataPlanejada);
+        }
 
         return ['action' => 'created', 'id' => $id];
+    }
+
+    /**
+     * Generate dates for SLA cards, skipping weekends when disabled.
+     * Day 1 is the start date. Returns array of [dateString, slaDayNumber].
+     */
+    private function generateSlaDates(string $startDate, int $slaDays, bool $includeSat, bool $includeSun): array
+    {
+        $dates = [];
+        $current = new \DateTime($startDate);
+        $dayNum = 1;
+
+        while (count($dates) < $slaDays) {
+            $dow = (int) $current->format('N'); // 1=Mon,7=Sun
+            $isSat = $dow === 6;
+            $isSun = $dow === 7;
+
+            if (($isSat && !$includeSat) || ($isSun && !$includeSun)) {
+                $current->modify('+1 day');
+                continue;
+            }
+
+            if ($dayNum > 1) {
+                $dates[] = [$current->format('Y-m-d'), $dayNum];
+            }
+
+            $current->modify('+1 day');
+            $dayNum++;
+        }
+
+        return $dates;
+    }
+
+    private function createSlaCards(int $parentId, array $slaDates, string $tipo, int $originalId): void
+    {
+        foreach ($slaDates as [$date, $dayNum]) {
+            if ($tipo === 'preventiva') {
+                $this->repository->createPreventivaSlaCard($originalId, $date, $dayNum);
+            } else {
+                $this->repository->addPlannedDate($parentId, $date, $dayNum);
+            }
+        }
+    }
+
+    public function extendSla(array $data): array
+    {
+        $id = (int) ($data['id'] ?? 0);
+        $tipo = trim($data['tipo'] ?? 'corretiva');
+        $extraDays = (int) ($data['extra_days'] ?? 0);
+        $justification = trim($data['justification'] ?? '');
+
+        if ($id <= 0) {
+            throw new \RuntimeException('ID inválido.');
+        }
+        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+            throw new \RuntimeException('Tipo inválido.');
+        }
+        if ($extraDays < 1 || $extraDays > 30) {
+            throw new \RuntimeException('Dias extras deve ser entre 1 e 30.');
+        }
+        if ($justification === '') {
+            throw new \RuntimeException('Justificativa é obrigatória.');
+        }
+        if (mb_strlen($justification) > 100) {
+            throw new \RuntimeException('Justificativa deve ter no máximo 100 caracteres.');
+        }
+
+        // Get parent SLA config
+        if ($tipo === 'preventiva') {
+            $parent = $this->repository->getPreventivaById($id);
+            if (!$parent) {
+                throw new \RuntimeException('Atividade preventiva não encontrada.');
+            }
+            $includeSat = (bool) $parent['sla_include_saturday'];
+            $includeSun = (bool) $parent['sla_include_sunday'];
+            $slaDays = (int) ($parent['sla_days'] ?? 0);
+            $lastDate = $parent['data_planejada'];
+        } else {
+            $parent = $this->repository->getById($id);
+            if (!$parent) {
+                throw new \RuntimeException('Registro não encontrado.');
+            }
+            $includeSat = (bool) ($parent->sla_include_saturday ?? false);
+            $includeSun = (bool) ($parent->sla_include_sunday ?? false);
+            $slaDays = (int) ($parent->sla_days ?? 0);
+            $lastDate = $this->repository->getLastPlannedDate($id);
+        }
+
+        $slaDates = $this->generateSlaDatesForExtension($lastDate, $slaDays, $includeSat, $includeSun, $extraDays);
+
+        $this->repository->addSlaExtension($id, $tipo, $extraDays, $justification);
+        $this->createSlaCards($id, $slaDates, $tipo, $id);
+
+        return ['action' => 'extended', 'extra_days' => $extraDays, 'cards_created' => count($slaDates)];
+    }
+
+    private function generateSlaDatesForExtension(string $lastDate, int $baseSlaDays, bool $includeSat, bool $includeSun, int $extraDays): array
+    {
+        $dates = [];
+        $current = new \DateTime($lastDate);
+        $current->modify('+1 day');
+        $dayNum = $baseSlaDays + 1;
+
+        while (count($dates) < $extraDays) {
+            $dow = (int) $current->format('N');
+            $isSat = $dow === 6;
+            $isSun = $dow === 7;
+
+            if (($isSat && !$includeSat) || ($isSun && !$includeSun)) {
+                $current->modify('+1 day');
+                continue;
+            }
+
+            $dates[] = [$current->format('Y-m-d'), $dayNum];
+
+            $current->modify('+1 day');
+            $dayNum++;
+        }
+
+        return $dates;
     }
 
     public function updateTeam(array $data): array
@@ -264,7 +408,7 @@ class PlannedActivityService
         return ['action' => 'moved'];
     }
 
-    public function delete(int $id, ?string $dataPlanejada = null): array
+    public function delete(int $id, ?string $dataPlanejada = null, ?int $slaDayNumber = null): array
     {
         $existing = $this->repository->getById($id);
 
@@ -278,6 +422,10 @@ class PlannedActivityService
         }
 
         if ($dataPlanejada !== null) {
+            if ($slaDayNumber !== null && (int) ($existing->sla_days ?? 0) > 0 && (int) $existing->sla_days === $slaDayNumber) {
+                $this->repository->decrementCorretivaSlaDays($id);
+            }
+
             $this->repository->removePlannedDate($id, $dataPlanejada);
 
             $remaining = $this->repository->countPlannedDates($id);
@@ -300,5 +448,52 @@ class PlannedActivityService
         }
         $this->repository->unplan($id, self::UNPLAN_STATUS);
         return ['action' => 'unplanned'];
+    }
+
+    public function setSla(array $data): array
+    {
+        $id = (int) ($data['id'] ?? 0);
+        $tipo = trim($data['tipo'] ?? 'corretiva');
+        $slaDays = (int) ($data['sla_days'] ?? 0);
+        $includeSat = !empty($data['sla_include_saturday']);
+        $includeSun = !empty($data['sla_include_sunday']);
+
+        if ($id <= 0) {
+            throw new \RuntimeException('ID inválido.');
+        }
+        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+            throw new \RuntimeException('Tipo inválido.');
+        }
+        if ($slaDays < 1 || $slaDays > 90) {
+            throw new \RuntimeException('SLA deve ser entre 1 e 90 dias.');
+        }
+
+        if ($tipo === 'preventiva') {
+            $existing = $this->repository->getPreventivaById($id);
+            if (!$existing) {
+                throw new \RuntimeException('Atividade não encontrada.');
+            }
+            if (!empty($existing['sla_days']) && (int) $existing['sla_days'] > 0) {
+                throw new \RuntimeException('Card já possui SLA. Use Estender para adicionar dias.');
+            }
+            $dataPlanejada = $existing['data_planejada'];
+        } else {
+            $existing = $this->repository->getById($id);
+            if (!$existing) {
+                throw new \RuntimeException('Registro não encontrado.');
+            }
+            if (!empty($existing->sla_days) && (int) $existing->sla_days > 0) {
+                throw new \RuntimeException('Registro já possui SLA. Use Estender para adicionar dias.');
+            }
+            $dataPlanejada = $existing->plannedDate ?? date('Y-m-d');
+        }
+
+        $this->repository->setSlaFields($id, $tipo, $slaDays, $includeSat ? 1 : 0, $includeSun ? 1 : 0);
+        $this->repository->setCardDayNumber($id, $dataPlanejada, $tipo, 1);
+
+        $slaDates = $this->generateSlaDates($dataPlanejada, $slaDays, $includeSat, $includeSun);
+        $this->createSlaCards($id, $slaDates, $tipo, $id);
+
+        return ['action' => 'sla_set', 'sla_days' => $slaDays, 'cards_created' => count($slaDates)];
     }
 }

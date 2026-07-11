@@ -319,6 +319,62 @@ class PlannedActivityController
 
     /*
     |--------------------------------------------------------------------------
+    | EXTEND SLA
+    |--------------------------------------------------------------------------
+    */
+
+    public function extendSla(): void
+    {
+        try {
+            $data = Request::body();
+
+            Validator::required($data, ['id', 'tipo', 'extra_days', 'justification']);
+            Validator::integer($data, 'id');
+            Validator::integer($data, 'extra_days');
+
+            $result = $this->service->extendSla($data);
+
+            Cache::deleteByPrefix('planned_activities:');
+
+            Response::success('SLA estendido com sucesso', $result);
+
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SET SLA (on a card without SLA)
+    |--------------------------------------------------------------------------
+    */
+
+    public function setSla(): void
+    {
+        try {
+            $data = Request::body();
+
+            Validator::required($data, ['id', 'tipo', 'sla_days']);
+            Validator::integer($data, 'id');
+            Validator::integer($data, 'sla_days');
+
+            $result = $this->service->setSla($data);
+
+            Cache::deleteByPrefix('planned_activities:');
+
+            Response::success('SLA definido com sucesso', $result);
+
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | DELETE
     |--------------------------------------------------------------------------
     */
@@ -334,8 +390,9 @@ class PlannedActivityController
             $dataPlanejada = isset($data['data_planejada']) && $data['data_planejada'] !== ''
                 ? trim($data['data_planejada'])
                 : null;
+            $slaDayNumber = isset($data['sla_day_number']) ? (int) $data['sla_day_number'] : null;
 
-            $result = $this->service->delete((int) $data['id'], $dataPlanejada);
+            $result = $this->service->delete((int) $data['id'], $dataPlanejada, $slaDayNumber);
 
             Cache::deleteByPrefix('equipment_list:');
 
