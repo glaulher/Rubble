@@ -78,7 +78,7 @@ function buildPlannedCardHtml(item) {
     var m = mercado.toLowerCase();
     mercadoTextColor = m === 'residencial'
       ? 'text-emerald-700 dark:text-emerald-400'
-      : 'text-purple-700 dark:text-purple-400';
+      : 'text-purple-500 dark:text-purple-300';
   }
 
   var localHtml = local
