@@ -190,7 +190,7 @@ function buildSlaLineHtml(item) {
   }
   return '<div class="mt-2 text-xs ' + lineClass + ' flex items-center gap-1">' +
     '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
-    '<span>' + text + ' programados</span>' +
+    '<span>' + text + '</span>' +
     (canEditPlanned() ? '<button class="inline-flex items-center justify-center text-slate-400 hover:text-amber-500 ml-0.5 align-middle extend-sla-btn" data-action="extend-sla" data-id="' + item.id + '" data-tipo="' + (item.tipo || 'corretiva') + '" aria-label="Estender SLA"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>' : '') +
     '</div>';
 }
@@ -1506,6 +1506,12 @@ function submitPlan() {
       equipe: equipe.value.trim() || 'A definir',
       obs: obs.value.trim() || '',
     };
+    var slaDays = document.getElementById('planSlaDays');
+    if (slaDays && slaDays.value) {
+      payload.sla_days = parseInt(slaDays.value, 10);
+      payload.sla_include_saturday = document.getElementById('planSlaSat').checked ? 1 : 0;
+      payload.sla_include_sunday = document.getElementById('planSlaSun').checked ? 1 : 0;
+    }
   } else {
     var os = document.getElementById('planOs');
     var equipamentoId = document.getElementById('planEquipamentoId');

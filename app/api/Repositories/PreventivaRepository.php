@@ -6,23 +6,66 @@ class PreventivaRepository extends BaseRepository
 {
     public function create(array $data, string $defaultStatus = 'Planejado'): int
     {
-        $sql = "
-            INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ";
+        $hasSla = !empty($data['sla_days']) && (int) $data['sla_days'] > 0;
 
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param(
-            'ssssss',
-            $data['site'],
-            $data['data_planejada'],
-            $data['ticket'],
-            $data['equipe'],
-            $defaultStatus,
-            $data['obs']
-        );
+        if ($hasSla) {
+            $sql = "
+                INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs,
+                    sla_days, sla_include_saturday, sla_include_sunday, sla_day_number)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ";
+            $stmt = $this->safePrepare($sql);
+            $slaDays = (int) $data['sla_days'];
+            $includeSat = !empty($data['sla_include_saturday']) ? 1 : 0;
+            $includeSun = !empty($data['sla_include_sunday']) ? 1 : 0;
+            $dayNumber = (int) ($data['sla_day_number'] ?? 1);
+            $stmt->bind_param(
+                'ssssssiiii',
+                $data['site'],
+                $data['data_planejada'],
+                $data['ticket'],
+                $data['equipe'],
+                $defaultStatus,
+                $data['obs'],
+                $slaDays,
+                $includeSat,
+                $includeSun,
+                $dayNumber
+            );
+        } else {
+            $sql = "
+                INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param(
+                'ssssss',
+                $data['site'],
+                $data['data_planejada'],
+                $data['ticket'],
+                $data['equipe'],
+                $defaultStatus,
+                $data['obs']
+            );
+        }
         $stmt->execute();
 
+        return (int) $this->conn->insert_id;
+    }
+
+    public function createSlaCard(int $originalId, string $targetDate, int $slaDayNumber): int
+    {
+        $sql = "
+            INSERT INTO atividades_preventivas (site, ticket, data_planejada, equipe, status, obs,
+                sla_days, sla_include_saturday, sla_include_sunday, sla_day_number)
+            SELECT site, ticket, ?, equipe, 'Planejado', obs,
+                   sla_days, sla_include_saturday, sla_include_sunday, ?
+            FROM atividades_preventivas
+            WHERE id = ?
+        ";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('sii', $targetDate, $slaDayNumber, $originalId);
+        $stmt->execute();
         return (int) $this->conn->insert_id;
     }
 

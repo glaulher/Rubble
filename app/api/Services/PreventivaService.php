@@ -57,6 +57,10 @@ class PreventivaService
             ? "[{$now}] {$userName} ({$userRole}):\n{$obs}"
             : '';
 
+        $hasSla = !empty($data['sla_days']) && (int) $data['sla_days'] > 0;
+        $includeSat = !empty($data['sla_include_saturday']);
+        $includeSun = !empty($data['sla_include_sunday']);
+
         $record = [
             'site' => $site,
             'data_planejada' => $dataPlanejada,
@@ -65,9 +69,52 @@ class PreventivaService
             'obs' => $auditEntry,
         ];
 
+        if ($hasSla) {
+            $record['sla_days'] = (int) $data['sla_days'];
+            $record['sla_include_saturday'] = $includeSat;
+            $record['sla_include_sunday'] = $includeSun;
+            $record['sla_day_number'] = 1;
+        }
+
         $id = $this->repository->create($record, self::DEFAULT_STATUS);
 
+        if ($hasSla) {
+            $slaDays = (int) $data['sla_days'];
+            $slaDates = $this->generateSlaDates($dataPlanejada, $slaDays, $includeSat, $includeSun);
+            foreach ($slaDates as [$date, $dayNum]) {
+                $this->repository->createSlaCard($id, $date, $dayNum);
+            }
+            return ['action' => 'created', 'id' => $id, 'sla_days' => $slaDays, 'cards_created' => count($slaDates) + 1];
+        }
+
         return ['action' => 'created', 'id' => $id];
+    }
+
+    private function generateSlaDates(string $startDate, int $slaDays, bool $includeSat, bool $includeSun): array
+    {
+        $dates = [];
+        $current = new \DateTime($startDate);
+        $dayNum = 1;
+
+        while (count($dates) < $slaDays - 1) {
+            $dow = (int) $current->format('N');
+            $isSat = $dow === 6;
+            $isSun = $dow === 7;
+
+            if (($isSat && !$includeSat) || ($isSun && !$includeSun)) {
+                $current->modify('+1 day');
+                continue;
+            }
+
+            if ($dayNum > 1) {
+                $dates[] = [$current->format('Y-m-d'), $dayNum];
+            }
+
+            $current->modify('+1 day');
+            $dayNum++;
+        }
+
+        return $dates;
     }
 
     public function updateStatus(int $id, string $novoStatus, string $obs, array $currentUser, ?string $dataPlanejada = null): array
