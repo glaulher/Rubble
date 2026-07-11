@@ -1042,6 +1042,19 @@ function copyPlannedWhatsApp() {
           lines.push('*Equipe:* ' + (item.equipe || 'A definir'));
           lines.push('*Status:* ' + statusIcon(item.status) + ' ' + (item.status || ''));
 
+          var slaDays = parseInt(item.sla_days, 10);
+          if (slaDays && slaDays > 0) {
+            var slaDayNum = parseInt(item.sla_day_number, 10) || 0;
+            var exceeded = slaDayNum > slaDays ? slaDayNum - slaDays : 0;
+            var slaLabel;
+            if (exceeded > 0) {
+              slaLabel = slaDayNum + ' de ' + slaDays + ' \u00b7 ' + exceeded + ' excedente' + (exceeded > 1 ? 's' : '');
+            } else {
+              slaLabel = slaDayNum + ' de ' + slaDays + ' dia' + (slaDays > 1 ? 's' : '') + ' programado' + (slaDays > 1 ? 's' : '');
+            }
+            lines.push('*SLA:* ' + slaLabel);
+          }
+
           if (item.obs) {
             lines.push('*Obs:* ' + item.obs);
           }
