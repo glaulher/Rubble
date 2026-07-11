@@ -18,7 +18,8 @@ class PlannedActivityRepository extends BaseRepository
                        ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.obs, 'preventiva' AS tipo,
                        (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count,
                        ap.sort_order, '' AS mercado,
-                       ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number
+                       ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number,
+                       COALESCE((SELECT e.mercado FROM equipamentos e WHERE e.local = ap.site LIMIT 1), '') AS mercado
                 FROM atividades_preventivas ap
                 WHERE {$pw}
 
