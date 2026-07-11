@@ -388,12 +388,10 @@ function generateSlaDateList(startDate, days, includeSat, includeSun) {
       current.setDate(current.getDate() + 1);
       continue;
     }
-    if (dayNum > 1) {
-      var dd = String(current.getDate()).padStart(2, '0');
-      var mm = String(current.getMonth() + 1).padStart(2, '0');
-      var yyyy = current.getFullYear();
-      dates.push(dd + '/' + mm);
-    }
+    var dd = String(current.getDate()).padStart(2, '0');
+    var mm = String(current.getMonth() + 1).padStart(2, '0');
+    var yyyy = current.getFullYear();
+    dates.push(dd + '/' + mm);
     current.setDate(current.getDate() + 1);
     dayNum++;
     created++;
@@ -405,26 +403,29 @@ describe("generateSlaDateList", () => {
   it("generates correct dates for weekdays only starting Mon", () => {
     // Monday 2026-07-06, SLA=4, no weekends
     var dates = generateSlaDateList('2026-07-06', 4, false, false);
-    expect(dates.length).toBe(3);
-    expect(dates[0]).toBe('07/07'); // Tue
-    expect(dates[1]).toBe('08/07'); // Wed
-    expect(dates[2]).toBe('09/07'); // Thu
+    expect(dates.length).toBe(4);
+    expect(dates[0]).toBe('06/07'); // Mon
+    expect(dates[1]).toBe('07/07'); // Tue
+    expect(dates[2]).toBe('08/07'); // Wed
+    expect(dates[3]).toBe('09/07'); // Thu
   });
 
   it("skips weekends when includeSat=false, includeSun=false", () => {
     // Thursday 2026-07-09, SLA=4, no weekends
     var dates = generateSlaDateList('2026-07-09', 4, false, false);
-    expect(dates.length).toBe(3);
-    expect(dates[0]).toBe('10/07'); // Fri
-    expect(dates[1]).toBe('13/07'); // Mon (skip Sat+Sun)
-    expect(dates[2]).toBe('14/07'); // Tue
+    expect(dates.length).toBe(4);
+    expect(dates[0]).toBe('09/07'); // Thu
+    expect(dates[1]).toBe('10/07'); // Fri
+    expect(dates[2]).toBe('13/07'); // Mon (skip Sat+Sun)
+    expect(dates[3]).toBe('14/07'); // Tue
   });
 
   it("includes weekends when both checkboxes are checked", () => {
     // Saturday 2026-07-11, SLA=4
     var dates = generateSlaDateList('2026-07-11', 3, true, true);
-    expect(dates.length).toBe(2);
-    expect(dates[0]).toBe('12/07'); // Sun
-    expect(dates[1]).toBe('13/07'); // Mon
+    expect(dates.length).toBe(3);
+    expect(dates[0]).toBe('11/07'); // Sat
+    expect(dates[1]).toBe('12/07'); // Sun
+    expect(dates[2]).toBe('13/07'); // Mon
   });
 });
