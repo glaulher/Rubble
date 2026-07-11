@@ -247,6 +247,8 @@ button:disabled { cursor: not-allowed; }
 .dark .text-red-700 { color: #fca5a5 !important; }
 .dark .text-red-600 { color: #fca5a5 !important; }
 .dark .text-emerald-600 { color: #34d399 !important; }
+.dark .text-emerald-700 { color: #6ee7b7 !important; }
+.dark .text-purple-700 { color: #c4b5fd !important; }
 .dark .text-amber-600 { color: #fcd34d !important; }
 .dark .text-amber-700 { color: #fcd34d !important; }
 .dark .text-blue-800 { color: #93c5fd !important; }
