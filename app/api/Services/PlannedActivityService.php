@@ -106,7 +106,7 @@ class PlannedActivityService
                 $this->repository->updateSlaFields($existing->id, $slaDays, $includeSat ? 1 : 0, $includeSun ? 1 : 0);
             }
 
-            $this->repository->addPlannedDate($existing->id, $dataPlanejada);
+            $this->repository->addPlannedDate($existing->id, $dataPlanejada, $hasSla ? 1 : 0);
 
             if ($hasSla) {
                 $slaDays = (int) $data['sla_days'];
@@ -134,6 +134,7 @@ class PlannedActivityService
         $id = $this->repository->createFromPlanning($insertData, $auditEntry);
 
         if ($hasSla) {
+            $this->repository->addPlannedDate($id, $dataPlanejada, 1);
             $slaDays = (int) $data['sla_days'];
             $slaDates = $this->generateSlaDates($dataPlanejada, $slaDays, $includeSat, $includeSun);
             $this->createSlaCards($id, $slaDates, $tipo, $id);
@@ -154,7 +155,7 @@ class PlannedActivityService
         $current = new \DateTime($startDate);
         $dayNum = 1;
 
-        while (count($dates) < $slaDays) {
+        while (count($dates) < $slaDays - 1) {
             $dow = (int) $current->format('N'); // 1=Mon,7=Sun
             $isSat = $dow === 6;
             $isSun = $dow === 7;
