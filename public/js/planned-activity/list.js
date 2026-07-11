@@ -72,7 +72,7 @@ function buildPlannedCardHtml(item) {
 
   var capacidadeHtml = capacidade ? '<span class="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded-lg text-xs font-medium">' + escapeHtml(capacidade) + ' TR</span>' : '';
   var localHtml = local
-    ? '<p class="text-xs text-slate-600">' + escapeHtml(local) + (localScm ? ' - ' + escapeHtml(localScm) : '') + (localidade ? ' \u2014 ' + escapeHtml(localidade) : '') + '</p>'
+    ? '<p class="text-xs font-semibold ' + (mercadoTextColor || 'text-slate-600') + '">' + escapeHtml(local) + (localScm ? ' - ' + escapeHtml(localScm) : '') + (localidade ? ' \u2014 ' + escapeHtml(localidade) : '') + '</p>'
     : '';
 
   var statusBadge = plannedStatusBadgeHtml(item.status);
@@ -97,6 +97,14 @@ function buildPlannedCardHtml(item) {
       ? 'bg-emerald-100 text-emerald-700'
       : 'bg-purple-100 text-purple-700';
     mercadoBadge = '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium ' + corMercado + '">' + escapeHtml(mercado) + '</span>';
+  }
+
+  var mercadoTextColor = '';
+  if (mercado) {
+    var m = mercado.toLowerCase();
+    mercadoTextColor = m === 'residencial'
+      ? 'text-emerald-700 dark:text-emerald-400'
+      : 'text-purple-700 dark:text-purple-400';
   }
 
   var obs = item.obs || '';
@@ -143,7 +151,7 @@ function buildPlannedCardHtml(item) {
 
   if (tipo === 'preventiva') {
     headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
-      '<span class="font-semibold text-sm text-slate-800">' + escapeHtml(local) + '</span>' +
+      '<span class="font-semibold text-sm ' + (mercadoTextColor || 'text-slate-800') + '">' + escapeHtml(local) + '</span>' +
       (item.os ? '<span class="text-sm text-slate-600 cursor-pointer hover:text-blue-600 hover:underline transition" data-action="copy-os" data-os="' + escapeHtml(item.os) + '" title="Clique para copiar">Ticket ' + escapeHtml(item.os) + '</span>' : '') +
       (machineCount > 0 ? '<span class="text-xs text-slate-500">\u2014 ' + machineCount + ' m\u00e1quina' + (machineCount > 1 ? 's' : '') + '</span>' : '') +
     '</div>';
@@ -191,7 +199,7 @@ function buildSlaLineHtml(item) {
   return '<div class="mt-2 text-xs ' + lineClass + ' flex items-center gap-1">' +
     '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
     '<span>' + text + '</span>' +
-    (canEditPlanned() ? '<button class="inline-flex items-center justify-center text-blue-500 hover:text-blue-700 ml-0.5 align-middle extend-sla-btn" data-action="extend-sla" data-id="' + item.id + '" data-tipo="' + (item.tipo || 'corretiva') + '" aria-label="Estender SLA"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>' : '') +
+    (canEditPlanned() ? iconButtonHtml('edit', 'Estender SLA', { 'class': 'extend-sla-btn', 'data-action': 'extend-sla', 'data-id': item.id, 'data-tipo': item.tipo || 'corretiva' }) : '') +
     '</div>';
 }
 
