@@ -372,19 +372,19 @@ button:disabled { cursor: not-allowed; }
 }
 
 /* Drag and Drop visual feedback */
-.planned-card.dragging {
+.planned-card-wrapper.dragging .planned-card {
   opacity: 0.4 !important;
   border-style: dashed !important;
 }
 
-.planned-card.drag-over {
+.planned-card-wrapper.drag-over .planned-card {
   border-color: #3b82f6 !important;
   border-width: 2px !important;
   border-style: dashed !important;
   background-color: rgba(59, 130, 246, 0.05) !important;
 }
 
-.dark .planned-card.drag-over {
+.dark .planned-card-wrapper.drag-over .planned-card {
   border-color: #60a5fa !important;
   background-color: rgba(96, 165, 250, 0.1) !important;
 }

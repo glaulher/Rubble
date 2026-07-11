@@ -148,35 +148,36 @@ function buildPlannedCardHtml(item) {
   }
 
   var cardDateAttr = tipo === 'corretiva' ? ' data-date="' + safeDate + '"' : '';
-  var dragHandleHtml = '<div class="drag-handle shrink-0 mt-1" draggable="true" title="Arrastar para reordenar" style="cursor: grab; touch-action: none;">' +
+  var cardContentHtml =
+    '<div class="flex items-start justify-between gap-3">' +
+      '<div class="flex-1 min-w-0">' +
+        headerHtml +
+        (tipo !== 'preventiva' ? localHtml : '') +
+      '</div>' +
+      '<div class="flex items-center gap-2 shrink-0">' +
+        actionsHtml +
+        extraBtns +
+      '</div>' +
+    '</div>' +
+    '<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">' +
+      '<span class="team-name-wrap">Equipe: <strong class="text-slate-700 team-name-text">' + escapeHtml(equipe) + '</strong>' +
+      (canEdit ? '<button class="inline-flex items-center justify-center text-blue-400 hover:text-blue-600 ml-0.5 align-middle team-edit-btn" data-action="edit-team" data-id="' + item.id + '" data-tipo="' + tipo + '" data-equipe="' + escapeHtml(equipe) + '" aria-label="Editar equipe"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' : '') +
+    '</span>' +
+    (material ? '<span>Material: <strong class="text-slate-700">' + escapeHtml(material) + '</strong></span>' : '') +
+    '</div>' +
+    obsHtml;
+
+  var dragHandleHtml = '<div class="drag-handle shrink-0 mt-4" draggable="true" title="Arrastar para reordenar" style="cursor: grab; touch-action: none;">' +
     '<svg class="w-5 h-5 text-slate-300 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-300 transition-colors" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
       '<circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>' +
       '<circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>' +
       '<circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/>' +
     '</svg>' +
   '</div>';
-  return '<div class="planned-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '" data-tipo="' + tipo + '"' + cardDateAttr + '>' +
-    '<div class="flex items-start gap-3">' +
-      dragHandleHtml +
-      '<div class="flex-1 min-w-0">' +
-        '<div class="flex items-start justify-between gap-3">' +
-          '<div class="flex-1 min-w-0">' +
-            headerHtml +
-            (tipo !== 'preventiva' ? localHtml : '') +
-          '</div>' +
-          '<div class="flex items-center gap-2 shrink-0">' +
-            actionsHtml +
-            extraBtns +
-          '</div>' +
-        '</div>' +
-        '<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">' +
-          '<span class="team-name-wrap">Equipe: <strong class="text-slate-700 team-name-text">' + escapeHtml(equipe) + '</strong>' +
-          (canEdit ? '<button class="inline-flex items-center justify-center text-blue-400 hover:text-blue-600 ml-0.5 align-middle team-edit-btn" data-action="edit-team" data-id="' + item.id + '" data-tipo="' + tipo + '" data-equipe="' + escapeHtml(equipe) + '" aria-label="Editar equipe"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' : '') +
-          '</span>' +
-          (material ? '<span>Material: <strong class="text-slate-700">' + escapeHtml(material) + '</strong></span>' : '') +
-        '</div>' +
-        obsHtml +
-      '</div>' +
+  return '<div class="planned-card-wrapper flex items-start gap-1.5">' +
+    dragHandleHtml +
+    '<div class="planned-card flex-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '" data-tipo="' + tipo + '"' + cardDateAttr + '>' +
+      cardContentHtml +
     '</div>' +
   '</div>';
 }
@@ -581,15 +582,21 @@ function syncPlannedCards(newItems, total) {
       var groupIds = {};
       groupItems.forEach(function (item) { groupIds[item.id] = true; });
 
-      Array.from(cardsContainer.querySelectorAll('.planned-card')).forEach(function (card) {
+      Array.from(cardsContainer.querySelectorAll('.planned-card-wrapper')).forEach(function (wrapper) {
+        var card = wrapper.querySelector('.planned-card');
         var id = parseInt(card.getAttribute('data-id'), 10);
-        if (!groupIds[id]) card.remove();
+        if (!groupIds[id]) wrapper.remove();
       });
 
       groupItems.forEach(function (item) {
         var existingCard = cardsContainer.querySelector('.planned-card[data-id="' + item.id + '"]');
         if (existingCard) {
-          existingCard.outerHTML = buildPlannedCardHtml(item);
+          var existingWrapper = existingCard.closest('.planned-card-wrapper');
+          if (existingWrapper) {
+            existingWrapper.outerHTML = buildPlannedCardHtml(item);
+          } else {
+            existingCard.outerHTML = buildPlannedCardHtml(item);
+          }
         } else {
           cardsContainer.insertAdjacentHTML('beforeend', buildPlannedCardHtml(item));
         }
@@ -1216,28 +1223,30 @@ function initPlannedActivity() {
     content.addEventListener('dragstart', function (e) {
       var handle = e.target.closest('.drag-handle');
       if (!handle) return;
-      var card = e.target.closest('.planned-card');
+      var wrapper = handle.closest('.planned-card-wrapper');
+      if (!wrapper) return;
+      var card = wrapper.querySelector('.planned-card');
       if (!card) return;
       var id = card.getAttribute('data-id');
       var tipo = card.getAttribute('data-tipo');
       var date = card.getAttribute('data-date');
       if (!date) {
-        var group = card.closest('.timeline-group');
+        var group = wrapper.closest('.timeline-group');
         if (group) date = group.getAttribute('data-date') || '';
       } else {
         date = date || '';
       }
       if (!id) return;
-      _dragState = { id: id, tipo: tipo, sourceDate: date, card: card };
-      card.classList.add('dragging');
+      _dragState = { id: id, tipo: tipo, sourceDate: date, card: wrapper };
+      wrapper.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', id);
     });
 
     content.addEventListener('dragend', function (e) {
-      var card = e.target.closest('.planned-card');
-      if (card) card.classList.remove('dragging');
-      document.querySelectorAll('.planned-card.drag-over').forEach(function (c) { c.classList.remove('drag-over'); });
+      var wrapper = e.target.closest('.planned-card-wrapper');
+      if (wrapper) wrapper.classList.remove('dragging');
+      document.querySelectorAll('.planned-card-wrapper.drag-over').forEach(function (w) { w.classList.remove('drag-over'); });
       document.querySelectorAll('.timeline-group.drag-over').forEach(function (g) { g.classList.remove('drag-over'); });
       _dragState = {};
     });
@@ -1248,14 +1257,14 @@ function initPlannedActivity() {
       e.dataTransfer.dropEffect = 'move';
 
       // Continuous highlight: clear all, apply to current target only
-      document.querySelectorAll('.planned-card.drag-over').forEach(function (c) { c.classList.remove('drag-over'); });
+      document.querySelectorAll('.planned-card-wrapper.drag-over').forEach(function (w) { w.classList.remove('drag-over'); });
       document.querySelectorAll('.timeline-group.drag-over').forEach(function (g) { g.classList.remove('drag-over'); });
 
-      var card = e.target.closest('.planned-card');
+      var wrapper = e.target.closest('.planned-card-wrapper');
       var group = e.target.closest('.timeline-group');
-      if (card && card !== _dragState.card) {
-        card.classList.add('drag-over');
-      } else if (group && !card) {
+      if (wrapper && wrapper !== _dragState.card) {
+        wrapper.classList.add('drag-over');
+      } else if (group && !wrapper) {
         group.classList.add('drag-over');
       }
     });
@@ -1267,24 +1276,25 @@ function initPlannedActivity() {
       var srcTipo = _dragState.tipo;
       var srcDate = _dragState.sourceDate;
 
-      document.querySelectorAll('.planned-card.drag-over').forEach(function (c) { c.classList.remove('drag-over'); });
+      document.querySelectorAll('.planned-card-wrapper.drag-over').forEach(function (w) { w.classList.remove('drag-over'); });
       document.querySelectorAll('.timeline-group.drag-over').forEach(function (g) { g.classList.remove('drag-over'); });
 
       var targetCard = e.target.closest('.planned-card');
+      var targetWrapper = targetCard ? targetCard.closest('.planned-card-wrapper') : null;
       var targetGroup = e.target.closest('.timeline-group');
 
       if (!targetGroup) return;
 
       var targetDate = targetGroup.getAttribute('data-date');
 
-      if (targetCard && targetCard !== _dragState.card && targetDate === srcDate) {
+      if (targetWrapper && targetWrapper !== _dragState.card && targetDate === srcDate) {
         // Same group reorder — optimistic DOM update
         var cardsContainer = targetGroup.querySelector('.space-y-3');
         if (!cardsContainer) return;
-        cardsContainer.insertBefore(_dragState.card, targetCard);
+        cardsContainer.insertBefore(_dragState.card, targetWrapper);
 
-        var cardEls = Array.from(cardsContainer.querySelectorAll('.planned-card'));
-        var order = cardEls.map(function (c) { return parseInt(c.getAttribute('data-id'), 10); });
+        var wrapperEls = Array.from(cardsContainer.querySelectorAll('.planned-card-wrapper'));
+        var order = wrapperEls.map(function (w) { return parseInt(w.querySelector('.planned-card').getAttribute('data-id'), 10); });
 
         apiFetch('/app/api/index.php?route=planned-activities&action=reorder', {
           method: 'POST',
