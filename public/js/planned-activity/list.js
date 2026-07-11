@@ -1947,6 +1947,8 @@ function submitStatusPreventiva() {
               var oldBadge = actionsArea.querySelector('span.inline-block');
               if (oldBadge) oldBadge.outerHTML = plannedStatusBadgeHtml(data.status);
             }
+            var statusBtn = card.querySelector('.planned-status-btn');
+            if (statusBtn) statusBtn.setAttribute('data-status', data.status);
             if (data.obs !== undefined) {
               var obsSpan = card.querySelector('.obs-text');
               if (obsSpan) obsSpan.textContent = data.obs || '';
