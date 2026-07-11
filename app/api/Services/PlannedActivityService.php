@@ -326,7 +326,7 @@ class PlannedActivityService
         }
 
         $this->repository->updateCorretivaStatus($id, $cleanStatus, $dataConcluido);
-        return ['action' => 'updated', 'id' => $id];
+        return ['action' => 'updated', 'id' => $id, 'status' => $cleanStatus];
     }
 
     public function duplicateDay(string $sourceDate, string $targetDate): array

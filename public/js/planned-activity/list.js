@@ -472,7 +472,17 @@ function submitCorretivaStatus() {
     if (result && result.success) {
       showToast('Status atualizado com sucesso.', 'success');
       closeCorretivaStatusModal();
-      if (_plannedScroll) _plannedScroll.load(true);
+      var newStatus = result.data && result.data.status;
+      if (newStatus) {
+        var card = document.querySelector('.planned-card[data-id="' + id + '"]');
+        if (card) {
+          var actionsArea = card.querySelector('.flex.items-center.gap-1');
+          if (actionsArea) {
+            var oldBadge = actionsArea.querySelector('span.inline-block');
+            if (oldBadge) oldBadge.outerHTML = plannedStatusBadgeHtml(newStatus);
+          }
+        }
+      }
     } else {
       showToast(result && result.message ? result.message : 'Erro ao atualizar status.', 'error');
     }
@@ -1919,7 +1929,21 @@ function submitStatusPreventiva() {
       if (result && result.success) {
         showToast('Status atualizado com sucesso!', 'success');
         closeStatusPreventiva();
-        if (_plannedScroll) _plannedScroll.load(true);
+        var data = result.data;
+        if (data && data.status) {
+          var card = document.querySelector('.planned-card[data-id="' + data.id + '"]');
+          if (card) {
+            var actionsArea = card.querySelector('.flex.items-center.gap-1');
+            if (actionsArea) {
+              var oldBadge = actionsArea.querySelector('span.inline-block');
+              if (oldBadge) oldBadge.outerHTML = plannedStatusBadgeHtml(data.status);
+            }
+            if (data.obs !== undefined) {
+              var obsSpan = card.querySelector('.obs-text');
+              if (obsSpan) obsSpan.textContent = data.obs || '';
+            }
+          }
+        }
       } else {
         showToast(result && result.message ? result.message : 'Erro ao atualizar status.', 'error');
       }

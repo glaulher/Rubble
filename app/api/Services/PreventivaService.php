@@ -152,7 +152,8 @@ class PreventivaService
 
         $this->repository->updateStatus($id, $novoStatus, $newObs, $dataPlanejada);
 
-        return ['action' => 'status_updated', 'id' => $id, 'status' => $novoStatus];
+        $record = $this->repository->getById($id);
+        return ['action' => 'status_updated', 'id' => $id, 'status' => $novoStatus, 'obs' => $record['obs'] ?? ''];
     }
 
     public function delete(int $id): array
