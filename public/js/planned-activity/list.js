@@ -640,7 +640,7 @@ function syncPlannedCards(newItems, total) {
       groupItems.forEach(function (item) {
         var existingCard = cardsContainer.querySelector('.planned-card[data-id="' + item.id + '"]');
         if (existingCard) {
-          if (existingCard.querySelector('.obs-edit-input')) return;
+          if (existingCard.querySelector('.obs-edit-input, .team-edit-input')) return;
           var existingWrapper = existingCard.closest('.planned-card-wrapper');
           if (existingWrapper) {
             existingWrapper.outerHTML = buildPlannedCardHtml(item);
