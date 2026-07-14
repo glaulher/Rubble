@@ -12,14 +12,15 @@ class PlannedActivityRepository extends BaseRepository
         [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status);
 
         $sql = "
-            SELECT id, local, equipamento, capacidade, local_scm, localidade, os, data_planejada, equipe, status, obs, tipo, machine_count, sort_order, mercado, sla_days, sla_include_saturday, sla_include_sunday, sla_day_number
+            SELECT id, local, equipamento, capacidade, local_scm, localidade, os, data_planejada, equipe, status, obs, tipo, machine_count, sort_order, mercado, sla_days, sla_include_saturday, sla_include_sunday, sla_day_number, sla_extensions
             FROM (
                 SELECT ap.id, ap.site AS local, '' AS equipamento, '' AS capacidade, '' AS local_scm, '' AS localidade,
                        ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.obs, 'preventiva' AS tipo,
                        (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count,
                        ap.sort_order,
                        COALESCE((SELECT e.mercado FROM equipamentos e WHERE e.local = ap.site LIMIT 1), '') AS mercado,
-                       ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number
+                       ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number,
+                       COALESCE((SELECT GROUP_CONCAT(se.justification SEPARATOR ' | ') FROM sla_extensions se WHERE se.preventiva_id = ap.id), '') AS sla_extensions
                 FROM atividades_preventivas ap
                 WHERE {$pw}
 
@@ -29,7 +30,8 @@ class PlannedActivityRepository extends BaseRepository
                        COALESCE(e.local_scm, ''), COALESCE(e.localidade, ''),
                        r.os, pd.data_planejada, r.equipe, r.status, r.obs, r.tipo, 0 AS machine_count,
                        pd.sort_order, COALESCE(e.mercado, '') AS mercado,
-                       r.sla_days, r.sla_include_saturday, r.sla_include_sunday, pd.sla_day_number
+                       r.sla_days, r.sla_include_saturday, r.sla_include_sunday, pd.sla_day_number,
+                       COALESCE((SELECT GROUP_CONCAT(se.justification SEPARATOR ' | ') FROM sla_extensions se WHERE se.registro_id = r.id), '') AS sla_extensions
                 FROM registros r
                 JOIN planejamento_datas pd ON pd.registro_id = r.id
                 LEFT JOIN equipamentos e ON e.id = r.equipamento_id
