@@ -109,7 +109,7 @@ class AuthService
             ],
             'coordenador' => [
                 'read' => ['equipment', 'tickets', 'dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities'],
-                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities'],
+                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities', 'preventiva'],
             ],
             'administrativo' => [
                 'read' => ['pdf-audit', 'auth', 'planned-activities'],
