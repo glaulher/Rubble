@@ -107,6 +107,7 @@ function renderEquipments() {
       '<td class="hidden lg:table-cell px-3 py-3 text-slate-600 whitespace-nowrap">' + capacidade + '</td>' +
       '<td class="hidden lg:table-cell px-3 py-3 text-slate-600">' + escapeHtml(eq.local || '-') + '</td>' +
       '<td class="hidden xl:table-cell px-3 py-3 text-slate-600">' + escapeHtml(eq.local_scm || '-') + '</td>' +
+      '<td class="hidden xl:table-cell px-3 py-3 text-slate-600">' + escapeHtml(eq.site_infratel || '-') + '</td>' +
       '<td class="px-3 py-3 text-slate-600">' + escapeHtml(eq.localidade || '-') + '</td>' +
       '<td class="hidden xl:table-cell px-3 py-3 text-slate-600">' + escapeHtml(eq.mercado || '-') + '</td>' +
       '<td class="hidden xl:table-cell px-3 py-3 text-slate-600 max-w-[200px] truncate">' + escapeHtml(enderecoCompleto) + '</td>' +

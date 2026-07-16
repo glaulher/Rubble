@@ -15,6 +15,8 @@ class Equipment
     public ?string $locality;
     public ?string $mercado;
     public ?string $localScm;
+    public ?string $siteInfratel;
+    public ?string $tagInfratel;
 
     public function __construct(array $data)
     {
@@ -29,6 +31,8 @@ class Equipment
         $this->locality = $data['localidade'] ?? null;
         $this->mercado = $data['mercado'] ?? null;
         $this->localScm = $data['local_scm'] ?? null;
+        $this->siteInfratel = $data['site_infratel'] ?? null;
+        $this->tagInfratel = $data['tag_infratel'] ?? null;
     }
 
     public function toArray(): array
@@ -45,6 +49,8 @@ class Equipment
             'localidade' => $this->locality,
             'mercado' => $this->mercado,
             'local_scm' => $this->localScm,
+            'site_infratel' => $this->siteInfratel,
+            'tag_infratel' => $this->tagInfratel,
         ];
     }
 }

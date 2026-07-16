@@ -73,17 +73,19 @@ class EquipmentManagementRepository extends BaseRepository
     public function insert(array $data): int
     {
         $stmt = $this->safePrepare(
-            "INSERT INTO equipamentos (equipamento, capacidade, local, localidade, endereco_id, mercado, local_scm) VALUES (?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO equipamentos (equipamento, capacidade, local, localidade, endereco_id, mercado, local_scm, site_infratel, tag_infratel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
         $stmt->bind_param(
-            'sdssiss',
+            'sdssissss',
             $data['equipamento'],
             $data['capacidade'],
             $data['local'],
             $data['localidade'],
             $data['endereco_id'],
             $data['mercado'],
-            $data['local_scm']
+            $data['local_scm'],
+            $data['site_infratel'],
+            $data['tag_infratel']
         );
         $stmt->execute();
         $id = $stmt->insert_id;
@@ -131,6 +133,16 @@ class EquipmentManagementRepository extends BaseRepository
             $fields[] = 'local_scm = ?';
             $types .= 's';
             $values[] = $data['local_scm'];
+        }
+        if (isset($data['site_infratel'])) {
+            $fields[] = 'site_infratel = ?';
+            $types .= 's';
+            $values[] = $data['site_infratel'];
+        }
+        if (isset($data['tag_infratel'])) {
+            $fields[] = 'tag_infratel = ?';
+            $types .= 's';
+            $values[] = $data['tag_infratel'];
         }
 
         if (empty($fields)) {

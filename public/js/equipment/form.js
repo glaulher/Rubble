@@ -17,6 +17,8 @@ async function loadEquipmentForm() {
   document.getElementById('eqUf').value = '';
   document.getElementById('mercado').value = '';
   document.getElementById('eqLocalScm').value = '';
+  document.getElementById('eqSiteInfratel').value = '';
+  document.getElementById('eqTagInfratel').value = '';
 
   document.querySelector('[data-action="navigate-equipment-manager"]')
     ?.addEventListener('click', function () { window.location.hash = '#/equipment-manager'; });
@@ -45,6 +47,8 @@ async function loadEquipmentForm() {
       document.getElementById('eqUf').value = eq.uf || '';
       document.getElementById('mercado').value = eq.mercado || '';
       document.getElementById('eqLocalScm').value = eq.local_scm || '';
+      document.getElementById('eqSiteInfratel').value = eq.site_infratel || '';
+      document.getElementById('eqTagInfratel').value = eq.tag_infratel || '';
     } catch (e) {
       showToast('Erro ao carregar equipamento', 'error');
       return;
@@ -68,6 +72,8 @@ function saveEquipmentForm(e) {
   const uf = document.getElementById('eqUf').value.trim().toUpperCase();
   const mercado = document.getElementById('mercado').value;
   const localScm = document.getElementById('eqLocalScm').value.trim();
+  const siteInfratel = document.getElementById('eqSiteInfratel').value.trim();
+  const tagInfratel = document.getElementById('eqTagInfratel').value.trim();
 
   if (!equipamento) { showToast('Informe o equipamento', 'error'); return; }
   if (!local) { showToast('Informe o local', 'error'); return; }
@@ -88,6 +94,8 @@ function saveEquipmentForm(e) {
     uf: uf,
     mercado: mercado,
     local_scm: localScm || null,
+    site_infratel: siteInfratel || null,
+    tag_infratel: tagInfratel || null,
   };
   if (id) body.id = parseInt(id);
 
