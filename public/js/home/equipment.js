@@ -216,12 +216,12 @@ async function importOS() {
         body: JSON.stringify(rows),
       });
 
-      const text = await response.text();
+      const responseText = await response.text();
       let result;
       try {
-        result = JSON.parse(text);
+        result = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Server response (HTML/PHP error):', text.substring(0, 1000));
+        console.error('Server response (HTML/PHP error):', responseText.substring(0, 1000));
         showToast('Erro no servidor. Veja o console (F12) para detalhes.', 'error');
         return;
       }
