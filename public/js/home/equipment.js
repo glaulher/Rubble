@@ -210,7 +210,7 @@ async function importOS() {
       const isInfratel = 'site' in firstRow && 'justificativas' in firstRow;
       const action = isInfratel ? 'import-infratel' : 'import';
 
-      const response = await fetch('/app/api/index.php?route=tickets&action=' + action, {
+      var response = await fetch('/app/api/index.php?route=tickets&action=' + action, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(rows),
@@ -229,6 +229,12 @@ async function importOS() {
       }
     } catch (error) {
       console.error(error);
+      if (typeof response !== 'undefined') {
+        try {
+          const text = await response.text();
+          console.error('Server response body:', text.substring(0, 800));
+        } catch (_) {}
+      }
       showToast('Erro ao importar CSV', 'error');
     }
   });
