@@ -216,7 +216,15 @@ async function importOS() {
         body: JSON.stringify(rows),
       });
 
-      const result = await response.json();
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (parseError) {
+        console.error('Server response (HTML/PHP error):', text.substring(0, 1000));
+        showToast('Erro no servidor. Veja o console (F12) para detalhes.', 'error');
+        return;
+      }
 
       if (result.success) {
         const d = result.data;
@@ -229,12 +237,6 @@ async function importOS() {
       }
     } catch (error) {
       console.error(error);
-      if (typeof response !== 'undefined') {
-        try {
-          const text = await response.text();
-          console.error('Server response body:', text.substring(0, 800));
-        } catch (_) {}
-      }
       showToast('Erro ao importar CSV', 'error');
     }
   });
