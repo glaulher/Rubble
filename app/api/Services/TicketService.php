@@ -187,6 +187,7 @@ class TicketService
                         'data_planejada' => null,
                         'material' => $material,
                         'obs' => $obs,
+                        'tipo' => self::DEFAULT_TIPO,
                     ];
 
                     if ($existing) {

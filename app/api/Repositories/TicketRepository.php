@@ -124,7 +124,7 @@ class TicketRepository extends BaseRepository
 
     public function save(array $data): int
     {
-        $tipo = $data['tipo'];
+        $tipo = $data['tipo'] ?? null;
         $sql = "
             INSERT INTO registros (
                 equipamento_id, os, data, equipe, status, data_concluido, data_planejada, material, obs, tipo
