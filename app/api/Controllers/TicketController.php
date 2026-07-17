@@ -222,6 +222,34 @@ class TicketController
 
     /*
     |--------------------------------------------------------------------------
+    | IMPORT INFRATEL
+    |--------------------------------------------------------------------------
+    */
+
+    public function importInfratel(): void
+    {
+        try {
+            $data = Request::body();
+
+            if (empty($data) || !is_array($data)) {
+                Response::validation('Dados de importação inválidos');
+                return;
+            }
+
+            $result = $this->service->importInfratelBatch($data);
+
+            $message = "{$result['imported']} importada(s), {$result['updated']} atualizada(s), {$result['skipped']} pulada(s)";
+
+            Response::success($message, $result);
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e, 400);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | DELETE
     |--------------------------------------------------------------------------
     */

@@ -58,6 +58,8 @@ $router->addRoute('tickets', 'POST', function () use ($auth) {
     $controller = new TicketController();
     if (isset($_GET['action']) && $_GET['action'] === 'import') {
         $controller->import();
+    } elseif (isset($_GET['action']) && $_GET['action'] === 'import-infratel') {
+        $controller->importInfratel();
     } else {
         $controller->save();
     }

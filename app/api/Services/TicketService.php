@@ -297,6 +297,127 @@ class TicketService
         return 'Sim';
     }
 
+    public function importInfratelBatch(array $rows): array
+    {
+        $imported = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        $filtered = array_filter($rows, function ($row) {
+            $justificativas = trim($row['justificativas'] ?? '');
+            return $justificativas !== '' && mb_strtoupper($justificativas) !== 'N/A';
+        });
+
+        if (empty($filtered)) {
+            return ['imported' => 0, 'updated' => 0, 'skipped' => count($rows), 'errors' => [['linha' => 0, 'motivo' => 'Nenhuma linha com justificativas preenchidas']]];
+        }
+
+        $groups = [];
+        foreach ($filtered as $row) {
+            $key = trim($row['site'] ?? '') . '||' . trim($row['equipamento'] ?? '');
+            $groups[$key][] = $row;
+        }
+
+        foreach ($groups as $key => $groupRows) {
+            $site = trim($groupRows[0]['site'] ?? '');
+            $tag = trim($groupRows[0]['equipamento'] ?? '');
+
+            try {
+                $equipment = $this->equipmentRepository->findByInfratel($site, $tag);
+                if ($equipment === null) {
+                    $skipped += count($groupRows);
+                    $errors[] = ['linha' => 0, 'motivo' => "Equipamento não encontrado para site={$site} tag={$tag}"];
+                    continue;
+                }
+
+                $executor = trim($groupRows[0]['executor'] ?? '');
+                $oldestDate = null;
+                $parts = [];
+                $idx = 1;
+
+                usort($groupRows, function ($a, $b) {
+                    $da = $this->parseDate($a['fim'] ?? '') ?? '9999-12-31';
+                    $db = $this->parseDate($b['fim'] ?? '') ?? '9999-12-31';
+                    return strcmp($da, $db);
+                });
+
+                foreach ($groupRows as $gr) {
+                    $fim = $this->parseDate($gr['fim'] ?? '');
+                    if ($oldestDate === null || ($fim !== null && $fim < $oldestDate)) {
+                        $oldestDate = $fim;
+                    }
+
+                    $line = "Pendência {$idx} — Fim: {$gr['fim']} — Justificativas: {$gr['justificativas']}";
+                    $acaoTecnico = trim($gr['acao_tecnico'] ?? '');
+                    if ($acaoTecnico !== '' && mb_strtoupper($acaoTecnico) !== 'N/A') {
+                        $line .= " — Ação Técnico: {$acaoTecnico}";
+                    }
+                    $acaoValidador = trim($gr['acao_validador'] ?? '');
+                    if ($acaoValidador !== '' && mb_strtoupper($acaoValidador) !== 'N/A') {
+                        $line .= " — Ação Validador: {$acaoValidador}";
+                    }
+                    $parts[] = $line;
+                    $idx++;
+                }
+
+                $newObs = implode("\n---\n", $parts);
+
+                $existing = $this->ticketRepository->findInfratelByEquipment($equipment->id);
+
+                if ($existing) {
+                    $existingNotes = $existing->notes ?? '';
+                    $concatenatedObs = $existingNotes;
+                    if ($existingNotes !== '' && $existingNotes !== '0') {
+                        $concatenatedObs .= "\n---\n";
+                    }
+                    $concatenatedObs .= $newObs;
+
+                    $this->ticketRepository->update([
+                        'id' => $existing->id,
+                        'os' => $existing->os,
+                        'data' => $oldestDate,
+                        'equipe' => $executor,
+                        'status' => 'Pendente',
+                        'data_concluido' => null,
+                        'data_planejada' => null,
+                        'material' => 'Sim',
+                        'obs' => $concatenatedObs,
+                        'notificacao_enviada' => 0,
+                    ]);
+                    $updated++;
+                } else {
+                    $nextNum = $this->ticketRepository->getNextInfratelNumber() + 1;
+                    $os = 'INFRATEL' . $nextNum;
+
+                    $this->ticketRepository->save([
+                        'equipamento_id' => $equipment->id,
+                        'os' => $os,
+                        'data' => $oldestDate,
+                        'equipe' => $executor,
+                        'status' => 'Pendente',
+                        'data_concluido' => null,
+                        'data_planejada' => null,
+                        'material' => 'Sim',
+                        'obs' => $newObs,
+                        'tipo' => 'corretiva',
+                    ]);
+                    $imported++;
+                }
+            } catch (\Throwable $e) {
+                $skipped += count($groupRows);
+                $errors[] = ['linha' => 0, 'motivo' => $e->getMessage()];
+            }
+        }
+
+        return [
+            'imported' => $imported,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+        ];
+    }
+
     private function buildStatusOrderSql(array $priority): string
     {
         $parts = [];

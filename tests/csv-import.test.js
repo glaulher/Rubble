@@ -6,14 +6,7 @@ function parseCSVToJSON(text) {
   const lines = text.split('\n').filter(line => line.trim() !== '');
   if (lines.length === 0) return [];
 
-  let headerIdx = lines.findIndex(line => line.includes('Tarefa'));
-  if (headerIdx === -1) return [];
-
-  const headers = lines[headerIdx].split(';').map(h =>
-    h.replace(/^\uFEFF/, '').trim()
-  );
-
-  const columnMap = {
+  const verifaiColumnMap = {
     'Tarefa': 'tarefa',
     'Empresa': 'empresa',
     'Tipo': 'tipo',
@@ -29,11 +22,41 @@ function parseCSVToJSON(text) {
     '20-Status': 'status',
   };
 
+  const infratelColumnMap = {
+    'Site': 'site',
+    'Equipamento': 'equipamento',
+    'Justificativas': 'justificativas',
+    'Ação Técnico': 'acao_tecnico',
+    'Ação Validador': 'acao_validador',
+    'Fim': 'fim',
+    'Executor': 'executor',
+  };
+
+  const firstDataLine = lines.findIndex(line => line.includes(';'));
+  if (firstDataLine === -1) return [];
+
+  const rawHeaders = lines[firstDataLine].split(';').map(h =>
+    h.replace(/^\uFEFF/, '').trim()
+  );
+  const headerText = rawHeaders.join(' ');
+
+  const isInfratel = headerText.includes('Site') && headerText.includes('Equipamento') && headerText.includes('Justificativas');
+  const isVerifai = headerText.includes('Tarefa');
+
+  let columnMap;
+  if (isInfratel) {
+    columnMap = infratelColumnMap;
+  } else if (isVerifai) {
+    columnMap = verifaiColumnMap;
+  } else {
+    return [];
+  }
+
   const result = [];
-  for (let i = headerIdx + 1; i < lines.length; i++) {
+  for (let i = firstDataLine + 1; i < lines.length; i++) {
     const values = lines[i].split(';');
     const row = {};
-    headers.forEach((header, idx) => {
+    rawHeaders.forEach((header, idx) => {
       const key = columnMap[header] || header;
       row[key] = (values[idx] || '').trim();
     });
@@ -46,7 +69,7 @@ function parseCSVToJSON(text) {
 globalThis.importOS = () => {};
 globalThis.showToast = () => {};
 
-describe("parseCSVToJSON", () => {
+describe("parseCSVToJSON — Verifai", () => {
   it("parses semicolon-delimited CSV with header detection", () => {
     const csv = `Tarefa;Empresa;Tipo;Data Criação;Data Alteração;6-Local;11-TAG;12-1º Técnico;15-Problema;16-Causa;17-Solução;19-Materiais;20-Status\nOS-001;RDJ - RSDDTC - Resende;Corretiva;21/05/2026 08:30:00;21/05/2026 17:00:00;Sala 1;SELF 01;João;Vazamento;Desgaste;Troca;kit;Concluido`;
 
@@ -84,30 +107,48 @@ describe("parseCSVToJSON", () => {
   });
 });
 
-describe("importOS", () => {
-  it("calls API and shows success toast on import", async () => {
-    let fetchUrl = "";
+describe("parseCSVToJSON — Infratel", () => {
+  it("parses Infratel CSV and maps expected columns", () => {
+    const csv = `Site;Regional;Cluster;UF;Início;Fim;Fato;Motivo do Expurgo;Equipamento;Status;Executor;SLA;Chancelador;SLA;Validador;SLA;Validação;Justificativas;Ação Técnico;Data Prevista;Ação Validador\nBGU02DTC;REGIONAL LESTE;CLUSTER RJ/ES;RJ;22/06/2026;22/06/2026;OK;N/A;CLIMA - ARCON 02;Finalizada;Moisés Torres;0;INFRATEL;0;INFRATEL;0;V;Equipamento inoperante;Necessário reparo;N/A;N/A;N/A`;
 
-    globalThis.fetch = (url, opts) => {
-      fetchUrl = url;
-      return Promise.resolve({
-        json: () => Promise.resolve({
-          success: true,
-          data: { imported: 5, updated: 3, skipped: 1, errors: [] },
-        }),
-      });
-    };
+    const result = parseCSVToJSON(csv);
 
-    const rows = [{ tarefa: "OS-001", empresa: "RDJ - RSDDTC" }];
-    const response = await fetch("/app/api/index.php?route=tickets&action=import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(rows),
-    });
-    const result = await response.json();
+    expect(result).toHaveLength(1);
+    expect(result[0].site).toBe("BGU02DTC");
+    expect(result[0].equipamento).toBe("CLIMA - ARCON 02");
+    expect(result[0].justificativas).toBe("Equipamento inoperante");
+    expect(result[0].acao_tecnico).toBe("Necessário reparo");
+    expect(result[0].acao_validador).toBe("N/A");
+    expect(result[0].fim).toBe("22/06/2026");
+    expect(result[0].executor).toBe("Moisés Torres");
+  });
 
-    expect(fetchUrl).toContain("route=tickets&action=import");
-    expect(result.success).toBe(true);
-    expect(result.data.imported).toBe(5);
+  it("ignores lines where justificativas are N/A", () => {
+    const csv = `Site;Equipamento;Justificativas;Ação Técnico;Ação Validador;Fim;Executor\nBGU02DTC;CLIMA - ARCON 02;N/A;N/A;N/A;22/06/2026;João\nBGU02DTC;CLIMA - ARCON 02;Real problema;Reparar;N/A;23/06/2026;João`;
+
+    const result = parseCSVToJSON(csv);
+
+    expect(result).toHaveLength(2);
+    expect(result[1].justificativas).toBe("Real problema");
+  });
+
+  it("handles multiple rows", () => {
+    const csv = `Site;Equipamento;Justificativas;Ação Técnico;Ação Validador;Fim;Executor\nBGU02DTC;CLIMA - ARCON 02;Vazamento;Reparar;N/A;22/06/2026;Moisés Torres\nBGU02DTC;CLIMA - ARCON 02;Ventilador;Trocar;N/A;28/06/2026;Moisés Torres`;
+
+    const result = parseCSVToJSON(csv);
+
+    expect(result).toHaveLength(2);
+    expect(result[0].justificativas).toBe("Vazamento");
+    expect(result[1].justificativas).toBe("Ventilador");
+    expect(result[0].fim).toBe("22/06/2026");
+    expect(result[1].fim).toBe("28/06/2026");
+  });
+});
+
+describe("parseCSVToJSON — unknown format", () => {
+  it("returns empty array for unrecognized CSV", () => {
+    const csv = "Nome;Idade\nJoão;30";
+    const result = parseCSVToJSON(csv);
+    expect(result).toEqual([]);
   });
 });

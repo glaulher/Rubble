@@ -223,6 +223,27 @@ class TicketRepository extends BaseRepository
         return $row ? new Ticket($row) : null;
     }
 
+    public function findInfratelByEquipment(int $equipmentId): ?Ticket
+    {
+        $sql = "SELECT * FROM registros WHERE equipamento_id = ? AND os LIKE 'INFRATEL%' LIMIT 1";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $equipmentId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row ? new Ticket($row) : null;
+    }
+
+    public function getNextInfratelNumber(): int
+    {
+        $sql = "SELECT MAX(CAST(SUBSTRING(os, 9) AS UNSIGNED)) AS max_num FROM registros WHERE os LIKE 'INFRATEL%'";
+        $stmt = $this->safePrepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return (int) ($row['max_num'] ?? 0);
+    }
+
     public function listScheduledToNotify(): array
     {
         $sql = "

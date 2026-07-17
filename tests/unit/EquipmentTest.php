@@ -81,6 +81,8 @@ class EquipmentTest extends TestCase
             'localidade' => 'Rio de Janeiro',
             'mercado' => null,
             'local_scm' => null,
+            'site_infratel' => null,
+            'tag_infratel' => null,
         ];
 
         $this->assertSame($expected, $result);

@@ -249,6 +249,17 @@ class EquipmentRepository extends BaseRepository
         return $map;
     }
 
+    public function findByInfratel(string $site, string $tag): ?Equipment
+    {
+        $sql = "SELECT * FROM equipamentos WHERE site_infratel = ? AND tag_infratel = ? LIMIT 1";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('ss', $site, $tag);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row ? new Equipment($row) : null;
+    }
+
     public function listByLocal(string $localCode): array
     {
         $sql = "SELECT * FROM equipamentos WHERE local = ? ORDER BY equipamento";

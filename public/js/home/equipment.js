@@ -117,14 +117,7 @@ function parseCSVToJSON(text) {
   const lines = text.split('\n').filter(line => line.trim() !== '');
   if (lines.length === 0) return [];
 
-  let headerIdx = lines.findIndex(line => line.includes('Tarefa'));
-  if (headerIdx === -1) return [];
-
-  const headers = lines[headerIdx].split(';').map(h =>
-    h.replace(/^\uFEFF/, '').trim()
-  );
-
-  const columnMap = {
+  const verifaiColumnMap = {
     'Tarefa': 'tarefa',
     'Empresa': 'empresa',
     'Tipo': 'tipo',
@@ -140,11 +133,41 @@ function parseCSVToJSON(text) {
     '20-Status': 'status',
   };
 
+  const infratelColumnMap = {
+    'Site': 'site',
+    'Equipamento': 'equipamento',
+    'Justificativas': 'justificativas',
+    'Ação Técnico': 'acao_tecnico',
+    'Ação Validador': 'acao_validador',
+    'Fim': 'fim',
+    'Executor': 'executor',
+  };
+
+  const firstDataLine = lines.findIndex(line => line.includes(';'));
+  if (firstDataLine === -1) return [];
+
+  const rawHeaders = lines[firstDataLine].split(';').map(h =>
+    h.replace(/^\uFEFF/, '').trim()
+  );
+  const headerText = rawHeaders.join(' ');
+
+  const isInfratel = headerText.includes('Site') && headerText.includes('Equipamento') && headerText.includes('Justificativas');
+  const isVerifai = headerText.includes('Tarefa');
+
+  let columnMap;
+  if (isInfratel) {
+    columnMap = infratelColumnMap;
+  } else if (isVerifai) {
+    columnMap = verifaiColumnMap;
+  } else {
+    return [];
+  }
+
   const result = [];
-  for (let i = headerIdx + 1; i < lines.length; i++) {
+  for (let i = firstDataLine + 1; i < lines.length; i++) {
     const values = lines[i].split(';');
     const row = {};
-    headers.forEach((header, idx) => {
+    rawHeaders.forEach((header, idx) => {
       const key = columnMap[header] || header;
       row[key] = (values[idx] || '').trim();
     });
@@ -186,7 +209,11 @@ async function importOS() {
         return;
       }
 
-      const response = await fetch('/app/api/index.php?route=tickets&action=import', {
+      const firstRow = rows[0];
+      const isInfratel = 'site' in firstRow && 'justificativas' in firstRow;
+      const action = isInfratel ? 'import-infratel' : 'import';
+
+      const response = await fetch('/app/api/index.php?route=tickets&action=' + action, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(rows),
