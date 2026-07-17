@@ -221,8 +221,7 @@ async function importOS() {
       try {
         result = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Server response (HTML/PHP error):', responseText.substring(0, 1000));
-        showToast('Erro no servidor. Veja o console (F12) para detalhes.', 'error');
+        showToast('Erro inesperado no servidor ao processar o CSV', 'error');
         return;
       }
 
