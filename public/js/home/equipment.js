@@ -143,28 +143,26 @@ function parseCSVToJSON(text) {
     'Executor': 'executor',
   };
 
-  const firstDataLine = lines.findIndex(line => line.includes(';'));
-  if (firstDataLine === -1) return [];
-
-  const rawHeaders = lines[firstDataLine].split(';').map(h =>
-    h.replace(/^\uFEFF/, '').trim()
-  );
-  const headerText = rawHeaders.join(' ');
-
-  const isInfratel = headerText.includes('Site') && headerText.includes('Equipamento') && headerText.includes('Justificativas');
-  const isVerifai = headerText.includes('Tarefa');
-
-  let columnMap;
-  if (isInfratel) {
-    columnMap = infratelColumnMap;
-  } else if (isVerifai) {
-    columnMap = verifaiColumnMap;
-  } else {
-    return [];
+  const verifaiIdx = lines.findIndex(line => line.includes('Tarefa'));
+  if (verifaiIdx !== -1) {
+    const headers = lines[verifaiIdx].split(';').map(h => h.replace(/^\uFEFF/, '').trim());
+    return parseRows(lines, verifaiIdx, headers, verifaiColumnMap);
   }
 
+  const infratelIdx = lines.findIndex(line =>
+    line.includes('Site') && line.includes('Equipamento') && line.includes('Justificativas')
+  );
+  if (infratelIdx !== -1) {
+    const headers = lines[infratelIdx].split(';').map(h => h.replace(/^\uFEFF/, '').trim());
+    return parseRows(lines, infratelIdx, headers, infratelColumnMap);
+  }
+
+  return [];
+}
+
+function parseRows(lines, headerIdx, rawHeaders, columnMap) {
   const result = [];
-  for (let i = firstDataLine + 1; i < lines.length; i++) {
+  for (let i = headerIdx + 1; i < lines.length; i++) {
     const values = lines[i].split(';');
     const row = {};
     rawHeaders.forEach((header, idx) => {
@@ -173,7 +171,6 @@ function parseCSVToJSON(text) {
     });
     result.push(row);
   }
-
   return result;
 }
 
