@@ -52,7 +52,7 @@ function plannedStatusBadgeHtml(status) {
   if (!status) return '';
   const lower = status.toLowerCase().trim();
   const colorClass = PLANNED_STATUS_BADGES[lower] || 'bg-slate-100 text-slate-700';
-  return '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium ' + colorClass + '">' + escapeHtml(status) + '</span>';
+  return '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium planned-badge-status ' + colorClass + '">' + escapeHtml(status) + '</span>';
 }
 
 function canEditPlanned() {
@@ -509,7 +509,7 @@ function submitCorretivaStatus() {
         if (card) {
           var actionsArea = card.querySelector('.flex.items-center.gap-1');
           if (actionsArea) {
-            var oldBadge = actionsArea.querySelector('span.inline-block');
+            var oldBadge = actionsArea.querySelector('.planned-badge-status');
             if (oldBadge) oldBadge.outerHTML = plannedStatusBadgeHtml(newStatus);
           }
         }
@@ -1994,8 +1994,8 @@ function submitStatusPreventiva() {
           if (card) {
             var actionsArea = card.querySelector('.flex.items-center.gap-1');
             if (actionsArea) {
-              var oldBadge = actionsArea.querySelector('span.inline-block');
-              if (oldBadge) oldBadge.outerHTML = plannedStatusBadgeHtml(data.status);
+            var oldBadge = actionsArea.querySelector('.planned-badge-status');
+            if (oldBadge) oldBadge.outerHTML = plannedStatusBadgeHtml(data.status);
             }
             var statusBtn = card.querySelector('.planned-status-btn');
             if (statusBtn) statusBtn.setAttribute('data-status', data.status);

@@ -155,9 +155,9 @@ class PlannedActivityRepository extends BaseRepository
         $search = $this->normalizeDateSearch($search);
         if ($search !== '') {
             $searchTerm = '%' . $search . '%';
-            $where .= ' AND (ap.site LIKE ? OR ap.ticket LIKE ? OR ap.obs LIKE ?)';
-            array_push($params, $searchTerm, $searchTerm, $searchTerm);
-            $types .= 'sss';
+            $where .= ' AND (ap.site LIKE ? OR ap.ticket LIKE ? OR ap.obs LIKE ? OR \'preventiva\' LIKE ?)';
+            array_push($params, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
+            $types .= 'ssss';
         }
 
         return [$where, $params, $types];
