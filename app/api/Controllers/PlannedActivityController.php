@@ -302,8 +302,10 @@ class PlannedActivityController
 
             $id = (int) $data['id'];
             $status = trim($data['status']);
+            $dataPlanejada = isset($data['data_planejada']) ? trim($data['data_planejada']) : null;
+            $sourceDate = isset($data['source_date']) ? trim($data['source_date']) : null;
 
-            $result = $this->service->updateCorretivaStatus($id, $status);
+            $result = $this->service->updateCorretivaStatus($id, $status, $dataPlanejada, $sourceDate);
 
             Cache::deleteByPrefix('equipment_list:');
             Cache::deleteByPrefix('planned_activities:');

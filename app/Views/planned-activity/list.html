@@ -261,6 +261,7 @@
     <h3 class="text-lg font-semibold text-slate-800 mb-4">Alterar Status</h3>
     <form id="corretivaStatusForm" novalidate>
       <input type="hidden" id="corretivaStatusId">
+      <input type="hidden" id="corretivaStatusSourceDate">
       <div class="mb-4">
         <label for="corretivaStatusSelect" class="block text-sm font-medium text-slate-700 mb-1">Novo Status</label>
         <select
@@ -268,6 +269,14 @@
           required
           class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
         ></select>
+      </div>
+      <div id="corretivaStatusDataGroup" class="mb-4 hidden">
+        <label for="corretivaDataPlanejada" class="block text-sm font-medium text-slate-700 mb-1">Nova Data Planejada</label>
+        <input
+          id="corretivaDataPlanejada"
+          type="date"
+          class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+        >
       </div>
       <div class="flex justify-end gap-3">
         <button type="button" class="btn-cancel-corretiva-status bg-slate-200 hover:bg-slate-300 text-slate-900 px-4 py-2 rounded-xl text-sm">Cancelar</button>

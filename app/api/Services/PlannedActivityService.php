@@ -304,7 +304,7 @@ class PlannedActivityService
         return ['action' => 'updated', 'id' => $id];
     }
 
-    public function updateCorretivaStatus(int $id, string $status): array
+    public function updateCorretivaStatus(int $id, string $status, ?string $dataPlanejada = null, ?string $sourceDate = null): array
     {
         if ($id <= 0) {
             throw new \RuntimeException('ID inválido.');
@@ -319,6 +319,16 @@ class PlannedActivityService
         }
 
         $cleanStatus = self::ALLOWED_CORRETIVA_STATUSES[$idx];
+
+        if ($dataPlanejada !== null && $sourceDate !== null && $cleanStatus === 'Planejado') {
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dataPlanejada)) {
+                throw new \RuntimeException('Formato da nova data inválido.');
+            }
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $sourceDate)) {
+                throw new \RuntimeException('Formato da data de origem inválido.');
+            }
+            $this->repository->moveDate($id, 'corretiva', $sourceDate, $dataPlanejada);
+        }
 
         $dataConcluido = null;
         if ($cleanStatus === 'Concluído') {

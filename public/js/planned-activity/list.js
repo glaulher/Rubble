@@ -139,7 +139,7 @@ function buildPlannedCardHtml(item) {
       extraBtns += iconButtonHtml('delete', 'Excluir atividade', { 'class': 'planned-delete-btn', 'data-id': item.id });
     }
   } else {
-    extraBtns = iconButtonHtml('edit', 'Alterar status', { 'class': 'planned-corretiva-status-btn', 'data-id': item.id, 'data-status': item.status || 'Pendente' });
+    extraBtns = iconButtonHtml('edit', 'Alterar status', { 'class': 'planned-corretiva-status-btn', 'data-id': item.id, 'data-status': item.status || 'Pendente', 'data-date': item.data_planejada || '' });
     if (!hasSla && canEdit) {
       extraBtns += '<button class="inline-flex items-center justify-center bg-sky-100 hover:bg-sky-200 text-sky-600 p-2 rounded-xl relative group" data-action="set-sla" data-id="' + item.id + '" data-tipo="corretiva" data-date="' + safeDate + '" aria-label="Definir SLA"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="absolute right-0 top-[50px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap border border-slate-600 z-50">Definir SLA</span></button>';
     }
@@ -450,10 +450,11 @@ function finishObsEdit(textarea, span) {
 
 const CORRETIVA_STATUSES = ['Concluído', 'Pendente', 'Em andamento', 'Planejado', 'Projeto Clean up'];
 
-function openCorretivaStatusModal(id, currentStatus) {
+function openCorretivaStatusModal(id, currentStatus, currentDate) {
   var modal = document.getElementById('modalStatusCorretiva');
   if (!modal) return;
   document.getElementById('corretivaStatusId').value = id;
+  document.getElementById('corretivaStatusSourceDate').value = currentDate || '';
 
   var select = document.getElementById('corretivaStatusSelect');
   select.innerHTML = '';
@@ -465,6 +466,13 @@ function openCorretivaStatusModal(id, currentStatus) {
     select.appendChild(opt);
   });
 
+  var dateInput = document.getElementById('corretivaDataPlanejada');
+  if (dateInput && currentDate) {
+    dateInput.value = currentDate;
+  }
+  var dateGroup = document.getElementById('corretivaStatusDataGroup');
+  if (dateGroup) dateGroup.classList.add('hidden');
+
   modal.classList.remove('hidden');
 }
 
@@ -473,9 +481,22 @@ function submitCorretivaStatus() {
   var status = document.getElementById('corretivaStatusSelect').value;
   if (!id || !status) return;
 
+  var payload = { id: id, status: status };
+
+  if (status === 'Planejado') {
+    var dateInput = document.getElementById('corretivaDataPlanejada');
+    if (dateInput && dateInput.value) {
+      payload.data_planejada = dateInput.value;
+    }
+    var sourceDateInput = document.getElementById('corretivaStatusSourceDate');
+    if (sourceDateInput && sourceDateInput.value) {
+      payload.source_date = sourceDateInput.value;
+    }
+  }
+
   apiFetch('/app/api/index.php?route=planned-activities&action=update-status', {
     method: 'PUT',
-    body: JSON.stringify({ id: id, status: status }),
+    body: JSON.stringify(payload),
   })
   .then(function (res) { return res.json(); })
   .then(function (result) {
@@ -506,6 +527,10 @@ function submitCorretivaStatus() {
 function closeCorretivaStatusModal() {
   var modal = document.getElementById('modalStatusCorretiva');
   if (modal) modal.classList.add('hidden');
+  var dateGroup = document.getElementById('corretivaStatusDataGroup');
+  if (dateGroup) dateGroup.classList.add('hidden');
+  var dateInput = document.getElementById('corretivaDataPlanejada');
+  if (dateInput) dateInput.value = '';
 }
 
 function renderPlanned(items, append) {
@@ -1225,6 +1250,15 @@ function initPlannedActivity() {
     corrStatusBackdrop.addEventListener('click', closeCorretivaStatusModal);
   }
 
+  var corretivaStatusSelect = document.getElementById('corretivaStatusSelect');
+  if (corretivaStatusSelect) {
+    corretivaStatusSelect.addEventListener('change', function () {
+      var dateGroup = document.getElementById('corretivaStatusDataGroup');
+      if (!dateGroup) return;
+      dateGroup.classList.toggle('hidden', this.value !== 'Planejado');
+    });
+  }
+
   // --- SLA Preview ---
   var slaDays = document.getElementById('planSlaDays');
   var slaSat = document.getElementById('planSlaSat');
@@ -1332,7 +1366,8 @@ function initPlannedActivity() {
       if (corretivaStatusBtn) {
         var corrId = parseInt(corretivaStatusBtn.getAttribute('data-id'), 10);
         var corrStatus = corretivaStatusBtn.getAttribute('data-status');
-        if (corrId) openCorretivaStatusModal(corrId, corrStatus);
+        var corrDate = corretivaStatusBtn.getAttribute('data-date') || '';
+        if (corrId) openCorretivaStatusModal(corrId, corrStatus, corrDate);
         return;
       }
 
