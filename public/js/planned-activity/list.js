@@ -457,12 +457,11 @@ function openCorretivaStatusModal(id, currentStatus, currentDate) {
   document.getElementById('corretivaStatusSourceDate').value = currentDate || '';
 
   var select = document.getElementById('corretivaStatusSelect');
-  select.innerHTML = '';
+  select.innerHTML = '<option value="">Selecione</option>';
   CORRETIVA_STATUSES.forEach(function (s) {
     var opt = document.createElement('option');
     opt.value = s;
     opt.textContent = s;
-    if (s === currentStatus) opt.selected = true;
     select.appendChild(opt);
   });
 
