@@ -13,6 +13,9 @@ globalThis.pvEmailPvData = null;
 globalThis.selectedPvIds = [];
 
 async function duplicatePv(id) {
+  const confirmed = await confirmAction('Duplicar PV', 'Tem certeza que deseja duplicar esta PV?');
+  if (!confirmed) return;
+
   try {
     const response = await fetch('/app/api/index.php?route=pv&action=duplicate&id=' + id, {
       method: 'POST',
@@ -27,7 +30,6 @@ async function duplicatePv(id) {
 
     showToast('PV duplicada com sucesso', 'success');
     globalThis.resetPvState(globalThis.pvSearch, globalThis.pvStatusFilter, globalThis.pvCycleFilter, true);
-    loadPvs();
   } catch (err) {
     showToast('Erro ao duplicar PV', 'error');
     console.error(err);

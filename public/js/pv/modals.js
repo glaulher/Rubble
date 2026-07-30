@@ -31,8 +31,6 @@ async function deletePv(id) {
     const row = document.querySelector('tr[data-pv-id="' + id + '"]');
     if (row) row.remove();
 
-    pvList = pvList.filter(function(p) { return p.id != id; });
-
     updateHeaderTotal();
   } catch (err) {
     console.error(err);

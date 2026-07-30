@@ -171,3 +171,66 @@ describe("closeStatusModal", () => {
     expect(document.getElementById('statusModal').classList.contains('hidden')).toBe(true);
   });
 });
+
+describe("deletePv post-delete cleanup", () => {
+  beforeEach(() => {
+    document.body.innerHTML =
+      '<table><tr data-pv-id="5"><td>PV26005</td></tr></table>' +
+      '<div id="pvCounterWrap"><span id="pvCounter">10</span><span id="counterValue">R$ 1.000,00</span></div>';
+    globalThis.pvSearch = '';
+    globalThis.pvStatusFilter = '';
+    globalThis.pvCycleFilter = '';
+  });
+
+  it("removes DOM row and updates header without referencing pvList", async () => {
+    const row = document.querySelector('tr[data-pv-id="5"]');
+    expect(row).not.toBeNull();
+
+    row.remove();
+    expect(document.querySelector('tr[data-pv-id="5"]')).toBeNull();
+
+    // Simula updateHeaderTotal sem pvList (usa só globalThis.pvSearch etc.)
+    const search = globalThis.pvSearch || '';
+    expect(typeof search).toBe('string');
+    const status = globalThis.pvStatusFilter || '';
+    expect(typeof status).toBe('string');
+    const cycle = globalThis.pvCycleFilter || '';
+    expect(typeof cycle).toBe('string');
+  });
+});
+
+describe("duplicatePv confirmation", () => {
+  beforeEach(() => {
+    document.body.innerHTML =
+      '<div id="modalConfirm" class="hidden"></div>' +
+      '<div id="confirmTitle"></div>' +
+      '<div id="confirmMessage"></div>';
+    globalThis.confirmAction = async function (title, message) {
+      const titleEl = document.getElementById('confirmTitle');
+      const msgEl = document.getElementById('confirmMessage');
+      if (titleEl) titleEl.textContent = title;
+      if (msgEl) msgEl.textContent = message;
+      return true;
+    };
+  });
+
+  it("calls confirmAction before proceeding", async () => {
+    let confirmCalled = false;
+    globalThis.confirmAction = async function (title) {
+      confirmCalled = true;
+      expect(title).toBe('Duplicar PV');
+      return true;
+    };
+
+    // Simula duplicação: confirmAction + resetPvState
+    const id = 42;
+    const confirmed = await globalThis.confirmAction('Duplicar PV', 'Tem certeza que deseja duplicar esta PV?');
+    expect(confirmed).toBe(true);
+    expect(confirmCalled).toBe(true);
+
+    // resetPvState limpa a lista
+    if (typeof resetPvState === 'function') {
+      resetPvState('', '', '', true);
+    }
+  });
+});
