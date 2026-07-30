@@ -75,6 +75,17 @@ class EquipmentPriceService
         return $this->matchRule($rules, $equipamento, $local, $mercadoEquipamento, $capacidade ?? 0.0);
     }
 
+    public function sumValueByFilter(string $search = '', ?string $location = null): float
+    {
+        $valorCaseSql = $this->getValorCaseSql();
+        return $this->repository->sumValueByFilter($search, $location, $valorCaseSql);
+    }
+
+    public function countByFilter(string $search = '', ?string $location = null): int
+    {
+        return $this->repository->countByFilter($search, $location);
+    }
+
     public function getValorCaseSql(): string
     {
         return "CASE

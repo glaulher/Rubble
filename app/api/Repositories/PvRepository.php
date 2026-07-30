@@ -523,6 +523,13 @@ class PvRepository extends BaseRepository
         return $row['status'] ?? null;
     }
 
+    public function updateItemsStatusByPvId(int $pvId, string $status): bool
+    {
+        $sql = "UPDATE pv_item SET status = ? WHERE pv_id = ?";
+        $stmt = $this->safePrepare($sql);
+        return $stmt->bind_param('si', $status, $pvId) && $stmt->execute();
+    }
+
     public function delete(int $id): bool
     {
         $sql = "DELETE FROM pv WHERE id = ?";

@@ -6,7 +6,6 @@ use App\Api\Services\UserService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
-use Exception;
 
 class UserController
 {

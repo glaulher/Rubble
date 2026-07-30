@@ -4,7 +4,6 @@ namespace App\Api\Controllers;
 
 use App\Api\Services\PreventiveCycleService;
 use App\Api\Helpers\{Response, Request, Validator};
-use Exception;
 
 class PreventiveCycleController
 {

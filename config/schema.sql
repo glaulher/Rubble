@@ -664,6 +664,15 @@ CREATE TABLE IF NOT EXISTS `planejamento_datas` (
   FOREIGN KEY (`registro_id`) REFERENCES `registros` (`id`) ON DELETE CASCADE,
   UNIQUE KEY `uk_registro_data` (`registro_id`, `data_planejada`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- email_processed — Email approval watcher dedup
+CREATE TABLE IF NOT EXISTS `email_processed` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `uid` INT UNSIGNED NOT NULL,
+  `pv_number` VARCHAR(10) NOT NULL,
+  `processed_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uk_email_uid` (`uid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

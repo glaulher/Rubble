@@ -8,7 +8,6 @@ use App\Api\Helpers\Request;
 use App\Api\Helpers\TurnstileHelper;
 use App\Api\Helpers\RateLimiter;
 use App\Config\Env;
-use Exception;
 
 class AuthController
 {
@@ -72,31 +71,39 @@ class AuthController
         }
     }
 
-    public function me(): void
+    private function getAuthenticatedUser(): ?object
     {
         $authHeader = AuthService::getAuthHeader();
         if (empty($authHeader)) {
             Response::unauthorized('Token não fornecido');
-            return;
+            return null;
         }
 
         $parts = explode(' ', $authHeader);
         if (count($parts) !== 2 || $parts[0] !== 'Bearer') {
             Response::unauthorized('Formato de token inválido');
-            return;
+            return null;
         }
 
         $jwtSecret = Env::get('JWT_SECRET', '');
         if (empty($jwtSecret)) {
             Response::error('Erro interno do servidor', 500);
-            return;
+            return null;
         }
-        $user = AuthService::validateToken($parts[1], $jwtSecret);
 
+        $user = AuthService::validateToken($parts[1], $jwtSecret);
         if (!$user) {
             Response::unauthorized('Token inválido ou expirado');
-            return;
+            return null;
         }
+
+        return $user;
+    }
+
+    public function me(): void
+    {
+        $user = $this->getAuthenticatedUser();
+        if (!$user) return;
 
         Response::success('Usuário autenticado', [
             'user' => [
@@ -110,29 +117,8 @@ class AuthController
 
     public function activeCount(): void
     {
-        $authHeader = AuthService::getAuthHeader();
-        if (empty($authHeader)) {
-            Response::unauthorized('Token não fornecido');
-            return;
-        }
-
-        $parts = explode(' ', $authHeader);
-        if (count($parts) !== 2 || $parts[0] !== 'Bearer') {
-            Response::unauthorized('Formato de token inválido');
-            return;
-        }
-
-        $jwtSecret = Env::get('JWT_SECRET', '');
-        if (empty($jwtSecret)) {
-            Response::error('Erro interno do servidor', 500);
-            return;
-        }
-
-        $user = AuthService::validateToken($parts[1], $jwtSecret);
-        if (!$user) {
-            Response::unauthorized('Token inválido ou expirado');
-            return;
-        }
+        $user = $this->getAuthenticatedUser();
+        if (!$user) return;
 
         if ($user->role !== 'admin') {
             Response::error('Permissão negada', 403);

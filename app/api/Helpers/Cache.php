@@ -91,6 +91,13 @@ class Cache
         self::fileDeleteByPrefix($prefix);
     }
 
+    public static function invalidateGroup(string ...$prefixes): void
+    {
+        foreach ($prefixes as $prefix) {
+            self::deleteByPrefix($prefix);
+        }
+    }
+
     public static function buildKey(string $prefix, array $params): string
     {
         return $prefix . ':' . md5(serialize($params));

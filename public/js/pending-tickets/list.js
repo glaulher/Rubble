@@ -8,16 +8,6 @@ var pendingLastId = null;
 var pendingLoading = false;
 var pendingAllLoaded = false;
 
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 function getStatusBadgeClass(status) {
   switch ((status || '').toLowerCase()) {
     case 'pendente':
@@ -31,13 +21,6 @@ function getStatusBadgeClass(status) {
     default:
       return 'bg-slate-100 text-slate-700';
   }
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '-';
-  var parts = dateStr.split('-');
-  if (parts.length === 3) return parts[2] + '/' + parts[1] + '/' + parts[0];
-  return dateStr;
 }
 
 function renderPendingTable(list, append) {

@@ -11,16 +11,6 @@ var ICON_SVG = {
   copy: '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
 };
 
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 var BUTTON_STYLES = {
   primary:   { bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300', text: 'text-emerald-800' },
   secondary: { bg: 'bg-sky-200',     hover: 'hover:bg-sky-300',     text: 'text-sky-800' },

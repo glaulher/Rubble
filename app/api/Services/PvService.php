@@ -436,8 +436,4 @@ class PvService
         return 'CASE pv_item.status ' . implode(' ', $parts) . ' ELSE 99 END';
     }
 
-    public function getDefaultItemStatus(): string
-    {
-        return self::DEFAULT_ITEM_STATUS;
-    }
 }

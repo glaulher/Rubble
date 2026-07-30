@@ -5,7 +5,6 @@ namespace App\Api\Controllers;
 use App\Api\Services\ScmService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
-use Exception;
 
 class ScmController
 {

@@ -237,9 +237,9 @@ class EquipmentController
                 return;
             }
 
-            $priceRepo = new \App\Api\Repositories\EquipmentPriceRepository();
-            $totalValor = $priceRepo->sumValueByFilter($search, $location);
-            $totalEquipment = $priceRepo->countByFilter($search, $location);
+            $priceService = new \App\Api\Services\EquipmentPriceService();
+            $totalValor = $priceService->sumValueByFilter($search, $location);
+            $totalEquipment = $priceService->countByFilter($search, $location);
 
             $response = [
                 'success' => true,

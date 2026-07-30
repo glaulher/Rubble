@@ -7,7 +7,6 @@ use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
 use App\Api\Helpers\Cache;
-use Exception;
 
 class TicketController
 {
@@ -92,7 +91,7 @@ class TicketController
                     $data
                 );
 
-            Cache::deleteByPrefix('equipment_list:');
+            Cache::invalidateGroup('equipment_list:');
 
             Response::success(
                 'Registro salvo com sucesso',
@@ -140,7 +139,7 @@ class TicketController
                 $data
             );
 
-            Cache::deleteByPrefix('equipment_list:');
+            Cache::invalidateGroup('equipment_list:');
 
             Response::success(
                 'Registro atualizado com sucesso'
@@ -276,7 +275,7 @@ class TicketController
                 (int) $data['id']
             );
 
-            Cache::deleteByPrefix('equipment_list:');
+            Cache::invalidateGroup('equipment_list:');
 
             Response::success(
                 'Registro excluído com sucesso'

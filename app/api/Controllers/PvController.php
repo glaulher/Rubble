@@ -7,7 +7,6 @@ use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
 use App\Api\Helpers\Cache;
-use Exception;
 
 class PvController
 {
@@ -373,7 +372,7 @@ class PvController
                 (int) $data['id']
             );
 
-            Cache::deleteByPrefix('pv_list:');
+            Cache::invalidateGroup('pv_list:');
 
             Response::success(
                 'PV excluída com sucesso'
@@ -402,7 +401,7 @@ class PvController
                 return;
             }
 
-            Cache::deleteByPrefix('pv_list:');
+            Cache::invalidateGroup('pv_list:');
 
             if ($result['autoDeletedPv']) {
                 Response::success('Item excluído. PV sem itens foi removida automaticamente.', [

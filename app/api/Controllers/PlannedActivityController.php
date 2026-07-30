@@ -7,7 +7,6 @@ use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
 use App\Api\Helpers\Cache;
-use Exception;
 
 class PlannedActivityController
 {
@@ -116,7 +115,7 @@ class PlannedActivityController
 
             $result = $this->service->reorder($order, $tipo, $dataPlanejada);
 
-            Cache::deleteByPrefix('planned_activities:');
+            Cache::invalidateGroup('planned_activities:');
 
             Response::success('Ordem atualizada com sucesso', $result);
 
@@ -147,7 +146,7 @@ class PlannedActivityController
 
             $result = $this->service->moveDate($id, $tipo, $sourceDate, $targetDate);
 
-            Cache::deleteByPrefix('planned_activities:');
+            Cache::invalidateGroup('planned_activities:');
 
             Response::success('Atividade movida com sucesso', $result);
 
@@ -176,8 +175,7 @@ class PlannedActivityController
 
             $result = $this->service->duplicateDay($sourceDate, $targetDate);
 
-            Cache::deleteByPrefix('equipment_list:');
-            Cache::deleteByPrefix('planned_activities:');
+            Cache::invalidateGroup('equipment_list:', 'planned_activities:');
 
             Response::success('Programação duplicada com sucesso', $result);
 
@@ -211,7 +209,7 @@ class PlannedActivityController
 
             $result = $this->service->planActivity($data, (array) $this->currentUser);
 
-            Cache::deleteByPrefix('equipment_list:');
+            Cache::invalidateGroup('equipment_list:');
 
             if ($result['action'] === 'updated') {
                 Response::success('Atividade adicionada ao novo dia', $result, 200);
@@ -242,8 +240,7 @@ class PlannedActivityController
 
             $result = $this->service->updateTeam($data);
 
-            Cache::deleteByPrefix('equipment_list:');
-            Cache::deleteByPrefix('planned_activities:');
+            Cache::invalidateGroup('equipment_list:', 'planned_activities:');
 
             Response::success('Equipe atualizada com sucesso', $result);
 
@@ -274,8 +271,7 @@ class PlannedActivityController
 
             $result = $this->service->updateObs($id, $tipo, $obs);
 
-            Cache::deleteByPrefix('equipment_list:');
-            Cache::deleteByPrefix('planned_activities:');
+            Cache::invalidateGroup('equipment_list:', 'planned_activities:');
 
             Response::success('Observação atualizada com sucesso', $result);
 
@@ -307,8 +303,7 @@ class PlannedActivityController
 
             $result = $this->service->updateCorretivaStatus($id, $status, $dataPlanejada, $sourceDate);
 
-            Cache::deleteByPrefix('equipment_list:');
-            Cache::deleteByPrefix('planned_activities:');
+            Cache::invalidateGroup('equipment_list:', 'planned_activities:');
 
             Response::success('Status atualizado com sucesso', $result);
 
@@ -336,7 +331,7 @@ class PlannedActivityController
 
             $result = $this->service->extendSla($data);
 
-            Cache::deleteByPrefix('planned_activities:');
+            Cache::invalidateGroup('planned_activities:');
 
             Response::success('SLA estendido com sucesso', $result);
 
@@ -364,7 +359,7 @@ class PlannedActivityController
 
             $result = $this->service->setSla($data);
 
-            Cache::deleteByPrefix('planned_activities:');
+            Cache::invalidateGroup('planned_activities:');
 
             Response::success('SLA definido com sucesso', $result);
 
@@ -396,7 +391,7 @@ class PlannedActivityController
 
             $result = $this->service->delete((int) $data['id'], $dataPlanejada, $slaDayNumber);
 
-            Cache::deleteByPrefix('equipment_list:');
+            Cache::invalidateGroup('equipment_list:');
 
             if ($result['action'] === 'deleted') {
                 Response::success('Atividade excluída permanentemente');

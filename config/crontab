@@ -1,1 +1,3 @@
 0 8 * * * php /var/www/html/app/api/Cron/check_notification.php
+0 9 * * * php /var/www/html/app/api/Cron/check_pv_approval.php
+0 16 * * * php /var/www/html/app/api/Cron/check_pv_approval.php

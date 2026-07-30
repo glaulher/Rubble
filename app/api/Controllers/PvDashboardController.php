@@ -4,7 +4,6 @@ namespace App\Api\Controllers;
 
 use App\Api\Services\PvDashboardService;
 use App\Api\Helpers\Response;
-use Exception;
 
 class PvDashboardController
 {
