@@ -200,6 +200,33 @@ class PvController
 
     /*
     |--------------------------------------------------------------------------
+    | DUPLICATE
+    |--------------------------------------------------------------------------
+    */
+
+    public function duplicate(): void
+    {
+        try {
+            $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+            if ($id <= 0) {
+                Response::error('ID da PV inválido', 400);
+                return;
+            }
+
+            $newId = $this->service->duplicate($id);
+
+            Response::success('PV duplicada com sucesso', ['id' => $newId]);
+
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | UPDATE
     |--------------------------------------------------------------------------
     */

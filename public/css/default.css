@@ -220,7 +220,7 @@ button:disabled { cursor: not-allowed; }
 .dark .text-sky-900 { color: #7dd3fc !important; }
 .dark .bg-amber-100, .dark .bg-amber-100.text-amber-700, .dark .bg-amber-100.text-amber-800 { color: #fcd34d !important; }
 .dark .bg-purple-100, .dark .bg-purple-100.text-purple-700 { color: #c4b5fd !important; }
-.dark .bg-violet-100, .dark .bg-violet-100.text-violet-800 { color: #c4b5fd !important; }
+.dark .bg-violet-100, .dark .bg-violet-100.text-violet-600, .dark .bg-violet-100.text-violet-800 { color: #c4b5fd !important; }
 .dark .bg-green-100, .dark .bg-green-100.text-green-700 { color: #86efac !important; }
 .dark .bg-cyan-100, .dark .bg-cyan-100.text-cyan-700 { color: #67e8f9 !important; }
 .dark .bg-indigo-100, .dark .bg-indigo-100.text-indigo-700 { color: #a5b4fc !important; }

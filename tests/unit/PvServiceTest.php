@@ -448,6 +448,102 @@ class PvServiceTest extends TestCase
         $this->assertContains('Sala A', $result);
     }
 
+    // --- duplicate ---
+
+    public function testDuplicateCreatesNewPvFromSource(): void
+    {
+        $repo = $this->createMockRepo();
+
+        $sourcePv = new Pv([
+            'id' => '42',
+            'numero_pv' => '260100',
+            'local' => 'Sala A',
+            'equipamento_id' => '5',
+            'data' => '2026-07-30',
+            'ciclo' => '2026-07',
+            'ral' => 'ABC123',
+            'worst_status' => 'Aguardando envio',
+            'valor_total' => '100.00',
+            'itens_count' => '1',
+        ]);
+        $sourceItem = new PvItem([
+            'lpu_origem' => 'lpu_material_clima',
+            'numero_item' => 100,
+            'descricao_lpu' => 'Desc LPU',
+            'descricao' => 'Desc livre',
+            'quantidade' => 2,
+            'valor' => 50.0,
+            'valor_total' => 100.0,
+            'fatura' => 'lpu',
+            'status' => 'SCM aprovado',
+        ]);
+        $sourcePv->items = [$sourceItem];
+
+        $repo->method('getById')->with(42)->willReturn($sourcePv);
+        $repo->method('getMaxNumberPv')->willReturn('260150');
+        $repo->method('lookupLpuItem')->willReturn(['descricao' => 'Desc LPU', 'valor' => 50.0, 'unidade' => 'UN']);
+        $repo->method('save')->willReturn(43);
+        $repo->method('saveItem')->willReturn(1);
+        $repo->method('getWorstStatus')->willReturn('Aguardando envio');
+        $repo->method('saveOsLinks');
+
+        $service = $this->createService($repo);
+        $newId = $service->duplicate(42);
+
+        $this->assertSame(43, $newId);
+    }
+
+    public function testDuplicateResetsItemStatus(): void
+    {
+        $repo = $this->createMockRepo();
+
+        $sourcePv = new Pv([
+            'id' => '42',
+            'numero_pv' => '260100',
+            'local' => 'Sala A',
+            'equipamento_id' => '5',
+        ]);
+        $sourceItem = new PvItem([
+            'lpu_origem' => 'lpu_material_clima',
+            'numero_item' => 100,
+            'descricao_lpu' => 'Desc LPU',
+            'descricao' => 'Desc livre',
+            'quantidade' => 2,
+            'valor' => 50.0,
+            'valor_total' => 100.0,
+            'fatura' => 'lpu',
+            'status' => 'SCM aprovado',
+        ]);
+        $sourcePv->items = [$sourceItem];
+
+        $repo->method('getById')->with(42)->willReturn($sourcePv);
+        $repo->method('getMaxNumberPv')->willReturn('260150');
+        $repo->method('lookupLpuItem')->willReturn(['descricao' => 'Desc LPU', 'valor' => 50.0, 'unidade' => 'UN']);
+
+        $repo->method('save')->willReturn(43);
+        $repo->method('saveItem')->willReturnCallback(function ($item) {
+            $this->assertSame('Aguardando envio', $item['status']);
+            return 1;
+        });
+        $repo->method('getWorstStatus')->willReturn('Aguardando envio');
+        $repo->method('saveOsLinks');
+
+        $service = $this->createService($repo);
+        $service->duplicate(42);
+    }
+
+    public function testDuplicateThrowsWhenNotFound(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('getById')->with(999)->willReturn(null);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('não encontrada');
+
+        $service = $this->createService($repo);
+        $service->duplicate(999);
+    }
+
     // --- delete ---
 
     public function testDeleteDelegatesToRepository(): void

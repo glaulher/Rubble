@@ -36,6 +36,9 @@ describe('iconButtonHtml', function () {
 
     var statusHtml = iconButtonHtml('status', 'Status');
     expect(statusHtml.indexOf('bg-amber-100')).not.toBe(-1);
+
+    var copyHtml = iconButtonHtml('copy', 'Duplicar');
+    expect(copyHtml.indexOf('bg-violet-100')).not.toBe(-1);
   });
 
   it('applies custom attrs', function () {

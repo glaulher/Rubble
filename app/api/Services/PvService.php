@@ -116,6 +116,32 @@ class PvService
         return $pv?->toArray();
     }
 
+    public function duplicate(int $id): int
+    {
+        $pv = $this->repository->getById($id);
+
+        if ($pv === null) {
+            throw new \RuntimeException("PV #{$id} n\u{00e3}o encontrada");
+        }
+
+        $data = $pv->toArray();
+
+        unset($data['id'], $data['numero_pv'], $data['created_at'], $data['updated_at']);
+        unset($data['valor_total'], $data['itens_count'], $data['worst_status']);
+        unset($data['os'], $data['tickets'], $data['equipamento'], $data['capacidade']);
+        unset($data['localidade'], $data['local_do_endereco'], $data['uf']);
+
+        if (isset($data['itens'])) {
+            foreach ($data['itens'] as &$item) {
+                unset($item['id'], $item['pv_id']);
+                $item['status'] = self::DEFAULT_ITEM_STATUS;
+            }
+            unset($item);
+        }
+
+        return $this->save($data);
+    }
+
     public function lookupLpuItem(string $lpuOrigin, int $itemNumber): ?array
     {
         $table = self::LPU_ORIGIN_MAP[$lpuOrigin] ?? null;

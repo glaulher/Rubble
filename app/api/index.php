@@ -120,6 +120,8 @@ $router->addRoute('pv', 'POST', function () use ($auth) {
         (new EmailController())->sendBatchEmail();
     } elseif ($action === 'upload') {
         (new UploadController())->uploadFile();
+    } elseif ($action === 'duplicate') {
+        $controller->duplicate();
     } else {
         $controller->save();
     }

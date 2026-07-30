@@ -12,6 +12,28 @@ globalThis.pvEmailPvId = null;
 globalThis.pvEmailPvData = null;
 globalThis.selectedPvIds = [];
 
+async function duplicatePv(id) {
+  try {
+    const response = await fetch('/app/api/index.php?route=pv&action=duplicate&id=' + id, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const result = await response.json();
+
+    if (!result.success) {
+      showToast(result.message, 'error');
+      return;
+    }
+
+    showToast('PV duplicada com sucesso', 'success');
+    globalThis.resetPvState(globalThis.pvSearch, globalThis.pvStatusFilter, globalThis.pvCycleFilter, true);
+    loadPvs();
+  } catch (err) {
+    showToast('Erro ao duplicar PV', 'error');
+    console.error(err);
+  }
+}
+
 function copyOs(os) {
   if (!os || os === '-') return;
 
@@ -70,6 +92,7 @@ function buildPvRowHtml(pv) {
     <td class="hidden md:table-cell px-4 py-4 text-sm font-medium text-slate-900">${valorTotal}</td>
     <td class="px-4 py-4 text-sm text-right">
       <div class="flex items-center justify-end gap-2">
+        ${iconButtonHtml('copy', 'Duplicar', { 'data-action': 'duplicate', 'data-pv-id': pv.id })}
         ${iconButtonHtml('edit', 'Editar', { 'data-action': 'edit', 'data-pv-id': pv.id })}
         ${iconButtonHtml('status', 'Alterar status', { 'data-action': 'status', 'data-pv-id': pv.id, 'data-pv-numero': escapeHtml(pv.numero_pv) })}
         ${iconButtonHtml('delete', 'Excluir', { 'data-action': 'delete', 'data-pv-id': pv.id }, 'right')}
@@ -129,6 +152,9 @@ function createPvRow(pv) {
           return;
         case 'delete':
           deletePv(parseInt(actionEl.dataset.pvId));
+          return;
+        case 'duplicate':
+          duplicatePv(parseInt(actionEl.dataset.pvId));
           return;
       }
     }
