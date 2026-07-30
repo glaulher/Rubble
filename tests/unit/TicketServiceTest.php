@@ -472,7 +472,7 @@ class TicketServiceTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
-    public function testImportInfratelBatchFiltersNaJustificativas(): void
+    public function testImportInfratelBatchFiltersWhenBothNaOrEmpty(): void
     {
         $ticketRepo = $this->createMockRepo();
         $equipRepo = $this->createMockEquipmentRepo();
@@ -497,6 +497,72 @@ class TicketServiceTest extends TestCase
         $this->assertSame(0, $result['updated']);
         $this->assertSame(1, $result['skipped']);
         $this->assertCount(1, $result['errors']);
+    }
+
+    public function testImportInfratelBatchKeepsWhenJustificativasOnlyIsNa(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+
+        $equipRepo->method('findByInfratel')
+            ->with('BGU02DTC', 'CLIMA - ARCON 02')
+            ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
+
+        $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn(null);
+        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('save')->willReturn(42);
+
+        $service = new TicketService($ticketRepo, $equipRepo);
+
+        $rows = [
+            [
+                'site' => 'BGU02DTC',
+                'equipamento' => 'CLIMA - ARCON 02',
+                'justificativas' => 'N/A',
+                'acao_tecnico' => 'Necessário reparo no sistema',
+                'acao_validador' => 'N/A',
+                'fim' => '27/06/2026',
+                'executor' => 'Moisés Torres',
+            ],
+        ];
+
+        $result = $service->importInfratelBatch($rows);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(0, $result['skipped']);
+    }
+
+    public function testImportInfratelBatchKeepsWhenAcaoTecnicoOnlyIsNa(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+
+        $equipRepo->method('findByInfratel')
+            ->with('BGU02DTC', 'CLIMA - ARCON 02')
+            ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
+
+        $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn(null);
+        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('save')->willReturn(42);
+
+        $service = new TicketService($ticketRepo, $equipRepo);
+
+        $rows = [
+            [
+                'site' => 'BGU02DTC',
+                'equipamento' => 'CLIMA - ARCON 02',
+                'justificativas' => 'Vazamento detectado no sistema',
+                'acao_tecnico' => 'N/A',
+                'acao_validador' => 'N/A',
+                'fim' => '27/06/2026',
+                'executor' => 'Moisés Torres',
+            ],
+        ];
+
+        $result = $service->importInfratelBatch($rows);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(0, $result['skipped']);
     }
 
     public function testImportInfratelBatchSkipsWhenNoEquipmentMatch(): void

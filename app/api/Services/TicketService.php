@@ -307,11 +307,14 @@ class TicketService
 
         $filtered = array_filter($rows, function ($row) {
             $justificativas = trim($row['justificativas'] ?? '');
-            return $justificativas !== '' && mb_strtoupper($justificativas) !== 'N/A';
+            $acaoTecnico = trim($row['acao_tecnico'] ?? '');
+            $justOk = $justificativas !== '' && mb_strtoupper($justificativas) !== 'N/A';
+            $acaoOk = $acaoTecnico !== '' && mb_strtoupper($acaoTecnico) !== 'N/A';
+            return $justOk || $acaoOk;
         });
 
         if (empty($filtered)) {
-            return ['imported' => 0, 'updated' => 0, 'skipped' => count($rows), 'errors' => [['linha' => 0, 'motivo' => 'Nenhuma linha com justificativas preenchidas']]];
+            return ['imported' => 0, 'updated' => 0, 'skipped' => count($rows), 'errors' => [['linha' => 0, 'motivo' => 'Nenhuma linha com informações preenchidas']]];
         }
 
         $groups = [];
