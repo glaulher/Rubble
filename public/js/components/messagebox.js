@@ -68,15 +68,16 @@ function dismissToast() {
   if (labelEl) labelEl.textContent = "";
 }
 
-function confirmAction(message = "Deseja continuar?") {
+function confirmAction(title, message, buttonText) {
   return new Promise((resolve) => {
-    const text = document.getElementById("modalConfirmMessage");
-
+    const titleEl = document.getElementById("modalConfirmTitle");
+    const msgEl = document.getElementById("modalConfirmMessage");
     const btnOk = document.getElementById("modalConfirmOk");
-
     const btnCancel = document.getElementById("modalConfirmCancel");
 
-    text.textContent = message;
+    if (titleEl) titleEl.textContent = title || 'Confirmar ação';
+    if (msgEl) msgEl.textContent = message || 'Deseja continuar?';
+    if (btnOk) btnOk.textContent = buttonText || 'Excluir';
 
     showModal('modalConfirm');
 

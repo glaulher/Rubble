@@ -80,6 +80,31 @@ function resetPvState(search, status, cycle) {
   pvCycleFilter = cycle || '';
 }
 
+function confirmAction(title, message, buttonText) {
+  return new Promise((resolve) => {
+    const titleEl = document.getElementById('modalConfirmTitle');
+    const msgEl = document.getElementById('modalConfirmMessage');
+    const btnOk = document.getElementById('modalConfirmOk');
+    const btnCancel = document.getElementById('modalConfirmCancel');
+
+    if (titleEl) titleEl.textContent = title || 'Confirmar ação';
+    if (msgEl) msgEl.textContent = message || 'Deseja continuar?';
+    if (btnOk) btnOk.textContent = buttonText || 'Excluir';
+
+    showModal('modalConfirm');
+
+    btnOk.onclick = () => {
+      hideModal('modalConfirm');
+      resolve(true);
+    };
+
+    btnCancel.onclick = () => {
+      hideModal('modalConfirm');
+      resolve(false);
+    };
+  });
+}
+
 function openStatusModal(id, pvNumber) {
   document.getElementById('statusPvId').value = id;
   document.getElementById('statusPvNumber').textContent = pvNumber;
@@ -199,38 +224,43 @@ describe("deletePv post-delete cleanup", () => {
   });
 });
 
-describe("duplicatePv confirmation", () => {
+describe("confirmAction", () => {
   beforeEach(() => {
     document.body.innerHTML =
-      '<div id="modalConfirm" class="hidden"></div>' +
-      '<div id="confirmTitle"></div>' +
-      '<div id="confirmMessage"></div>';
-    globalThis.confirmAction = async function (title, message) {
-      const titleEl = document.getElementById('confirmTitle');
-      const msgEl = document.getElementById('confirmMessage');
-      if (titleEl) titleEl.textContent = title;
-      if (msgEl) msgEl.textContent = message;
-      return true;
-    };
+      '<div id="modalConfirm" class="hidden">' +
+        '<h2 id="modalConfirmTitle">Confirmar ação</h2>' +
+        '<p id="modalConfirmMessage">Deseja continuar?</p>' +
+        '<button id="modalConfirmOk">Excluir</button>' +
+        '<button id="modalConfirmCancel">Cancelar</button>' +
+      '</div>';
   });
 
-  it("calls confirmAction before proceeding", async () => {
-    let confirmCalled = false;
-    globalThis.confirmAction = async function (title) {
-      confirmCalled = true;
-      expect(title).toBe('Duplicar PV');
-      return true;
-    };
+  it("updates title, message and button text when all 3 params provided", () => {
+    confirmAction('Duplicar PV', 'Tem certeza que deseja duplicar esta PV?', 'Duplicar');
+    expect(document.getElementById('modalConfirmTitle').textContent).toBe('Duplicar PV');
+    expect(document.getElementById('modalConfirmMessage').textContent).toBe('Tem certeza que deseja duplicar esta PV?');
+    expect(document.getElementById('modalConfirmOk').textContent).toBe('Duplicar');
+    expect(document.getElementById('modalConfirm').classList.contains('hidden')).toBe(false);
+  });
 
-    // Simula duplicação: confirmAction + resetPvState
-    const id = 42;
-    const confirmed = await globalThis.confirmAction('Duplicar PV', 'Tem certeza que deseja duplicar esta PV?');
-    expect(confirmed).toBe(true);
-    expect(confirmCalled).toBe(true);
+  it("uses defaults when no params provided", () => {
+    confirmAction();
+    expect(document.getElementById('modalConfirmTitle').textContent).toBe('Confirmar ação');
+    expect(document.getElementById('modalConfirmMessage').textContent).toBe('Deseja continuar?');
+    expect(document.getElementById('modalConfirmOk').textContent).toBe('Excluir');
+  });
 
-    // resetPvState limpa a lista
-    if (typeof resetPvState === 'function') {
-      resetPvState('', '', '', true);
-    }
+  it("resolves true on OK click", async () => {
+    const p = confirmAction('Test', 'Message', 'Go');
+    document.getElementById('modalConfirmOk').click();
+    expect(await p).toBe(true);
+    expect(document.getElementById('modalConfirm').classList.contains('hidden')).toBe(true);
+  });
+
+  it("resolves false on Cancel click", async () => {
+    const p = confirmAction('Test', 'Message', 'Go');
+    document.getElementById('modalConfirmCancel').click();
+    expect(await p).toBe(false);
+    expect(document.getElementById('modalConfirm').classList.contains('hidden')).toBe(true);
   });
 });

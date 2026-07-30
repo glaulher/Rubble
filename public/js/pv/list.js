@@ -13,7 +13,7 @@ globalThis.pvEmailPvData = null;
 globalThis.selectedPvIds = [];
 
 async function duplicatePv(id) {
-  const confirmed = await confirmAction('Duplicar PV', 'Tem certeza que deseja duplicar esta PV?');
+  const confirmed = await confirmAction('Duplicar PV', 'Tem certeza que deseja duplicar esta PV?', 'Duplicar');
   if (!confirmed) return;
 
   try {
