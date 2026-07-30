@@ -24,13 +24,30 @@
     </div>
   </div>
 
-  <!-- Status filter -->
-  <div class="flex items-center gap-2 mb-4">
-    <button data-status="" class="pending-filter-btn px-3 py-1.5 rounded-full text-xs font-medium transition bg-sky-200 text-sky-800">Todos</button>
-    <button data-status="pendente" class="pending-filter-btn px-3 py-1.5 rounded-full text-xs font-medium transition bg-slate-200 text-slate-700 hover:bg-slate-300">Pendente</button>
-    <button data-status="planejado" class="pending-filter-btn px-3 py-1.5 rounded-full text-xs font-medium transition bg-slate-200 text-slate-700 hover:bg-slate-300">Planejado</button>
-    <button data-status="em andamento" class="pending-filter-btn px-3 py-1.5 rounded-full text-xs font-medium transition bg-slate-200 text-slate-700 hover:bg-slate-300">Em andamento</button>
-    <button data-status="projeto clean up" class="pending-filter-btn px-3 py-1.5 rounded-full text-xs font-medium transition bg-slate-200 text-slate-700 hover:bg-slate-300">Clean up</button>
+  <!-- Status filter (radio) -->
+  <div class="px-6 py-3 flex flex-wrap gap-4 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mb-6">
+    <div class="flex items-end gap-3">
+      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
+        <input type="radio" name="pendingFilter" value="" checked class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
+        Todos
+      </label>
+      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
+        <input type="radio" name="pendingFilter" value="pendente" class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
+        Pendente
+      </label>
+      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
+        <input type="radio" name="pendingFilter" value="planejado" class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
+        Planejado
+      </label>
+      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
+        <input type="radio" name="pendingFilter" value="em andamento" class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
+        Em andamento
+      </label>
+      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
+        <input type="radio" name="pendingFilter" value="projeto clean up" class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
+        Clean up
+      </label>
+    </div>
   </div>
 
   <!-- Table -->

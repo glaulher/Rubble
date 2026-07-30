@@ -19,7 +19,7 @@ function escapeHtml(str) {
 }
 
 function getStatusBadgeClass(status) {
-  switch (status) {
+  switch ((status || '').toLowerCase()) {
     case 'pendente':
       return 'bg-red-100 text-red-700';
     case 'planejado':
@@ -181,17 +181,11 @@ function initPendingTickets() {
     });
   }
 
-  var filterBtns = document.querySelectorAll('.pending-filter-btn');
-  for (var i = 0; i < filterBtns.length; i++) {
-    filterBtns[i].addEventListener('click', function () {
-      var status = this.getAttribute('data-status');
-
-      filterBtns.forEach(function (btn) {
-        btn.className = 'pending-filter-btn px-3 py-1.5 rounded-full text-xs font-medium transition bg-slate-200 text-slate-700 hover:bg-slate-300';
-      });
-      this.className = 'pending-filter-btn px-3 py-1.5 rounded-full text-xs font-medium transition bg-sky-200 text-sky-800';
-
-      pendingStatusFilter = status;
+  var filterRadios = document.querySelectorAll('input[name="pendingFilter"]');
+  for (var i = 0; i < filterRadios.length; i++) {
+    filterRadios[i].addEventListener('change', function () {
+      if (!this.checked) return;
+      pendingStatusFilter = this.value;
       _pendingReset();
     });
   }

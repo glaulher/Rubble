@@ -77,9 +77,9 @@ function renderPendingTable(list, append) {
       escapeHtml(item.os || '') + '</td>' +
       '<td class="px-4 py-3 text-sm">' +
       '<span class="status-badge px-2 py-0.5 rounded-full text-xs font-medium ' +
-      (item.status === 'pendente' ? 'bg-red-100 text-red-700' :
-       item.status === 'planejado' ? 'bg-amber-100 text-amber-700' :
-       item.status === 'em andamento' ? 'bg-blue-100 text-blue-800' :
+      ((item.status || '').toLowerCase() === 'pendente' ? 'bg-red-100 text-red-700' :
+       (item.status || '').toLowerCase() === 'planejado' ? 'bg-yellow-100 text-yellow-700' :
+       (item.status || '').toLowerCase() === 'em andamento' ? 'bg-blue-100 text-blue-700' :
        'bg-purple-100 text-purple-700') + '">' +
       escapeHtml(item.status) + '</span></td>' +
       '<td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">' +
@@ -125,10 +125,10 @@ function toggleRow(id) {
 }
 
 function getStatusBadgeClass(status) {
-  switch (status) {
+  switch ((status || '').toLowerCase()) {
     case 'pendente': return 'bg-red-100 text-red-700';
-    case 'planejado': return 'bg-amber-100 text-amber-700';
-    case 'em andamento': return 'bg-blue-100 text-blue-800';
+    case 'planejado': return 'bg-yellow-100 text-yellow-700';
+    case 'em andamento': return 'bg-blue-100 text-blue-700';
     case 'projeto clean up': return 'bg-purple-100 text-purple-700';
     default: return 'bg-slate-100 text-slate-700';
   }
@@ -205,7 +205,7 @@ describe("renderPendingTable", () => {
     expect(badges[0].className).toContain('bg-red-100');
 
     expect(badges[1].textContent.trim()).toBe('planejado');
-    expect(badges[1].className).toContain('bg-amber-100');
+    expect(badges[1].className).toContain('bg-yellow-100');
 
     expect(badges[2].textContent.trim()).toBe('pendente');
     expect(badges[2].className).toContain('bg-red-100');
@@ -290,8 +290,8 @@ describe("getStatusBadgeClass", () => {
     expect(getStatusBadgeClass('pendente')).toContain('bg-red-100');
   });
 
-  it("returns amber for planejado", () => {
-    expect(getStatusBadgeClass('planejado')).toContain('bg-amber-100');
+  it("returns yellow for planejado", () => {
+    expect(getStatusBadgeClass('planejado')).toContain('bg-yellow-100');
   });
 
   it("returns blue for em andamento", () => {
@@ -304,5 +304,11 @@ describe("getStatusBadgeClass", () => {
 
   it("returns default for unknown", () => {
     expect(getStatusBadgeClass('unknown')).toContain('bg-slate-100');
+  });
+
+  it("handles mixed case status", () => {
+    expect(getStatusBadgeClass('Pendente')).toContain('bg-red-100');
+    expect(getStatusBadgeClass('PLANEJADO')).toContain('bg-yellow-100');
+    expect(getStatusBadgeClass('Em Andamento')).toContain('bg-blue-100');
   });
 });
