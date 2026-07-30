@@ -1,23 +1,31 @@
 <div class="p-6">
   <!-- Sub-header -->
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <h1 class="text-2xl font-light tracking-[0.1em]">OS Pendentes</h1>
-      <p id="pendingBadge" class="text-sm text-slate-400/80 mt-0.5">Carregando...</p>
-    </div>
-    <div class="w-64">
-      <input
-        id="pendingSearchInput"
-        type="text"
-        aria-label="Buscar OS pendentes"
-        placeholder="Buscar OS, equipamento, site..."
-        class="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-400 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-      />
+  <div class="bg-slate-900 text-white shadow-lg rounded-2xl mb-6">
+    <div class="px-6 py-2 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 items-center">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">OS Pendentes</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Gerenciamento de tickets</p>
+      </div>
+      <div class="text-center self-center">
+        <span class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold">
+          <span id="pendingBadge">0</span>
+          <span class="ml-1">pendentes</span>
+        </span>
+      </div>
+      <div class="flex items-center gap-4 justify-self-end self-start">
+        <input
+          id="pendingSearchInput"
+          type="text"
+          aria-label="Buscar OS pendentes"
+          placeholder="Buscar OS, equipamento, site..."
+          class="px-4 py-1.5 rounded-xl bg-slate-800 border border-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-slate-700 text-blue-200 w-60"
+        />
+      </div>
     </div>
   </div>
 
   <!-- Status filter -->
-  <div id="pendingFilterBar" class="flex items-center gap-2 mb-4">
+  <div class="flex items-center gap-2 mb-4">
     <button data-status="" class="pending-filter-btn px-3 py-1.5 rounded-full text-xs font-medium transition bg-sky-200 text-sky-800">Todos</button>
     <button data-status="pendente" class="pending-filter-btn px-3 py-1.5 rounded-full text-xs font-medium transition bg-slate-200 text-slate-700 hover:bg-slate-300">Pendente</button>
     <button data-status="planejado" class="pending-filter-btn px-3 py-1.5 rounded-full text-xs font-medium transition bg-slate-200 text-slate-700 hover:bg-slate-300">Planejado</button>

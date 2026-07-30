@@ -21,15 +21,15 @@ function escapeHtml(str) {
 function getStatusBadgeClass(status) {
   switch (status) {
     case 'pendente':
-      return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+      return 'bg-red-100 text-red-700';
     case 'planejado':
-      return 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300';
+      return 'bg-yellow-100 text-yellow-700';
     case 'em andamento':
-      return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
+      return 'bg-blue-100 text-blue-700';
     case 'projeto clean up':
-      return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300';
+      return 'bg-purple-100 text-purple-700';
     default:
-      return 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300';
+      return 'bg-slate-100 text-slate-700';
   }
 }
 
@@ -149,8 +149,7 @@ function updatePendingBadge(data) {
   var badge = document.getElementById('pendingBadge');
   if (!badge) return;
 
-  var count = data.total || 0;
-  badge.textContent = count + ' pendente' + (count !== 1 ? 's' : '');
+  badge.textContent = data.total || 0;
 }
 
 var pendingDebouncedSearch = debounce(function (val) {
