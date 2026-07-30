@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Api\Entities\Pv;
+use App\Api\Entities\PvItem;
 use App\Api\Repositories\PvRepository;
 use App\Api\Services\PvService;
 use App\Api\Services\TicketService;
