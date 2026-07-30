@@ -244,6 +244,105 @@ class TicketRepository extends BaseRepository
         return (int) ($row['max_num'] ?? 0);
     }
 
+    public function listPendingBySite(
+        int $limit,
+        ?string $lastLocal,
+        ?int $lastId,
+        string $search,
+        string $status
+    ): array {
+        $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
+
+        $where = 'r.status IN (\'' . implode("','", $statusList) . '\')';
+        $params = [];
+        $types = '';
+
+        if ($status !== '') {
+            $where .= ' AND r.status = ?';
+            $params[] = $status;
+            $types .= 's';
+        }
+
+        if ($search !== '') {
+            $likeSearch = '%' . $search . '%';
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR r.os LIKE ? OR r.obs LIKE ? OR r.material LIKE ?)';
+            $params = array_merge($params, [$likeSearch, $likeSearch, $likeSearch, $likeSearch, $likeSearch]);
+            $types .= 'sssss';
+        }
+
+        if ($lastLocal !== null && $lastId !== null) {
+            $where .= ' AND (e.local > ? OR (e.local = ? AND r.id < ?))';
+            $params[] = $lastLocal;
+            $params[] = $lastLocal;
+            $params[] = $lastId;
+            $types .= 'ssi';
+        }
+
+        $limitParam = $limit;
+        $params[] = $limitParam;
+        $types .= 'i';
+
+        $sql = "
+            SELECT r.*, e.local, e.equipamento, e.localidade
+            FROM registros r
+            JOIN equipamentos e ON e.id = r.equipamento_id
+            WHERE {$where}
+            ORDER BY e.local, r.id DESC
+            LIMIT ?
+        ";
+
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $records = [];
+        while ($row = $result->fetch_assoc()) {
+            $records[] = $row;
+        }
+
+        return $records;
+    }
+
+    public function countPending(string $search, string $status): int
+    {
+        $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
+
+        $where = 'r.status IN (\'' . implode("','", $statusList) . '\')';
+        $params = [];
+        $types = '';
+
+        if ($status !== '') {
+            $where .= ' AND r.status = ?';
+            $params[] = $status;
+            $types .= 's';
+        }
+
+        if ($search !== '') {
+            $likeSearch = '%' . $search . '%';
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR r.os LIKE ? OR r.obs LIKE ? OR r.material LIKE ?)';
+            $params = array_merge($params, [$likeSearch, $likeSearch, $likeSearch, $likeSearch, $likeSearch]);
+            $types .= 'sssss';
+        }
+
+        $sql = "
+            SELECT COUNT(*) AS total
+            FROM registros r
+            JOIN equipamentos e ON e.id = r.equipamento_id
+            WHERE {$where}
+        ";
+
+        $stmt = $this->safePrepare($sql);
+        if (!empty($params)) {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+
+        return (int) ($row['total'] ?? 0);
+    }
+
     public function listScheduledToNotify(): array
     {
         $sql = "

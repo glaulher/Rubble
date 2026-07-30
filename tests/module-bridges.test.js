@@ -90,6 +90,15 @@ describe("preventive-cycle/list.js bridge", function () {
   });
 });
 
+describe("pending-tickets/list.js bridge", function () {
+  it("sets globalThis.initPendingTickets at module load time", function () {
+    delete globalThis.initPendingTickets;
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/pending-tickets/list.js', '');
+    expect(typeof globalThis.initPendingTickets).toBe("function");
+  });
+});
+
 describe("planned-activity/list.js bridge", function () {
   it("sets globalThis.initPlannedActivity at module load time", function () {
     delete globalThis.initPlannedActivity;

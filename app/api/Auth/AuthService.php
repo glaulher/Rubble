@@ -104,19 +104,19 @@ class AuthService
 
         $rolePermissions = [
             'supervisor' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'auth', 'preventive-cycle', 'planned-activities'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'auth', 'preventive-cycle', 'planned-activities', 'pending-tickets'],
                 'write' => ['equipment', 'tickets'],
             ],
             'coordenador' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities', 'pending-tickets'],
                 'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities', 'preventiva'],
             ],
             'administrativo' => [
-                'read' => ['pdf-audit', 'auth', 'planned-activities'],
+                'read' => ['pdf-audit', 'auth', 'planned-activities', 'pending-tickets'],
                 'write' => [],
             ],
             'cliente' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'planned-activities'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'planned-activities', 'pending-tickets'],
                 'write' => [],
             ],
         ];

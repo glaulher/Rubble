@@ -302,6 +302,11 @@ $router->addRoute('planned-activities', 'DELETE', function () use ($auth) {
     (new PlannedActivityController($auth->getUser()))->delete();
 });
 
+// Pending Tickets (OS Pendentes)
+$router->addRoute('pending-tickets', 'GET', function () {
+    (new \App\Api\Controllers\PendingTicketsController())->listAll();
+});
+
 // Preventiva
 $router->addRoute('preventiva', 'POST', function () use ($auth) {
     $ctrl = new PreventivaController($auth->getUser());

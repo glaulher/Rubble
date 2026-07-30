@@ -1,4 +1,4 @@
-const VIEW_VERSION = 11;
+const VIEW_VERSION = 12;
 
 async function loadPage(url) {
   try {
@@ -142,6 +142,13 @@ async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/planned-activity/list.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/pending-tickets") {
+    /*
+    |--------------------------------------------------------------------------
+    | PENDING TICKETS (OS Pendentes)
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/pending-tickets/list.html?v=" + VIEW_VERSION);
   } else if (hash === "#/pdf-audit") {
     /*
     |--------------------------------------------------------------------------
@@ -230,6 +237,10 @@ async function router() {
     } else if (hash === "#/planned-activity") {
       if (typeof initPlannedActivity === "function") {
         initPlannedActivity();
+      }
+    } else if (hash === "#/pending-tickets") {
+      if (typeof initPendingTickets === "function") {
+        initPendingTickets();
       }
     } else if (hash === "#/pdf-audit") {
       if (typeof initPdfAudit === "function") {
