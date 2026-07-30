@@ -68,7 +68,7 @@ function dismissToast() {
   if (labelEl) labelEl.textContent = "";
 }
 
-function confirmAction(title, message, buttonText) {
+function confirmAction(title, message, buttonText, variant) {
   return new Promise((resolve) => {
     const titleEl = document.getElementById("modalConfirmTitle");
     const msgEl = document.getElementById("modalConfirmMessage");
@@ -78,6 +78,12 @@ function confirmAction(title, message, buttonText) {
     if (titleEl) titleEl.textContent = title || 'Confirmar ação';
     if (msgEl) msgEl.textContent = message || 'Deseja continuar?';
     if (btnOk) btnOk.textContent = buttonText || 'Excluir';
+
+    if (variant === 'confirm') {
+      btnOk.className = 'flex-1 bg-blue-200 hover:bg-blue-300 text-blue-800 py-3 rounded-xl font-medium transition';
+    } else {
+      btnOk.className = 'flex-1 bg-red-200 hover:bg-red-300 text-red-800 py-3 rounded-xl font-medium transition';
+    }
 
     showModal('modalConfirm');
 
