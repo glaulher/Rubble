@@ -153,13 +153,18 @@ function updatePendingBadge(data) {
   badge.textContent = count + ' pendente' + (count !== 1 ? 's' : '');
 }
 
-var lastPendingHash = '';
 var pendingDebouncedSearch = debounce(function (val) {
   pendingSearch = val;
   pendingStatusFilter = pendingStatusFilter || '';
+  _pendingReset();
+}, 1000);
+
+function _pendingReset() {
+  pendingLastLocal = null;
+  pendingLastId = null;
   pendingAllLoaded = false;
   if (_pendingScroll) _pendingScroll.reset().init();
-}, 1000);
+}
 
 function initPendingTickets() {
   pendingSearch = '';
@@ -168,7 +173,6 @@ function initPendingTickets() {
   pendingLastId = null;
   pendingLoading = false;
   pendingAllLoaded = false;
-  lastPendingHash = '';
 
   var searchInput = document.getElementById('pendingSearchInput');
   if (searchInput) {
@@ -189,8 +193,7 @@ function initPendingTickets() {
       this.className = 'pending-filter-btn px-3 py-1.5 rounded-full text-xs font-medium transition bg-sky-200 text-sky-800';
 
       pendingStatusFilter = status;
-      pendingAllLoaded = false;
-      if (_pendingScroll) _pendingScroll.reset().init();
+      _pendingReset();
     });
   }
 
@@ -206,7 +209,7 @@ function initPendingTickets() {
   }
 
   _pendingScroll = createInfiniteScroll({
-    fetchFn: function (params) {
+    fetchFn: function (params, opts) {
       var url = '/app/api/index.php?route=pending-tickets&limit=' + params.limit
         + '&search=' + encodeURIComponent(pendingSearch)
         + '&status=' + encodeURIComponent(pendingStatusFilter);
@@ -216,35 +219,41 @@ function initPendingTickets() {
           + '&lastId=' + pendingLastId;
       }
 
-      return apiFetch(url);
+      return apiFetch(url, opts)
+        .then(function (r) { return r.json(); })
+        .then(function (result) {
+          if (!result || !result.data) return { data: [], total: 0 };
+          return { data: result.data.items || [], total: result.data.total || 0 };
+        });
     },
-    onData: function (response) {
-      var data = response.data || response;
-
-      if (!data.items || data.items.length === 0) {
-        pendingAllLoaded = true;
-        return;
-      }
-
-      var newHash = JSON.stringify(data.items);
+    renderFn: function (items) {
       var append = pendingLastLocal !== null;
+      renderPendingTable(items, append);
 
-      if (newHash === lastPendingHash && append) return;
-      lastPendingHash = append ? lastPendingHash : newHash;
-
-      renderPendingTable(data.items, append);
-
-      updatePendingBadge(data);
-
-      var lastItem = data.items[data.items.length - 1];
-      if (lastItem) {
-        pendingLastLocal = lastItem.local;
-        pendingLastId = lastItem.id;
+      if (items.length > 0) {
+        var last = items[items.length - 1];
+        pendingLastLocal = last.local;
+        pendingLastId = last.id;
       }
-
-      if (data.items.length < 20) {
-        pendingAllLoaded = true;
+    },
+    renderFullFn: function (items, total) {
+      pendingLastLocal = null;
+      pendingLastId = null;
+      renderPendingTable(items, false);
+      if (items.length > 0) {
+        var last = items[items.length - 1];
+        pendingLastLocal = last.local;
+        pendingLastId = last.id;
       }
+      updatePendingBadge({ total: total });
+    },
+    afterLoadFn: function (state) {
+      if (!state.isPolling) {
+        updatePendingBadge({ total: state.total });
+      }
+    },
+    getFilterHash: function () {
+      return pendingSearch + '|' + pendingStatusFilter;
     },
     sentinelId: 'pendingSentinel',
     limit: 20,

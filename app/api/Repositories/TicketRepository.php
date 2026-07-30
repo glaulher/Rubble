@@ -253,12 +253,12 @@ class TicketRepository extends BaseRepository
     ): array {
         $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
 
-        $where = 'r.status IN (\'' . implode("','", $statusList) . '\')';
+        $where = 'LOWER(r.status) IN (\'' . implode("','", $statusList) . '\')';
         $params = [];
         $types = '';
 
         if ($status !== '') {
-            $where .= ' AND r.status = ?';
+            $where .= ' AND LOWER(r.status) = LOWER(?)';
             $params[] = $status;
             $types .= 's';
         }
@@ -308,12 +308,12 @@ class TicketRepository extends BaseRepository
     {
         $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
 
-        $where = 'r.status IN (\'' . implode("','", $statusList) . '\')';
+        $where = 'LOWER(r.status) IN (\'' . implode("','", $statusList) . '\')';
         $params = [];
         $types = '';
 
         if ($status !== '') {
-            $where .= ' AND r.status = ?';
+            $where .= ' AND LOWER(r.status) = LOWER(?)';
             $params[] = $status;
             $types .= 's';
         }

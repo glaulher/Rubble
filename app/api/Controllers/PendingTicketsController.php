@@ -28,7 +28,7 @@ class PendingTicketsController
 
             if (Cache::has($cacheKey)) {
                 $cached = Cache::get($cacheKey);
-                Response::json($cached);
+                Response::json(['success' => true, 'data' => $cached]);
                 return;
             }
 
@@ -36,7 +36,7 @@ class PendingTicketsController
 
             Cache::set($cacheKey, $result, 10);
 
-            Response::json($result);
+            Response::json(['success' => true, 'data' => $result]);
         } catch (\InvalidArgumentException $e) {
             Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
