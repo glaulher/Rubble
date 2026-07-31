@@ -13,6 +13,7 @@ class PvEmailWatcherService
     private mysqli $conn;
 
     private const APPROVED_TARGET_STATUS = 'Aprovado aquisição/serviço';
+    private const RECENT_DAYS = 7;
 
     public function __construct(?PvRepository $repository = null)
     {
@@ -26,87 +27,199 @@ class PvEmailWatcherService
             'checked' => 0,
             'approved' => 0,
             'errors' => [],
+            'mailboxes_searched' => 0,
         ];
 
         $host = Env::get('IMAP_HOST', '');
         $port = Env::get('IMAP_PORT', '993');
         $user = Env::get('IMAP_USER', '');
         $pass = Env::get('IMAP_PASS', '');
-        $mailbox = Env::get('IMAP_MAILBOX', 'INBOX');
+        $mailboxConfig = Env::get('IMAP_MAILBOX', 'INBOX');
 
         if ($host === '' || $user === '' || $pass === '') {
             $result['errors'][] = 'IMAP not configured';
             return $result;
         }
 
-        $mailboxPath = '{' . $host . ':' . $port . '/imap/ssl}' . $mailbox;
+        $serverPrefix = '{' . $host . ':' . $port . '/imap/ssl}';
 
-        $mbox = @imap_open($mailboxPath, $user, $pass, OP_READONLY, 0);
+        $mbox = @imap_open($serverPrefix . 'INBOX', $user, $pass, OP_READONLY, 0);
         if ($mbox === false) {
             $result['errors'][] = 'IMAP connection failed: ' . imap_last_error();
             return $result;
         }
 
-        $uids = @imap_search($mbox, 'UNSEEN SUBJECT "PV:"', SE_UID);
-        if ($uids === false || $uids === []) {
-            imap_close($mbox);
-            return $result;
+        $mailboxes = $this->resolveMailboxes($mbox, $serverPrefix, $mailboxConfig);
+        $result['mailboxes_searched'] = count($mailboxes);
+
+        foreach ($mailboxes as $fullPath) {
+            if (!@imap_reopen($mbox, $fullPath)) {
+                continue;
+            }
+            $this->processMailbox($mbox, $fullPath, $result);
         }
 
+        imap_close($mbox);
+        return $result;
+    }
+
+    private function resolveMailboxes($mbox, string $serverPrefix, string $mailboxConfig): array
+    {
+        $roots = $this->parseMailboxConfig($mailboxConfig);
+        $resolved = [];
+
+        foreach ($roots as $root) {
+            $fullRoot = $serverPrefix . $root;
+            $resolved[$fullRoot] = true;
+
+            $list = @imap_list($mbox, $serverPrefix, $root . '/%');
+            if (is_array($list)) {
+                foreach ($list as $entry) {
+                    if ($this->isInboxFolder($entry, $serverPrefix)) {
+                        $resolved[$entry] = true;
+                    }
+                }
+            }
+        }
+
+        return array_keys($resolved);
+    }
+
+    private function parseMailboxConfig(string $config): array
+    {
+        return array_map('trim', explode(',', $config));
+    }
+
+    private function isInboxFolder(string $folderPath, string $serverPrefix): bool
+    {
+        $folder = str_replace($serverPrefix, '', $folderPath);
+        return str_starts_with($folder, 'INBOX') || $folder === 'INBOX';
+    }
+
+    private function processMailbox($mbox, string $mailboxPath, array &$result): void
+    {
+        $this->searchUnseen($mbox, $result);
+        $this->searchRecentSeen($mbox, $result);
+    }
+
+    private function searchUnseen($mbox, array &$result): void
+    {
+        $uids = @imap_search($mbox, 'UNSEEN SUBJECT "PV:"', SE_UID);
+        if ($uids === false || $uids === []) return;
+
         foreach ($uids as $uid) {
-            try {
-                $header = @imap_fetchheader($mbox, $uid, FT_UID);
-                if ($header === false) continue;
+            $this->processUid($mbox, (int) $uid, $result);
+        }
+    }
 
-                $subject = '';
-                if (preg_match('/^Subject:\s*(.+)$/mi', $header, $m)) {
-                    $subject = iconv_mime_decode($m[1], 0, 'UTF-8');
-                }
+    private function searchRecentSeen($mbox, array &$result): void
+    {
+        $since = date('d-M-Y', strtotime('-' . self::RECENT_DAYS . ' days'));
+        $uids = @imap_search($mbox, 'SINCE ' . $since . ' SEEN SUBJECT "PV:"', SE_UID);
+        if ($uids === false || $uids === []) return;
 
-                if (!preg_match('/PV(\d{6})/', $subject, $pvMatch)) {
-                    continue;
-                }
-                $pvNumber = $pvMatch[1];
+        foreach ($uids as $uid) {
+            $uidInt = (int) $uid;
+            if ($this->isAlreadyProcessed($uidInt)) continue;
+            $this->processUid($mbox, $uidInt, $result);
+        }
+    }
 
-                if ($this->isAlreadyProcessed($uid)) {
-                    continue;
-                }
+    private function processUid($mbox, int $uid, array &$result): void
+    {
+        try {
+            $header = @imap_fetchheader($mbox, $uid, FT_UID);
+            if ($header === false) return;
 
-                $body = @imap_fetchbody($mbox, $uid, 1, FT_UID | FT_PEEK);
-                if ($body === false) {
-                    $body = @imap_fetchbody($mbox, $uid, 1, FT_UID);
-                }
+            $subject = '';
+            if (preg_match('/^Subject:\s*(.+)$/mi', $header, $m)) {
+                $subject = iconv_mime_decode($m[1], 0, 'UTF-8');
+            }
 
-                $bodyText = '';
-                if ($body !== false) {
-                    $encoding = @imap_fetchstructure($mbox, $uid, FT_UID);
-                    $bodyText = $this->decodeBody($body, $encoding?->encoding ?? 0);
-                }
+            if (!preg_match('/PV(\d{6})/', $subject, $pvMatch)) return;
+            $pvNumber = $pvMatch[1];
 
-                if (!preg_match('/aprovad/i', $bodyText)) {
-                    $this->markProcessed($uid, $pvNumber);
-                    $result['checked']++;
-                    continue;
-                }
+            if ($this->isAlreadyProcessed($uid)) return;
 
+            $bodyText = $this->fetchBodyText($mbox, $uid);
+            $isApproved = preg_match($this->getBodySearchPattern(), $bodyText) === 1;
+
+            if ($isApproved) {
                 $pv = $this->repository->getByNumberPv($pvNumber);
                 if ($pv !== null) {
                     $this->repository->updateItemsStatusByPvId($pv->id, self::APPROVED_TARGET_STATUS);
                     $result['approved']++;
                 }
+            }
 
-                $this->markProcessed($uid, $pvNumber);
-                $result['checked']++;
+            $this->markProcessed($uid, $pvNumber);
+            $result['checked']++;
 
-            } catch (\Throwable $e) {
-                $errorMsg = 'Error processing UID ' . $uid . ': ' . $e->getMessage();
-                error_log('PvEmailWatcher: ' . $errorMsg);
-                $result['errors'][] = $errorMsg;
+        } catch (\Throwable $e) {
+            $errorMsg = 'Error processing UID ' . $uid . ': ' . $e->getMessage();
+            error_log('PvEmailWatcher: ' . $errorMsg);
+            $result['errors'][] = $errorMsg;
+        }
+    }
+
+    private function fetchBodyText($mbox, int $uid): string
+    {
+        $structure = @imap_fetchstructure($mbox, $uid, FT_UID);
+        if (!$structure) return '';
+
+        $text = '';
+
+        if (isset($structure->parts) && count($structure->parts) > 0) {
+            for ($i = 1; $i <= count($structure->parts); $i++) {
+                $partIdx = $i - 1;
+                $part = $structure->parts[$partIdx];
+                $subtype = strtolower($part->subtype ?? '');
+
+                if (in_array($subtype, ['plain', 'html'], true)) {
+                    $body = @imap_fetchbody($mbox, $uid, $i, FT_UID);
+                    if ($body !== false) {
+                        $text .= $this->decodeBody($body, $part->encoding ?? 0) . "\n";
+                    }
+                }
+
+                if ($this->hasSubparts($part)) {
+                    $text .= $this->fetchSubparts($mbox, $uid, $i, $part);
+                }
+            }
+        } else {
+            $body = @imap_fetchbody($mbox, $uid, 1, FT_UID);
+            if ($body !== false) {
+                $text = $this->decodeBody($body, $structure->encoding ?? 0);
             }
         }
 
-        imap_close($mbox);
-        return $result;
+        return $text;
+    }
+
+    private function hasSubparts(object $part): bool
+    {
+        return isset($part->parts) && count($part->parts) > 0;
+    }
+
+    private function fetchSubparts($mbox, int $uid, int $parentPart, object $part): string
+    {
+        $text = '';
+        foreach ($part->parts as $subIdx => $subPart) {
+            $partNum = $parentPart . '.' . ($subIdx + 1);
+            $subtype = strtolower($subPart->subtype ?? '');
+            if (in_array($subtype, ['plain', 'html'], true)) {
+                $body = @imap_fetchbody($mbox, $uid, $partNum, FT_UID);
+                if ($body !== false) {
+                    $text .= $this->decodeBody($body, $subPart->encoding ?? 0) . "\n";
+                }
+            }
+        }
+        return $text;
+    }
+
+    private function getBodySearchPattern(): string
+    {
+        return '/aprovad/i';
     }
 
     private function isAlreadyProcessed(int $uid): bool
