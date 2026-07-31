@@ -1,12 +1,14 @@
-FROM php:8.4-cli
+FROM php:8.4-cli-alpine
 
-RUN apt-get update && apt-get install -y libc-client-dev libkrb5-dev && \
-    docker-php-ext-configure imap --with-kerberos --with-imap-ssl && \
-    docker-php-ext-install mysqli imap && \
-    docker-php-ext-enable mysqli imap && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache --virtual .build-deps autoconf make g++ && \
+    apk add --no-cache imap-dev krb5-dev openssl-dev && \
+    pecl install imap && \
+    docker-php-ext-enable imap && \
+    docker-php-ext-install mysqli && \
+    docker-php-ext-enable mysqli && \
+    apk del .build-deps
 
-RUN adduser --disabled-password --gecos '' appuser
+RUN adduser -D appuser
 
 ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.2.46/supercronic-linux-amd64 \
     SUPERCRONIC_SHA1SUM=5bcefed628e32adc08e32634db2d10e9230dbca0 \
