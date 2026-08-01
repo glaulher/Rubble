@@ -289,9 +289,7 @@ class PreventiveCycleRepository extends BaseRepository
                     $bindValues[] = $item[0];
                     $bindValues[] = $item[1];
                     $bindValues[] = $item[2];
-                    $bindTypes .= 'si';
-                    $bindTypes .= $item[1] === null ? 'N' : 's';
-                    $bindTypes .= $item[2] === null ? 'N' : 's';
+                    $bindTypes .= 'siss';
                 }
 
                 $sql = "INSERT INTO preventive_cycle_items (ciclo, equipamento_id, observacao, scm_number)
