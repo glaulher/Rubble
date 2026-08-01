@@ -441,12 +441,14 @@ function _cycleFetchScmStatusCount(ciclo) {
         .catch(function (e) { console.warn('[preventive-cycle]', e); });
 }
 
-function _cycleSave() {
+function _cycleCollectSaveItems() {
   var cards = document.querySelectorAll('[data-equip-id][data-valor]');
   var items = [];
+  var rendered = {};
 
   cards.forEach(function (card) {
     var equipId = parseInt(card.dataset.equipId);
+    rendered[equipId] = true;
     var checkbox = card.querySelector('.cycle-checkbox');
     var textarea = card.querySelector('.cycle-obs');
     var scmInput = card.querySelector('.cycle-scm-input');
@@ -457,6 +459,23 @@ function _cycleSave() {
       scm_number: scmInput ? scmInput.value : '',
     });
   });
+
+  _cycleDirtyChecks.forEach(function (checked, equipId) {
+    var id = parseInt(equipId, 10);
+    if (rendered[id]) return;
+    items.push({
+      equipamento_id: id,
+      checked: checked,
+      observacao: null,
+      scm_number: null,
+    });
+  });
+
+  return items;
+}
+
+function _cycleSave() {
+  var items = _cycleCollectSaveItems();
 
   var saveBtn = document.getElementById('saveCycleBtn');
   if (saveBtn) {

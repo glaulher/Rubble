@@ -256,6 +256,76 @@ describe("createInfiniteScroll", function () {
       await new Promise(function (r) { return setTimeout(r, 150); });
       scroll.destroy();
     });
+
+    it("keeps previously loaded items on polling and passes full merged data to renderFullFn", async function () {
+      var renderedFull = [];
+      var serverData = makeItems(10, 0);
+      var pollFirstPage = makeItems(5, 0).map(function (it) {
+        return { id: it.id, name: 'changed-' + it.id };
+      });
+
+      var scroll = createInfiniteScroll({
+        sentinelId: "sentinel",
+        limit: 5,
+        pollingInterval: 100000,
+        fetchFn: async function (params) {
+          if (params.offset === 0) return { data: pollFirstPage, total: 10 };
+          return { data: serverData.slice(params.offset, params.offset + 5), total: 10 };
+        },
+        renderFn: function () {},
+        renderFullFn: function (items) { renderedFull.push(items); },
+        getFilterHash: function () { return 'fixed'; },
+      });
+
+      scroll.init();
+      await new Promise(function (r) { return setTimeout(r, 20); });
+      scroll.load(false);
+      await new Promise(function (r) { return setTimeout(r, 20); });
+      expect(scroll.getState().data.length).toBe(10);
+
+      scroll.load(true);
+      await new Promise(function (r) { return setTimeout(r, 20); });
+
+      var state = scroll.getState();
+      expect(state.data.length).toBe(10);
+      expect(state.allLoaded).toBe(true);
+      expect(state.page).toBe(2);
+      expect(renderedFull.length).toBeGreaterThan(0);
+      expect(renderedFull[renderedFull.length - 1].length).toBe(10);
+      scroll.destroy();
+    });
+
+    it("trims previously loaded items when polling total shrinks", async function () {
+      var serverData = makeItems(10, 0);
+      var shrunkFirstPage = makeItems(5, 0);
+
+      var scroll = createInfiniteScroll({
+        sentinelId: "sentinel",
+        limit: 5,
+        pollingInterval: 100000,
+        fetchFn: async function (params) {
+          if (params.offset === 0) return { data: shrunkFirstPage, total: 7 };
+          return { data: serverData.slice(params.offset, params.offset + 5), total: 10 };
+        },
+        renderFn: function () {},
+        renderFullFn: function () {},
+        getFilterHash: function () { return 'fixed2'; },
+      });
+
+      scroll.init();
+      await new Promise(function (r) { return setTimeout(r, 20); });
+      scroll.load(false);
+      await new Promise(function (r) { return setTimeout(r, 20); });
+      expect(scroll.getState().data.length).toBe(10);
+
+      scroll.load(true);
+      await new Promise(function (r) { return setTimeout(r, 20); });
+
+      var state = scroll.getState();
+      expect(state.data.length).toBe(7);
+      expect(state.allLoaded).toBe(true);
+      scroll.destroy();
+    });
   });
 
   describe("timeout / abort", function () {

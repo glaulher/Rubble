@@ -79,6 +79,27 @@ class PreventivaRepository extends BaseRepository
         return $result->fetch_assoc() ?: null;
     }
 
+    public function getPreventivaItemById(int $id): ?array
+    {
+        $sql = "
+            SELECT ap.id, ap.site AS local, '' AS equipamento, '' AS capacidade, '' AS local_scm, '' AS localidade,
+                   ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.obs, 'preventiva' AS tipo,
+                   (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count,
+                   ap.sort_order,
+                   COALESCE((SELECT e.mercado FROM equipamentos e WHERE e.local = ap.site LIMIT 1), '') AS mercado,
+                   ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number,
+                   COALESCE((SELECT GROUP_CONCAT(se.justification SEPARATOR ' | ') FROM sla_extensions se WHERE se.preventiva_id = ap.id), '') AS sla_extensions
+            FROM atividades_preventivas ap
+            WHERE ap.id = ?
+            LIMIT 1
+        ";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_assoc() ?: null;
+    }
+
     public function updateStatus(int $id, string $status, string $obs, ?string $dataPlanejada = null): bool
     {
         if ($dataPlanejada !== null) {

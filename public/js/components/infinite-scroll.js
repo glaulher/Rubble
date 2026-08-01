@@ -106,13 +106,16 @@ export function createInfiniteScroll(config, loadFn) {
           return;
         }
         _lastHash = newHash;
-        _data = newItems;
-        _allLoaded = newItems.length < cfg.limit;
-        _page = 1;
+        _data = newItems.concat(_data.slice(newItems.length));
+        if (_total > 0 && _data.length > _total) {
+          _data = _data.slice(0, _total);
+        }
+        _allLoaded = _total > 0 && _data.length >= _total;
+        _page = Math.ceil(_data.length / cfg.limit);
         if (cfg.renderFullFn) {
-          cfg.renderFullFn(newItems, _total);
+          cfg.renderFullFn(_data, _total);
         } else {
-          cfg.renderFn(newItems);
+          cfg.renderFn(_data);
         }
       } else {
         if (newItems.length < cfg.limit) {

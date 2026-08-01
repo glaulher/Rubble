@@ -84,10 +84,10 @@ class PreventivaService
             foreach ($slaDates as [$date, $dayNum]) {
                 $this->repository->createSlaCard($id, $date, $dayNum);
             }
-            return ['action' => 'created', 'id' => $id, 'sla_days' => $slaDays, 'cards_created' => count($slaDates) + 1];
+            return ['action' => 'created', 'id' => $id, 'sla_days' => $slaDays, 'cards_created' => count($slaDates) + 1, 'item' => $this->repository->getPreventivaItemById($id)];
         }
 
-        return ['action' => 'created', 'id' => $id];
+        return ['action' => 'created', 'id' => $id, 'item' => $this->repository->getPreventivaItemById($id)];
     }
 
     private function generateSlaDates(string $startDate, int $slaDays, bool $includeSat, bool $includeSun): array
@@ -153,7 +153,7 @@ class PreventivaService
         $this->repository->updateStatus($id, $novoStatus, $newObs, $dataPlanejada);
 
         $record = $this->repository->getById($id);
-        return ['action' => 'status_updated', 'id' => $id, 'status' => $novoStatus, 'obs' => $record['obs'] ?? ''];
+        return ['action' => 'status_updated', 'id' => $id, 'status' => $novoStatus, 'obs' => $record['obs'] ?? '', 'item' => $this->repository->getPreventivaItemById($id)];
     }
 
     public function delete(int $id): array
@@ -166,6 +166,6 @@ class PreventivaService
 
         $this->repository->delete($id);
 
-        return ['action' => 'deleted'];
+        return ['action' => 'deleted', 'id' => $id, 'tipo' => 'preventiva'];
     }
 }

@@ -268,11 +268,8 @@ class PreventiveCycleRepository extends BaseRepository
             if ($equipamentoId <= 0) continue;
 
             if (!empty($item['checked'])) {
-                $observacao = $item['observacao'] ?? '';
-                $scmNumber = $item['scm_number'] ?? null;
-                if ($scmNumber !== null && trim($scmNumber) === '') {
-                    $scmNumber = null;
-                }
+                $observacao = array_key_exists('observacao', $item) ? $item['observacao'] : '';
+                $scmNumber = array_key_exists('scm_number', $item) ? $item['scm_number'] : null;
                 $checkedItems[] = [$equipamentoId, $observacao, $scmNumber];
             } else {
                 $uncheckedIds[] = $equipamentoId;
@@ -292,12 +289,17 @@ class PreventiveCycleRepository extends BaseRepository
                     $bindValues[] = $item[0];
                     $bindValues[] = $item[1];
                     $bindValues[] = $item[2];
-                    $bindTypes .= 'siss';
+                    $bindTypes .= 'si';
+                    $bindTypes .= $item[1] === null ? 'N' : 's';
+                    $bindTypes .= $item[2] === null ? 'N' : 's';
                 }
 
                 $sql = "INSERT INTO preventive_cycle_items (ciclo, equipamento_id, observacao, scm_number)
                         VALUES " . implode(', ', $placeholders) . "
-                        ON DUPLICATE KEY UPDATE observacao = VALUES(observacao), scm_number = VALUES(scm_number), updated_at = NOW()";
+                        ON DUPLICATE KEY UPDATE
+                          observacao = COALESCE(VALUES(observacao), observacao),
+                          scm_number = COALESCE(VALUES(scm_number), scm_number),
+                          updated_at = NOW()";
 
                 $stmt = $this->safePrepare($sql);
                 $stmt->bind_param($bindTypes, ...$bindValues);

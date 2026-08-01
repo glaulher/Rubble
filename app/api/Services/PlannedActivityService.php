@@ -33,6 +33,11 @@ class PlannedActivityService
         ];
     }
 
+    public function getItem(int $id, string $tipo, ?string $dataPlanejada = null): ?array
+    {
+        return $this->repository->getItemById($id, $tipo, $dataPlanejada);
+    }
+
     public function planActivity(array $data, array $currentUser): array
     {
         $os = trim($data['os'] ?? '');
@@ -114,7 +119,7 @@ class PlannedActivityService
                 $this->createSlaCards($existing->id, $slaDates, $tipo, $existing->id);
             }
 
-            return ['action' => 'updated', 'id' => $existing->id];
+            return ['action' => 'updated', 'id' => $existing->id, 'item' => $this->getItem($existing->id, $tipo)];
         }
 
         $insertData = [
@@ -142,7 +147,7 @@ class PlannedActivityService
             $this->repository->addPlannedDate($id, $dataPlanejada);
         }
 
-        return ['action' => 'created', 'id' => $id];
+        return ['action' => 'created', 'id' => $id, 'item' => $this->getItem($id, $tipo)];
     }
 
     /**
@@ -285,10 +290,15 @@ class PlannedActivityService
         }
 
         $this->repository->updateTeam($id, $tipo, $equipe);
-        return ['action' => 'updated', 'id' => $id];
+
+        $dataPlanejada = isset($data['data_planejada']) && $data['data_planejada'] !== ''
+            ? trim($data['data_planejada'])
+            : null;
+
+        return ['action' => 'updated', 'id' => $id, 'item' => $this->getItem($id, $tipo, $dataPlanejada)];
     }
 
-    public function updateObs(int $id, string $tipo, string $obs): array
+    public function updateObs(int $id, string $tipo, string $obs, ?string $dataPlanejada = null): array
     {
         if ($id <= 0) {
             throw new \RuntimeException('ID inválido.');
@@ -301,7 +311,7 @@ class PlannedActivityService
         }
 
         $this->repository->updateObs($id, $tipo, $obs);
-        return ['action' => 'updated', 'id' => $id];
+        return ['action' => 'updated', 'id' => $id, 'item' => $this->getItem($id, $tipo, $dataPlanejada)];
     }
 
     public function updateCorretivaStatus(int $id, string $status, ?string $dataPlanejada = null, ?string $sourceDate = null): array
@@ -336,7 +346,10 @@ class PlannedActivityService
         }
 
         $this->repository->updateCorretivaStatus($id, $cleanStatus, $dataConcluido);
-        return ['action' => 'updated', 'id' => $id, 'status' => $cleanStatus];
+
+        $itemDate = $dataPlanejada ?? $sourceDate;
+
+        return ['action' => 'updated', 'id' => $id, 'status' => $cleanStatus, 'item' => $this->getItem($id, 'corretiva', $itemDate)];
     }
 
     public function duplicateDay(string $sourceDate, string $targetDate): array
@@ -427,9 +440,11 @@ class PlannedActivityService
             throw new \RuntimeException('Registro não encontrado.');
         }
 
+        $tipo = $existing->tipo ?? 'corretiva';
+
         if ($existing->tipo !== 'corretiva') {
             $this->repository->delete($id);
-            return ['action' => 'deleted'];
+            return ['action' => 'deleted', 'id' => $id, 'tipo' => $tipo];
         }
 
         if ($dataPlanejada !== null) {
@@ -443,22 +458,22 @@ class PlannedActivityService
             if ($remaining === 0) {
                 if ($existing->origin === self::DEFAULT_ORIGIN) {
                     $this->repository->delete($id, self::DEFAULT_ORIGIN);
-                    return ['action' => 'deleted'];
+                    return ['action' => 'deleted', 'id' => $id, 'tipo' => $tipo];
                 }
                 $this->repository->unplan($id, self::UNPLAN_STATUS);
-                return ['action' => 'unplanned'];
+                return ['action' => 'unplanned', 'id' => $id, 'tipo' => $tipo];
             }
 
-            return ['action' => 'date_removed'];
+            return ['action' => 'date_removed', 'id' => $id, 'tipo' => $tipo, 'data_planejada' => $dataPlanejada];
         }
 
         $this->repository->removeAllPlannedDates($id);
         if ($existing->origin === self::DEFAULT_ORIGIN) {
             $this->repository->delete($id, self::DEFAULT_ORIGIN);
-            return ['action' => 'deleted'];
+            return ['action' => 'deleted', 'id' => $id, 'tipo' => $tipo];
         }
         $this->repository->unplan($id, self::UNPLAN_STATUS);
-        return ['action' => 'unplanned'];
+        return ['action' => 'unplanned', 'id' => $id, 'tipo' => $tipo];
     }
 
     public function setSla(array $data): array

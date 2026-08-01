@@ -11,7 +11,59 @@ class PlannedActivityRepository extends BaseRepository
         [$pw, $pp, $pt] = $this->buildPreventivaFilter($search, $dateFrom, $dateTo, $status);
         [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status);
 
-        $sql = "
+        $sql = $this->combinedSelect($pw, $cw) . "
+            ORDER BY data_planejada DESC, sort_order ASC, id DESC
+            LIMIT ? OFFSET ?
+        ";
+
+        $allParams = array_merge($pp, $cp, [$limit, $offset]);
+        $allTypes = $pt . $ct . 'ii';
+
+        $stmt = $this->safePrepare($sql);
+        if ($allTypes !== '') {
+            $stmt->bind_param($allTypes, ...$allParams);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $items = [];
+        while ($row = $result->fetch_assoc()) {
+            $items[] = $row;
+        }
+
+        return $items;
+    }
+
+    public function getItemById(int $id, string $tipo, ?string $dataPlanejada = null): ?array
+    {
+        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+            return null;
+        }
+
+        [$pw] = $this->buildPreventivaFilter('', null, null, null);
+        [$cw] = $this->buildCorretivaFilter('', null, null, null);
+
+        $sql = $this->combinedSelect($pw, $cw) . " WHERE tipo = ? AND id = ?";
+        $types = 'si';
+        $params = [$tipo, $id];
+
+        if ($tipo === 'corretiva' && $dataPlanejada !== null && $dataPlanejada !== '') {
+            $sql .= " AND data_planejada = ?";
+            $types .= 's';
+            $params[] = $dataPlanejada;
+        }
+        $sql .= " LIMIT 1";
+
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_assoc() ?: null;
+    }
+
+    private function combinedSelect(string $pw, string $cw): string
+    {
+        return "
             SELECT id, local, equipamento, capacidade, local_scm, localidade, os, data_planejada, equipe, status, obs, tipo, machine_count, sort_order, mercado, sla_days, sla_include_saturday, sla_include_sunday, sla_day_number, sla_extensions
             FROM (
                 SELECT ap.id, ap.site AS local, '' AS equipamento, '' AS capacidade, '' AS local_scm, '' AS localidade,
@@ -37,26 +89,7 @@ class PlannedActivityRepository extends BaseRepository
                 LEFT JOIN equipamentos e ON e.id = r.equipamento_id
                 WHERE {$cw}
             ) AS combined
-            ORDER BY data_planejada DESC, sort_order ASC, id DESC
-            LIMIT ? OFFSET ?
         ";
-
-        $allParams = array_merge($pp, $cp, [$limit, $offset]);
-        $allTypes = $pt . $ct . 'ii';
-
-        $stmt = $this->safePrepare($sql);
-        if ($allTypes !== '') {
-            $stmt->bind_param($allTypes, ...$allParams);
-        }
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        $items = [];
-        while ($row = $result->fetch_assoc()) {
-            $items[] = $row;
-        }
-
-        return $items;
     }
 
     public function count(string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null): int

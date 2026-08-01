@@ -216,7 +216,7 @@ function buildSlaLineHtml(item) {
     : '';
   return '<div class="planned-card-wrapper flex items-start gap-1.5">' +
     dragHandleHtml +
-    '<div class="planned-card flex-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '" data-tipo="' + tipo + '"' + cardDateAttr + ' data-sla-day-number="' + (item.sla_day_number || '') + '">' +
+    '<div class="planned-card flex-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '" data-tipo="' + tipo + '" data-key="' + (item.tipo || 'preventiva') + ':' + item.id + '"' + cardDateAttr + ' data-sla-day-number="' + (item.sla_day_number || '') + '">' +
       cardContentHtml +
     '</div>' +
   '</div>';
@@ -311,7 +311,11 @@ function saveTeamInlineEdit(input, strong) {
     .then(function (res) { return res.json(); })
     .then(function (result) {
       if (result && result.success) {
-        strong.textContent = newValue;
+        if (result.data && result.data.item) {
+          _applyPlannedCardUpdate(result.data.item);
+        } else {
+          strong.textContent = newValue;
+        }
       } else {
         showToast(result && result.message ? result.message : 'Erro ao atualizar equipe.', 'error');
       }
@@ -413,8 +417,12 @@ function saveObsInlineEdit(textarea, span) {
     .then(function (res) { return res.json(); })
     .then(function (result) {
       if (result && result.success) {
-        var displayText = newValue ? escapeHtml(newValue) : '<span class="text-slate-400 italic">Adicionar observação...</span>';
-        span.innerHTML = displayText;
+        if (result.data && result.data.item) {
+          _applyPlannedCardUpdate(result.data.item);
+        } else {
+          var displayText = newValue ? escapeHtml(newValue) : '<span class="text-slate-400 italic">Adicionar observação...</span>';
+          span.innerHTML = displayText;
+        }
       } else {
         showToast(result && result.message ? result.message : 'Erro ao atualizar observação.', 'error');
       }
@@ -502,8 +510,11 @@ function submitCorretivaStatus() {
     if (result && result.success) {
       showToast('Status atualizado com sucesso.', 'success');
       closeCorretivaStatusModal();
-      var newStatus = result.data && result.data.status;
-      if (newStatus) {
+      var data = result.data;
+      if (data && data.item) {
+        _applyPlannedCardUpdate(data.item);
+      } else if (data && data.status) {
+        var newStatus = data.status;
         var card = document.querySelector('.planned-card[data-id="' + id + '"]');
         if (card) {
           var actionsArea = card.querySelector('.flex.items-center.gap-1');
@@ -581,6 +592,8 @@ function renderPlanned(items, append) {
       if (existingGroup) {
         var cardsContainer = existingGroup.querySelector('.space-y-3');
         groupItems.forEach(function (item) {
+          var key = (item.tipo || 'preventiva') + ':' + item.id;
+          if (content.querySelector('.planned-card[data-key="' + key + '"]')) return;
           cardsContainer.insertAdjacentHTML('beforeend', buildPlannedCardHtml(item));
         });
         applyRoleVisibility();
@@ -652,18 +665,21 @@ function syncPlannedCards(newItems, total) {
       var cardsContainer = existingGroup.querySelector('.space-y-3');
       if (!cardsContainer) return;
 
-      // Build per-group ID set so same id in different dates is handled correctly
-      var groupIds = {};
-      groupItems.forEach(function (item) { groupIds[item.id] = true; });
+      // Build per-group ID set so same id in different dates is handled correctly.
+      // Keyed by tipo:id because preventiva and corretiva can share a numeric id.
+      var groupKeys = {};
+      groupItems.forEach(function (item) { groupKeys[(item.tipo || 'preventiva') + ':' + item.id] = true; });
 
       Array.from(cardsContainer.querySelectorAll('.planned-card-wrapper')).forEach(function (wrapper) {
         var card = wrapper.querySelector('.planned-card');
-        var id = parseInt(card.getAttribute('data-id'), 10);
-        if (!groupIds[id]) wrapper.remove();
+        if (!card) return;
+        var key = (card.getAttribute('data-tipo') || 'preventiva') + ':' + card.getAttribute('data-id');
+        if (!groupKeys[key]) wrapper.remove();
       });
 
       groupItems.forEach(function (item) {
-        var existingCard = cardsContainer.querySelector('.planned-card[data-id="' + item.id + '"]');
+        var key = (item.tipo || 'preventiva') + ':' + item.id;
+        var existingCard = cardsContainer.querySelector('.planned-card[data-key="' + key + '"]');
         if (existingCard) {
           if (existingCard.querySelector('.obs-edit-input, .team-edit-input')) return;
           var existingWrapper = existingCard.closest('.planned-card-wrapper');
@@ -1506,12 +1522,16 @@ function initPlannedActivity() {
           .then(function (r) { return r.json(); })
           .then(function (result) {
             if (result && result.success) {
-              resetPlannedState('');
+              // Optimistic DOM move already applied; keep it.
             } else {
               showToast(result && result.message ? result.message : 'Erro ao mover atividade.', 'error');
+              resetPlannedState('');
             }
           })
-          .catch(function () { showToast('Erro ao mover atividade.', 'error'); });
+          .catch(function () {
+            showToast('Erro ao mover atividade.', 'error');
+            resetPlannedState('');
+          });
         // Move card optimistically (removes from source group)
         var srcGroup = _dragState.card.closest('.timeline-group');
         if (srcGroup) {
@@ -1532,6 +1552,115 @@ function initPlannedActivity() {
 
   _plannedScroll.init();
 }
+
+function _plannedItemKey(item) {
+  return (item.tipo || 'preventiva') + ':' + item.id;
+}
+
+function _updatePlannedCounter(total) {
+  window._plannedTotal = total;
+  var counter = document.getElementById('plannedCounter');
+  if (counter) counter.textContent = total + ' atividades';
+}
+
+function _appendPlannedToGroup(item) {
+  var content = document.getElementById('plannedContent');
+  if (!content) return;
+  var dateKey = item.data_planejada || 'sem_data';
+  var safeDate = dateKey.replace(/"/g, '\\"');
+  var key = _plannedItemKey(item);
+
+  var existingGroup = content.querySelector('.timeline-group[data-date="' + safeDate + '"]');
+  if (existingGroup) {
+    var cardsContainer = existingGroup.querySelector('.space-y-3');
+    if (!cardsContainer) return;
+    if (cardsContainer.querySelector('.planned-card[data-key="' + key + '"]')) return;
+    cardsContainer.insertAdjacentHTML('beforeend', buildPlannedCardHtml(item));
+    applyRoleVisibility();
+    return;
+  }
+
+  var dateLabel = dateKey === 'sem_data' ? 'Sem data' : formatDateTimeline(dateKey);
+  var groupHtml = '<div class="timeline-group" data-date="' + safeDate + '">' +
+    '<h2 class="text-lg font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">' + escapeHtml(dateLabel) + duplicateDayIconHtml(dateKey) + '</h2>' +
+    '<div class="space-y-3">' + buildPlannedCardHtml(item) + '</div></div>';
+
+  var insertBeforeEl = null;
+  for (var i = 0; i < content.children.length; i++) {
+    var child = content.children[i];
+    if (child.classList && child.classList.contains('timeline-group')) {
+      var childDate = child.getAttribute('data-date');
+      if (childDate && dateKey > childDate) {
+        insertBeforeEl = child;
+        break;
+      }
+    }
+  }
+
+  if (insertBeforeEl) {
+    insertBeforeEl.insertAdjacentHTML('beforebegin', groupHtml);
+  } else {
+    content.insertAdjacentHTML('beforeend', groupHtml);
+  }
+  applyRoleVisibility();
+}
+
+function _removePlannedCards(id, tipo) {
+  var content = document.getElementById('plannedContent');
+  if (!content) return;
+  var key = (tipo || 'preventiva') + ':' + id;
+  var card = content.querySelector('.planned-card[data-key="' + key + '"]');
+  if (!card) return;
+  var group = card.closest('.timeline-group');
+  var wrapper = card.closest('.planned-card-wrapper');
+  if (wrapper) {
+    wrapper.remove();
+  } else {
+    card.remove();
+  }
+  if (group && group.querySelectorAll('.planned-card').length === 0) {
+    group.remove();
+  }
+  applyRoleVisibility();
+}
+
+function _applyPlannedCardUpdate(item) {
+  var content = document.getElementById('plannedContent');
+  if (!content || !item) return;
+  var key = _plannedItemKey(item);
+  var card = content.querySelector('.planned-card[data-key="' + key + '"]');
+  if (!card) return;
+
+  var currentGroup = card.closest('.timeline-group');
+  var currentDate = currentGroup ? currentGroup.getAttribute('data-date') : null;
+  var targetDate = item.data_planejada || 'sem_data';
+
+  if (currentDate === targetDate) {
+    var wrapper = card.closest('.planned-card-wrapper');
+    if (wrapper) {
+      wrapper.outerHTML = buildPlannedCardHtml(item);
+    } else {
+      card.outerHTML = buildPlannedCardHtml(item);
+    }
+  } else {
+    var movedWrapper = card.closest('.planned-card-wrapper');
+    if (movedWrapper) {
+      movedWrapper.remove();
+    } else {
+      card.remove();
+    }
+    if (currentGroup && currentGroup.querySelectorAll('.planned-card').length === 0) {
+      currentGroup.remove();
+    }
+    _appendPlannedToGroup(item);
+  }
+  applyRoleVisibility();
+}
+
+globalThis._applyPlannedCardUpdate = _applyPlannedCardUpdate;
+globalThis._appendPlannedToGroup = _appendPlannedToGroup;
+globalThis._removePlannedCards = _removePlannedCards;
+globalThis._updatePlannedCounter = _updatePlannedCounter;
 
 globalThis.initPlannedActivity = initPlannedActivity;
 
@@ -1639,11 +1768,19 @@ function submitPlan() {
       if (result && result.success) {
         if (result.data && result.data.action === 'updated') {
           showToast('Atividade adicionada ao novo dia!', 'success');
+          closePlanModal();
+          resetPlannedState('');
+        } else if (result.data && result.data.item) {
+          showToast('Atividade registrada com sucesso!', 'success');
+          closePlanModal();
+          _appendPlannedToGroup(result.data.item);
+          var currentTotal = window._plannedTotal || 0;
+          _updatePlannedCounter(currentTotal + 1);
         } else {
           showToast('Atividade registrada com sucesso!', 'success');
+          closePlanModal();
+          resetPlannedState('');
         }
-        closePlanModal();
-        resetPlannedState('');
       } else {
         showToast(result && result.message ? result.message : 'Erro ao salvar', 'error');
       }
@@ -1688,7 +1825,15 @@ function deletePlanned(id, tipo, dataPlanejada, slaDayNumber) {
         .then(function (res) { return res.json(); })
         .then(function (result) {
           showToast(result && result.message ? result.message : 'Atividade removida com sucesso!', 'success');
-          resetPlannedState('');
+          if (result.data && result.data.id) {
+            _removePlannedCards(result.data.id, result.data.tipo || tipo);
+            var currentTotal = window._plannedTotal || 0;
+            if (currentTotal > 0) {
+              _updatePlannedCounter(currentTotal - 1);
+            }
+          } else {
+            resetPlannedState('');
+          }
         })
         .catch(function (err) {
           showToast('Erro ao excluir atividade.', 'error');
@@ -1988,13 +2133,15 @@ function submitStatusPreventiva() {
         showToast('Status atualizado com sucesso!', 'success');
         closeStatusPreventiva();
         var data = result.data;
-        if (data && data.status) {
+        if (data && data.item) {
+          _applyPlannedCardUpdate(data.item);
+        } else if (data && data.status) {
           var card = document.querySelector('.planned-card[data-id="' + data.id + '"]');
           if (card) {
             var actionsArea = card.querySelector('.flex.items-center.gap-1');
             if (actionsArea) {
-            var oldBadge = actionsArea.querySelector('.planned-badge-status');
-            if (oldBadge) oldBadge.outerHTML = plannedStatusBadgeHtml(data.status);
+              var oldBadge = actionsArea.querySelector('.planned-badge-status');
+              if (oldBadge) oldBadge.outerHTML = plannedStatusBadgeHtml(data.status);
             }
             var statusBtn = card.querySelector('.planned-status-btn');
             if (statusBtn) statusBtn.setAttribute('data-status', data.status);
