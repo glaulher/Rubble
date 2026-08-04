@@ -10,12 +10,27 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  const parts = String(dateStr).split('-');
+  if (parts.length !== 3) return dateStr;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+function sanitizeCSV(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  return /[;"\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+}
+
 var pendingSearch = '';
 var pendingStatusFilter = '';
 var pendingLastLocal = null;
 var pendingLastId = null;
 var pendingLoading = false;
 var pendingAllLoaded = false;
+
+const PENDING_COLUMNS = 13;
 
 function resetPendingState(search, status) {
   pendingSearch = search || '';
@@ -30,9 +45,24 @@ function resetPendingState(search, status) {
 
   const empty = document.getElementById('pendingEmpty');
   if (empty) empty.classList.add('hidden');
+}
 
-  const siteSep = document.getElementById('pendingSiteSep');
-  if (siteSep) siteSep.classList.add('hidden');
+function getStatusBadgeClass(status) {
+  switch ((status || '').toLowerCase()) {
+    case 'pendente': return 'bg-red-100 text-red-700';
+    case 'planejado': return 'bg-yellow-100 text-yellow-700';
+    case 'em andamento': return 'bg-blue-100 text-blue-700';
+    case 'projeto clean up': return 'bg-purple-100 text-purple-700';
+    default: return 'bg-slate-100 text-slate-700';
+  }
+}
+
+function getCategoryBadgeClass(tipo) {
+  switch ((tipo || '').toLowerCase()) {
+    case 'corretiva': return 'bg-orange-100 text-orange-700';
+    case 'preventiva': return 'bg-sky-100 text-sky-700';
+    default: return 'bg-slate-100 text-slate-700';
+  }
 }
 
 function renderPendingTable(list, append) {
@@ -53,63 +83,48 @@ function renderPendingTable(list, append) {
 
   if (empty) empty.classList.add('hidden');
 
-  let currentLocal = null;
   var html = '';
 
   for (var i = 0; i < list.length; i++) {
     var item = list[i];
 
-    if (item.local !== currentLocal) {
-      currentLocal = item.local;
-      html += '<tr class="site-separator bg-slate-100 dark:bg-slate-800">' +
-        '<td colspan="5" class="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300">' +
-        escapeHtml(currentLocal) + '</td></tr>';
-    }
+    html += '<tr class="pending-row border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" '
+      + 'data-id="' + item.id + '" data-expandable="true">'
+      + '<td class="px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200">'
+      + '<span class="expand-icon text-slate-400 mr-2">&#9654;</span>'
+      + escapeHtml(item.local) + '</td>'
+      + '<td class="px-3 py-2.5 text-sm font-medium text-slate-800 dark:text-slate-200">'
+      + escapeHtml(item.os || '') + '</td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">'
+      + escapeHtml(item.equipamento || '') + '</td>'
+      + '<td class="px-3 py-2.5 text-sm">'
+      + '<span class="category-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getCategoryBadgeClass(item.tipo) + '">'
+      + escapeHtml(item.tipo || '-') + '</span></td>'
+      + '<td class="px-3 py-2.5 text-sm">'
+      + '<span class="status-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeClass(item.status) + '">'
+      + escapeHtml(item.status) + '</span></td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data)) + '</td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data_planejada)) + '</td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data_real_inicio)) + '</td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data_prevista_conclusao)) + '</td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data_concluido)) + '</td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.equipe || '-') + '</td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.material || '-') + '</td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.localidade || '-') + '</td>'
+      + '</tr>';
 
-    html += '<tr class="pending-row border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" ' +
-      'data-id="' + item.id + '" data-expandable="true">' +
-      '<td class="px-4 py-3 text-sm text-slate-800 dark:text-slate-200">' +
-      '<span class="expand-icon text-slate-400 mr-2">▶</span>' +
-      escapeHtml(item.local) + '</td>' +
-      '<td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">' +
-      escapeHtml(item.equipamento || '') + '</td>' +
-      '<td class="px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-200">' +
-      escapeHtml(item.os || '') + '</td>' +
-      '<td class="px-4 py-3 text-sm">' +
-      '<span class="status-badge px-2 py-0.5 rounded-full text-xs font-medium ' +
-      ((item.status || '').toLowerCase() === 'pendente' ? 'bg-red-100 text-red-700' :
-       (item.status || '').toLowerCase() === 'planejado' ? 'bg-yellow-100 text-yellow-700' :
-       (item.status || '').toLowerCase() === 'em andamento' ? 'bg-blue-100 text-blue-700' :
-       'bg-purple-100 text-purple-700') + '">' +
-      escapeHtml(item.status) + '</span></td>' +
-      '<td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">' +
-      escapeHtml(item.data || '') + '</td></tr>';
-
-    html += '<tr class="pending-details hidden" data-detail-for="' + item.id + '">' +
-      '<td colspan="5" class="px-4 py-3 bg-slate-50 dark:bg-slate-800/30">' +
-      '<div class="grid grid-cols-2 gap-2 text-sm">' +
-      '<div><span class="text-slate-500">Observação:</span> ' +
-      '<span class="text-slate-700 dark:text-slate-300">' + escapeHtml(item.obs || '-') + '</span></div>' +
-      '<div><span class="text-slate-500">Material:</span> ' +
-      '<span class="text-slate-700 dark:text-slate-300">' + escapeHtml(item.material || '-') + '</span></div>' +
-      '<div><span class="text-slate-500">Equipe:</span> ' +
-      '<span class="text-slate-700 dark:text-slate-300">' + escapeHtml(item.equipe || '-') + '</span></div>' +
-      '<div><span class="text-slate-500">Localidade:</span> ' +
-      '<span class="text-slate-700 dark:text-slate-300">' + escapeHtml(item.localidade || '-') + '</span></div>' +
-      '</div></td></tr>';
+    html += '<tr class="pending-details hidden" data-detail-for="' + item.id + '">'
+      + '<td colspan="' + PENDING_COLUMNS + '" class="px-3 py-2.5 bg-slate-50 dark:bg-slate-800/30">'
+      + '<div class="text-sm"><span class="text-slate-500">Observa\u00e7\u00e3o:</span> '
+      + '<span class="text-slate-700 dark:text-slate-300">' + escapeHtml(item.obs || '-') + '</span></div>'
+      + '</td></tr>';
   }
 
   if (!append) {
     tbody.innerHTML = html;
   } else {
-    var existing = tbody.querySelector('tr.site-separator, tr.pending-row');
-    if (existing) {
-      tbody.insertAdjacentHTML('beforeend', html);
-    } else {
-      tbody.innerHTML = html;
-    }
+    tbody.insertAdjacentHTML('beforeend', html);
   }
-
 }
 
 function toggleRow(id) {
@@ -124,22 +139,29 @@ function toggleRow(id) {
   }
 }
 
-function getStatusBadgeClass(status) {
-  switch ((status || '').toLowerCase()) {
-    case 'pendente': return 'bg-red-100 text-red-700';
-    case 'planejado': return 'bg-yellow-100 text-yellow-700';
-    case 'em andamento': return 'bg-blue-100 text-blue-700';
-    case 'projeto clean up': return 'bg-purple-100 text-purple-700';
-    default: return 'bg-slate-100 text-slate-700';
-  }
+function buildPendingCsvRow(item) {
+  return [
+    sanitizeCSV(item.local),
+    sanitizeCSV(item.os || ''),
+    sanitizeCSV(item.equipamento || ''),
+    sanitizeCSV(item.tipo || ''),
+    sanitizeCSV(item.status || ''),
+    formatDate(item.data),
+    formatDate(item.data_planejada),
+    formatDate(item.data_real_inicio),
+    formatDate(item.data_prevista_conclusao),
+    formatDate(item.data_concluido),
+    sanitizeCSV(item.equipe || ''),
+    sanitizeCSV(item.material || ''),
+    sanitizeCSV(item.localidade || ''),
+  ];
 }
 
 describe("resetPendingState", () => {
   beforeEach(() => {
     document.body.innerHTML =
       '<table><tbody id="pendingTableBody"><tr><td>old</td></tr></tbody></table>' +
-      '<div id="pendingEmpty" class="hidden"></div>' +
-      '<div id="pendingSiteSep" class="hidden"></div>';
+      '<div id="pendingEmpty" class="hidden"></div>';
   });
 
   it("clears state and DOM", () => {
@@ -165,9 +187,9 @@ describe("resetPendingState", () => {
 
 describe("renderPendingTable", () => {
   const mockData = [
-    { id: 1, local: 'BMA', equipamento: 'WM 01', os: 'OS123', status: 'pendente', data: '15/07/2026', obs: 'Filtro sujo', material: 'Filtro AR', equipe: 'João', localidade: 'Container 1' },
-    { id: 2, local: 'BMA', equipamento: 'WM 02', os: 'OS456', status: 'planejado', data: '16/07/2026', obs: 'Troca óleo', material: 'Óleo 5W30', equipe: 'Maria', localidade: 'Container 1' },
-    { id: 3, local: 'RJO', equipamento: 'CH 01', os: 'OS789', status: 'pendente', data: '14/07/2026', obs: 'Vazamento', material: 'Vedação', equipe: 'José', localidade: 'Sala 5' },
+    { id: 1, local: 'BMA', equipamento: 'WM 01', os: 'OS123', tipo: 'corretiva', status: 'pendente', data: '2026-07-15', data_planejada: '2026-07-20', data_real_inicio: '2026-07-22', data_prevista_conclusao: '2026-07-25', data_concluido: null, obs: 'Filtro sujo', material: 'Filtro AR', equipe: 'João', localidade: 'Container 1' },
+    { id: 2, local: 'BMA', equipamento: 'WM 02', os: 'OS456', tipo: 'preventiva', status: 'planejado', data: '2026-07-16', data_planejada: null, data_real_inicio: null, data_prevista_conclusao: null, data_concluido: '2026-07-18', obs: 'Troca óleo', material: 'Óleo 5W30', equipe: 'Maria', localidade: 'Container 1' },
+    { id: 3, local: 'RJO', equipamento: 'CH 01', os: 'OS789', tipo: null, status: 'pendente', data: '2026-07-14', data_planejada: null, data_real_inicio: null, data_prevista_conclusao: null, data_concluido: null, obs: 'Vazamento', material: 'Vedação', equipe: 'José', localidade: 'Sala 5' },
   ];
 
   beforeEach(() => {
@@ -176,25 +198,18 @@ describe("renderPendingTable", () => {
       '<div id="pendingEmpty" class="hidden"></div>';
   });
 
-  it("renders rows grouped by site", () => {
+  it("renders rows flat (no site separators)", () => {
     renderPendingTable(mockData);
 
-    const rows = document.querySelectorAll('tr.pending-row');
-    expect(rows.length).toBe(3);
+    expect(document.querySelectorAll('tr.pending-row').length).toBe(3);
+    expect(document.querySelectorAll('tr.site-separator').length).toBe(0);
+  });
 
-    const separators = document.querySelectorAll('tr.site-separator');
-    expect(separators.length).toBe(2);
+  it("renders one cell per column (flat layout)", () => {
+    renderPendingTable([mockData[0]]);
 
-    // BMA group first
-    expect(separators[0].textContent).toContain('BMA');
-
-    // First 2 rows belong to BMA (icon + text in first td)
-    expect(rows[0].querySelectorAll('td')[0].textContent).toContain('BMA');
-    expect(rows[1].querySelectorAll('td')[0].textContent).toContain('BMA');
-
-    // RJO group second
-    expect(separators[1].textContent).toContain('RJO');
-    expect(rows[2].querySelectorAll('td')[0].textContent).toContain('RJO');
+    const row = document.querySelector('tr.pending-row');
+    expect(row.querySelectorAll('td').length).toBe(PENDING_COLUMNS);
   });
 
   it("renders status badges with correct colors", () => {
@@ -209,6 +224,42 @@ describe("renderPendingTable", () => {
 
     expect(badges[2].textContent.trim()).toBe('pendente');
     expect(badges[2].className).toContain('bg-red-100');
+  });
+
+  it("renders category badges with correct colors", () => {
+    renderPendingTable(mockData);
+
+    const badges = document.querySelectorAll('.category-badge');
+    expect(badges.length).toBe(3);
+    expect(badges[0].textContent.trim()).toBe('corretiva');
+    expect(badges[0].className).toContain('bg-orange-100');
+
+    expect(badges[1].textContent.trim()).toBe('preventiva');
+    expect(badges[1].className).toContain('bg-sky-100');
+
+    expect(badges[2].textContent.trim()).toBe('-');
+    expect(badges[2].className).toContain('bg-slate-100');
+  });
+
+  it("renders formatted date columns", () => {
+    renderPendingTable([mockData[0]]);
+
+    const cells = document.querySelector('tr.pending-row').querySelectorAll('td');
+    // index 5 = data abertura, 6 = programada, 7 = real inicio, 8 = prevista conclusao, 9 = conclusao
+    expect(cells[5].textContent.trim()).toBe('15/07/2026');
+    expect(cells[6].textContent.trim()).toBe('20/07/2026');
+    expect(cells[7].textContent.trim()).toBe('22/07/2026');
+    expect(cells[8].textContent.trim()).toBe('25/07/2026');
+    expect(cells[9].textContent.trim()).toBe('-');
+  });
+
+  it("shows technician, material and localidade columns", () => {
+    renderPendingTable([mockData[0]]);
+
+    const cells = document.querySelector('tr.pending-row').querySelectorAll('td');
+    expect(cells[10].textContent.trim()).toBe('João');
+    expect(cells[11].textContent.trim()).toBe('Filtro AR');
+    expect(cells[12].textContent.trim()).toBe('Container 1');
   });
 
   it("shows empty state when no data", () => {
@@ -231,17 +282,15 @@ describe("renderPendingTable", () => {
     expect(details.length).toBe(3);
     details.forEach(function (d) {
       expect(d.classList.contains('hidden')).toBe(true);
+      expect(d.querySelector('td').colSpan).toBe(PENDING_COLUMNS);
     });
   });
 
-  it("includes observacao, material, equipe and localidade in details", () => {
+  it("includes observacao in details", () => {
     renderPendingTable([mockData[0]]);
 
     const detail = document.querySelector('tr.pending-details');
     expect(detail.textContent).toContain('Filtro sujo');
-    expect(detail.textContent).toContain('Filtro AR');
-    expect(detail.textContent).toContain('João');
-    expect(detail.textContent).toContain('Container 1');
   });
 });
 
@@ -251,9 +300,8 @@ describe("toggleRow", () => {
       '<table><tbody>' +
       '<tr class="pending-row border-b cursor-pointer" data-id="1" data-expandable="true">' +
       '<td><span class="expand-icon text-slate-400 mr-2">▶</span>BMA</td>' +
-      '<td>WM 01</td><td>OS123</td><td><span class="status-badge">pendente</span></td><td>15/07</td>' +
       '</tr>' +
-      '<tr class="pending-details hidden" data-detail-for="1"><td colspan="5">Details</td></tr>' +
+      '<tr class="pending-details hidden" data-detail-for="1"><td colspan="13">Details</td></tr>' +
       '</tbody></table>';
   });
 
@@ -310,5 +358,48 @@ describe("getStatusBadgeClass", () => {
     expect(getStatusBadgeClass('Pendente')).toContain('bg-red-100');
     expect(getStatusBadgeClass('PLANEJADO')).toContain('bg-yellow-100');
     expect(getStatusBadgeClass('Em Andamento')).toContain('bg-blue-100');
+  });
+});
+
+describe("getCategoryBadgeClass", () => {
+  it("returns orange for corretiva", () => {
+    expect(getCategoryBadgeClass('corretiva')).toContain('bg-orange-100');
+  });
+
+  it("returns sky for preventiva", () => {
+    expect(getCategoryBadgeClass('preventiva')).toContain('bg-sky-100');
+  });
+
+  it("returns default for unknown or missing", () => {
+    expect(getCategoryBadgeClass('outro')).toContain('bg-slate-100');
+    expect(getCategoryBadgeClass('')).toContain('bg-slate-100');
+    expect(getCategoryBadgeClass(null)).toContain('bg-slate-100');
+  });
+});
+
+describe("buildPendingCsvRow", () => {
+  it("builds a 13-cell row matching the table columns", () => {
+    const row = buildPendingCsvRow({
+      id: 1, local: 'BMA', os: 'OS123', equipamento: 'WM 01', tipo: 'corretiva',
+      status: 'pendente', data: '2026-07-15', data_planejada: '2026-07-20',
+      data_real_inicio: null, data_prevista_conclusao: null, data_concluido: null,
+      equipe: 'João', material: 'Filtro AR', localidade: 'Container 1',
+    });
+
+    expect(row.length).toBe(13);
+    expect(row[0]).toBe('BMA');
+    expect(row[1]).toBe('OS123');
+    expect(row[4]).toBe('pendente');
+    expect(row[5]).toBe('15/07/2026');
+    expect(row[6]).toBe('20/07/2026');
+    expect(row[7]).toBe('-');
+    expect(row[8]).toBe('-');
+    expect(row[9]).toBe('-');
+    expect(row[10]).toBe('João');
+  });
+
+  it("quotes fields containing semicolons", () => {
+    const row = buildPendingCsvRow({ local: 'BMA;X', status: 'pendente' });
+    expect(row[0]).toBe('"BMA;X"');
   });
 });
