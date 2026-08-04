@@ -482,6 +482,7 @@ function initPendingTickets() {
       return pendingSearch + '|' + pendingStatusFilter + '|' + pendingSortBy + '|' + pendingSortDir;
     },
     sentinelId: 'pendingSentinel',
+    scrollContainerId: 'pendingScrollContainer',
     limit: 20,
   });
 

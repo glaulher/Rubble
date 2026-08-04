@@ -30,6 +30,10 @@ export function createInfiniteScroll(config, loadFn) {
   var sentinel = document.getElementById(config.sentinelId);
   if (!sentinel) return null;
 
+  var container = config.scrollContainerId
+    ? document.getElementById(config.scrollContainerId)
+    : null;
+
   var _page = 0;
   var _loading = false;
   var _allLoaded = false;
@@ -47,6 +51,7 @@ export function createInfiniteScroll(config, loadFn) {
     timeout: config.timeout || 15000,
     pollingInterval: config.pollingInterval || 0,
     sentinelId: config.sentinelId,
+    scrollContainerId: config.scrollContainerId || '',
     fetchFn: config.fetchFn,
     renderFn: config.renderFn || function () {},
     renderFullFn: config.renderFullFn || null,
@@ -63,6 +68,11 @@ export function createInfiniteScroll(config, loadFn) {
   function fireIntersection() {
     var el = document.getElementById(cfg.sentinelId);
     if (!el) return false;
+    if (container) {
+      var er = el.getBoundingClientRect();
+      var cr = container.getBoundingClientRect();
+      return container.scrollTop + container.clientHeight >= (er.top - cr.top) - 300;
+    }
     var rect = el.getBoundingClientRect();
     return rect.top <= (window.innerHeight || 600) + 300;
   }
@@ -189,7 +199,7 @@ export function createInfiniteScroll(config, loadFn) {
             load(false);
           }
         });
-      }, { rootMargin: '300px' });
+      }, { root: container || null, rootMargin: '300px' });
       _observer.observe(sentinel);
       startPolling();
       load(false);

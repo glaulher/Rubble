@@ -8,6 +8,7 @@ globalThis.IntersectionObserver = class {
     INTERSECTION_CALLBACK = callback;
     this.options = options;
     this.elements = [];
+    globalThis.__lastIntersectionObserver = this;
   }
   observe(el) { this.elements.push(el); }
   unobserve() {}
@@ -45,10 +46,12 @@ describe("createInfiniteScroll", function () {
       '<div id="content"></div>' +
       '<div id="sentinel"></div>';
     INTERSECTION_CALLBACK = null;
+    globalThis.__lastIntersectionObserver = null;
   });
 
   afterEach(function () {
     INTERSECTION_CALLBACK = null;
+    globalThis.__lastIntersectionObserver = null;
   });
 
   describe("factory creation", function () {
@@ -65,6 +68,38 @@ describe("createInfiniteScroll", function () {
       expect(typeof scroll.reset).toBe("function");
       expect(typeof scroll.destroy).toBe("function");
       expect(typeof scroll.getState).toBe("function");
+    });
+  });
+
+  describe("container-rooted scrolling", function () {
+    it("uses the container as observer root when scrollContainerId is set", async function () {
+      var containerEl = document.getElementById('content');
+      var scroll = createInfiniteScroll({
+        sentinelId: "sentinel",
+        scrollContainerId: "content",
+        fetchFn: async function () { return { data: [], total: 0 }; },
+        renderFn: function () {},
+      });
+      scroll.init();
+      await new Promise(function (r) { return setTimeout(r, 30); });
+      var observer = globalThis.__lastIntersectionObserver;
+      expect(observer).not.toBeUndefined();
+      expect(observer.options.root).toBe(containerEl);
+      scroll.destroy();
+    });
+
+    it("falls back to null root when scrollContainerId is not set", async function () {
+      var scroll = createInfiniteScroll({
+        sentinelId: "sentinel",
+        fetchFn: async function () { return { data: [], total: 0 }; },
+        renderFn: function () {},
+      });
+      scroll.init();
+      await new Promise(function (r) { return setTimeout(r, 30); });
+      var observer = globalThis.__lastIntersectionObserver;
+      expect(observer).not.toBeUndefined();
+      expect(observer.options.root).toBeNull();
+      scroll.destroy();
     });
   });
 
