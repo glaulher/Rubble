@@ -306,6 +306,9 @@ $router->addRoute('planned-activities', 'DELETE', function () use ($auth) {
 $router->addRoute('pending-tickets', 'GET', function () {
     (new \App\Api\Controllers\PendingTicketsController())->listAll();
 });
+$router->addRoute('pending-tickets', 'PATCH', function () {
+    (new \App\Api\Controllers\PendingTicketsController())->updateField();
+});
 
 // Preventiva
 $router->addRoute('preventiva', 'POST', function () use ($auth) {

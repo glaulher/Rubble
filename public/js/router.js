@@ -1,4 +1,4 @@
-const VIEW_VERSION = 15;
+const VIEW_VERSION = 17;
 
 async function loadPage(url) {
   try {

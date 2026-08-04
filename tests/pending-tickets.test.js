@@ -25,8 +25,8 @@ function sanitizeCSV(value) {
 
 var pendingSearch = '';
 var pendingStatusFilter = '';
-var pendingLastLocal = null;
-var pendingLastId = null;
+var pendingSortBy = 'e.local';
+var pendingSortDir = 'ASC';
 var pendingLoading = false;
 var pendingAllLoaded = false;
 
@@ -35,8 +35,6 @@ const PENDING_COLUMNS = 13;
 function resetPendingState(search, status) {
   pendingSearch = search || '';
   pendingStatusFilter = status || '';
-  pendingLastLocal = null;
-  pendingLastId = null;
   pendingAllLoaded = false;
   pendingLoading = false;
 
@@ -139,6 +137,23 @@ function toggleRow(id) {
   }
 }
 
+function buildPendingSortQuery() {
+  return '&sort_by=' + encodeURIComponent(pendingSortBy)
+    + '&sort_dir=' + encodeURIComponent(pendingSortDir);
+}
+
+function buildPendingStatusSelect(selected) {
+  const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
+  let html = '<select class="pending-edit-input pending-status px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">';
+  for (let i = 0; i < PENDING_STATUS_OPTIONS.length; i++) {
+    const opt = PENDING_STATUS_OPTIONS[i];
+    const sel = String(selected).toLowerCase() === opt ? ' selected' : '';
+    html += '<option value="' + opt + '"' + sel + '>' + opt.charAt(0).toUpperCase() + opt.slice(1) + '</option>';
+  }
+  html += '</select>';
+  return html;
+}
+
 function buildPendingCsvRow(item) {
   return [
     sanitizeCSV(item.local),
@@ -157,6 +172,46 @@ function buildPendingCsvRow(item) {
   ];
 }
 
+describe("buildPendingSortQuery", () => {
+  it("builds sort params for default sort", () => {
+    pendingSortBy = 'e.local';
+    pendingSortDir = 'ASC';
+    expect(buildPendingSortQuery()).toBe('&sort_by=e.local&sort_dir=ASC');
+  });
+
+  it("reflects current sort state", () => {
+    pendingSortBy = 'r.data_concluido';
+    pendingSortDir = 'DESC';
+    expect(buildPendingSortQuery()).toBe('&sort_by=r.data_concluido&sort_dir=DESC');
+  });
+
+  it("encodes unsafe characters in column names", () => {
+    pendingSortBy = 'r.os; DROP';
+    pendingSortDir = 'ASC';
+    expect(buildPendingSortQuery()).toBe('&sort_by=r.os%3B%20DROP&sort_dir=ASC');
+  });
+});
+
+describe("buildPendingStatusSelect", () => {
+  it("renders an option for each pending status", () => {
+    const html = buildPendingStatusSelect('');
+    expect((html.match(/<option/g) || []).length).toBe(4);
+    expect(html).toContain('value="pendente"');
+    expect(html).toContain('value="em andamento"');
+    expect(html).toContain('value="projeto clean up"');
+  });
+
+  it("marks the current status as selected", () => {
+    const html = buildPendingStatusSelect('em andamento');
+    expect(html).toContain('<option value="em andamento" selected>Em andamento</option>');
+  });
+
+  it("does not select any option when value is empty", () => {
+    const html = buildPendingStatusSelect('');
+    expect(html).not.toContain(' selected');
+  });
+});
+
 describe("resetPendingState", () => {
   beforeEach(() => {
     document.body.innerHTML =
@@ -167,14 +222,15 @@ describe("resetPendingState", () => {
   it("clears state and DOM", () => {
     pendingLoading = true;
     pendingAllLoaded = true;
-    pendingLastLocal = 'BMA';
+    pendingSortBy = 'r.data';
+    pendingSortDir = 'DESC';
     resetPendingState('', '');
 
     expect(pendingSearch).toBe('');
     expect(pendingStatusFilter).toBe('');
-    expect(pendingLastLocal).toBeNull();
     expect(pendingAllLoaded).toBe(false);
     expect(pendingLoading).toBe(false);
+    expect((typeof pendingSortBy).toLowerCase()).toBe('string');
     expect(document.getElementById('pendingTableBody').innerHTML).toBe('');
   });
 

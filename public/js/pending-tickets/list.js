@@ -3,8 +3,8 @@ import { createInfiniteScroll, debounce } from '/public/js/components/infinite-s
 var _pendingScroll = null;
 var pendingSearch = '';
 var pendingStatusFilter = '';
-var pendingLastLocal = null;
-var pendingLastId = null;
+var pendingSortBy = 'e.local';
+var pendingSortDir = 'ASC';
 var pendingLoading = false;
 var pendingAllLoaded = false;
 
@@ -14,6 +14,19 @@ const CSR_COLUMNS = [
   'DATA_PROGRAMADA', 'DATA_REAL_INICIO', 'DATA_PREVISTA_CONCLUSAO',
   'DATA_CONCLUSAO', 'TECNICO', 'MATERIAL', 'LOCALIDADE',
 ];
+
+const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
+
+const PENDING_EDITABLE_TYPES = {
+  status: 'select',
+  data: 'date',
+  data_planejada: 'date',
+  data_real_inicio: 'date',
+  data_prevista_conclusao: 'date',
+  data_concluido: 'date',
+  equipe: 'text',
+  material: 'text',
+};
 
 function getStatusBadgeClass(status) {
   switch ((status || '').toLowerCase()) {
@@ -38,6 +51,112 @@ function getCategoryBadgeClass(tipo) {
       return 'bg-sky-100 text-sky-700';
     default:
       return 'bg-slate-100 text-slate-700';
+  }
+}
+
+function pendingValueRaw(value) {
+  return value === null || value === undefined ? '' : value;
+}
+
+function pendingFieldDisplay(field, value) {
+  if (field.indexOf('data') === 0) return formatDate(value);
+  if (value === null || value === undefined || value === '') return '-';
+  return value;
+}
+
+function pendingBadgeClassFor(field, value) {
+  if (field === 'status') return 'status-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeClass(value);
+  if (field === 'tipo') return 'category-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getCategoryBadgeClass(value);
+  return '';
+}
+
+function pendingEditBtn(field) {
+  return '<button type="button" class="pending-edit text-slate-400 hover:text-blue-500 ml-1 align-middle" data-field="' + field + '" title="Editar" aria-label="Editar">'
+    + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>'
+    + '</button>';
+}
+
+function buildPendingStatusSelect(selected) {
+  var html = '<select class="pending-edit-input pending-status px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">';
+  for (var i = 0; i < PENDING_STATUS_OPTIONS.length; i++) {
+    var opt = PENDING_STATUS_OPTIONS[i];
+    var sel = String(selected).toLowerCase() === opt ? ' selected' : '';
+    html += '<option value="' + opt + '"' + sel + '>' + opt.charAt(0).toUpperCase() + opt.slice(1) + '</option>';
+  }
+  html += '</select>';
+  return html;
+}
+
+function pendingEditableCellHtml(field, value) {
+  var raw = pendingValueRaw(value);
+  var display = pendingFieldDisplay(field, value);
+  var badge = pendingBadgeClassFor(field, value);
+  return '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400" data-field="' + field + '">'
+    + '<span class="pending-value' + (badge ? ' ' + badge : '') + '" data-raw="' + escapeHtml(raw) + '">' + escapeHtml(display) + '</span>'
+    + pendingEditBtn(field)
+    + '</td>';
+}
+
+function enterPendingEdit(td, field) {
+  if (td.querySelector('.pending-edit-input')) return;
+  var valueEl = td.querySelector('.pending-value');
+  var raw = valueEl ? valueEl.getAttribute('data-raw') : '';
+  td.setAttribute('data-prev-raw', raw);
+
+  var type = PENDING_EDITABLE_TYPES[field] || 'text';
+  var inputHtml;
+  if (type === 'select') {
+    inputHtml = buildPendingStatusSelect(raw);
+  } else if (type === 'date') {
+    inputHtml = '<input type="date" class="pending-edit-input pending-date px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200" value="' + escapeHtml(raw) + '" />';
+  } else {
+    inputHtml = '<input type="text" class="pending-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200" value="' + escapeHtml(raw) + '" />';
+  }
+
+  td.innerHTML = inputHtml
+    + '<button type="button" class="pending-save ml-1 px-1.5 py-1 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-800" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
+    + '<button type="button" class="pending-cancel ml-1 px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+}
+
+function refreshPendingCell(td, field, value) {
+  var raw = pendingValueRaw(value);
+  var display = pendingFieldDisplay(field, value);
+  var badge = pendingBadgeClassFor(field, value);
+  td.removeAttribute('data-prev-raw');
+  td.innerHTML = '<span class="pending-value' + (badge ? ' ' + badge : '') + '" data-raw="' + escapeHtml(raw) + '">' + escapeHtml(display) + '</span>' + pendingEditBtn(field);
+}
+
+function cancelPendingEdit(td) {
+  var field = td.getAttribute('data-field');
+  var prev = td.getAttribute('data-prev-raw') || '';
+  refreshPendingCell(td, field, prev);
+}
+
+async function savePendingField(td) {
+  var input = td.querySelector('.pending-edit-input');
+  if (!input) return;
+  var value = input.value;
+  var field = td.getAttribute('data-field');
+  var tr = td.closest('tr.pending-row');
+  var id = tr ? tr.getAttribute('data-id') : null;
+  if (!id) return;
+
+  try {
+    var resp = await apiFetch('/app/api/index.php?route=pending-tickets', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: parseInt(id, 10), field: field, value: value }),
+    });
+    var result = await resp.json();
+    if (!result.success) {
+      showToast(result.message || 'Erro ao salvar campo', 'error');
+      return;
+    }
+    refreshPendingCell(td, field, value);
+    showToast('Campo atualizado', 'success');
+  } catch (e) {
+    console.error('Erro ao salvar campo', e);
+    showToast('Erro ao salvar campo', 'error');
   }
 }
 
@@ -76,16 +195,14 @@ function renderPendingTable(list, append) {
       + '<td class="px-3 py-2.5 text-sm">'
       + '<span class="category-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getCategoryBadgeClass(item.tipo) + '">'
       + escapeHtml(item.tipo || '-') + '</span></td>'
-      + '<td class="px-3 py-2.5 text-sm">'
-      + '<span class="status-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeClass(item.status) + '">'
-      + escapeHtml(item.status) + '</span></td>'
-      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data)) + '</td>'
-      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data_planejada)) + '</td>'
-      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data_real_inicio)) + '</td>'
-      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data_prevista_conclusao)) + '</td>'
-      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data_concluido)) + '</td>'
-      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.equipe || '-') + '</td>'
-      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.material || '-') + '</td>'
+      + pendingEditableCellHtml('status', item.status)
+      + pendingEditableCellHtml('data', item.data)
+      + pendingEditableCellHtml('data_planejada', item.data_planejada)
+      + pendingEditableCellHtml('data_real_inicio', item.data_real_inicio)
+      + pendingEditableCellHtml('data_prevista_conclusao', item.data_prevista_conclusao)
+      + pendingEditableCellHtml('data_concluido', item.data_concluido)
+      + pendingEditableCellHtml('equipe', item.equipe)
+      + pendingEditableCellHtml('material', item.material)
       + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.localidade || '-') + '</td></tr>';
 
     html += '<tr class="pending-details hidden" data-detail-for="' + item.id + '">'
@@ -171,18 +288,16 @@ function buildPendingCsvRow(item) {
 async function exportPendingCsv() {
   try {
     var allRows = [];
-    var lastLocal = null;
-    var lastId = null;
+    var offset = 0;
     var total;
+    var CHUNK = 200;
 
     while (true) {
-      var url = '/app/api/index.php?route=pending-tickets&limit=200'
+      var url = '/app/api/index.php?route=pending-tickets&limit=' + CHUNK
+        + '&offset=' + offset
         + '&search=' + encodeURIComponent(pendingSearch)
-        + '&status=' + encodeURIComponent(pendingStatusFilter);
-
-      if (lastLocal && lastId) {
-        url += '&lastLocal=' + encodeURIComponent(lastLocal) + '&lastId=' + lastId;
-      }
+        + '&status=' + encodeURIComponent(pendingStatusFilter)
+        + buildPendingSortQuery();
 
       var resp = await fetch(url);
       var result = await resp.json();
@@ -193,13 +308,8 @@ async function exportPendingCsv() {
         allRows.push(buildPendingCsvRow(chunk[i]));
       }
 
-      if (chunk.length > 0) {
-        var last = chunk[chunk.length - 1];
-        lastLocal = last.local;
-        lastId = last.id;
-      }
-
       if (chunk.length === 0) break;
+      offset += chunk.length;
     }
 
     if (allRows.length === 0) {
@@ -232,18 +342,42 @@ var pendingDebouncedSearch = debounce(function (val) {
   _pendingReset();
 }, 1000);
 
+function buildPendingSortQuery() {
+  return '&sort_by=' + encodeURIComponent(pendingSortBy)
+    + '&sort_dir=' + encodeURIComponent(pendingSortDir);
+}
+
 function _pendingReset() {
-  pendingLastLocal = null;
-  pendingLastId = null;
+  pendingLoading = false;
   pendingAllLoaded = false;
   if (_pendingScroll) _pendingScroll.reset().init();
+}
+
+function setupPendingSort() {
+  document.querySelectorAll('#pendingTable thead th[data-sort]').forEach(function (th) {
+    th.addEventListener('click', function () {
+      var col = this.dataset.sort;
+      if (pendingSortBy === col) {
+        pendingSortDir = pendingSortDir === 'ASC' ? 'DESC' : 'ASC';
+      } else {
+        pendingSortBy = col;
+        pendingSortDir = 'ASC';
+      }
+      document.querySelectorAll('#pendingTable thead th .sort-icon').forEach(function (el) {
+        el.textContent = '';
+      });
+      var icon = this.querySelector('.sort-icon');
+      if (icon) icon.textContent = pendingSortDir === 'ASC' ? '\u25B2' : '\u25BC';
+      _pendingReset();
+    });
+  });
 }
 
 function initPendingTickets() {
   pendingSearch = '';
   pendingStatusFilter = '';
-  pendingLastLocal = null;
-  pendingLastId = null;
+  pendingSortBy = 'e.local';
+  pendingSortDir = 'ASC';
   pendingLoading = false;
   pendingAllLoaded = false;
 
@@ -279,24 +413,49 @@ function initPendingTickets() {
   var tbody = document.getElementById('pendingTableBody');
   if (tbody) {
     tbody.addEventListener('click', function (e) {
+      var editBtn = e.target.closest('button.pending-edit');
+      if (editBtn) {
+        enterPendingEdit(editBtn.closest('td'), editBtn.getAttribute('data-field'));
+        return;
+      }
+      var saveBtn = e.target.closest('button.pending-save');
+      if (saveBtn) {
+        savePendingField(saveBtn.closest('td'));
+        return;
+      }
+      var cancelBtn = e.target.closest('button.pending-cancel');
+      if (cancelBtn) {
+        cancelPendingEdit(cancelBtn.closest('td'));
+        return;
+      }
       var row = e.target.closest('tr.pending-row');
       if (row) {
         var id = row.getAttribute('data-id');
         if (id) togglePendingRow(parseInt(id));
       }
     });
+
+    tbody.addEventListener('keydown', function (e) {
+      var input = e.target.closest('.pending-edit-input');
+      if (!input) return;
+      var td = input.closest('td');
+      if (e.key === 'Enter') {
+        savePendingField(td);
+      } else if (e.key === 'Escape') {
+        cancelPendingEdit(td);
+      }
+    });
   }
+
+  setupPendingSort();
 
   _pendingScroll = createInfiniteScroll({
     fetchFn: function (params, opts) {
       var url = '/app/api/index.php?route=pending-tickets&limit=' + params.limit
+        + '&offset=' + params.offset
         + '&search=' + encodeURIComponent(pendingSearch)
-        + '&status=' + encodeURIComponent(pendingStatusFilter);
-
-      if (pendingLastLocal && pendingLastId) {
-        url += '&lastLocal=' + encodeURIComponent(pendingLastLocal)
-          + '&lastId=' + pendingLastId;
-      }
+        + '&status=' + encodeURIComponent(pendingStatusFilter)
+        + buildPendingSortQuery();
 
       return apiFetch(url, opts)
         .then(function (r) { return r.json(); })
@@ -306,24 +465,10 @@ function initPendingTickets() {
         });
     },
     renderFn: function (items) {
-      var append = pendingLastLocal !== null;
-      renderPendingTable(items, append);
-
-      if (items.length > 0) {
-        var last = items[items.length - 1];
-        pendingLastLocal = last.local;
-        pendingLastId = last.id;
-      }
+      renderPendingTable(items, true);
     },
     renderFullFn: function (items, total) {
-      pendingLastLocal = null;
-      pendingLastId = null;
       renderPendingTable(items, false);
-      if (items.length > 0) {
-        var last = items[items.length - 1];
-        pendingLastLocal = last.local;
-        pendingLastId = last.id;
-      }
       updatePendingBadge({ total: total });
       updatePendingCount(total);
     },
@@ -334,7 +479,7 @@ function initPendingTickets() {
       }
     },
     getFilterHash: function () {
-      return pendingSearch + '|' + pendingStatusFilter;
+      return pendingSearch + '|' + pendingStatusFilter + '|' + pendingSortBy + '|' + pendingSortDir;
     },
     sentinelId: 'pendingSentinel',
     limit: 20,
@@ -346,3 +491,4 @@ function initPendingTickets() {
 globalThis.initPendingTickets = initPendingTickets;
 globalThis.exportPendingCsv = exportPendingCsv;
 globalThis.buildPendingCsvRow = buildPendingCsvRow;
+globalThis.buildPendingSortQuery = buildPendingSortQuery;

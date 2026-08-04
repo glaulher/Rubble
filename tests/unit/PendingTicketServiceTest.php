@@ -29,7 +29,7 @@ class PendingTicketServiceTest extends TestCase
         $repo->method('countPending')->willReturn(1);
 
         $service = $this->createService($repo);
-        $result = $service->listPendingBySite(20, null, null, '', '');
+        $result = $service->listPendingBySite(20, 0, '', '');
 
         $this->assertArrayHasKey('items', $result);
         $this->assertArrayHasKey('total', $result);
@@ -44,7 +44,7 @@ class PendingTicketServiceTest extends TestCase
         $repo->method('countPending')->willReturn(0);
 
         $service = $this->createService($repo);
-        $result = $service->listPendingBySite(20, null, null, 'BMA', '');
+        $result = $service->listPendingBySite(20, 0, 'BMA', '');
 
         $this->assertSame(0, $result['total']);
         $this->assertEmpty($result['items']);
@@ -57,7 +57,7 @@ class PendingTicketServiceTest extends TestCase
         $repo->method('countPending')->willReturn(0);
 
         $service = $this->createService($repo);
-        $result = $service->listPendingBySite(20, null, null, '', 'pendente');
+        $result = $service->listPendingBySite(20, 0, '', 'pendente');
 
         $this->assertSame(0, $result['total']);
     }
@@ -68,7 +68,7 @@ class PendingTicketServiceTest extends TestCase
         $this->expectExceptionMessage('Status inválido');
 
         $service = $this->createService();
-        $service->listPendingBySite(20, null, null, '', 'status_invalido');
+        $service->listPendingBySite(20, 0, '', 'status_invalido');
     }
 
     public function testCountPendingDelegatesToRepository(): void
@@ -114,13 +114,13 @@ class PendingTicketServiceTest extends TestCase
 
         $repo->expects($this->once())
             ->method('listPendingBySite')
-            ->with(20, $this->anything(), $this->anything(), $expectedTruncated, '');
+            ->with(20, $this->anything(), $expectedTruncated, '', 'e.local', 'ASC');
 
         $service = $this->createService($repo);
-        $service->listPendingBySite(20, null, null, $longSearch, '');
+        $service->listPendingBySite(20, 0, $longSearch, '');
     }
 
-    public function testKeysetParamsPassedCorrectly(): void
+    public function testSortParamsPassedCorrectly(): void
     {
         $repo = $this->createMockRepo();
         $repo->method('listPendingBySite')->willReturn([]);
@@ -128,9 +128,91 @@ class PendingTicketServiceTest extends TestCase
 
         $repo->expects($this->once())
             ->method('listPendingBySite')
-            ->with(20, 'BMA', 42, '', '');
+            ->with(20, 0, '', '', 'r.data', 'DESC');
 
         $service = $this->createService($repo);
-        $service->listPendingBySite(20, 'BMA', 42, '', '');
+        $service->listPendingBySite(20, 0, '', '', 'r.data', 'desc');
+    }
+
+    public function testOffsetPassedThrough(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('listPendingBySite')->willReturn([]);
+        $repo->method('countPending')->willReturn(0);
+
+        $repo->expects($this->once())
+            ->method('listPendingBySite')
+            ->with(20, 40, '', '', 'e.local', 'ASC');
+
+        $service = $this->createService($repo);
+        $service->listPendingBySite(20, 40, '', '');
+    }
+
+    public function testSortByFallbackToDefaultWhenNotAllowed(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('listPendingBySite')->willReturn([]);
+        $repo->method('countPending')->willReturn(0);
+
+        $repo->expects($this->once())
+            ->method('listPendingBySite')
+            ->with(20, 0, '', '', 'e.local', 'ASC');
+
+        $service = $this->createService($repo);
+        $service->listPendingBySite(20, 0, '', '', 'r.id; DROP TABLE registros', 'ASC');
+    }
+
+    public function testUpdatePendingFieldDelegatesToRepository(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updatePendingField')
+            ->with(10, 'material', 'Filtro novo')
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $this->assertTrue($service->updatePendingField(10, 'material', 'Filtro novo'));
+    }
+
+    public function testUpdatePendingFieldNormalizesStatusToLowercase(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updatePendingField')
+            ->with(10, 'status', 'pendente')
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $service->updatePendingField(10, 'status', 'PENDENTE');
+    }
+
+    public function testUpdatePendingFieldThrowsOnNonEditableField(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Campo não editável');
+
+        $service = $this->createService();
+        $service->updatePendingField(10, 'local', 'BMA');
+    }
+
+    public function testUpdatePendingFieldThrowsOnInvalidStatus(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Status inválido');
+
+        $service = $this->createService();
+        $service->updatePendingField(10, 'status', 'status_invalido');
+    }
+
+    public function testUpdatePendingFieldConvertsEmptyValueToNull(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updatePendingField')
+            ->with(10, 'data_prevista_conclusao', null)
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $service->updatePendingField(10, 'data_prevista_conclusao', '  ');
     }
 }

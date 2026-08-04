@@ -6,6 +6,33 @@ use App\Api\Entities\Ticket;
 
 class TicketRepository extends BaseRepository
 {
+    private const ALLOWED_SORT = [
+        'e.local' => 'e.local',
+        'e.localidade' => 'e.localidade',
+        'e.equipamento' => 'e.equipamento',
+        'r.id' => 'r.id',
+        'r.os' => 'r.os',
+        'r.tipo' => 'r.tipo',
+        'r.status' => 'r.status',
+        'r.data' => 'r.data',
+        'r.data_planejada' => 'r.data_planejada',
+        'r.data_real_inicio' => 'r.data_real_inicio',
+        'r.data_prevista_conclusao' => 'r.data_prevista_conclusao',
+        'r.data_concluido' => 'r.data_concluido',
+        'r.equipe' => 'r.equipe',
+        'r.material' => 'r.material',
+    ];
+
+    private const ALLOWED_EDITABLE_FIELDS = [
+        'status' => 'status',
+        'data' => 'data',
+        'data_planejada' => 'data_planejada',
+        'data_real_inicio' => 'data_real_inicio',
+        'data_prevista_conclusao' => 'data_prevista_conclusao',
+        'data_concluido' => 'data_concluido',
+        'equipe' => 'equipe',
+        'material' => 'material',
+    ];
 
     public function listByItem(int $itemId, string $statusOrderSql = ''): array
     {
@@ -246,14 +273,16 @@ class TicketRepository extends BaseRepository
 
     public function listPendingBySite(
         int $limit,
-        ?string $lastLocal,
-        ?int $lastId,
-        string $search,
-        string $status
+        int $offset = 0,
+        string $search = '',
+        string $status = '',
+        string $sortBy = 'e.local',
+        string $sortDir = 'ASC'
     ): array {
         $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
 
-        $where = 'LOWER(r.status) IN (\'' . implode("','", $statusList) . '\')';
+        $where = 'LOWER(r.status) IN (\'' . implode("','", $statusList) . '\')'
+            . " AND LOWER(r.tipo) = 'corretiva'";
         $params = [];
         $types = '';
 
@@ -270,16 +299,13 @@ class TicketRepository extends BaseRepository
             $types .= 'sssss';
         }
 
-        if ($lastLocal !== null && $lastId !== null) {
-            $where .= ' AND (e.local > ? OR (e.local = ? AND r.id < ?))';
-            $params[] = $lastLocal;
-            $params[] = $lastLocal;
-            $params[] = $lastId;
-            $types .= 'ssi';
-        }
+        $allowedSort = self::ALLOWED_SORT;
+        $sortBy = $allowedSort[$sortBy] ?? 'e.local';
+        $sortDir = strtoupper($sortDir) === 'DESC' ? 'DESC' : 'ASC';
 
-        $limitParam = $limit;
-        $params[] = $limitParam;
+        $params[] = $limit;
+        $types .= 'i';
+        $params[] = max(0, $offset);
         $types .= 'i';
 
         $sql = "
@@ -287,8 +313,8 @@ class TicketRepository extends BaseRepository
             FROM registros r
             JOIN equipamentos e ON e.id = r.equipamento_id
             WHERE {$where}
-            ORDER BY e.local, r.id DESC
-            LIMIT ?
+            ORDER BY {$sortBy} {$sortDir}, r.id DESC
+            LIMIT ? OFFSET ?
         ";
 
         $stmt = $this->safePrepare($sql);
@@ -308,7 +334,8 @@ class TicketRepository extends BaseRepository
     {
         $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
 
-        $where = 'LOWER(r.status) IN (\'' . implode("','", $statusList) . '\')';
+        $where = 'LOWER(r.status) IN (\'' . implode("','", $statusList) . '\')'
+            . " AND LOWER(r.tipo) = 'corretiva'";
         $params = [];
         $types = '';
 
@@ -341,6 +368,22 @@ class TicketRepository extends BaseRepository
         $row = $result->fetch_assoc();
 
         return (int) ($row['total'] ?? 0);
+    }
+
+    public function updatePendingField(int $id, string $field, mixed $value): bool
+    {
+        $col = self::ALLOWED_EDITABLE_FIELDS[$field] ?? null;
+        if ($col === null) {
+            throw new \InvalidArgumentException('Campo não editável: ' . $field);
+        }
+
+        $sql = "UPDATE registros SET {$col} = ? WHERE id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('si', $value, $id);
+        $stmt->execute();
+        $affected = $stmt->affected_rows;
+
+        return $affected > 0 || $affected === 0;
     }
 
     public function listScheduledToNotify(): array
