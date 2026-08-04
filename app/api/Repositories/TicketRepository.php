@@ -294,9 +294,9 @@ class TicketRepository extends BaseRepository
 
         if ($search !== '') {
             $likeSearch = '%' . $search . '%';
-            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR r.os LIKE ? OR r.obs LIKE ? OR r.material LIKE ?)';
-            $params = array_merge($params, [$likeSearch, $likeSearch, $likeSearch, $likeSearch, $likeSearch]);
-            $types .= 'sssss';
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
+            $params = array_merge($params, array_fill(0, 14, $likeSearch));
+            $types .= str_repeat('s', 14);
         }
 
         $allowedSort = self::ALLOWED_SORT;
@@ -347,9 +347,9 @@ class TicketRepository extends BaseRepository
 
         if ($search !== '') {
             $likeSearch = '%' . $search . '%';
-            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR r.os LIKE ? OR r.obs LIKE ? OR r.material LIKE ?)';
-            $params = array_merge($params, [$likeSearch, $likeSearch, $likeSearch, $likeSearch, $likeSearch]);
-            $types .= 'sssss';
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
+            $params = array_merge($params, array_fill(0, 14, $likeSearch));
+            $types .= str_repeat('s', 14);
         }
 
         $sql = "

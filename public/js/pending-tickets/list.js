@@ -10,12 +10,31 @@ var pendingAllLoaded = false;
 
 const PENDING_COLUMNS = 13;
 const CSR_COLUMNS = [
-  'SITE', 'OS', 'EQUIPAMENTO', 'CATEGORIA', 'STATUS', 'DATA_ABERTURA',
-  'DATA_PROGRAMADA', 'DATA_REAL_INICIO', 'DATA_PREVISTA_CONCLUSAO',
-  'DATA_CONCLUSAO', 'TECNICO', 'MATERIAL', 'LOCALIDADE',
+  'SITE', 'OS', 'EQUIPAMENTO', 'LOCALIDADE', 'CATEGORIA', 'STATUS',
+  'DATA_ABERTURA', 'DATA_PROGRAMADA', 'DATA_REAL_INICIO', 'DATA_PREVISTA_CONCLUSAO',
+  'DATA_CONCLUSAO', 'TECNICO', 'MATERIAL',
 ];
 
 const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
+
+const PENDING_COLUMNS_DEF = [
+  { key: 'local', label: 'Site' },
+  { key: 'os', label: 'OS' },
+  { key: 'equipamento', label: 'Equipamento' },
+  { key: 'localidade', label: 'Localidade' },
+  { key: 'tipo', label: 'Categoria' },
+  { key: 'status', label: 'Status' },
+  { key: 'data', label: 'Data Abertura' },
+  { key: 'data_planejada', label: 'Data Programada' },
+  { key: 'data_real_inicio', label: 'Data Real Início' },
+  { key: 'data_prevista_conclusao', label: 'Data Prevista Conclusão' },
+  { key: 'data_concluido', label: 'Data Conclusão' },
+  { key: 'equipe', label: 'Técnico' },
+  { key: 'material', label: 'Material' },
+];
+
+var pendingHiddenColumns = new Set();
+var pendingColTodosChecked = true;
 
 const PENDING_EDITABLE_TYPES = {
   status: 'select',
@@ -77,7 +96,7 @@ function pendingEditBtn(field) {
 }
 
 function buildPendingStatusSelect(selected) {
-  var html = '<select class="pending-edit-input pending-status px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">';
+  var html = '<select class="pending-edit-input pending-status px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800">';
   for (var i = 0; i < PENDING_STATUS_OPTIONS.length; i++) {
     var opt = PENDING_STATUS_OPTIONS[i];
     var sel = String(selected).toLowerCase() === opt ? ' selected' : '';
@@ -91,7 +110,8 @@ function pendingEditableCellHtml(field, value) {
   var raw = pendingValueRaw(value);
   var display = pendingFieldDisplay(field, value);
   var badge = pendingBadgeClassFor(field, value);
-  return '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400" data-field="' + field + '">'
+  var hidden = pendingHiddenColumns.has(field) ? ' hidden' : '';
+  return '<td class="px-3 py-2.5 text-sm text-slate-600' + hidden + '" data-field="' + field + '" data-col="' + field + '">'
     + '<span class="pending-value' + (badge ? ' ' + badge : '') + '" data-raw="' + escapeHtml(raw) + '">' + escapeHtml(display) + '</span>'
     + pendingEditBtn(field)
     + '</td>';
@@ -108,9 +128,9 @@ function enterPendingEdit(td, field) {
   if (type === 'select') {
     inputHtml = buildPendingStatusSelect(raw);
   } else if (type === 'date') {
-    inputHtml = '<input type="date" class="pending-edit-input pending-date px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200" value="' + escapeHtml(raw) + '" />';
+    inputHtml = '<input type="date" class="pending-edit-input pending-date px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800" value="' + escapeHtml(raw) + '" />';
   } else {
-    inputHtml = '<input type="text" class="pending-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200" value="' + escapeHtml(raw) + '" />';
+    inputHtml = '<input type="text" class="pending-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800" value="' + escapeHtml(raw) + '" />';
   }
 
   td.innerHTML = inputHtml
@@ -183,16 +203,17 @@ function renderPendingTable(list, append) {
   for (var i = 0; i < list.length; i++) {
     var item = list[i];
 
-    html += '<tr class="pending-row border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"'
+    html += '<tr class="pending-row border-b border-slate-200 hover:bg-slate-50 cursor-pointer"'
       + ' data-id="' + item.id + '" data-expandable="true">'
-      + '<td class="px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200">'
+      + '<td class="px-3 py-2.5 text-sm text-slate-800' + (pendingHiddenColumns.has('local') ? ' hidden' : '') + '" data-col="local">'
       + '<span class="expand-icon text-slate-400 mr-2">&#9654;</span>'
       + escapeHtml(item.local) + '</td>'
-      + '<td class="px-3 py-2.5 text-sm font-medium text-slate-800 dark:text-slate-200">'
+      + '<td class="px-3 py-2.5 text-sm font-medium text-slate-800' + (pendingHiddenColumns.has('os') ? ' hidden' : '') + '" data-col="os">'
       + escapeHtml(item.os || '') + '</td>'
-      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600' + (pendingHiddenColumns.has('equipamento') ? ' hidden' : '') + '" data-col="equipamento">'
       + escapeHtml(item.equipamento || '') + '</td>'
-      + '<td class="px-3 py-2.5 text-sm">'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600' + (pendingHiddenColumns.has('localidade') ? ' hidden' : '') + '" data-col="localidade">' + escapeHtml(item.localidade || '-') + '</td>'
+      + '<td class="px-3 py-2.5 text-sm' + (pendingHiddenColumns.has('tipo') ? ' hidden' : '') + '" data-col="tipo">'
       + '<span class="category-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getCategoryBadgeClass(item.tipo) + '">'
       + escapeHtml(item.tipo || '-') + '</span></td>'
       + pendingEditableCellHtml('status', item.status)
@@ -203,12 +224,12 @@ function renderPendingTable(list, append) {
       + pendingEditableCellHtml('data_concluido', item.data_concluido)
       + pendingEditableCellHtml('equipe', item.equipe)
       + pendingEditableCellHtml('material', item.material)
-      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.localidade || '-') + '</td></tr>';
+      + '</tr>';
 
     html += '<tr class="pending-details hidden" data-detail-for="' + item.id + '">'
-      + '<td colspan="' + PENDING_COLUMNS + '" class="px-3 py-2.5 bg-slate-50 dark:bg-slate-800/30">'
+      + '<td colspan="' + pendingColspan() + '" class="px-3 py-2.5 bg-slate-50">'
       + '<div class="text-sm"><span class="text-slate-500">Observa\u00e7\u00e3o:</span> '
-      + '<span class="text-slate-700 dark:text-slate-300">' + escapeHtml(item.obs || '-') + '</span></div>'
+      + '<span class="text-slate-700">' + escapeHtml(item.obs || '-') + '</span></div>'
       + '</td></tr>';
   }
 
@@ -217,6 +238,8 @@ function renderPendingTable(list, append) {
   } else {
     tbody.insertAdjacentHTML('beforeend', html);
   }
+
+  applyPendingColumnVisibility();
 }
 
 function syncPendingTable(newItems) {
@@ -262,9 +285,110 @@ function updatePendingBadge(data) {
   if (badge) badge.textContent = data.total || 0;
 }
 
-function updatePendingCount(total) {
-  var count = document.getElementById('pendingCount');
-  if (count) count.textContent = total || 0;
+function pendingColspan() {
+  return PENDING_COLUMNS - pendingHiddenColumns.size;
+}
+
+function applyPendingColumnVisibility() {
+  for (var i = 0; i < PENDING_COLUMNS_DEF.length; i++) {
+    var col = PENDING_COLUMNS_DEF[i].key;
+    var hidden = pendingHiddenColumns.has(col);
+    var ths = document.querySelectorAll('#pendingTable thead th[data-col="' + col + '"]');
+    var tds = document.querySelectorAll('#pendingTable tbody td[data-col="' + col + '"]');
+    for (var t = 0; t < ths.length; t++) ths[t].classList.toggle('hidden', hidden);
+    for (var d = 0; d < tds.length; d++) tds[d].classList.toggle('hidden', hidden);
+  }
+  var detail = document.querySelectorAll('#pendingTable tr.pending-details > td');
+  for (var i2 = 0; i2 < detail.length; i2++) {
+    detail[i2].colSpan = pendingColspan();
+  }
+}
+
+function updatePendingColumnLabel() {
+  var label = document.getElementById('pendingColLabel');
+  if (!label) return;
+  if (pendingColTodosChecked) {
+    label.textContent = 'Todas';
+    label.classList.remove('text-blue-600');
+  } else {
+    label.textContent = pendingHiddenColumns.size + ' oculta(s)';
+    label.classList.add('text-blue-600');
+  }
+}
+
+function renderPendingColumnDropdown() {
+  var dropdown = document.getElementById('pendingColDropdown');
+  if (!dropdown) return;
+
+  if (!dropdown.dataset.delegated) {
+    dropdown.addEventListener('change', function (e) {
+      var cb = e.target.closest('.pending-col-check');
+      if (!cb) return;
+      var val = cb.dataset.value;
+      if (val === '__all__') {
+        pendingColTodosChecked = cb.checked;
+        if (cb.checked) {
+          pendingHiddenColumns.clear();
+        } else {
+          pendingHiddenColumns = new Set(PENDING_COLUMNS_DEF.map(function (c) { return c.key; }));
+        }
+      } else {
+        if (cb.checked) {
+          pendingHiddenColumns.delete(val);
+        } else {
+          pendingHiddenColumns.add(val);
+        }
+        pendingColTodosChecked = pendingHiddenColumns.size === 0;
+      }
+      renderPendingColumnDropdown();
+      updatePendingColumnLabel();
+      applyPendingColumnVisibility();
+    });
+    dropdown.dataset.delegated = '1';
+  }
+
+  var html = '';
+  var allChecked = pendingColTodosChecked ? 'checked' : '';
+  html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100">';
+  html += '<input type="checkbox" class="pending-col-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="__all__" ' + allChecked + '>';
+  html += '<span class="text-sm text-slate-700 font-medium">Todas</span>';
+  html += '</label>';
+
+  for (var i = 0; i < PENDING_COLUMNS_DEF.length; i++) {
+    var col = PENDING_COLUMNS_DEF[i];
+    var checked = pendingColTodosChecked || !pendingHiddenColumns.has(col.key) ? 'checked' : '';
+    html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">';
+    html += '<input type="checkbox" class="pending-col-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="' + col.key + '" ' + checked + '>';
+    html += '<span class="text-sm text-slate-700">' + escapeHtml(col.label) + '</span>';
+    html += '</label>';
+  }
+
+  dropdown.innerHTML = html;
+}
+
+function initPendingColumnSelect() {
+  var btn = document.getElementById('pendingColBtn');
+  var dropdown = document.getElementById('pendingColDropdown');
+  if (!btn || !dropdown) return;
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    dropdown.classList.toggle('hidden');
+  });
+
+  if (!document._pendingColGlobalListener) {
+    document.addEventListener('click', function (e) {
+      var container = document.getElementById('pendingColContainer');
+      if (container && !container.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+    document._pendingColGlobalListener = true;
+  }
+
+  renderPendingColumnDropdown();
+  updatePendingColumnLabel();
+  applyPendingColumnVisibility();
 }
 
 function buildPendingCsvRow(item) {
@@ -272,6 +396,7 @@ function buildPendingCsvRow(item) {
     sanitizeCSV(item.local),
     sanitizeCSV(item.os || ''),
     sanitizeCSV(item.equipamento || ''),
+    sanitizeCSV(item.localidade || ''),
     sanitizeCSV(item.tipo || ''),
     sanitizeCSV(item.status || ''),
     formatDate(item.data),
@@ -281,7 +406,6 @@ function buildPendingCsvRow(item) {
     formatDate(item.data_concluido),
     sanitizeCSV(item.equipe || ''),
     sanitizeCSV(item.material || ''),
-    sanitizeCSV(item.localidade || ''),
   ];
 }
 
@@ -350,6 +474,8 @@ function buildPendingSortQuery() {
 function _pendingReset() {
   pendingLoading = false;
   pendingAllLoaded = false;
+  var tbody = document.getElementById('pendingTableBody');
+  if (tbody) tbody.innerHTML = '';
   if (_pendingScroll) _pendingScroll.reset().init();
 }
 
@@ -380,10 +506,19 @@ function initPendingTickets() {
   pendingSortDir = 'ASC';
   pendingLoading = false;
   pendingAllLoaded = false;
+  pendingHiddenColumns = new Set();
+  pendingColTodosChecked = true;
 
   var searchInput = document.getElementById('pendingSearchInput');
   if (searchInput) {
     searchInput.value = '';
+    searchInput.addEventListener('click', function () {
+      if (this.value.trim() !== '') {
+        this.value = '';
+        pendingSearch = '';
+        _pendingReset();
+      }
+    });
     searchInput.addEventListener('input', function () {
       pendingDebouncedSearch(this.value);
     });
@@ -394,13 +529,6 @@ function initPendingTickets() {
     filterRadios[i].addEventListener('change', function () {
       if (!this.checked) return;
       pendingStatusFilter = this.value;
-      _pendingReset();
-    });
-  }
-
-  var refreshBtn = document.getElementById('pendingRefreshBtn');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', function () {
       _pendingReset();
     });
   }
@@ -448,6 +576,7 @@ function initPendingTickets() {
   }
 
   setupPendingSort();
+  initPendingColumnSelect();
 
   _pendingScroll = createInfiniteScroll({
     fetchFn: function (params, opts) {
@@ -470,12 +599,10 @@ function initPendingTickets() {
     renderFullFn: function (items, total) {
       renderPendingTable(items, false);
       updatePendingBadge({ total: total });
-      updatePendingCount(total);
     },
     afterLoadFn: function (state) {
       if (!state.isPolling) {
         updatePendingBadge({ total: state.total });
-        updatePendingCount(state.total);
       }
     },
     getFilterHash: function () {

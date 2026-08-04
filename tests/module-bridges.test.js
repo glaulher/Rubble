@@ -97,6 +97,125 @@ describe("pending-tickets/list.js bridge", function () {
     evalModule('../public/js/pending-tickets/list.js', '');
     expect(typeof globalThis.initPendingTickets).toBe("function");
   });
+
+  it("clears the tbody when a sortable header is clicked", function () {
+    delete globalThis.initPendingTickets;
+    document.body.innerHTML =
+      '<div id="pendingScrollContainer">' +
+      '<table id="pendingTable">' +
+      '<thead><tr>' +
+      '<th data-sort="e.local">Site <span class="sort-icon"></span></th>' +
+      '<th data-sort="r.os">OS <span class="sort-icon"></span></th>' +
+      '</tr></thead>' +
+      '<tbody id="pendingTableBody"><tr class="pending-row"><td>old</td></tr></tbody>' +
+      '</table>' +
+      '<div id="pendingSentinel"></div>' +
+      '</div>' +
+      '<input id="pendingSearchInput" />' +
+      '<div id="pendingEmpty" class="hidden"></div>';
+
+    globalThis.apiFetch = function () {
+      return Promise.resolve({
+        json: function () { return { success: true, data: { items: [], total: 0 } }; },
+      });
+    };
+
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/pending-tickets/list.js', '\nfunction escapeHtml(v) { return String(v); }\n');
+
+    globalThis.initPendingTickets();
+
+    var th = document.querySelector('#pendingTable th[data-sort="r.os"]');
+    th.click();
+
+    expect(document.querySelectorAll('#pendingTableBody tr.pending-row').length).toBe(0);
+    expect(globalThis.buildPendingSortQuery()).toBe('&sort_by=r.os&sort_dir=ASC');
+  });
+
+  it("hides a column when its checkbox is unchecked in the column dropdown", function () {
+    delete globalThis.initPendingTickets;
+    document.body.innerHTML =
+      '<div id="pendingScrollContainer">' +
+      '<table id="pendingTable">' +
+      '<thead><tr>' +
+      '<th data-sort="e.local" data-col="local">Site</th>' +
+      '<th data-sort="r.os" data-col="os">OS</th>' +
+      '<th data-sort="e.equipamento" data-col="equipamento">Equipamento</th>' +
+      '</tr></thead>' +
+      '<tbody id="pendingTableBody">' +
+      '<tr class="pending-row"><td data-col="local">BMA</td><td data-col="os">OS123</td><td data-col="equipamento">WM 01</td></tr>' +
+      '</tbody>' +
+      '</table>' +
+      '<div id="pendingSentinel"></div>' +
+      '</div>' +
+      '<input id="pendingSearchInput" />' +
+      '<div id="pendingEmpty" class="hidden"></div>' +
+      '<div id="pendingColContainer">' +
+      '<button type="button" id="pendingColBtn"><span id="pendingColLabel">Todas</span></button>' +
+      '<div id="pendingColDropdown"></div>' +
+      '</div>';
+
+    globalThis.apiFetch = function () {
+      return Promise.resolve({
+        json: function () { return { success: true, data: { items: [], total: 0 } }; },
+      });
+    };
+
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/pending-tickets/list.js', '\nfunction escapeHtml(v) { return String(v); }\n');
+
+    globalThis.initPendingTickets();
+
+    var osCheckbox = document.querySelector('#pendingColDropdown input[data-value="os"]');
+    osCheckbox.checked = false;
+    osCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(document.querySelector('th[data-col="os"]').classList.contains('hidden')).toBe(true);
+    expect(document.querySelector('td[data-col="os"]').classList.contains('hidden')).toBe(true);
+    expect(document.querySelector('th[data-col="local"]').classList.contains('hidden')).toBe(false);
+    expect(document.querySelector('td[data-col="equipamento"]').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('pendingColLabel').textContent).toBe('1 oculta(s)');
+
+    var allCheckbox = document.querySelector('#pendingColDropdown input[data-value="__all__"]');
+    allCheckbox.checked = true;
+    allCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(document.querySelector('th[data-col="os"]').classList.contains('hidden')).toBe(false);
+    expect(document.querySelector('td[data-col="os"]').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('pendingColLabel').textContent).toBe('Todas');
+  });
+
+  it("clears the search input on click when non-empty", function () {
+    delete globalThis.initPendingTickets;
+    document.body.innerHTML =
+      '<div id="pendingScrollContainer">' +
+      '<table id="pendingTable">' +
+      '<thead><tr><th data-sort="e.local">Site</th></tr></thead>' +
+      '<tbody id="pendingTableBody"><tr class="pending-row"><td>old</td></tr></tbody>' +
+      '</table>' +
+      '<div id="pendingSentinel"></div>' +
+      '</div>' +
+      '<input id="pendingSearchInput" value="BMA" />' +
+      '<div id="pendingEmpty" class="hidden"></div>';
+
+    globalThis.apiFetch = function () {
+      return Promise.resolve({
+        json: function () { return { success: true, data: { items: [], total: 0 } }; },
+      });
+    };
+
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/pending-tickets/list.js', '\nfunction escapeHtml(v) { return String(v); }\n');
+
+    globalThis.initPendingTickets();
+
+    var searchInput = document.getElementById('pendingSearchInput');
+    searchInput.value = 'BMA';
+    searchInput.click();
+
+    expect(searchInput.value).toBe('');
+    expect(document.querySelectorAll('#pendingTableBody tr.pending-row').length).toBe(0);
+  });
 });
 
 describe("planned-activity/list.js bridge", function () {
