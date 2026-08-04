@@ -112,8 +112,10 @@ function pendingEditableCellHtml(field, value) {
   var badge = pendingBadgeClassFor(field, value);
   var hidden = pendingHiddenColumns.has(field) ? ' hidden' : '';
   return '<td class="px-3 py-2.5 text-sm text-slate-600' + hidden + '" data-field="' + field + '" data-col="' + field + '">'
+    + '<span class="inline-flex items-center gap-1">'
     + '<span class="pending-value' + (badge ? ' ' + badge : '') + '" data-raw="' + escapeHtml(raw) + '">' + escapeHtml(display) + '</span>'
     + pendingEditBtn(field)
+    + '</span>'
     + '</td>';
 }
 
@@ -143,7 +145,10 @@ function refreshPendingCell(td, field, value) {
   var display = pendingFieldDisplay(field, value);
   var badge = pendingBadgeClassFor(field, value);
   td.removeAttribute('data-prev-raw');
-  td.innerHTML = '<span class="pending-value' + (badge ? ' ' + badge : '') + '" data-raw="' + escapeHtml(raw) + '">' + escapeHtml(display) + '</span>' + pendingEditBtn(field);
+  td.innerHTML = '<span class="inline-flex items-center gap-1">'
+    + '<span class="pending-value' + (badge ? ' ' + badge : '') + '" data-raw="' + escapeHtml(raw) + '">' + escapeHtml(display) + '</span>'
+    + pendingEditBtn(field)
+    + '</span>';
 }
 
 function cancelPendingEdit(td) {

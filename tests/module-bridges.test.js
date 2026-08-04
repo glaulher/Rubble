@@ -216,6 +216,63 @@ describe("pending-tickets/list.js bridge", function () {
     expect(searchInput.value).toBe('');
     expect(document.querySelectorAll('#pendingTableBody tr.pending-row').length).toBe(0);
   });
+
+  it("wraps the value and edit pencil in an inline-flex cell", function () {
+    var code = readFileSync(resolve(__dirname, '../public/js/pending-tickets/list.js'), 'utf-8');
+    if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
+    var importStripped = code.replace(/^import .+$/gm, '');
+
+    document.body.innerHTML =
+      '<table id="pendingTable">' +
+      '<thead><tr><th data-col="status">Status</th></tr></thead>' +
+      '<tbody id="pendingTableBody"></tbody>' +
+      '</table>';
+
+    (0, eval)(mockInfiniteScroll);
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    try {
+      (0, eval)(
+        importStripped +
+          '\nfunction escapeHtml(v) { return String(v); }\n' +
+          'function formatDate(v) { return v || ""; }\n'
+      );
+
+      globalThis.renderPendingTable(
+        [
+          {
+            id: 1,
+            local: 'BMA',
+            os: 'OS1',
+            equipamento: 'WM 01',
+            localidade: 'Container 1',
+            tipo: 'corretiva',
+            status: 'pendente',
+            data: '2026-01-01',
+            data_planejada: null,
+            data_real_inicio: null,
+            data_prevista_conclusao: null,
+            data_concluido: null,
+            equipe: '',
+            material: '',
+            obs: 'obs',
+          },
+        ],
+        false
+      );
+
+      var statusCell = document.querySelector('#pendingTableBody td[data-col="status"]');
+      var wrapper = statusCell.querySelector(':scope > span.inline-flex');
+      expect(wrapper).not.toBe(null);
+      expect(wrapper.querySelector('.pending-value')).not.toBe(null);
+      expect(wrapper.querySelector('button.pending-edit')).not.toBe(null);
+    } finally {
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
 });
 
 describe("planned-activity/list.js bridge", function () {
