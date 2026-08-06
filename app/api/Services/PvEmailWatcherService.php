@@ -137,13 +137,10 @@ class PvEmailWatcherService
             $header = @imap_fetchheader($mbox, $uid, FT_UID);
             if ($header === false) return;
 
-            $subject = '';
-            if (preg_match('/^Subject:\s*(.+)$/mi', $header, $m)) {
-                $subject = iconv_mime_decode($m[1], 0, 'UTF-8');
-            }
+            $subject = $this->decodeSubject($header);
 
-            if (!preg_match('/PV(\d{6})/', $subject, $pvMatch)) return;
-            $pvNumber = $pvMatch[1];
+            $pvNumber = $this->extractPvNumber($subject);
+            if ($pvNumber === null) return;
 
             if ($this->isAlreadyProcessed($uid)) return;
 
@@ -166,6 +163,37 @@ class PvEmailWatcherService
             error_log('PvEmailWatcher: ' . $errorMsg);
             $result['errors'][] = $errorMsg;
         }
+    }
+
+    private function decodeSubject(string $header): string
+    {
+        if (!preg_match('/^Subject:.*(?:\r?\n[ \t].*)*/mi', $header, $m)) {
+            return '';
+        }
+
+        $raw = preg_replace('/^Subject:\s*/i', '', $m[0]);
+        $raw = preg_replace('/\r?\n[\t ]+/', ' ', $raw);
+        $raw = preg_replace('/ {2,}/', ' ', $raw);
+        $raw = trim($raw);
+        if ($raw === '') {
+            return '';
+        }
+
+        $parts = @imap_mime_header_decode($raw);
+        if ($parts === false || $parts === []) {
+            return $raw;
+        }
+
+        $decoded = trim((string) array_reduce($parts, static fn ($carry, $part) => $carry . $part->text, ''));
+        return $decoded !== '' ? $decoded : $raw;
+    }
+
+    private function extractPvNumber(string $subject): ?string
+    {
+        if (!preg_match('/PV:?\s*(\d{6})/', $subject, $pvMatch)) {
+            return null;
+        }
+        return $pvMatch[1];
     }
 
     private function fetchBodyText($mbox, int $uid): string

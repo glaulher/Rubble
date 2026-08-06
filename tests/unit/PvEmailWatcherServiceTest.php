@@ -67,6 +67,63 @@ class PvEmailWatcherServiceTest extends TestCase
         $this->assertEquals('/aprovad/i', $method->invoke($this->service));
     }
 
+    public function testDecodeSubjectPlain(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('decodeSubject');
+        $this->assertEquals('PV: 260025 - Sala A', $method->invoke($this->service, "Subject: PV: 260025 - Sala A\r\n"));
+    }
+
+    public function testDecodeSubjectEncodedWord(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('decodeSubject');
+        $this->assertEquals(
+            'PV: 260025 - Sala A',
+            $method->invoke($this->service, "Subject: =?UTF-8?Q?PV:_260025_-_Sala_A?=\r\n")
+        );
+    }
+
+    public function testDecodeSubjectFoldedContinuation(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('decodeSubject');
+        $this->assertEquals(
+            'PV: 260025 - Sala A',
+            $method->invoke($this->service, "Subject: PV: 260025 - \r\n Sala A\r\n")
+        );
+    }
+
+    public function testDecodeSubjectMalformedFallsBackToRaw(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('decodeSubject');
+        $result = $method->invoke($this->service, "Subject: =?UTF-8?Q?quebrado\r\n");
+        $this->assertNotEquals('', $result);
+    }
+
+    public function testExtractPvNumberColonAndSpaces(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('extractPvNumber');
+        $this->assertEquals('260025', $method->invoke($this->service, 'PV: 260025 - Sala A'));
+    }
+
+    public function testExtractPvNumberNoColon(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('extractPvNumber');
+        $this->assertEquals('260025', $method->invoke($this->service, 'PV260025 - Sala A'));
+    }
+
+    public function testExtractPvNumberNoMatch(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('extractPvNumber');
+        $this->assertNull($method->invoke($this->service, '260025'));
+        $this->assertNull($method->invoke($this->service, 'Proposta para faturamento'));
+    }
+
     public function testIsInboxFolderReturnsTrueForInbox(): void
     {
         $reflection = new \ReflectionClass($this->service);
