@@ -21,3 +21,4 @@ _debug*.php
 check_scm_db.php
 .worktrees/
 docker-compose.override.yml
+.playwright-mcp/
