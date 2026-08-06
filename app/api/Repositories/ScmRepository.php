@@ -121,14 +121,14 @@ class ScmRepository extends BaseRepository
                     data_execucao, data_validacao, medicao, origem, segmento, obs, equipamento_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
-                    data = VALUES(data),
+                    data = COALESCE(VALUES(data), data),
                     atividade = VALUES(atividade),
                     site = VALUES(site),
                     cidade = VALUES(cidade),
                     abertura = VALUES(abertura),
                     status = VALUES(status),
-                    data_execucao = VALUES(data_execucao),
-                    data_validacao = VALUES(data_validacao),
+                    data_execucao = COALESCE(VALUES(data_execucao), data_execucao),
+                    data_validacao = COALESCE(VALUES(data_validacao), data_validacao),
                     medicao = VALUES(medicao),
                     origem = VALUES(origem),
                     segmento = VALUES(segmento),

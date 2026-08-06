@@ -459,4 +459,96 @@ class ScmServiceTest extends TestCase
         $this->assertSame(1, $result['imported']);
         $this->assertSame(0, $result['skipped']);
     }
+
+    public function testImportBatchParsesDatesWithSecondsToDateOnly(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('findEquipmentByLocalScm')->willReturn(['id' => 10]);
+        $repo->method('findByScmCode')->willReturnOnConsecutiveCalls(null, ['id' => 1]);
+        $repo->method('upsertItems')->willReturn(true);
+        $repo->method('updatePvItemStatusByScm')->willReturn(0);
+
+        $captured = null;
+        $repo->method('upsert')->willReturnCallback(function (array $data) use (&$captured): bool {
+            $captured = $data;
+            return true;
+        });
+
+        $rows = [
+            [
+                'SCM' => '538245',
+                'DATA' => '06/08/2026 10:24:04',
+                'ATIVIDADE' => 'Manutenção corretiva',
+                'SITE' => 'NITB9DTC',
+                'CIDADE' => 'Niterói',
+                'ABERTURA' => 'CLIMATIZACAO',
+                'STATUS' => 'GERADO',
+                'DATA_EXECUÇÃO' => '2026-08-06 10:36:17',
+                'DATA_VALIDAÇÃO' => '2026-01-21 01:40:37',
+                'MEDIÇÃO' => '',
+                'ORIGEM' => 'RESIDENCIAL',
+                'SEGMENTO' => 'PEÇAS',
+                'OBS' => '',
+                'SERVIÇO' => 'Serviço teste',
+                'UNIDADE' => 'UN',
+                'VALOR' => '100.00',
+                'QTDE_EXECUÇÃO' => '1',
+                'SUBTOTAL_EXECUÇÃO' => '100.00',
+            ],
+        ];
+
+        $service = $this->createService($repo);
+        $result = $service->importBatch($rows);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame('2026-08-06', $captured['data']);
+        $this->assertSame('2026-08-06', $captured['data_execucao']);
+        $this->assertSame('2026-01-21', $captured['data_validacao']);
+    }
+
+    public function testImportBatchKeepsNullWhenDateColumnsEmpty(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('findEquipmentByLocalScm')->willReturn(['id' => 10]);
+        $repo->method('findByScmCode')->willReturnOnConsecutiveCalls(null, ['id' => 1]);
+        $repo->method('upsertItems')->willReturn(true);
+        $repo->method('updatePvItemStatusByScm')->willReturn(0);
+
+        $captured = null;
+        $repo->method('upsert')->willReturnCallback(function (array $data) use (&$captured): bool {
+            $captured = $data;
+            return true;
+        });
+
+        $rows = [
+            [
+                'SCM' => '538245',
+                'DATA' => '',
+                'ATIVIDADE' => 'Manutenção corretiva',
+                'SITE' => 'NITB9DTC',
+                'CIDADE' => 'Niterói',
+                'ABERTURA' => '',
+                'STATUS' => 'GERADO',
+                'DATA_EXECUÇÃO' => '',
+                'DATA_VALIDAÇÃO' => '',
+                'MEDIÇÃO' => '',
+                'ORIGEM' => '',
+                'SEGMENTO' => '',
+                'OBS' => '',
+                'SERVIÇO' => 'Serviço teste',
+                'UNIDADE' => 'UN',
+                'VALOR' => '100.00',
+                'QTDE_EXECUÇÃO' => '1',
+                'SUBTOTAL_EXECUÇÃO' => '100.00',
+            ],
+        ];
+
+        $service = $this->createService($repo);
+        $result = $service->importBatch($rows);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertNull($captured['data']);
+        $this->assertNull($captured['data_execucao']);
+        $this->assertNull($captured['data_validacao']);
+    }
 }

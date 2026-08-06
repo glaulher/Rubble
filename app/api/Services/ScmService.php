@@ -177,16 +177,26 @@ class ScmService
         return $this->repository->delete($id);
     }
 
+    private const DATE_FORMATS = [
+        'd/m/Y H:i:s',
+        'd/m/Y H:i',
+        'd/m/Y',
+        'Y-m-d H:i:s',
+        'Y-m-d H:i',
+        'Y-m-d',
+        'Y-m-d\TH:i:s',
+    ];
+
     private function parseDate(?string $dateStr): ?string
     {
         if (empty($dateStr)) return null;
         $dateStr = trim($dateStr);
-        $parsed = \DateTime::createFromFormat('d/m/Y H:i', $dateStr);
-        if ($parsed) return $parsed->format('Y-m-d');
-        $parsed = \DateTime::createFromFormat('d/m/Y', $dateStr);
-        if ($parsed) return $parsed->format('Y-m-d');
-        $parsed = \DateTime::createFromFormat('Y-m-d', $dateStr);
-        if ($parsed) return $parsed->format('Y-m-d');
+        foreach (self::DATE_FORMATS as $format) {
+            $parsed = \DateTime::createFromFormat($format, $dateStr);
+            if ($parsed !== false) {
+                return $parsed->format('Y-m-d');
+            }
+        }
         return null;
     }
 
