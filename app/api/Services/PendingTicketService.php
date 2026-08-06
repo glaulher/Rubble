@@ -22,7 +22,7 @@ class PendingTicketService
 
     public const ALLOWED_EDITABLE_FIELDS = [
         'status', 'prioridade', 'data', 'data_planejada', 'data_real_inicio',
-        'data_prevista_conclusao', 'data_concluido', 'equipe', 'material',
+        'data_prevista_conclusao', 'data_concluido', 'equipe', 'material', 'obs',
     ];
 
     public function __construct(?TicketRepository $repository = null)

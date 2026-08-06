@@ -220,6 +220,30 @@ class PendingTicketServiceTest extends TestCase
         $service->updatePendingField(10, 'prioridade', '2');
     }
 
+    public function testUpdatePendingFieldDelegatesObs(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updatePendingField')
+            ->with(10, 'obs', 'Trocar filtro')
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $this->assertTrue($service->updatePendingField(10, 'obs', '  Trocar filtro  '));
+    }
+
+    public function testUpdatePendingFieldConvertsEmptyObsToNull(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updatePendingField')
+            ->with(10, 'obs', null)
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $service->updatePendingField(10, 'obs', '   ');
+    }
+
     public function testUpdatePendingFieldThrowsOnNonEditableField(): void
     {
         $this->expectException(\InvalidArgumentException::class);

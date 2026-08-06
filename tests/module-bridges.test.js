@@ -393,6 +393,106 @@ describe("pending-tickets/list.js bridge", function () {
       else globalThis.formatDate = prevFormatDate;
     }
   });
+
+  it("renders the observacao value with an edit pencil in the details row", function () {
+    document.body.innerHTML =
+      '<table id="pendingTable"><tbody id="pendingTableBody"></tbody></table>' +
+      '<div id="pendingEmpty" class="hidden"></div>';
+
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    try {
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      globalThis.renderPendingTable(
+        [
+          {
+            id: 1,
+            local: 'BMA',
+            os: 'OS1',
+            equipamento: 'WM',
+            localidade: 'C1',
+            tipo: 'corretiva',
+            status: 'pendente',
+            prioridade: '0',
+            data: null,
+            data_planejada: null,
+            data_real_inicio: null,
+            data_prevista_conclusao: null,
+            data_concluido: null,
+            equipe: '',
+            material: '',
+            obs: 'Filtro sujo',
+          },
+        ],
+        false
+      );
+
+      var wrap = document.querySelector('tr.pending-details .obs-wrap');
+      expect(wrap).not.toBe(null);
+      expect(wrap.querySelector('.obs-value').textContent.trim()).toBe('Filtro sujo');
+      expect(wrap.querySelector('button.pending-edit[data-field="obs"]')).not.toBe(null);
+    } finally {
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
+
+  it("enters and cancels obs editing preserving the original value", function () {
+    document.body.innerHTML =
+      '<table id="pendingTable"><tbody id="pendingTableBody"></tbody></table>' +
+      '<div id="pendingEmpty" class="hidden"></div>';
+
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    try {
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      globalThis.renderPendingTable(
+        [
+          {
+            id: 1,
+            local: 'BMA',
+            os: 'OS1',
+            equipamento: 'WM',
+            localidade: 'C1',
+            tipo: 'corretiva',
+            status: 'pendente',
+            prioridade: '0',
+            data: null,
+            data_planejada: null,
+            data_real_inicio: null,
+            data_prevista_conclusao: null,
+            data_concluido: null,
+            equipe: '',
+            material: '',
+            obs: 'Trocar filtro',
+          },
+        ],
+        false
+      );
+
+      var wrap = document.querySelector('tr.pending-details .obs-wrap');
+      globalThis.enterPendingObsEdit(wrap);
+      expect(wrap.querySelector('input.pending-edit-input')).not.toBe(null);
+      expect(wrap.querySelector('input.pending-edit-input').value).toBe('Trocar filtro');
+      expect(wrap.querySelector('button.pending-save')).not.toBe(null);
+      expect(wrap.querySelector('button.pending-cancel')).not.toBe(null);
+
+      globalThis.cancelPendingObs(wrap);
+      expect(wrap.querySelector('.obs-value').textContent.trim()).toBe('Trocar filtro');
+      expect(wrap.querySelector('button.pending-edit[data-field="obs"]')).not.toBe(null);
+    } finally {
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
 });
 
 describe("planned-activity/list.js bridge", function () {

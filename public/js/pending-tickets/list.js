@@ -178,6 +178,56 @@ function cancelPendingEdit(td) {
   refreshPendingCell(td, field, prev);
 }
 
+function refreshPendingObs(wrap, value) {
+  var raw = pendingValueRaw(value);
+  var display = value === null || value === undefined || value === '' ? '-' : value;
+  wrap.removeAttribute('data-prev-raw');
+  wrap.innerHTML = '<span class="obs-value text-slate-700" data-raw="' + escapeHtml(raw) + '">' + escapeHtml(display) + '</span>'
+    + pendingEditBtn('obs');
+}
+
+function enterPendingObsEdit(wrap) {
+  if (wrap.querySelector('.pending-edit-input')) return;
+  var valueEl = wrap.querySelector('.obs-value');
+  var raw = valueEl ? valueEl.getAttribute('data-raw') : '';
+  wrap.setAttribute('data-prev-raw', raw);
+  wrap.innerHTML = '<input type="text" class="pending-edit-input obs-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 w-72" value="' + escapeHtml(raw) + '" />'
+    + '<button type="button" class="pending-save ml-1 px-1.5 py-1 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-800" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
+    + '<button type="button" class="pending-cancel ml-1 px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+}
+
+async function savePendingObs(wrap) {
+  var input = wrap.querySelector('.pending-edit-input');
+  if (!input) return;
+  var value = input.value;
+  var tr = wrap.closest('tr.pending-details');
+  var id = tr ? tr.getAttribute('data-detail-for') : null;
+  if (!id) return;
+
+  try {
+    var resp = await apiFetch('/app/api/index.php?route=pending-tickets', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: parseInt(id, 10), field: 'obs', value: value }),
+    });
+    var result = await resp.json();
+    if (!result.success) {
+      showToast(result.message || 'Erro ao salvar campo', 'error');
+      return;
+    }
+    refreshPendingObs(wrap, value);
+    showToast('Campo atualizado', 'success');
+  } catch (e) {
+    console.error('Erro ao salvar campo', e);
+    showToast('Erro ao salvar campo', 'error');
+  }
+}
+
+function cancelPendingObs(wrap) {
+  var prev = wrap.getAttribute('data-prev-raw') || '';
+  refreshPendingObs(wrap, prev);
+}
+
 async function savePendingField(td) {
   var input = td.querySelector('.pending-edit-input');
   if (!input) return;
@@ -256,7 +306,10 @@ function renderPendingTable(list, append) {
     html += '<tr class="pending-details hidden" data-detail-for="' + item.id + '">'
       + '<td colspan="' + pendingColspan() + '" class="px-3 py-2.5 bg-slate-50">'
       + '<div class="text-sm"><span class="text-slate-500">Observa\u00e7\u00e3o:</span> '
-      + '<span class="text-slate-700">' + escapeHtml(item.obs || '-') + '</span></div>'
+      + '<span class="obs-wrap inline-flex items-center gap-1" data-obs-for="' + item.id + '">'
+      + '<span class="obs-value text-slate-700" data-raw="' + escapeHtml(item.obs || '') + '">' + escapeHtml(item.obs || '-') + '</span>'
+      + pendingEditBtn('obs')
+      + '</span></div>'
       + '</td></tr>';
   }
 
@@ -571,17 +624,32 @@ function initPendingTickets() {
     tbody.addEventListener('click', function (e) {
       var editBtn = e.target.closest('button.pending-edit');
       if (editBtn) {
-        enterPendingEdit(editBtn.closest('td'), editBtn.getAttribute('data-field'));
+        var field = editBtn.getAttribute('data-field');
+        if (field === 'obs') {
+          enterPendingObsEdit(editBtn.closest('.obs-wrap'));
+        } else {
+          enterPendingEdit(editBtn.closest('td'), field);
+        }
         return;
       }
       var saveBtn = e.target.closest('button.pending-save');
       if (saveBtn) {
-        savePendingField(saveBtn.closest('td'));
+        var obsWrap = saveBtn.closest('.obs-wrap');
+        if (obsWrap) {
+          savePendingObs(obsWrap);
+        } else {
+          savePendingField(saveBtn.closest('td'));
+        }
         return;
       }
       var cancelBtn = e.target.closest('button.pending-cancel');
       if (cancelBtn) {
-        cancelPendingEdit(cancelBtn.closest('td'));
+        var cancelWrap = cancelBtn.closest('.obs-wrap');
+        if (cancelWrap) {
+          cancelPendingObs(cancelWrap);
+        } else {
+          cancelPendingEdit(cancelBtn.closest('td'));
+        }
         return;
       }
       var row = e.target.closest('tr.pending-row');
@@ -594,11 +662,19 @@ function initPendingTickets() {
     tbody.addEventListener('keydown', function (e) {
       var input = e.target.closest('.pending-edit-input');
       if (!input) return;
-      var td = input.closest('td');
+      var keyWrap = input.closest('.obs-wrap');
       if (e.key === 'Enter') {
-        savePendingField(td);
+        if (keyWrap) {
+          savePendingObs(keyWrap);
+        } else {
+          savePendingField(input.closest('td'));
+        }
       } else if (e.key === 'Escape') {
-        cancelPendingEdit(td);
+        if (keyWrap) {
+          cancelPendingObs(keyWrap);
+        } else {
+          cancelPendingEdit(input.closest('td'));
+        }
       }
     });
   }

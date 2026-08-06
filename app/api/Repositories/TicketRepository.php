@@ -34,6 +34,7 @@ class TicketRepository extends BaseRepository
         'data_concluido' => 'data_concluido',
         'equipe' => 'equipe',
         'material' => 'material',
+        'obs' => 'obs',
     ];
 
     public function listByItem(int $itemId, string $statusOrderSql = ''): array
