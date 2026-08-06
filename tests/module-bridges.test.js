@@ -478,8 +478,8 @@ describe("pending-tickets/list.js bridge", function () {
 
       var wrap = document.querySelector('tr.pending-details .obs-wrap');
       globalThis.enterPendingObsEdit(wrap);
-      expect(wrap.querySelector('input.pending-edit-input')).not.toBe(null);
-      expect(wrap.querySelector('input.pending-edit-input').value).toBe('Trocar filtro');
+      expect(wrap.querySelector('textarea.pending-edit-input')).not.toBe(null);
+      expect(wrap.querySelector('textarea.pending-edit-input').value).toBe('Trocar filtro');
       expect(wrap.querySelector('button.pending-save')).not.toBe(null);
       expect(wrap.querySelector('button.pending-cancel')).not.toBe(null);
 
