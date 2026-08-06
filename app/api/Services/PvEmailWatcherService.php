@@ -41,7 +41,7 @@ class PvEmailWatcherService
             return $result;
         }
 
-        $serverPrefix = '{' . $host . ':' . $port . '/imap/ssl}';
+        $serverPrefix = $this->buildServerPrefix($host, $port);
 
         $mbox = @imap_open($serverPrefix . 'INBOX', $user, $pass, OP_READONLY, 0);
         if ($mbox === false) {
@@ -61,6 +61,12 @@ class PvEmailWatcherService
 
         imap_close($mbox);
         return $result;
+    }
+
+    private function buildServerPrefix(string $host, string $port): string
+    {
+        $security = strtolower(Env::get('IMAP_SECURITY', 'ssl'));
+        return '{' . $host . ':' . $port . ($security === 'plain' ? '/imap' : '/imap/ssl') . '}';
     }
 
     private function resolveMailboxes($mbox, string $serverPrefix, string $mailboxConfig): array

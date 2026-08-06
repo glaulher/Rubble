@@ -78,4 +78,25 @@ class PvEmailWatcherServiceTest extends TestCase
         $this->assertFalse($method->invoke($this->service, $prefix . 'Sent Items', $prefix));
         $this->assertFalse($method->invoke($this->service, $prefix . '[Gmail]/Spam', $prefix));
     }
+
+    public function testBuildServerPrefixDefaultsToSsl(): void
+    {
+        putenv('IMAP_SECURITY');
+        unset($_ENV['IMAP_SECURITY']);
+        $service = (new \ReflectionClass($this->service))->newInstanceWithoutConstructor();
+        $method = new \ReflectionMethod($service, 'buildServerPrefix');
+        $this->assertEquals('{mail:143/imap/ssl}', $method->invoke($service, 'mail', '143'));
+        $this->assertEquals('{imap.example.com:993/imap/ssl}', $method->invoke($service, 'imap.example.com', '993'));
+    }
+
+    public function testBuildServerPrefixPlain(): void
+    {
+        putenv('IMAP_SECURITY=plain');
+        $_ENV['IMAP_SECURITY'] = 'plain';
+        $service = (new \ReflectionClass($this->service))->newInstanceWithoutConstructor();
+        $method = new \ReflectionMethod($service, 'buildServerPrefix');
+        $this->assertEquals('{mail:143/imap}', $method->invoke($service, 'mail', '143'));
+        putenv('IMAP_SECURITY');
+        unset($_ENV['IMAP_SECURITY']);
+    }
 }
