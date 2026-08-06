@@ -273,6 +273,126 @@ describe("pending-tickets/list.js bridge", function () {
       else globalThis.formatDate = prevFormatDate;
     }
   });
+
+  function pendingModuleCode() {
+    var code = readFileSync(resolve(__dirname, '../public/js/pending-tickets/list.js'), 'utf-8');
+    if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
+    return code.replace(/^import .+$/gm, '');
+  }
+
+  var PENDING_HELPERS =
+    '\nfunction escapeHtml(v) { return String(v); }\n' +
+    'function formatDate(v) { return v || ""; }\n' +
+    'function sanitizeCSV(v) { if (v === null || v === undefined) return ""; var s = String(v); return /[;"\\n]/.test(s) ? \'"\' + s.replace(/"/g, \'""\') + \'"\' : s; }\n';
+
+  it("maps priority values to Rubble badge colors", function () {
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    try {
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+      expect(globalThis.getPriorityBadgeClass('0')).toBe('bg-red-100 text-red-700');
+      expect(globalThis.getPriorityBadgeClass('0-D')).toBe('bg-red-100 text-red-700');
+      expect(globalThis.getPriorityBadgeClass('0-E')).toBe('bg-red-100 text-red-700');
+      expect(globalThis.getPriorityBadgeClass('1')).toBe('bg-amber-100 text-amber-700');
+      expect(globalThis.getPriorityBadgeClass('3')).toBe('bg-blue-100 text-blue-700');
+      expect(globalThis.getPriorityBadgeClass('4')).toBe('bg-purple-100 text-purple-700');
+      expect(globalThis.getPriorityBadgeClass('5')).toBe('bg-slate-100 text-slate-700');
+      expect(globalThis.getPriorityBadgeClass('')).toBe('bg-slate-100 text-slate-700');
+    } finally {
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
+
+  it("renders the prioridade cell with badge and pencil", function () {
+    document.body.innerHTML =
+      '<table id="pendingTable">' +
+      '<thead><tr><th data-col="prioridade">Prioridade</th></tr></thead>' +
+      '<tbody id="pendingTableBody"></tbody>' +
+      '</table>';
+
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    try {
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      globalThis.renderPendingTable(
+        [
+          {
+            id: 1,
+            local: 'BMA',
+            os: 'OS1',
+            equipamento: 'WM',
+            localidade: 'C1',
+            tipo: 'corretiva',
+            status: 'pendente',
+            prioridade: '0-D',
+            data: null,
+            data_planejada: null,
+            data_real_inicio: null,
+            data_prevista_conclusao: null,
+            data_concluido: null,
+            equipe: '',
+            material: '',
+            obs: 'obs',
+          },
+        ],
+        false
+      );
+
+      var cell = document.querySelector('#pendingTableBody td[data-col="prioridade"]');
+      expect(cell).not.toBe(null);
+      var badge = cell.querySelector('.priority-badge');
+      expect(badge).not.toBe(null);
+      expect(badge.textContent.trim()).toBe('0-D');
+      expect(badge.className).toContain('bg-red-100');
+      expect(cell.querySelector('button.pending-edit')).not.toBe(null);
+    } finally {
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
+
+  it("includes prioridade in the CSV row after status", function () {
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    try {
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      var row = globalThis.buildPendingCsvRow({
+        local: 'BMA',
+        os: 'OS1',
+        equipamento: 'WM',
+        localidade: 'C1',
+        tipo: 'corretiva',
+        status: 'pendente',
+        prioridade: '3',
+        data: '2026-07-15',
+        data_planejada: null,
+        data_real_inicio: null,
+        data_prevista_conclusao: null,
+        data_concluido: null,
+        equipe: '',
+        material: '',
+      });
+
+      expect(row.length).toBe(14);
+      expect(row[5]).toBe('pendente');
+      expect(row[6]).toBe('3');
+    } finally {
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
 });
 
 describe("planned-activity/list.js bridge", function () {

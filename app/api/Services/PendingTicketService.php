@@ -10,16 +10,18 @@ class PendingTicketService
 
     private const ALLOWED_STATUSES = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
 
+    private const ALLOWED_PRIORITIES = ['0', '0-A', '0-B', '0-C', '0-D', '0-E', '1', '3', '4', '5'];
+
     public const ALLOWED_SORT = [
         'e.local', 'e.localidade', 'e.equipamento', 'r.id', 'r.os', 'r.tipo',
-        'r.status', 'r.data', 'r.data_planejada', 'r.data_real_inicio',
+        'r.status', 'r.prioridade', 'r.data', 'r.data_planejada', 'r.data_real_inicio',
         'r.data_prevista_conclusao', 'r.data_concluido', 'r.equipe', 'r.material',
     ];
 
     public const ALLOWED_DIRS = ['ASC', 'DESC'];
 
     public const ALLOWED_EDITABLE_FIELDS = [
-        'status', 'data', 'data_planejada', 'data_real_inicio',
+        'status', 'prioridade', 'data', 'data_planejada', 'data_real_inicio',
         'data_prevista_conclusao', 'data_concluido', 'equipe', 'material',
     ];
 
@@ -75,6 +77,14 @@ class PendingTicketService
                 throw new \InvalidArgumentException('Status inválido: ' . $value);
             }
             $value = $status;
+        }
+
+        if ($field === 'prioridade') {
+            $priority = strtoupper((string) $value);
+            if (!in_array($priority, self::ALLOWED_PRIORITIES, true)) {
+                throw new \InvalidArgumentException('Prioridade inválida: ' . $value);
+            }
+            $value = $priority;
         }
 
         if (is_string($value)) {

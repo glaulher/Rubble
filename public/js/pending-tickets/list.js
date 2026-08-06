@@ -8,14 +8,15 @@ var pendingSortDir = 'ASC';
 var pendingLoading = false;
 var pendingAllLoaded = false;
 
-const PENDING_COLUMNS = 13;
+const PENDING_COLUMNS = 14;
 const CSR_COLUMNS = [
-  'SITE', 'OS', 'EQUIPAMENTO', 'LOCALIDADE', 'CATEGORIA', 'STATUS',
+  'SITE', 'OS', 'EQUIPAMENTO', 'LOCALIDADE', 'CATEGORIA', 'STATUS', 'PRIORIDADE',
   'DATA_ABERTURA', 'DATA_PROGRAMADA', 'DATA_REAL_INICIO', 'DATA_PREVISTA_CONCLUSAO',
   'DATA_CONCLUSAO', 'TECNICO', 'MATERIAL',
 ];
 
 const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
+const PENDING_PRIORITY_OPTIONS = ['0', '0-A', '0-B', '0-C', '0-D', '0-E', '1', '3', '4', '5'];
 
 const PENDING_COLUMNS_DEF = [
   { key: 'local', label: 'Site' },
@@ -24,6 +25,7 @@ const PENDING_COLUMNS_DEF = [
   { key: 'localidade', label: 'Localidade' },
   { key: 'tipo', label: 'Categoria' },
   { key: 'status', label: 'Status' },
+  { key: 'prioridade', label: 'Prioridade' },
   { key: 'data', label: 'Data Abertura' },
   { key: 'data_planejada', label: 'Data Programada' },
   { key: 'data_real_inicio', label: 'Data Real Início' },
@@ -38,6 +40,7 @@ var pendingColTodosChecked = true;
 
 const PENDING_EDITABLE_TYPES = {
   status: 'select',
+  prioridade: 'select',
   data: 'date',
   data_planejada: 'date',
   data_real_inicio: 'date',
@@ -73,6 +76,15 @@ function getCategoryBadgeClass(tipo) {
   }
 }
 
+function getPriorityBadgeClass(priority) {
+  var p = (priority || '').toUpperCase();
+  if (p === '0' || p.indexOf('0-') === 0) return 'bg-red-100 text-red-700';
+  if (p === '1') return 'bg-amber-100 text-amber-700';
+  if (p === '3') return 'bg-blue-100 text-blue-700';
+  if (p === '4') return 'bg-purple-100 text-purple-700';
+  return 'bg-slate-100 text-slate-700';
+}
+
 function pendingValueRaw(value) {
   return value === null || value === undefined ? '' : value;
 }
@@ -86,6 +98,7 @@ function pendingFieldDisplay(field, value) {
 function pendingBadgeClassFor(field, value) {
   if (field === 'status') return 'status-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeClass(value);
   if (field === 'tipo') return 'category-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getCategoryBadgeClass(value);
+  if (field === 'prioridade') return 'priority-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getPriorityBadgeClass(value);
   return '';
 }
 
@@ -95,12 +108,16 @@ function pendingEditBtn(field) {
     + '</button>';
 }
 
-function buildPendingStatusSelect(selected) {
-  var html = '<select class="pending-edit-input pending-status px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800">';
-  for (var i = 0; i < PENDING_STATUS_OPTIONS.length; i++) {
-    var opt = PENDING_STATUS_OPTIONS[i];
-    var sel = String(selected).toLowerCase() === opt ? ' selected' : '';
-    html += '<option value="' + opt + '"' + sel + '>' + opt.charAt(0).toUpperCase() + opt.slice(1) + '</option>';
+function buildPendingSelect(options, selected, capitalize) {
+  var html = '<select class="pending-edit-input pending-select px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800">';
+  if (selected === '') {
+    html += '<option value="">-</option>';
+  }
+  for (var i = 0; i < options.length; i++) {
+    var opt = options[i];
+    var label = capitalize ? opt.charAt(0).toUpperCase() + opt.slice(1) : opt;
+    var sel = String(selected).toLowerCase() === opt.toLowerCase() ? ' selected' : '';
+    html += '<option value="' + opt + '"' + sel + '>' + escapeHtml(label) + '</option>';
   }
   html += '</select>';
   return html;
@@ -128,7 +145,11 @@ function enterPendingEdit(td, field) {
   var type = PENDING_EDITABLE_TYPES[field] || 'text';
   var inputHtml;
   if (type === 'select') {
-    inputHtml = buildPendingStatusSelect(raw);
+    if (field === 'status') {
+      inputHtml = buildPendingSelect(PENDING_STATUS_OPTIONS, raw, true);
+    } else {
+      inputHtml = buildPendingSelect(PENDING_PRIORITY_OPTIONS, raw, false);
+    }
   } else if (type === 'date') {
     inputHtml = '<input type="date" class="pending-edit-input pending-date px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800" value="' + escapeHtml(raw) + '" />';
   } else {
@@ -222,6 +243,7 @@ function renderPendingTable(list, append) {
       + '<span class="category-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getCategoryBadgeClass(item.tipo) + '">'
       + escapeHtml(item.tipo || '-') + '</span></td>'
       + pendingEditableCellHtml('status', item.status)
+      + pendingEditableCellHtml('prioridade', item.prioridade)
       + pendingEditableCellHtml('data', item.data)
       + pendingEditableCellHtml('data_planejada', item.data_planejada)
       + pendingEditableCellHtml('data_real_inicio', item.data_real_inicio)
@@ -404,6 +426,7 @@ function buildPendingCsvRow(item) {
     sanitizeCSV(item.localidade || ''),
     sanitizeCSV(item.tipo || ''),
     sanitizeCSV(item.status || ''),
+    sanitizeCSV(item.prioridade || ''),
     formatDate(item.data),
     formatDate(item.data_planejada),
     formatDate(item.data_real_inicio),

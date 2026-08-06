@@ -14,6 +14,7 @@ class TicketRepository extends BaseRepository
         'r.os' => 'r.os',
         'r.tipo' => 'r.tipo',
         'r.status' => 'r.status',
+        'r.prioridade' => 'r.prioridade',
         'r.data' => 'r.data',
         'r.data_planejada' => 'r.data_planejada',
         'r.data_real_inicio' => 'r.data_real_inicio',
@@ -25,6 +26,7 @@ class TicketRepository extends BaseRepository
 
     private const ALLOWED_EDITABLE_FIELDS = [
         'status' => 'status',
+        'prioridade' => 'prioridade',
         'data' => 'data',
         'data_planejada' => 'data_planejada',
         'data_real_inicio' => 'data_real_inicio',
@@ -294,9 +296,9 @@ class TicketRepository extends BaseRepository
 
         if ($search !== '') {
             $likeSearch = '%' . $search . '%';
-            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
-            $params = array_merge($params, array_fill(0, 14, $likeSearch));
-            $types .= str_repeat('s', 14);
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
+            $params = array_merge($params, array_fill(0, 15, $likeSearch));
+            $types .= str_repeat('s', 15);
         }
 
         $allowedSort = self::ALLOWED_SORT;
@@ -347,9 +349,9 @@ class TicketRepository extends BaseRepository
 
         if ($search !== '') {
             $likeSearch = '%' . $search . '%';
-            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
-            $params = array_merge($params, array_fill(0, 14, $likeSearch));
-            $types .= str_repeat('s', 14);
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
+            $params = array_merge($params, array_fill(0, 15, $likeSearch));
+            $types .= str_repeat('s', 15);
         }
 
         $sql = "

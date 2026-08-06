@@ -30,7 +30,7 @@ var pendingSortDir = 'ASC';
 var pendingLoading = false;
 var pendingAllLoaded = false;
 
-const PENDING_COLUMNS = 13;
+const PENDING_COLUMNS = 14;
 
 function resetPendingState(search, status) {
   pendingSearch = search || '';
@@ -61,6 +61,15 @@ function getCategoryBadgeClass(tipo) {
     case 'preventiva': return 'bg-sky-100 text-sky-700';
     default: return 'bg-slate-100 text-slate-700';
   }
+}
+
+function getPriorityBadgeClass(priority) {
+  const p = (priority || '').toUpperCase();
+  if (p === '0' || p.indexOf('0-') === 0) return 'bg-red-100 text-red-700';
+  if (p === '1') return 'bg-amber-100 text-amber-700';
+  if (p === '3') return 'bg-blue-100 text-blue-700';
+  if (p === '4') return 'bg-purple-100 text-purple-700';
+  return 'bg-slate-100 text-slate-700';
 }
 
 function renderPendingTable(list, append) {
@@ -101,6 +110,9 @@ function renderPendingTable(list, append) {
       + '<td class="px-3 py-2.5 text-sm">'
       + '<span class="status-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeClass(item.status) + '">'
       + escapeHtml(item.status) + '</span></td>'
+      + '<td class="px-3 py-2.5 text-sm">'
+      + '<span class="priority-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getPriorityBadgeClass(item.prioridade) + '">'
+      + escapeHtml(item.prioridade || '-') + '</span></td>'
       + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data)) + '</td>'
       + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data_planejada)) + '</td>'
       + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data_real_inicio)) + '</td>'
@@ -161,6 +173,7 @@ function buildPendingCsvRow(item) {
     sanitizeCSV(item.equipamento || ''),
     sanitizeCSV(item.tipo || ''),
     sanitizeCSV(item.status || ''),
+    sanitizeCSV(item.prioridade || ''),
     formatDate(item.data),
     formatDate(item.data_planejada),
     formatDate(item.data_real_inicio),
@@ -243,9 +256,9 @@ describe("resetPendingState", () => {
 
 describe("renderPendingTable", () => {
   const mockData = [
-    { id: 1, local: 'BMA', equipamento: 'WM 01', os: 'OS123', tipo: 'corretiva', status: 'pendente', data: '2026-07-15', data_planejada: '2026-07-20', data_real_inicio: '2026-07-22', data_prevista_conclusao: '2026-07-25', data_concluido: null, obs: 'Filtro sujo', material: 'Filtro AR', equipe: 'João', localidade: 'Container 1' },
-    { id: 2, local: 'BMA', equipamento: 'WM 02', os: 'OS456', tipo: 'preventiva', status: 'planejado', data: '2026-07-16', data_planejada: null, data_real_inicio: null, data_prevista_conclusao: null, data_concluido: '2026-07-18', obs: 'Troca óleo', material: 'Óleo 5W30', equipe: 'Maria', localidade: 'Container 1' },
-    { id: 3, local: 'RJO', equipamento: 'CH 01', os: 'OS789', tipo: null, status: 'pendente', data: '2026-07-14', data_planejada: null, data_real_inicio: null, data_prevista_conclusao: null, data_concluido: null, obs: 'Vazamento', material: 'Vedação', equipe: 'José', localidade: 'Sala 5' },
+    { id: 1, local: 'BMA', equipamento: 'WM 01', os: 'OS123', tipo: 'corretiva', status: 'pendente', prioridade: '0-D', data: '2026-07-15', data_planejada: '2026-07-20', data_real_inicio: '2026-07-22', data_prevista_conclusao: '2026-07-25', data_concluido: null, obs: 'Filtro sujo', material: 'Filtro AR', equipe: 'João', localidade: 'Container 1' },
+    { id: 2, local: 'BMA', equipamento: 'WM 02', os: 'OS456', tipo: 'preventiva', status: 'planejado', prioridade: '4', data: '2026-07-16', data_planejada: null, data_real_inicio: null, data_prevista_conclusao: null, data_concluido: '2026-07-18', obs: 'Troca óleo', material: 'Óleo 5W30', equipe: 'Maria', localidade: 'Container 1' },
+    { id: 3, local: 'RJO', equipamento: 'CH 01', os: 'OS789', tipo: null, status: 'pendente', prioridade: null, data: '2026-07-14', data_planejada: null, data_real_inicio: null, data_prevista_conclusao: null, data_concluido: null, obs: 'Vazamento', material: 'Vedação', equipe: 'José', localidade: 'Sala 5' },
   ];
 
   beforeEach(() => {
@@ -297,25 +310,40 @@ describe("renderPendingTable", () => {
     expect(badges[2].className).toContain('bg-slate-100');
   });
 
+  it("renders priority badges with correct colors", () => {
+    renderPendingTable(mockData);
+
+    const badges = document.querySelectorAll('.priority-badge');
+    expect(badges.length).toBe(3);
+    expect(badges[0].textContent.trim()).toBe('0-D');
+    expect(badges[0].className).toContain('bg-red-100');
+
+    expect(badges[1].textContent.trim()).toBe('4');
+    expect(badges[1].className).toContain('bg-purple-100');
+
+    expect(badges[2].textContent.trim()).toBe('-');
+    expect(badges[2].className).toContain('bg-slate-100');
+  });
+
   it("renders formatted date columns", () => {
     renderPendingTable([mockData[0]]);
 
     const cells = document.querySelector('tr.pending-row').querySelectorAll('td');
-    // index 5 = data abertura, 6 = programada, 7 = real inicio, 8 = prevista conclusao, 9 = conclusao
-    expect(cells[5].textContent.trim()).toBe('15/07/2026');
-    expect(cells[6].textContent.trim()).toBe('20/07/2026');
-    expect(cells[7].textContent.trim()).toBe('22/07/2026');
-    expect(cells[8].textContent.trim()).toBe('25/07/2026');
-    expect(cells[9].textContent.trim()).toBe('-');
+    // index 6 = data abertura, 7 = programada, 8 = real inicio, 9 = prevista conclusao, 10 = conclusao
+    expect(cells[6].textContent.trim()).toBe('15/07/2026');
+    expect(cells[7].textContent.trim()).toBe('20/07/2026');
+    expect(cells[8].textContent.trim()).toBe('22/07/2026');
+    expect(cells[9].textContent.trim()).toBe('25/07/2026');
+    expect(cells[10].textContent.trim()).toBe('-');
   });
 
   it("shows technician, material and localidade columns", () => {
     renderPendingTable([mockData[0]]);
 
     const cells = document.querySelector('tr.pending-row').querySelectorAll('td');
-    expect(cells[10].textContent.trim()).toBe('João');
-    expect(cells[11].textContent.trim()).toBe('Filtro AR');
-    expect(cells[12].textContent.trim()).toBe('Container 1');
+    expect(cells[11].textContent.trim()).toBe('João');
+    expect(cells[12].textContent.trim()).toBe('Filtro AR');
+    expect(cells[13].textContent.trim()).toBe('Container 1');
   });
 
   it("shows empty state when no data", () => {
@@ -433,25 +461,57 @@ describe("getCategoryBadgeClass", () => {
   });
 });
 
+describe("getPriorityBadgeClass", () => {
+  it("returns red for 0 and 0-x variants", () => {
+    expect(getPriorityBadgeClass('0')).toBe('bg-red-100 text-red-700');
+    expect(getPriorityBadgeClass('0-A')).toBe('bg-red-100 text-red-700');
+    expect(getPriorityBadgeClass('0-E')).toBe('bg-red-100 text-red-700');
+  });
+
+  it("returns amber for 1", () => {
+    expect(getPriorityBadgeClass('1')).toBe('bg-amber-100 text-amber-700');
+  });
+
+  it("returns blue for 3", () => {
+    expect(getPriorityBadgeClass('3')).toBe('bg-blue-100 text-blue-700');
+  });
+
+  it("returns purple for 4", () => {
+    expect(getPriorityBadgeClass('4')).toBe('bg-purple-100 text-purple-700');
+  });
+
+  it("returns slate for 5 and missing", () => {
+    expect(getPriorityBadgeClass('5')).toBe('bg-slate-100 text-slate-700');
+    expect(getPriorityBadgeClass('')).toBe('bg-slate-100 text-slate-700');
+    expect(getPriorityBadgeClass(null)).toBe('bg-slate-100 text-slate-700');
+  });
+
+  it("handles lowercase and unknown values", () => {
+    expect(getPriorityBadgeClass('0-d')).toBe('bg-red-100 text-red-700');
+    expect(getPriorityBadgeClass('7')).toBe('bg-slate-100 text-slate-700');
+  });
+});
+
 describe("buildPendingCsvRow", () => {
-  it("builds a 13-cell row matching the table columns", () => {
+  it("builds a 14-cell row matching the table columns", () => {
     const row = buildPendingCsvRow({
       id: 1, local: 'BMA', os: 'OS123', equipamento: 'WM 01', tipo: 'corretiva',
-      status: 'pendente', data: '2026-07-15', data_planejada: '2026-07-20',
+      status: 'pendente', prioridade: '3', data: '2026-07-15', data_planejada: '2026-07-20',
       data_real_inicio: null, data_prevista_conclusao: null, data_concluido: null,
       equipe: 'João', material: 'Filtro AR', localidade: 'Container 1',
     });
 
-    expect(row.length).toBe(13);
+    expect(row.length).toBe(14);
     expect(row[0]).toBe('BMA');
     expect(row[1]).toBe('OS123');
     expect(row[4]).toBe('pendente');
-    expect(row[5]).toBe('15/07/2026');
-    expect(row[6]).toBe('20/07/2026');
-    expect(row[7]).toBe('-');
+    expect(row[5]).toBe('3');
+    expect(row[6]).toBe('15/07/2026');
+    expect(row[7]).toBe('20/07/2026');
     expect(row[8]).toBe('-');
     expect(row[9]).toBe('-');
-    expect(row[10]).toBe('João');
+    expect(row[10]).toBe('-');
+    expect(row[11]).toBe('João');
   });
 
   it("quotes fields containing semicolons", () => {

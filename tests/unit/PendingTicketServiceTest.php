@@ -186,6 +186,40 @@ class PendingTicketServiceTest extends TestCase
         $service->updatePendingField(10, 'status', 'PENDENTE');
     }
 
+    public function testUpdatePendingFieldNormalizesPriorityToUppercase(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updatePendingField')
+            ->with(10, 'prioridade', '0-D')
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $service->updatePendingField(10, 'prioridade', '0-d');
+    }
+
+    public function testUpdatePendingFieldAcceptsAllPriorityValues(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->exactly(10))
+            ->method('updatePendingField')
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        foreach (['0', '0-A', '0-B', '0-C', '0-D', '0-E', '1', '3', '4', '5'] as $priority) {
+            $service->updatePendingField(10, 'prioridade', $priority);
+        }
+    }
+
+    public function testUpdatePendingFieldThrowsOnInvalidPriority(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Prioridade inválida');
+
+        $service = $this->createService();
+        $service->updatePendingField(10, 'prioridade', '2');
+    }
+
     public function testUpdatePendingFieldThrowsOnNonEditableField(): void
     {
         $this->expectException(\InvalidArgumentException::class);
