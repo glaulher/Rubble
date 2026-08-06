@@ -373,6 +373,11 @@ class PvEmailService
             $mail->Subject = $subject;
             $mail->Body = $body;
 
+            $replyTo = Env::get('PV_REPLY_TO', '');
+            if ($replyTo !== '') {
+                $mail->addReplyTo($replyTo, Env::get('SMTP_FROM_NAME', 'Rubble'));
+            }
+
             foreach ($recipients['to'] as $email) $mail->addAddress($email);
             foreach ($recipients['cc'] as $email) $mail->addCC($email);
             foreach ($pdfPaths as $p) $mail->addAttachment($p);
