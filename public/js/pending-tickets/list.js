@@ -191,7 +191,7 @@ function enterPendingObsEdit(wrap) {
   var valueEl = wrap.querySelector('.obs-value');
   var raw = valueEl ? valueEl.getAttribute('data-raw') : '';
   wrap.setAttribute('data-prev-raw', raw);
-  wrap.innerHTML = '<input type="text" class="pending-edit-input obs-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 w-72" value="' + escapeHtml(raw) + '" />'
+  wrap.innerHTML = '<input type="text" class="pending-edit-input obs-input flex-1 min-w-0 px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800" value="' + escapeHtml(raw) + '" />'
     + '<button type="button" class="pending-save ml-1 px-1.5 py-1 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-800" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
     + '<button type="button" class="pending-cancel ml-1 px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
 }
@@ -306,7 +306,7 @@ function renderPendingTable(list, append) {
     html += '<tr class="pending-details hidden" data-detail-for="' + item.id + '">'
       + '<td colspan="' + pendingColspan() + '" class="px-3 py-2.5 bg-slate-50">'
       + '<div class="text-sm"><span class="text-slate-500">Observa\u00e7\u00e3o:</span> '
-      + '<span class="obs-wrap inline-flex items-center gap-1" data-obs-for="' + item.id + '">'
+      + '<span class="obs-wrap flex items-center gap-1" data-obs-for="' + item.id + '">'
       + '<span class="obs-value text-slate-700" data-raw="' + escapeHtml(item.obs || '') + '">' + escapeHtml(item.obs || '-') + '</span>'
       + pendingEditBtn('obs')
       + '</span></div>'
