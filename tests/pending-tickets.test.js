@@ -182,6 +182,7 @@ function buildPendingCsvRow(item) {
     sanitizeCSV(item.equipe || ''),
     sanitizeCSV(item.material || ''),
     sanitizeCSV(item.localidade || ''),
+    sanitizeCSV(item.obs || ''),
   ];
 }
 
@@ -493,15 +494,16 @@ describe("getPriorityBadgeClass", () => {
 });
 
 describe("buildPendingCsvRow", () => {
-  it("builds a 14-cell row matching the table columns", () => {
+  it("builds a 15-cell row including the observacao", () => {
     const row = buildPendingCsvRow({
       id: 1, local: 'BMA', os: 'OS123', equipamento: 'WM 01', tipo: 'corretiva',
       status: 'pendente', prioridade: '3', data: '2026-07-15', data_planejada: '2026-07-20',
       data_real_inicio: null, data_prevista_conclusao: null, data_concluido: null,
       equipe: 'João', material: 'Filtro AR', localidade: 'Container 1',
+      obs: 'Trocar filtro na próxima visita',
     });
 
-    expect(row.length).toBe(14);
+    expect(row.length).toBe(15);
     expect(row[0]).toBe('BMA');
     expect(row[1]).toBe('OS123');
     expect(row[4]).toBe('pendente');
@@ -512,6 +514,7 @@ describe("buildPendingCsvRow", () => {
     expect(row[9]).toBe('-');
     expect(row[10]).toBe('-');
     expect(row[11]).toBe('João');
+    expect(row[14]).toBe('Trocar filtro na próxima visita');
   });
 
   it("quotes fields containing semicolons", () => {

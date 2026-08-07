@@ -381,11 +381,13 @@ describe("pending-tickets/list.js bridge", function () {
         data_concluido: null,
         equipe: '',
         material: '',
+        obs: 'Cliente sem acesso no horário',
       });
 
-      expect(row.length).toBe(14);
+      expect(row.length).toBe(15);
       expect(row[5]).toBe('pendente');
       expect(row[6]).toBe('3');
+      expect(row[14]).toBe('Cliente sem acesso no horário');
     } finally {
       if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
       else globalThis.escapeHtml = prevEscapeHtml;

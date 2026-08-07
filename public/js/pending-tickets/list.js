@@ -12,7 +12,7 @@ const PENDING_COLUMNS = 14;
 const CSR_COLUMNS = [
   'SITE', 'OS', 'EQUIPAMENTO', 'LOCALIDADE', 'CATEGORIA', 'STATUS', 'PRIORIDADE',
   'DATA_ABERTURA', 'DATA_PROGRAMADA', 'DATA_REAL_INICIO', 'DATA_PREVISTA_CONCLUSAO',
-  'DATA_CONCLUSAO', 'TECNICO', 'MATERIAL',
+  'DATA_CONCLUSAO', 'TECNICO', 'MATERIAL', 'OBSERVACAO',
 ];
 
 const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
@@ -491,6 +491,7 @@ function buildPendingCsvRow(item) {
     formatDate(item.data_concluido),
     sanitizeCSV(item.equipe || ''),
     sanitizeCSV(item.material || ''),
+    sanitizeCSV(item.obs || ''),
   ];
 }
 
