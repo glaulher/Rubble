@@ -44,4 +44,36 @@ class PvEmailServiceTest extends TestCase
         $this->assertFalse($result['success']);
         $this->assertSame('PV não possui número de OS', $result['message']);
     }
+
+    // --- buildPlainText ---
+
+    public function testBuildPlainTextConvertsParagraphsToNewlines(): void
+    {
+        $this->assertSame("Olá\nMundo", PvEmailService::buildPlainText('<p>Olá</p><p>Mundo</p>'));
+    }
+
+    public function testBuildPlainTextBreaksBrTags(): void
+    {
+        $this->assertSame("Linha 1\nLinha 2", PvEmailService::buildPlainText('Linha 1<br>Linha 2'));
+    }
+
+    public function testBuildPlainTextSpacesTableCells(): void
+    {
+        $this->assertSame('A B', PvEmailService::buildPlainText('<tr><td>A</td><td>B</td></tr>'));
+    }
+
+    public function testBuildPlainTextDecodesEntities(): void
+    {
+        $this->assertSame('Custo & prazo', PvEmailService::buildPlainText('<p>Custo &amp; prazo</p>'));
+    }
+
+    public function testBuildPlainTextCollapsesBlankLines(): void
+    {
+        $this->assertSame("a\nb", PvEmailService::buildPlainText("<p>a</p>\n\n\n<p>b</p>"));
+    }
+
+    public function testBuildPlainTextReturnsEmptyForEmptyHtml(): void
+    {
+        $this->assertSame('', PvEmailService::buildPlainText(''));
+    }
 }

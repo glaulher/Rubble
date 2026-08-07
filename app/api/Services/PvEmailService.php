@@ -291,6 +291,19 @@ class PvEmailService
         ";
     }
 
+    public static function buildPlainText(string $html): string
+    {
+        $text = preg_replace('/<br\s*\/?>/i', "\n", $html);
+        $text = preg_replace('~</(p|div|li|tr|h[1-6])>~i', "\n", $text);
+        $text = preg_replace('~<(td|th)[^>]*>~i', ' ', $text);
+        $text = strip_tags($text);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/[ \t]+/', ' ', $text);
+        $text = preg_replace('/\n\s*\n+/', "\n", $text);
+
+        return trim($text);
+    }
+
     private static function resolvePdfPaths(array $osNumbers): array|string
     {
         $pdfPaths = [];
@@ -372,6 +385,7 @@ class PvEmailService
             $mail->isHTML(true);
             $mail->Subject = $subject;
             $mail->Body = $body;
+            $mail->AltBody = self::buildPlainText($body);
 
             $replyTo = Env::get('PV_REPLY_TO', '');
             if ($replyTo !== '') {
