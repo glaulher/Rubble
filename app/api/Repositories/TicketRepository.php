@@ -281,7 +281,8 @@ class TicketRepository extends BaseRepository
         string $status = '',
         string $sortBy = 'e.local',
         string $sortDir = 'ASC',
-        string $os = ''
+        string $os = '',
+        string $excludedLocation = ''
     ): array {
         $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
 
@@ -306,6 +307,12 @@ class TicketRepository extends BaseRepository
         if ($os !== '') {
             $where .= ' AND r.os LIKE ?';
             $params[] = '%' . $os . '%';
+            $types .= 's';
+        }
+
+        if ($excludedLocation !== '') {
+            $where .= ' AND e.local != ?';
+            $params[] = $excludedLocation;
             $types .= 's';
         }
 
@@ -340,7 +347,7 @@ class TicketRepository extends BaseRepository
         return $records;
     }
 
-    public function countPending(string $search, string $status, string $os = ''): int
+    public function countPending(string $search, string $status, string $os = '', string $excludedLocation = ''): int
     {
         $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
 
@@ -365,6 +372,12 @@ class TicketRepository extends BaseRepository
         if ($os !== '') {
             $where .= ' AND r.os LIKE ?';
             $params[] = '%' . $os . '%';
+            $types .= 's';
+        }
+
+        if ($excludedLocation !== '') {
+            $where .= ' AND e.local != ?';
+            $params[] = $excludedLocation;
             $types .= 's';
         }
 

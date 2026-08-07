@@ -12,6 +12,8 @@ class PendingTicketService
 
     private const ALLOWED_PRIORITIES = ['0', '0-A', '0-B', '0-C', '0-D', '0-E', '1', '3', '4', '5'];
 
+    private const EXCLUDED_LOCATION = 'Fornecimento';
+
     public const ALLOWED_SORT = [
         'e.local', 'e.localidade', 'e.equipamento', 'r.id', 'r.os', 'r.tipo',
         'r.status', 'r.prioridade', 'r.data', 'r.data_planejada', 'r.data_real_inicio',
@@ -49,8 +51,8 @@ class PendingTicketService
         $search = mb_strimwidth($search, 0, 200);
         $os = mb_strimwidth($os, 0, 200);
 
-        $items = $this->repository->listPendingBySite($limit, max(0, $offset), $search, $status, $sortBy, $sortDir, $os);
-        $total = $this->repository->countPending($search, $status, $os);
+        $items = $this->repository->listPendingBySite($limit, max(0, $offset), $search, $status, $sortBy, $sortDir, $os, self::EXCLUDED_LOCATION);
+        $total = $this->repository->countPending($search, $status, $os, self::EXCLUDED_LOCATION);
 
         return [
             'items' => $items,
@@ -64,7 +66,7 @@ class PendingTicketService
             throw new \InvalidArgumentException('Status inválido: ' . $status);
         }
 
-        return $this->repository->countPending($search, $status, $os);
+        return $this->repository->countPending($search, $status, $os, self::EXCLUDED_LOCATION);
     }
 
     public function updatePendingField(int $id, string $field, mixed $value): bool
