@@ -23,6 +23,28 @@ class MailerFactory
             Env::get('SMTP_FROM_EMAIL'),
             Env::get('SMTP_FROM_NAME')
         );
+
+        $hostname = self::resolveHostname();
+        if ($hostname !== '') {
+            $mail->Hostname = $hostname;
+        }
         return $mail;
+    }
+
+    private static function resolveHostname(): string
+    {
+        $hostname = trim((string) Env::get('SMTP_HOSTNAME', ''));
+        if ($hostname !== '') {
+            return $hostname;
+        }
+
+        $fromEmail = (string) Env::get('SMTP_FROM_EMAIL', '');
+        $atPos = strrpos($fromEmail, '@');
+        if ($atPos === false) {
+            return '';
+        }
+
+        $domain = strtolower(substr($fromEmail, $atPos + 1));
+        return trim($domain);
     }
 }
