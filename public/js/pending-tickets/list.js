@@ -3,6 +3,7 @@ import { createInfiniteScroll, debounce } from '/public/js/components/infinite-s
 var _pendingScroll = null;
 var pendingSearch = '';
 var pendingStatusFilter = '';
+var pendingOsFilter = '';
 var pendingSortBy = 'e.local';
 var pendingSortDir = 'ASC';
 var pendingLoading = false;
@@ -505,9 +506,7 @@ async function exportPendingCsv() {
     while (true) {
       var url = '/app/api/index.php?route=pending-tickets&limit=' + CHUNK
         + '&offset=' + offset
-        + '&search=' + encodeURIComponent(pendingSearch)
-        + '&status=' + encodeURIComponent(pendingStatusFilter)
-        + buildPendingSortQuery();
+        + '&' + buildPendingQuery();
 
       var resp = await fetch(url);
       var result = await resp.json();
@@ -552,8 +551,21 @@ var pendingDebouncedSearch = debounce(function (val) {
   _pendingReset();
 }, 1000);
 
+var pendingDebouncedOsFilter = debounce(function (val) {
+  pendingOsFilter = val;
+  _pendingReset();
+}, 1000);
+
 function buildPendingSortQuery() {
   return '&sort_by=' + encodeURIComponent(pendingSortBy)
+    + '&sort_dir=' + encodeURIComponent(pendingSortDir);
+}
+
+function buildPendingQuery() {
+  return 'search=' + encodeURIComponent(pendingSearch)
+    + '&status=' + encodeURIComponent(pendingStatusFilter)
+    + '&os=' + encodeURIComponent(pendingOsFilter)
+    + '&sort_by=' + encodeURIComponent(pendingSortBy)
     + '&sort_dir=' + encodeURIComponent(pendingSortDir);
 }
 
@@ -588,6 +600,7 @@ function setupPendingSort() {
 function initPendingTickets() {
   pendingSearch = '';
   pendingStatusFilter = '';
+  pendingOsFilter = '';
   pendingSortBy = 'e.local';
   pendingSortDir = 'ASC';
   pendingLoading = false;
@@ -607,6 +620,21 @@ function initPendingTickets() {
     });
     searchInput.addEventListener('input', function () {
       pendingDebouncedSearch(this.value);
+    });
+  }
+
+  var osInput = document.getElementById('pendingOsFilter');
+  if (osInput) {
+    osInput.value = '';
+    osInput.addEventListener('click', function () {
+      if (this.value.trim() !== '') {
+        this.value = '';
+        pendingOsFilter = '';
+        _pendingReset();
+      }
+    });
+    osInput.addEventListener('input', function () {
+      pendingDebouncedOsFilter(this.value);
     });
   }
 
@@ -694,9 +722,7 @@ function initPendingTickets() {
     fetchFn: function (params, opts) {
       var url = '/app/api/index.php?route=pending-tickets&limit=' + params.limit
         + '&offset=' + params.offset
-        + '&search=' + encodeURIComponent(pendingSearch)
-        + '&status=' + encodeURIComponent(pendingStatusFilter)
-        + buildPendingSortQuery();
+        + '&' + buildPendingQuery();
 
       return apiFetch(url, opts)
         .then(function (r) { return r.json(); })
@@ -718,7 +744,7 @@ function initPendingTickets() {
       }
     },
     getFilterHash: function () {
-      return pendingSearch + '|' + pendingStatusFilter + '|' + pendingSortBy + '|' + pendingSortDir;
+      return pendingSearch + '|' + pendingStatusFilter + '|' + pendingOsFilter + '|' + pendingSortBy + '|' + pendingSortDir;
     },
     sentinelId: 'pendingSentinel',
     scrollContainerId: 'pendingScrollContainer',
@@ -732,3 +758,5 @@ globalThis.initPendingTickets = initPendingTickets;
 globalThis.exportPendingCsv = exportPendingCsv;
 globalThis.buildPendingCsvRow = buildPendingCsvRow;
 globalThis.buildPendingSortQuery = buildPendingSortQuery;
+globalThis.buildPendingQuery = buildPendingQuery;
+globalThis._pendingReset = _pendingReset;

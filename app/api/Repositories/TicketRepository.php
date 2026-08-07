@@ -280,7 +280,8 @@ class TicketRepository extends BaseRepository
         string $search = '',
         string $status = '',
         string $sortBy = 'e.local',
-        string $sortDir = 'ASC'
+        string $sortDir = 'ASC',
+        string $os = ''
     ): array {
         $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
 
@@ -300,6 +301,12 @@ class TicketRepository extends BaseRepository
             $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
             $params = array_merge($params, array_fill(0, 15, $likeSearch));
             $types .= str_repeat('s', 15);
+        }
+
+        if ($os !== '') {
+            $where .= ' AND r.os LIKE ?';
+            $params[] = '%' . $os . '%';
+            $types .= 's';
         }
 
         $allowedSort = self::ALLOWED_SORT;
@@ -333,7 +340,7 @@ class TicketRepository extends BaseRepository
         return $records;
     }
 
-    public function countPending(string $search, string $status): int
+    public function countPending(string $search, string $status, string $os = ''): int
     {
         $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
 
@@ -353,6 +360,12 @@ class TicketRepository extends BaseRepository
             $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
             $params = array_merge($params, array_fill(0, 15, $likeSearch));
             $types .= str_repeat('s', 15);
+        }
+
+        if ($os !== '') {
+            $where .= ' AND r.os LIKE ?';
+            $params[] = '%' . $os . '%';
+            $types .= 's';
         }
 
         $sql = "

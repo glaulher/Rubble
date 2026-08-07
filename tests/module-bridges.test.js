@@ -396,6 +396,74 @@ describe("pending-tickets/list.js bridge", function () {
     }
   });
 
+  it("builds a query string that includes the os filter", function () {
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    try {
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      globalThis.pendingSearch = 'BMA';
+      globalThis.pendingStatusFilter = 'pendente';
+      globalThis.pendingOsFilter = 'OS123';
+      globalThis.pendingSortBy = 'r.os';
+      globalThis.pendingSortDir = 'DESC';
+
+      var q = globalThis.buildPendingQuery();
+
+      expect(q).toContain('search=BMA');
+      expect(q).toContain('status=pendente');
+      expect(q).toContain('os=OS123');
+      expect(q).toContain('sort_by=r.os');
+      expect(q).toContain('sort_dir=DESC');
+    } finally {
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
+
+  it("sends the os filter in the fetch request", function () {
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    try {
+      document.body.innerHTML =
+        '<div id="pendingScrollContainer">' +
+        '<table id="pendingTable">' +
+        '<thead><tr><th data-sort="e.local">Site</th></tr></thead>' +
+        '<tbody id="pendingTableBody"></tbody>' +
+        '</table>' +
+        '<div id="pendingSentinel"></div>' +
+        '</div>' +
+        '<input id="pendingSearchInput" />' +
+        '<div id="pendingEmpty" class="hidden"></div>';
+
+      var captured = [];
+      globalThis.apiFetch = function (url, opts) {
+        captured.push(url);
+        return Promise.resolve({
+          json: function () { return { success: true, data: { items: [], total: 0 } }; },
+        });
+      };
+
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      globalThis.initPendingTickets();
+      globalThis.pendingOsFilter = 'OS123';
+      globalThis._pendingReset();
+
+      expect(captured.length).toBeGreaterThan(0);
+      expect(captured[captured.length - 1]).toContain('os=OS123');
+    } finally {
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
+
   it("renders the observacao value with an edit pencil in the details row", function () {
     document.body.innerHTML =
       '<table id="pendingTable"><tbody id="pendingTableBody"></tbody></table>' +

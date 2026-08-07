@@ -25,6 +25,7 @@ function sanitizeCSV(value) {
 
 var pendingSearch = '';
 var pendingStatusFilter = '';
+var pendingOsFilter = '';
 var pendingSortBy = 'e.local';
 var pendingSortDir = 'ASC';
 var pendingLoading = false;
@@ -154,6 +155,14 @@ function buildPendingSortQuery() {
     + '&sort_dir=' + encodeURIComponent(pendingSortDir);
 }
 
+function buildPendingQuery() {
+  return 'search=' + encodeURIComponent(pendingSearch)
+    + '&status=' + encodeURIComponent(pendingStatusFilter)
+    + '&os=' + encodeURIComponent(pendingOsFilter)
+    + '&sort_by=' + encodeURIComponent(pendingSortBy)
+    + '&sort_dir=' + encodeURIComponent(pendingSortDir);
+}
+
 function buildPendingStatusSelect(selected) {
   const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
   let html = '<select class="pending-edit-input pending-status px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">';
@@ -203,6 +212,31 @@ describe("buildPendingSortQuery", () => {
     pendingSortBy = 'r.os; DROP';
     pendingSortDir = 'ASC';
     expect(buildPendingSortQuery()).toBe('&sort_by=r.os%3B%20DROP&sort_dir=ASC');
+  });
+});
+
+describe("buildPendingQuery", () => {
+  it("includes the os filter param", () => {
+    pendingSearch = 'BMA';
+    pendingStatusFilter = 'pendente';
+    pendingOsFilter = 'OS123';
+    pendingSortBy = 'r.os';
+    pendingSortDir = 'DESC';
+    const q = buildPendingQuery();
+    expect(q).toContain('search=BMA');
+    expect(q).toContain('status=pendente');
+    expect(q).toContain('os=OS123');
+    expect(q).toContain('sort_by=r.os');
+    expect(q).toContain('sort_dir=DESC');
+  });
+
+  it("includes an empty os param when no filter is set", () => {
+    pendingSearch = '';
+    pendingStatusFilter = '';
+    pendingOsFilter = '';
+    pendingSortBy = 'e.local';
+    pendingSortDir = 'ASC';
+    expect(buildPendingQuery()).toContain('os=');
   });
 });
 

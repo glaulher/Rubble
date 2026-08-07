@@ -23,6 +23,7 @@ class PendingTicketsController
             $offset = isset($_GET['offset']) ? max((int) $_GET['offset'], 0) : 0;
             $search = $_GET['search'] ?? '';
             $status = $_GET['status'] ?? '';
+            $os = $_GET['os'] ?? '';
             $sortBy = trim($_GET['sort_by'] ?? '') ?: 'e.local';
             $sortDir = trim($_GET['sort_dir'] ?? '') ?: 'ASC';
 
@@ -33,7 +34,7 @@ class PendingTicketsController
                 $sortDir = 'ASC';
             }
 
-            $cacheKey = 'pending_tickets:' . md5(json_encode([$limit, $offset, $search, $status, $sortBy, $sortDir]));
+            $cacheKey = 'pending_tickets:' . md5(json_encode([$limit, $offset, $search, $status, $os, $sortBy, $sortDir]));
 
             if (Cache::has($cacheKey)) {
                 $cached = Cache::get($cacheKey);
@@ -41,7 +42,7 @@ class PendingTicketsController
                 return;
             }
 
-            $result = $this->service->listPendingBySite($limit, $offset, $search, $status, $sortBy, $sortDir);
+            $result = $this->service->listPendingBySite($limit, $offset, $search, $status, $sortBy, $sortDir, $os);
 
             Cache::set($cacheKey, $result, 10);
 

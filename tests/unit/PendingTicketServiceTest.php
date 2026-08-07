@@ -71,6 +71,32 @@ class PendingTicketServiceTest extends TestCase
         $service->listPendingBySite(20, 0, '', 'status_invalido');
     }
 
+    public function testListPendingBySitePassesOsFilter(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('listPendingBySite')->willReturn([]);
+        $repo->method('countPending')->willReturn(0);
+
+        $repo->expects($this->once())
+            ->method('listPendingBySite')
+            ->with(20, 0, '', '', 'e.local', 'ASC', 'OS123');
+
+        $service = $this->createService($repo);
+        $service->listPendingBySite(20, 0, '', '', 'e.local', 'ASC', 'OS123');
+    }
+
+    public function testCountPendingPassesOsFilter(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('countPending')
+            ->with('', '', 'OS123')
+            ->willReturn(2);
+
+        $service = $this->createService($repo);
+        $this->assertSame(2, $service->countPending('', '', 'OS123'));
+    }
+
     public function testCountPendingDelegatesToRepository(): void
     {
         $repo = $this->createMockRepo();
