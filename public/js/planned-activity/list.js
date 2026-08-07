@@ -349,6 +349,28 @@ function finishTeamEdit(input, strong) {
 |--------------------------------------------------------------------------
 */
 
+const PLANNED_ROLE_LABELS = {
+  admin: 'admin',
+  supervisor: 'supervisor',
+  coordenador: 'coordenador',
+  administrativo: 'administrativo',
+  cliente: 'cliente',
+};
+
+function pad2(n) {
+  return n < 10 ? '0' + n : String(n);
+}
+
+function buildObsSignature() {
+  var user = typeof getUser === 'function' ? getUser() : null;
+  var name = (user && user.nome) ? user.nome : '';
+  var role = user && user.role ? (PLANNED_ROLE_LABELS[user.role] || user.role) : '';
+  var now = new Date();
+  var stamp = '[' + pad2(now.getDate()) + '/' + pad2(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' +
+    pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ']';
+  return stamp + (name ? ' ' + name : '') + (role ? ' (' + role + ')' : '') + ': ';
+}
+
 function startObsInlineEdit(btn) {
   var container = btn.closest('.obs-container');
   if (!container) return;
@@ -358,10 +380,11 @@ function startObsInlineEdit(btn) {
   var placeholder = span.querySelector('.text-slate-400');
   var currentValue = placeholder ? '' : currentText;
 
+  var signature = buildObsSignature();
   var textarea = document.createElement('textarea');
-  textarea.value = currentValue;
+  textarea.value = currentValue ? currentValue + '\n' + signature : signature;
   textarea.className = 'obs-edit-input text-xs w-full bg-transparent border border-blue-300 dark:border-blue-600 rounded px-1 py-0.5 focus:outline-none focus:border-blue-500';
-  textarea.dataset.originalValue = currentValue;
+  textarea.dataset.originalValue = textarea.value.trim();
   textarea.style.minHeight = '40px';
   textarea.maxLength = 1000;
 

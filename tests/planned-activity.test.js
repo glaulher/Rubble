@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, afterEach } from "bun:test";
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -96,6 +96,28 @@ function buildObsHtml(obs, canEdit) {
   '</div>';
 }
 
+const PLANNED_ROLE_LABELS = {
+  admin: 'admin',
+  supervisor: 'supervisor',
+  coordenador: 'coordenador',
+  administrativo: 'administrativo',
+  cliente: 'cliente',
+};
+
+function pad2(n) {
+  return n < 10 ? '0' + n : String(n);
+}
+
+function buildObsSignature() {
+  var user = typeof getUser === 'function' ? getUser() : null;
+  var name = (user && user.nome) ? user.nome : '';
+  var role = user && user.role ? (PLANNED_ROLE_LABELS[user.role] || user.role) : '';
+  var now = new Date();
+  var stamp = '[' + pad2(now.getDate()) + '/' + pad2(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' +
+    pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ']';
+  return stamp + (name ? ' ' + name : '') + (role ? ' (' + role + ')' : '') + ': ';
+}
+
 function startObsInlineEdit(btn) {
   var container = btn.closest('.obs-container');
   if (!container) return;
@@ -105,8 +127,10 @@ function startObsInlineEdit(btn) {
   var placeholder = span.querySelector('.text-slate-400');
   var currentValue = placeholder ? '' : currentText;
 
+  var signature = buildObsSignature();
   var textarea = document.createElement('textarea');
-  textarea.value = currentValue;
+  textarea.value = currentValue ? currentValue + '\n' + signature : signature;
+  textarea.dataset.originalValue = textarea.value.trim();
   textarea.className = 'obs-edit-input text-xs w-full bg-transparent border border-blue-300 rounded px-1 py-0.5 focus:outline-none focus:border-blue-500';
   textarea.dataset.originalValue = currentValue;
   textarea.style.minHeight = '40px';
@@ -184,6 +208,28 @@ describe("buildObsHtml", () => {
   });
 });
 
+describe("buildObsSignature", () => {
+  function restoreUser() { delete globalThis.getUser; }
+
+  afterEach(restoreUser);
+
+  it("formats [DD/MM/YYYY HH:MM] Nome (role): using getUser", () => {
+    globalThis.getUser = function () { return { nome: 'Renata Domingos', role: 'coordenador' }; };
+    var sig = buildObsSignature();
+    expect(sig).toMatch(/^\[\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}\] Renata Domingos \(coordenador\): $/);
+  });
+
+  it("uses lowercase role label from the map", () => {
+    globalThis.getUser = function () { return { nome: 'João', role: 'admin' }; };
+    expect(buildObsSignature()).toMatch(/João \(admin\): $/);
+  });
+
+  it("falls back to just timestamp when no user is available", () => {
+    var sig = buildObsSignature();
+    expect(sig).toMatch(/^\[\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}\]: $/);
+  });
+});
+
 describe("startObsInlineEdit", () => {
   it("replaces span with textarea on click", () => {
     document.body.innerHTML = buildObsHtml("Minha observação", true);
@@ -194,17 +240,27 @@ describe("startObsInlineEdit", () => {
 
     var textarea = document.querySelector('.obs-edit-input');
     expect(textarea).not.toBeNull();
-    expect(textarea.value).toBe("Minha observação");
+    expect(textarea.value.indexOf("Minha observação")).toBe(0);
   });
 
-  it("shows empty textarea when observation is placeholder", () => {
+  it("appends the author signature at the end of existing text", () => {
+    document.body.innerHTML = buildObsHtml("Minha observação", true);
+    var btn = document.querySelector('.obs-edit-btn');
+    startObsInlineEdit(btn);
+
+    var textarea = document.querySelector('.obs-edit-input');
+    expect(textarea.value.indexOf("\n[")).not.toBe(-1);
+    expect(textarea.value).toMatch(/\n\[\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}\].*: $/);
+  });
+
+  it("starts with the signature when observation is placeholder", () => {
     document.body.innerHTML = buildObsHtml("", true);
     var btn = document.querySelector('.obs-edit-btn');
     startObsInlineEdit(btn);
 
     var textarea = document.querySelector('.obs-edit-input');
-    expect(textarea).not.toBeNull();
-    expect(textarea.value).toBe("");
+    expect(textarea.value).toMatch(/^\[\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}\].*: $/);
+    expect(textarea.value.charAt(0)).toBe("[");
   });
 });
 
