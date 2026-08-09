@@ -180,8 +180,8 @@ CREATE TABLE `pv_item` (
   `id` int(11) NOT NULL,
   `pv_id` int(11) NOT NULL,
   `lpu_origem` varchar(50) DEFAULT NULL,
-  `descricao_lpu` varchar(255) DEFAULT NULL,
-  `descricao` varchar(255) DEFAULT NULL,
+  `descricao_lpu` text DEFAULT NULL,
+  `descricao` text DEFAULT NULL,
   `numero_item` int(11) DEFAULT NULL,
   `quantidade` decimal(10,2) DEFAULT NULL,
   `valor` decimal(10,2) DEFAULT NULL,
@@ -235,10 +235,18 @@ CREATE TABLE `registros` (
   `obs` mediumtext DEFAULT NULL,
   `material` varchar(50) DEFAULT NULL,
   `status` varchar(50) DEFAULT NULL,
+  `prioridade` varchar(20) DEFAULT NULL,
   `data_concluido` date DEFAULT NULL,
   `data_planejada` date DEFAULT NULL,
+  `data_real_inicio` date DEFAULT NULL,
+  `data_prevista_conclusao` date DEFAULT NULL,
   `equipamento_id` int(11) DEFAULT NULL,
-  `notificacao_enviada` tinyint(1) DEFAULT 0
+  `notificacao_enviada` tinyint(1) DEFAULT 0,
+  `origin` enum('ticket','planning') NOT NULL DEFAULT 'ticket',
+  `tipo` enum('preventiva','corretiva') NOT NULL DEFAULT 'preventiva',
+  `sla_days` int DEFAULT NULL,
+  `sla_include_saturday` tinyint(1) DEFAULT 0,
+  `sla_include_sunday` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- FK constraint added via migration 036:
@@ -375,7 +383,8 @@ ALTER TABLE `equipamento_precos`
 --
 ALTER TABLE `login_attempts`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_login_attempts_ip_time` (`ip_address`,`attempted_at`);
+  ADD KEY `idx_login_attempts_ip_time` (`ip_address`,`attempted_at`),
+  ADD KEY `idx_login_attempts_attempted_at` (`attempted_at`);
 
 --
 -- Índices de tabela `material_chiller_lpu`
@@ -431,15 +440,15 @@ ALTER TABLE `pv_os`
 --
 ALTER TABLE `rate_limits`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uk_rate_limit` (`ip_address`,`endpoint`,`window_start`),
-  ADD KEY `idx_rate_limits_lookup` (`ip_address`,`endpoint`,`window_start`);
+  ADD UNIQUE KEY `uk_rate_limit` (`ip_address`,`endpoint`,`window_start`);
 
 --
 -- Índices de tabela `registros`
 --
 ALTER TABLE `registros`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `idx_registros_os` (`os`),
+  ADD KEY `idx_registros_os` (`os`),
+  ADD KEY `idx_registros_os_equip` (`os`,`equipamento_id`),
   ADD KEY `idx_registros_equipamento_id` (`equipamento_id`),
   ADD KEY `idx_registros_status` (`status`),
   ADD KEY `idx_registros_data` (`data`),
@@ -460,7 +469,8 @@ ALTER TABLE `scm`
 --
 ALTER TABLE `scm_items`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_scm_items_scm_id` (`scm_id`);
+  ADD KEY `idx_scm_items_scm_id` (`scm_id`),
+  ADD FULLTEXT KEY `ft_scm_items_servico` (`servico`);
 
 --
 -- Índices de tabela `servico_chiller_lpu`
@@ -660,9 +670,56 @@ CREATE TABLE IF NOT EXISTS `planejamento_datas` (
   `registro_id`     INT NOT NULL,
   `data_planejada`  DATE NOT NULL,
   `sort_order`      INT NOT NULL DEFAULT 0,
+  `sla_day_number`  INT DEFAULT 0,
   `created_at`      DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`registro_id`) REFERENCES `registros` (`id`) ON DELETE CASCADE,
-  UNIQUE KEY `uk_registro_data` (`registro_id`, `data_planejada`)
+  UNIQUE KEY `uk_registro_data` (`registro_id`, `data_planejada`),
+  KEY `idx_pd_sort_order` (`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- atividades_preventivas — Atividades preventivas planejadas (migration 039 + 042/043/046)
+CREATE TABLE IF NOT EXISTS `atividades_preventivas` (
+  `id`                  INT AUTO_INCREMENT PRIMARY KEY,
+  `site`                VARCHAR(100) NOT NULL,
+  `data_planejada`      DATE NOT NULL,
+  `ticket`              VARCHAR(50),
+  `equipe`              VARCHAR(100),
+  `status`              VARCHAR(50) NOT NULL DEFAULT 'Planejado',
+  `obs`                 TEXT,
+  `sort_order`          INT NOT NULL DEFAULT 0,
+  `sla_days`            INT DEFAULT NULL,
+  `sla_include_saturday` TINYINT(1) DEFAULT 0,
+  `sla_include_sunday`  TINYINT(1) DEFAULT 0,
+  `sla_day_number`      INT DEFAULT 0,
+  `created_at`          DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY `idx_ap_site` (`site`),
+  KEY `idx_ap_status` (`status`),
+  KEY `idx_ap_data_planejada` (`data_planejada`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- user_activity — Rastreio de atividade de usuários online (migration 041 + 046)
+CREATE TABLE IF NOT EXISTS `user_activity` (
+  `user_id`       INT NOT NULL PRIMARY KEY,
+  `username`      VARCHAR(50) NOT NULL,
+  `nome`          VARCHAR(100) NOT NULL,
+  `role`          VARCHAR(20) NOT NULL,
+  `last_activity` DATETIME NOT NULL,
+  `ip_address`    VARCHAR(45) DEFAULT NULL,
+  INDEX `idx_user_activity` (`last_activity`),
+  CONSTRAINT `fk_user_activity_user` FOREIGN KEY (`user_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- sla_extensions — Extensões de SLA justificadas (migration 043)
+CREATE TABLE IF NOT EXISTS `sla_extensions` (
+  `id`            INT AUTO_INCREMENT PRIMARY KEY,
+  `registro_id`   INT DEFAULT NULL,
+  `preventiva_id` INT DEFAULT NULL,
+  `tipo`          ENUM('corretiva','preventiva') NOT NULL,
+  `extra_days`    INT NOT NULL,
+  `justification` VARCHAR(100) NOT NULL,
+  `created_at`    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`registro_id`) REFERENCES `registros` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- email_processed — Email approval watcher dedup

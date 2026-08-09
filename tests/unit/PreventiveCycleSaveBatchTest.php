@@ -16,11 +16,25 @@ class PreventiveCycleSaveBatchTest extends TestCase
     {
         $this->conn = Database::connect();
         $this->conn->query("DELETE FROM preventive_cycle_items WHERE ciclo = '" . self::CICLO . "'");
+        $this->ensureEquipment(14);
+        $this->ensureEquipment(15);
     }
 
     protected function tearDown(): void
     {
         $this->conn->query("DELETE FROM preventive_cycle_items WHERE ciclo = '" . self::CICLO . "'");
+    }
+
+    private function ensureEquipment(int $id): void
+    {
+        $stmt = $this->conn->prepare(
+            'INSERT IGNORE INTO equipamentos (id, local, equipamento) VALUES (?, ?, ?)'
+        );
+        $local = 'TESTE';
+        $nome = 'Equipamento de teste ' . $id;
+        $stmt->bind_param('iss', $id, $local, $nome);
+        $stmt->execute();
+        $stmt->close();
     }
 
     public function testSaveBatchAcceptsNullObservacaoAndScmNumber(): void
