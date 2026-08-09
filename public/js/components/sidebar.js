@@ -67,6 +67,17 @@ if (equipToggle && equipSubmenu) {
   });
 }
 
+// Planejamento submenu toggle
+const plannedToggle = document.getElementById('plannedMenuToggle');
+const plannedSubmenu = document.getElementById('plannedSubmenu');
+
+if (plannedToggle && plannedSubmenu) {
+  plannedToggle.addEventListener('click', function (e) {
+    e.preventDefault();
+    plannedSubmenu.classList.toggle('hidden');
+  });
+}
+
 // Fechar submenus ao clicar fora
 document.addEventListener('click', function (e) {
   const dashContainer = document.getElementById('dashboardMenuContainer');
@@ -76,5 +87,9 @@ document.addEventListener('click', function (e) {
   const equipContainer = document.getElementById('equipMenuContainer');
   if (equipSubmenu && equipContainer && !equipContainer.contains(e.target)) {
     equipSubmenu.classList.add('hidden');
+  }
+  const plannedContainer = document.getElementById('plannedMenuContainer');
+  if (plannedSubmenu && plannedContainer && !plannedContainer.contains(e.target)) {
+    plannedSubmenu.classList.add('hidden');
   }
 });

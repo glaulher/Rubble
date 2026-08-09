@@ -396,10 +396,12 @@
         <div
           data-role="admin coordenador supervisor cliente"
           class="relative group"
+          id="plannedMenuContainer"
         >
           <a
             href="#"
             class="sidebar-link flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white font-medium transition whitespace-nowrap relative"
+            id="plannedMenuToggle"
           >
             <svg
               class="w-5 h-5 shrink-0"
@@ -424,6 +426,7 @@
           </a>
           <!-- Submenu -->
           <div
+            id="plannedSubmenu"
             class="hidden group-hover:block absolute left-full top-0 bg-slate-900 text-white rounded-xl shadow-lg border border-slate-600 z-50 py-2 px-1 min-w-[180px]"
           >
             <a
@@ -539,7 +542,7 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="/public/js/components/sidebar.js?v=1" defer></script>
+    <script src="/public/js/components/sidebar.js?v=2" defer></script>
     <script src="/public/js/auth.js?v=4"></script>
     <script src="/public/js/lib/chart.umd.min.js?v=1" defer></script>
     <script src="/public/js/lib/html2canvas.min.js?v=1" defer></script>
