@@ -369,6 +369,10 @@ class TicketService
 
                 $existing = $this->ticketRepository->findInfratelByEquipment($equipment->id);
 
+                if ($existing && mb_strtoupper(trim((string) $existing->status)) === 'CONCLUÍDO') {
+                    $existing = null;
+                }
+
                 if ($existing) {
                     $existingNotes = $existing->notes ?? '';
                     $concatenatedObs = $existingNotes;

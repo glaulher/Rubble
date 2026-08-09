@@ -679,6 +679,58 @@ class TicketServiceTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
+    public function testImportInfratelBatchCreatesNewWhenExistingConcluded(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+
+        $equipRepo->method('findByInfratel')
+            ->with('BGU02DTC', 'CLIMA - ARCON 02')
+            ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
+
+        $existing = new Ticket([
+            'id' => 5,
+            'equipamento_id' => 10,
+            'os' => 'INFRATEL15',
+            'status' => 'Concluído',
+            'obs' => 'Pendência antiga',
+        ]);
+
+        $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn($existing);
+        $ticketRepo->method('getNextInfratelNumber')->willReturn(15);
+
+        $savedData = null;
+        $ticketRepo->method('save')->willReturnCallback(function ($data) use (&$savedData) {
+            $savedData = $data;
+            return 42;
+        });
+        $ticketRepo->expects($this->never())->method('update');
+
+        $service = new TicketService($ticketRepo, $equipRepo);
+
+        $rows = [
+            [
+                'site' => 'BGU02DTC',
+                'equipamento' => 'CLIMA - ARCON 02',
+                'justificativas' => 'Nova pendência',
+                'acao_tecnico' => 'N/A',
+                'acao_validador' => 'N/A',
+                'fim' => '15/07/2026',
+                'executor' => 'Moisés Torres',
+            ],
+        ];
+
+        $result = $service->importInfratelBatch($rows);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(0, $result['updated']);
+        $this->assertSame(0, $result['skipped']);
+        $this->assertEmpty($result['errors']);
+        $this->assertNotNull($savedData);
+        $this->assertSame('INFRATEL16', $savedData['os']);
+        $this->assertSame('Pendente', $savedData['status']);
+    }
+
     public function testImportInfratelBatchUsesOldestDate(): void
     {
         $ticketRepo = $this->createMockRepo();
