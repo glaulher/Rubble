@@ -260,6 +260,20 @@ class EquipmentRepository extends BaseRepository
         return $row ? new Equipment($row) : null;
     }
 
+    public function findByInfratelSite(string $site): array
+    {
+        $sql = "SELECT * FROM equipamentos WHERE site_infratel = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('s', $site);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $rows = [];
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = new Equipment($row);
+        }
+        return $rows;
+    }
+
     public function listByLocal(string $localCode): array
     {
         $sql = "SELECT * FROM equipamentos WHERE local = ? ORDER BY equipamento";

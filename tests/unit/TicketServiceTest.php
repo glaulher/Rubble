@@ -571,6 +571,7 @@ class TicketServiceTest extends TestCase
         $equipRepo = $this->createMockEquipmentRepo();
 
         $equipRepo->method('findByInfratel')->willReturn(null);
+        $equipRepo->method('findByInfratelSite')->willReturn([]);
 
         $service = new TicketService($ticketRepo, $equipRepo);
 
@@ -850,5 +851,202 @@ class TicketServiceTest extends TestCase
 
         $this->assertNotNull($savedData);
         $this->assertSame('Pendente', $savedData['status']);
+    }
+
+    public function testImportInfratelBatchResolvesCompositeTagEvPart(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+
+        $equipRepo->method('findByInfratel')->willReturn(null);
+        $equipRepo->method('findByInfratelSite')
+            ->with('RJOFRG')
+            ->willReturn([
+                new Equipment([
+                    'id' => '102',
+                    'local' => 'RJOFRG',
+                    'equipamento' => 'SELF SPLIT 01',
+                    'site_infratel' => 'RJOFRG',
+                    'tag_infratel' => 'CLIMA - CD-01 / TRANE / SALA DE UPS | CLIMA - EV-01 / TRANE / SALA DE UPS',
+                ]),
+            ]);
+
+        $ticketRepo->method('findInfratelByEquipment')->with(102)->willReturn(null);
+        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('save')->willReturn(42);
+
+        $service = new TicketService($ticketRepo, $equipRepo);
+
+        $rows = [
+            [
+                'site' => 'RJOFRG',
+                'equipamento' => 'CLIMA - EV-01 / TRANE / SALA DE UPS',
+                'justificativas' => 'Vazamento na serpentina do condensador',
+                'acao_tecnico' => 'Brasagem, pressurização, vácuo e carga de fluido refrigerante',
+                'acao_validador' => 'N/A',
+                'fim' => '06/08/2026',
+                'executor' => 'Alexandre Donato da Silva',
+            ],
+        ];
+
+        $result = $service->importInfratelBatch($rows);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(0, $result['skipped']);
+        $this->assertEmpty($result['errors']);
+    }
+
+    public function testImportInfratelBatchResolvesCompositeTagCdPart(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+
+        $equipRepo->method('findByInfratel')->willReturn(null);
+        $equipRepo->method('findByInfratelSite')
+            ->with('RJOFRG')
+            ->willReturn([
+                new Equipment([
+                    'id' => '102',
+                    'local' => 'RJOFRG',
+                    'equipamento' => 'SELF SPLIT 01',
+                    'site_infratel' => 'RJOFRG',
+                    'tag_infratel' => 'CLIMA - CD-01 / TRANE / SALA DE UPS | CLIMA - EV-01 / TRANE / SALA DE UPS',
+                ]),
+            ]);
+
+        $ticketRepo->method('findInfratelByEquipment')->with(102)->willReturn(null);
+        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('save')->willReturn(42);
+
+        $service = new TicketService($ticketRepo, $equipRepo);
+
+        $rows = [
+            [
+                'site' => 'RJOFRG',
+                'equipamento' => 'CLIMA - CD-01 / TRANE / SALA DE UPS',
+                'justificativas' => 'Bateria do sistema de resfriamento com defeito',
+                'acao_tecnico' => 'N/A',
+                'acao_validador' => 'N/A',
+                'fim' => '06/08/2026',
+                'executor' => 'Alexandre Donato da Silva',
+            ],
+        ];
+
+        $result = $service->importInfratelBatch($rows);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(0, $result['skipped']);
+        $this->assertEmpty($result['errors']);
+    }
+
+    public function testImportInfratelBatchBothEvAndCdRowsMergeIntoSameTicket(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+
+        $equipRepo->method('findByInfratel')->willReturn(null);
+        $equipRepo->method('findByInfratelSite')
+            ->with('RJOFRG')
+            ->willReturn([
+                new Equipment([
+                    'id' => '102',
+                    'local' => 'RJOFRG',
+                    'equipamento' => 'SELF SPLIT 01',
+                    'site_infratel' => 'RJOFRG',
+                    'tag_infratel' => 'CLIMA - CD-01 / TRANE / SALA DE UPS | CLIMA - EV-01 / TRANE / SALA DE UPS',
+                ]),
+            ]);
+
+        $existing = new Ticket([
+            'id' => 5,
+            'equipamento_id' => 102,
+            'os' => 'INFRATEL1',
+            'status' => 'Pendente',
+            'obs' => 'Pendência antiga',
+        ]);
+
+        $ticketRepo->method('findInfratelByEquipment')->with(102)->willReturn($existing);
+        $ticketRepo->method('update')->willReturn(true);
+
+        $service = new TicketService($ticketRepo, $equipRepo);
+
+        $rows = [
+            [
+                'site' => 'RJOFRG',
+                'equipamento' => 'CLIMA - EV-01 / TRANE / SALA DE UPS',
+                'justificativas' => 'Vazamento na serpentina do condensador',
+                'acao_tecnico' => 'Brasagem, pressurização, vácuo e carga de fluido refrigerante',
+                'acao_validador' => 'N/A',
+                'fim' => '06/08/2026',
+                'executor' => 'Alexandre Donato da Silva',
+            ],
+            [
+                'site' => 'RJOFRG',
+                'equipamento' => 'CLIMA - CD-01 / TRANE / SALA DE UPS',
+                'justificativas' => 'Bateria do sistema de resfriamento com defeito',
+                'acao_tecnico' => 'N/A',
+                'acao_validador' => 'N/A',
+                'fim' => '06/08/2026',
+                'executor' => 'Alexandre Donato da Silva',
+            ],
+        ];
+
+        $result = $service->importInfratelBatch($rows);
+
+        $this->assertSame(0, $result['imported']);
+        $this->assertSame(2, $result['updated']);
+        $this->assertSame(0, $result['skipped']);
+        $this->assertEmpty($result['errors']);
+    }
+
+    public function testImportInfratelBatchUpdatesExistingPendente(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+
+        $equipRepo->method('findByInfratel')
+            ->with('BGU02DTC', 'CLIMA - ARCON 02')
+            ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
+
+        $existing = new Ticket([
+            'id' => 5,
+            'equipamento_id' => 10,
+            'os' => 'INFRATEL1',
+            'status' => 'Pendente',
+            'obs' => 'Pendência antiga',
+        ]);
+
+        $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn($existing);
+
+        $updatedData = null;
+        $ticketRepo->method('update')->willReturnCallback(function ($data) use (&$updatedData) {
+            $updatedData = $data;
+            return true;
+        });
+
+        $service = new TicketService($ticketRepo, $equipRepo);
+
+        $rows = [
+            [
+                'site' => 'BGU02DTC',
+                'equipamento' => 'CLIMA - ARCON 02',
+                'justificativas' => 'Nova pendência',
+                'acao_tecnico' => 'N/A',
+                'acao_validador' => 'N/A',
+                'fim' => '15/07/2026',
+                'executor' => 'Moisés Torres',
+            ],
+        ];
+
+        $result = $service->importInfratelBatch($rows);
+
+        $this->assertSame(0, $result['imported']);
+        $this->assertSame(1, $result['updated']);
+        $this->assertSame(0, $result['skipped']);
+        $this->assertNotEmpty($updatedData);
+        $this->assertSame('Pendente', $updatedData['status']);
+        $this->assertSame('INFRATEL1', $updatedData['os']);
+        $this->assertStringContainsString('Nova pendência', $updatedData['obs']);
+        $this->assertStringContainsString('Pendência antiga', $updatedData['obs']);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Api\Services;
 use App\Api\Repositories\TicketRepository;
 use App\Api\Repositories\EquipmentRepository;
 use App\Api\Entities\Ticket;
+use App\Api\Entities\Equipment;
 
 class TicketService
 {
@@ -298,6 +299,23 @@ class TicketService
         return 'Sim';
     }
 
+    private function resolveInfratelEquipment(string $site, string $tag): ?Equipment
+    {
+        $equipment = $this->equipmentRepository->findByInfratel($site, $tag);
+        if ($equipment !== null) {
+            return $equipment;
+        }
+
+        foreach ($this->equipmentRepository->findByInfratelSite($site) ?? [] as $candidate) {
+            foreach (explode('|', (string) $candidate->tagInfratel) as $part) {
+                if (mb_strtoupper(trim($part)) === mb_strtoupper($tag)) {
+                    return $candidate;
+                }
+            }
+        }
+        return null;
+    }
+
     public function importInfratelBatch(array $rows): array
     {
         $imported = 0;
@@ -328,7 +346,7 @@ class TicketService
             $tag = trim($groupRows[0]['equipamento'] ?? '');
 
             try {
-                $equipment = $this->equipmentRepository->findByInfratel($site, $tag);
+                $equipment = $this->resolveInfratelEquipment($site, $tag);
                 if ($equipment === null) {
                     $skipped += count($groupRows);
                     $errors[] = ['linha' => 0, 'motivo' => "Equipamento não encontrado para site={$site} tag={$tag}"];
