@@ -447,7 +447,7 @@ class TicketServiceTest extends TestCase
             ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
 
         $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn(null);
-        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([]);
         $ticketRepo->method('save')->willReturn(42);
 
         $service = new TicketService($ticketRepo, $equipRepo);
@@ -509,7 +509,7 @@ class TicketServiceTest extends TestCase
             ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
 
         $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn(null);
-        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([]);
         $ticketRepo->method('save')->willReturn(42);
 
         $service = new TicketService($ticketRepo, $equipRepo);
@@ -542,7 +542,7 @@ class TicketServiceTest extends TestCase
             ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
 
         $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn(null);
-        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([]);
         $ticketRepo->method('save')->willReturn(42);
 
         $service = new TicketService($ticketRepo, $equipRepo);
@@ -605,7 +605,7 @@ class TicketServiceTest extends TestCase
             ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
 
         $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn(null);
-        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([]);
         $ticketRepo->method('save')->willReturn(42);
 
         $service = new TicketService($ticketRepo, $equipRepo);
@@ -698,7 +698,9 @@ class TicketServiceTest extends TestCase
         ]);
 
         $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn($existing);
-        $ticketRepo->method('getNextInfratelNumber')->willReturn(15);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([
+            ['os' => 'INFRATEL15', 'status' => 'Pendente'],
+        ]);
 
         $savedData = null;
         $ticketRepo->method('save')->willReturnCallback(function ($data) use (&$savedData) {
@@ -742,7 +744,7 @@ class TicketServiceTest extends TestCase
             ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
 
         $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn(null);
-        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([]);
 
         $savedData = null;
         $ticketRepo->method('save')->willReturnCallback(function ($data) use (&$savedData) {
@@ -788,7 +790,7 @@ class TicketServiceTest extends TestCase
             ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
 
         $ticketRepo->method('findInfratelByEquipment')->willReturn(null);
-        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([]);
 
         $savedData = null;
         $ticketRepo->method('save')->willReturnCallback(function ($data) use (&$savedData) {
@@ -825,7 +827,7 @@ class TicketServiceTest extends TestCase
             ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
 
         $ticketRepo->method('findInfratelByEquipment')->willReturn(null);
-        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([]);
 
         $savedData = null;
         $ticketRepo->method('save')->willReturnCallback(function ($data) use (&$savedData) {
@@ -872,7 +874,7 @@ class TicketServiceTest extends TestCase
             ]);
 
         $ticketRepo->method('findInfratelByEquipment')->with(102)->willReturn(null);
-        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([]);
         $ticketRepo->method('save')->willReturn(42);
 
         $service = new TicketService($ticketRepo, $equipRepo);
@@ -915,7 +917,7 @@ class TicketServiceTest extends TestCase
             ]);
 
         $ticketRepo->method('findInfratelByEquipment')->with(102)->willReturn(null);
-        $ticketRepo->method('getNextInfratelNumber')->willReturn(0);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([]);
         $ticketRepo->method('save')->willReturn(42);
 
         $service = new TicketService($ticketRepo, $equipRepo);
@@ -1048,5 +1050,130 @@ class TicketServiceTest extends TestCase
         $this->assertSame('INFRATEL1', $updatedData['os']);
         $this->assertStringContainsString('Nova pendência', $updatedData['obs']);
         $this->assertStringContainsString('Pendência antiga', $updatedData['obs']);
+    }
+
+    public function testImportInfratelBatchIgnoresConcludedRenamedOsNumber(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+
+        $equipRepo->method('findByInfratel')
+            ->with('BGU02DTC', 'CLIMA - ARCON 02')
+            ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
+
+        $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn(null);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([
+            ['os' => 'INFRATEL47', 'status' => 'Pendente'],
+            ['os' => 'INFRATEL4787430', 'status' => 'Concluído'],
+        ]);
+
+        $savedData = null;
+        $ticketRepo->method('save')->willReturnCallback(function ($data) use (&$savedData) {
+            $savedData = $data;
+            return 42;
+        });
+
+        $service = new TicketService($ticketRepo, $equipRepo);
+
+        $rows = [
+            [
+                'site' => 'BGU02DTC',
+                'equipamento' => 'CLIMA - ARCON 02',
+                'justificativas' => 'Nova pendência',
+                'acao_tecnico' => 'N/A',
+                'acao_validador' => 'N/A',
+                'fim' => '15/07/2026',
+                'executor' => 'Moisés Torres',
+            ],
+        ];
+
+        $result = $service->importInfratelBatch($rows);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertNotNull($savedData);
+        $this->assertSame('INFRATEL48', $savedData['os']);
+    }
+
+    public function testImportInfratelBatchIgnoresLargePendingOsNumber(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+
+        $equipRepo->method('findByInfratel')
+            ->with('BGU02DTC', 'CLIMA - ARCON 02')
+            ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
+
+        $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn(null);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([
+            ['os' => 'INFRATEL47', 'status' => 'Pendente'],
+            ['os' => 'INFRATEL4787431', 'status' => 'Pendente'],
+        ]);
+
+        $savedData = null;
+        $ticketRepo->method('save')->willReturnCallback(function ($data) use (&$savedData) {
+            $savedData = $data;
+            return 42;
+        });
+
+        $service = new TicketService($ticketRepo, $equipRepo);
+
+        $rows = [
+            [
+                'site' => 'BGU02DTC',
+                'equipamento' => 'CLIMA - ARCON 02',
+                'justificativas' => 'Nova pendência',
+                'acao_tecnico' => 'N/A',
+                'acao_validador' => 'N/A',
+                'fim' => '15/07/2026',
+                'executor' => 'Moisés Torres',
+            ],
+        ];
+
+        $result = $service->importInfratelBatch($rows);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertNotNull($savedData);
+        $this->assertSame('INFRATEL48', $savedData['os']);
+    }
+
+    public function testImportInfratelBatchNextNumberWithOnlyConcludedRenamed(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $equipRepo = $this->createMockEquipmentRepo();
+
+        $equipRepo->method('findByInfratel')
+            ->with('BGU02DTC', 'CLIMA - ARCON 02')
+            ->willReturn(new Equipment(['id' => '10', 'local' => 'BGU', 'equipamento' => 'CLIMA - ARCON 02']));
+
+        $ticketRepo->method('findInfratelByEquipment')->with(10)->willReturn(null);
+        $ticketRepo->method('findInfratelOsRows')->willReturn([
+            ['os' => 'INFRATEL4787430', 'status' => 'Concluído'],
+        ]);
+
+        $savedData = null;
+        $ticketRepo->method('save')->willReturnCallback(function ($data) use (&$savedData) {
+            $savedData = $data;
+            return 42;
+        });
+
+        $service = new TicketService($ticketRepo, $equipRepo);
+
+        $rows = [
+            [
+                'site' => 'BGU02DTC',
+                'equipamento' => 'CLIMA - ARCON 02',
+                'justificativas' => 'Nova pendência',
+                'acao_tecnico' => 'N/A',
+                'acao_validador' => 'N/A',
+                'fim' => '15/07/2026',
+                'executor' => 'Moisés Torres',
+            ],
+        ];
+
+        $result = $service->importInfratelBatch($rows);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertNotNull($savedData);
+        $this->assertSame('INFRATEL1', $savedData['os']);
     }
 }

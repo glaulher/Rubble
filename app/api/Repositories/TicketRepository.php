@@ -264,14 +264,17 @@ class TicketRepository extends BaseRepository
         return $row ? new Ticket($row) : null;
     }
 
-    public function getNextInfratelNumber(): int
+    public function findInfratelOsRows(): array
     {
-        $sql = "SELECT MAX(CAST(SUBSTRING(os, 9) AS UNSIGNED)) AS max_num FROM registros WHERE os LIKE 'INFRATEL%'";
+        $sql = "SELECT os, status FROM registros WHERE os LIKE 'INFRATEL%'";
         $stmt = $this->safePrepare($sql);
         $stmt->execute();
         $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        return (int) ($row['max_num'] ?? 0);
+        $rows = [];
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        return $rows;
     }
 
     public function listPendingBySite(

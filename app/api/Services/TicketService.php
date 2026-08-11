@@ -316,6 +316,29 @@ class TicketService
         return null;
     }
 
+    private function nextInfratelNumber(array $rows): int
+    {
+        $max = 0;
+        foreach ($rows as $row) {
+            $os = (string) ($row['os'] ?? '');
+            if (!preg_match('/^INFRATEL(\d+)$/', $os, $m)) {
+                continue;
+            }
+            $num = (int) $m[1];
+            if ($num >= 100000) {
+                continue;
+            }
+            $status = mb_strtolower(trim((string) ($row['status'] ?? '')));
+            if (str_starts_with($status, 'conclu')) {
+                continue;
+            }
+            if ($num > $max) {
+                $max = $num;
+            }
+        }
+        return $max + 1;
+    }
+
     public function importInfratelBatch(array $rows): array
     {
         $imported = 0;
@@ -413,7 +436,7 @@ class TicketService
                     ]);
                     $updated++;
                 } else {
-                    $nextNum = $this->ticketRepository->getNextInfratelNumber() + 1;
+                    $nextNum = $this->nextInfratelNumber($this->ticketRepository->findInfratelOsRows());
                     $os = 'INFRATEL' . $nextNum;
 
                     $this->ticketRepository->save([
