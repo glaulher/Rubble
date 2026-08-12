@@ -42,6 +42,7 @@ class PvEmailWatcherService
         }
 
         $serverPrefix = $this->buildServerPrefix($host, $port);
+        $mailboxKey = $this->buildMailboxKey();
 
         $mbox = @imap_open($serverPrefix . 'INBOX', $user, $pass, OP_READONLY, 0);
         if ($mbox === false) {
@@ -56,7 +57,7 @@ class PvEmailWatcherService
             if (!@imap_reopen($mbox, $fullPath)) {
                 continue;
             }
-            $this->processMailbox($mbox, $fullPath, $result);
+            $this->processMailbox($mbox, $fullPath, $mailboxKey, $result);
         }
 
         imap_close($mbox);
@@ -67,6 +68,16 @@ class PvEmailWatcherService
     {
         $security = strtolower(Env::get('IMAP_SECURITY', 'ssl'));
         return '{' . $host . ':' . $port . ($security === 'plain' ? '/imap' : '/imap/ssl') . '}';
+    }
+
+    private function buildMailboxKey(): string
+    {
+        $host = trim((string) Env::get('IMAP_HOST', ''));
+        $user = trim((string) Env::get('IMAP_USER', ''));
+        if ($host === '' || $user === '') {
+            return '';
+        }
+        return $host . ':' . $user;
     }
 
     private function resolveMailboxes($mbox, string $serverPrefix, string $mailboxConfig): array
@@ -102,23 +113,23 @@ class PvEmailWatcherService
         return str_starts_with($folder, 'INBOX') || $folder === 'INBOX';
     }
 
-    private function processMailbox($mbox, string $mailboxPath, array &$result): void
+    private function processMailbox($mbox, string $mailboxPath, string $mailboxKey, array &$result): void
     {
-        $this->searchUnseen($mbox, $result);
-        $this->searchRecentSeen($mbox, $result);
+        $this->searchUnseen($mbox, $mailboxKey, $result);
+        $this->searchRecentSeen($mbox, $mailboxKey, $result);
     }
 
-    private function searchUnseen($mbox, array &$result): void
+    private function searchUnseen($mbox, string $mailboxKey, array &$result): void
     {
         $uids = @imap_search($mbox, 'UNSEEN SUBJECT "PV:"', SE_UID);
         if ($uids === false || $uids === []) return;
 
         foreach ($uids as $uid) {
-            $this->processUid($mbox, (int) $uid, $result);
+            $this->processUid($mbox, (int) $uid, $mailboxKey, $result);
         }
     }
 
-    private function searchRecentSeen($mbox, array &$result): void
+    private function searchRecentSeen($mbox, string $mailboxKey, array &$result): void
     {
         $since = date('d-M-Y', strtotime('-' . self::RECENT_DAYS . ' days'));
         $uids = @imap_search($mbox, 'SINCE ' . $since . ' SEEN SUBJECT "PV:"', SE_UID);
@@ -126,12 +137,12 @@ class PvEmailWatcherService
 
         foreach ($uids as $uid) {
             $uidInt = (int) $uid;
-            if ($this->isAlreadyProcessed($uidInt)) continue;
-            $this->processUid($mbox, $uidInt, $result);
+            if ($this->isAlreadyProcessed($uidInt, $mailboxKey)) continue;
+            $this->processUid($mbox, $uidInt, $mailboxKey, $result);
         }
     }
 
-    private function processUid($mbox, int $uid, array &$result): void
+    private function processUid($mbox, int $uid, string $mailboxKey, array &$result): void
     {
         try {
             $header = @imap_fetchheader($mbox, $uid, FT_UID);
@@ -142,7 +153,7 @@ class PvEmailWatcherService
             $pvNumber = $this->extractPvNumber($subject);
             if ($pvNumber === null) return;
 
-            if ($this->isAlreadyProcessed($uid)) return;
+            if ($this->isAlreadyProcessed($uid, $mailboxKey)) return;
 
             $bodyText = $this->fetchBodyText($mbox, $uid);
             $isApproved = preg_match($this->getBodySearchPattern(), $bodyText) === 1;
@@ -155,7 +166,7 @@ class PvEmailWatcherService
                 }
             }
 
-            $this->markProcessed($uid, $pvNumber);
+            $this->markProcessed($uid, $pvNumber, $mailboxKey);
             $result['checked']++;
 
         } catch (\Throwable $e) {
@@ -256,21 +267,21 @@ class PvEmailWatcherService
         return '/aprovad/i';
     }
 
-    private function isAlreadyProcessed(int $uid): bool
+    private function isAlreadyProcessed(int $uid, string $mailboxKey): bool
     {
-        $sql = "SELECT 1 FROM email_processed WHERE uid = ? LIMIT 1";
+        $sql = "SELECT 1 FROM email_processed WHERE uid = ? AND mailbox = ? LIMIT 1";
         $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param('i', $uid);
+        $stmt->bind_param('is', $uid, $mailboxKey);
         $stmt->execute();
         $result = $stmt->get_result();
         return $result->fetch_row() !== null;
     }
 
-    private function markProcessed(int $uid, string $pvNumber): void
+    private function markProcessed(int $uid, string $pvNumber, string $mailboxKey): void
     {
-        $sql = "INSERT IGNORE INTO email_processed (uid, pv_number, processed_at) VALUES (?, ?, NOW())";
+        $sql = "INSERT IGNORE INTO email_processed (uid, mailbox, pv_number, processed_at) VALUES (?, ?, ?, NOW())";
         $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param('is', $uid, $pvNumber);
+        $stmt->bind_param('iss', $uid, $mailboxKey, $pvNumber);
         $stmt->execute();
     }
 

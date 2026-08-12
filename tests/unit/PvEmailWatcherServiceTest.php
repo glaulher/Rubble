@@ -156,4 +156,33 @@ class PvEmailWatcherServiceTest extends TestCase
         putenv('IMAP_SECURITY');
         unset($_ENV['IMAP_SECURITY']);
     }
+
+    public function testBuildMailboxKeyCombinesHostAndUser(): void
+    {
+        putenv('IMAP_HOST=imap.gmail.com');
+        $_ENV['IMAP_HOST'] = 'imap.gmail.com';
+        putenv('IMAP_USER=rubbleaprovacoes@gmail.com');
+        $_ENV['IMAP_USER'] = 'rubbleaprovacoes@gmail.com';
+        $service = (new \ReflectionClass($this->service))->newInstanceWithoutConstructor();
+        $method = new \ReflectionMethod($service, 'buildMailboxKey');
+        $this->assertEquals(
+            'imap.gmail.com:rubbleaprovacoes@gmail.com',
+            $method->invoke($service)
+        );
+        putenv('IMAP_HOST');
+        unset($_ENV['IMAP_HOST']);
+        putenv('IMAP_USER');
+        unset($_ENV['IMAP_USER']);
+    }
+
+    public function testBuildMailboxKeyEmptyWhenEnvMissing(): void
+    {
+        putenv('IMAP_HOST');
+        unset($_ENV['IMAP_HOST']);
+        putenv('IMAP_USER');
+        unset($_ENV['IMAP_USER']);
+        $service = (new \ReflectionClass($this->service))->newInstanceWithoutConstructor();
+        $method = new \ReflectionMethod($service, 'buildMailboxKey');
+        $this->assertEquals('', $method->invoke($service));
+    }
 }
