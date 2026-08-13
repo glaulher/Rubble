@@ -104,19 +104,19 @@ class AuthService
 
         $rolePermissions = [
             'supervisor' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'auth', 'preventive-cycle', 'planned-activities', 'pending-tickets'],
-                'write' => ['equipment', 'tickets', 'pending-tickets'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'auth', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
+                'write' => ['equipment', 'tickets', 'pending-tickets', 'filter-exchanges'],
             ],
             'coordenador' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities', 'pending-tickets'],
-                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities', 'preventiva', 'pending-tickets'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
+                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities', 'preventiva', 'pending-tickets', 'filter-exchanges'],
             ],
             'administrativo' => [
-                'read' => ['pdf-audit', 'auth', 'planned-activities', 'pending-tickets'],
+                'read' => ['pdf-audit', 'auth', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
                 'write' => [],
             ],
             'cliente' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'planned-activities', 'pending-tickets'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'locals', 'notify', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
                 'write' => [],
             ],
         ];

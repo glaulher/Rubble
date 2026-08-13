@@ -11,9 +11,8 @@ use App\Api\Controllers\{
     TicketController, DashboardController, PvDashboardController,
     PvController, UserController, ScmController, PreventiveCycleController,
     UploadController, EmailController, ExportController, PdfAuditController,
-    PlannedActivityController, PreventivaController
+    PlannedActivityController, PreventivaController, FilterExchangeController
 };
-
 Env::load(__DIR__ . '/../../.env');
 
 date_default_timezone_set('America/Sao_Paulo');
@@ -308,6 +307,17 @@ $router->addRoute('pending-tickets', 'GET', function () {
 });
 $router->addRoute('pending-tickets', 'PATCH', function () {
     (new \App\Api\Controllers\PendingTicketsController())->updateField();
+});
+
+// Troca de Filtros
+$router->addRoute('filter-exchanges', 'GET', function () {
+    (new FilterExchangeController())->listAll();
+});
+$router->addRoute('filter-exchanges', 'POST', function () {
+    (new FilterExchangeController())->create();
+});
+$router->addRoute('filter-exchanges', 'PATCH', function () {
+    (new FilterExchangeController())->updateField();
 });
 
 // Preventiva

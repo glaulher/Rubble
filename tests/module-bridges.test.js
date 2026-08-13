@@ -565,6 +565,15 @@ describe("pending-tickets/list.js bridge", function () {
   });
 });
 
+describe("filter-exchanges/list.js bridge", function () {
+  it("sets globalThis.initFilterExchanges at module load time", function () {
+    delete globalThis.initFilterExchanges;
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/filter-exchanges/list.js', '');
+    expect(typeof globalThis.initFilterExchanges).toBe("function");
+  });
+});
+
 describe("planned-activity/list.js bridge", function () {
   it("sets globalThis.initPlannedActivity at module load time", function () {
     delete globalThis.initPlannedActivity;

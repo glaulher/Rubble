@@ -1,4 +1,4 @@
-const VIEW_VERSION = 26;
+const VIEW_VERSION = 27;
 
 async function loadPage(url) {
   try {
@@ -149,6 +149,13 @@ async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/pending-tickets/list.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/filter-exchanges") {
+    /*
+    |--------------------------------------------------------------------------
+    | FILTER EXCHANGES (Troca de Filtros)
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/filter-exchanges/list.html?v=" + VIEW_VERSION);
   } else if (hash === "#/pdf-audit") {
     /*
     |--------------------------------------------------------------------------
@@ -241,6 +248,10 @@ async function router() {
     } else if (hash === "#/pending-tickets") {
       if (typeof initPendingTickets === "function") {
         initPendingTickets();
+      }
+    } else if (hash === "#/filter-exchanges") {
+      if (typeof initFilters === "function") {
+        initFilters();
       }
     } else if (hash === "#/pdf-audit") {
       if (typeof initPdfAudit === "function") {

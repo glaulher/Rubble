@@ -1,0 +1,215 @@
+<div
+  class="min-h-screen dark-gradient"
+  style="background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);"
+>
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-2 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 items-center">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Troca de Filtros</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Controle de filtros por site</p>
+      </div>
+      <div class="text-center self-center">
+        <span class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold">
+          <span id="filterBadge">0</span>
+          <span class="ml-1">filtros</span>
+        </span>
+      </div>
+      <div class="flex items-center gap-4 justify-self-end self-start">
+        <input
+          id="filterSearchInput"
+          type="text"
+          aria-label="Buscar troca de filtros"
+          placeholder="Buscar..."
+          class="px-4 py-1.5 rounded-xl bg-slate-800 border border-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-slate-700 text-blue-200 w-60"
+        />
+        <button
+          id="filterAddBtn"
+          data-action="add-filter"
+          class="bg-emerald-200 hover:bg-emerald-300 text-emerald-800 px-3 py-1.5 text-sm rounded-xl font-medium transition"
+        >
+          + Adicionar Filtro
+        </button>
+        <div class="relative group">
+          <button
+            id="filterCsvBtn"
+            data-action="generate-csv"
+            class="bg-emerald-300 hover:bg-emerald-400 text-emerald-800 px-2 py-2 rounded-xl font-semibold transition"
+          >
+            <svg
+              class="w-6 h-6"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="8" y1="13" x2="16" y2="13" />
+              <line x1="8" y1="17" x2="16" y2="17" />
+              <line x1="8" y1="9" x2="10" y2="9" />
+            </svg>
+          </button>
+          <span
+            class="absolute right-0 top-[54px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+          >
+            Gerar relatório CSV
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status filter (radio) -->
+  <div class="px-6 py-3 flex flex-wrap gap-4 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 mt-4">
+    <div class="flex items-end gap-3">
+      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
+        <input type="radio" name="filterStatusFilter" value="" checked class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
+        Todos
+      </label>
+      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
+        <input type="radio" name="filterStatusFilter" value="pendente" class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
+        Pendente
+      </label>
+      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
+        <input type="radio" name="filterStatusFilter" value="planejado" class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
+        Planejado
+      </label>
+      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
+        <input type="radio" name="filterStatusFilter" value="concluído" class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
+        Concluído
+      </label>
+    </div>
+    <div class="flex items-center gap-2 relative shrink-0 ml-auto" id="filterColContainer">
+      <label class="text-sm text-slate-600 whitespace-nowrap">Colunas</label>
+      <button
+        type="button"
+        id="filterColBtn"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40 text-left flex items-center justify-between gap-1"
+      >
+        <span id="filterColLabel" class="truncate">Todas</span>
+        <svg class="w-4 h-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div
+        id="filterColDropdown"
+        class="hidden absolute top-full right-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
+      ></div>
+    </div>
+  </div>
+
+  <main class="p-6 space-y-6">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <div id="filterScrollContainer" class="max-h-[70vh] overflow-y-auto">
+          <table id="filterTable" class="w-full">
+          <thead class="sticky top-0 z-10">
+            <tr class="bg-slate-800 text-slate-100 text-left">
+              <th data-sort="f.local" data-col="local" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Local <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="f.equipamento" data-col="equipamento" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Equipamento <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="f.tamanho" data-col="tamanho" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Tamanho <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="f.qtd" data-col="qtd" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Qtd <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="f.os" data-col="os" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">OS <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="f.data_troca" data-col="data_troca" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Troca <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="f.data_proxima_troca" data-col="data_proxima_troca" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Próxima <span class="sort-icon text-slate-400"></span></th>
+              <th data-col="status" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap select-none">Status</th>
+            </tr>
+          </thead>
+          <tbody id="filterTableBody"></tbody>
+          </table>
+          <div id="filterSentinel" class="h-10"></div>
+        </div>
+      </div>
+      <div id="filterEmpty" class="hidden text-center py-20 text-slate-500">
+        <p class="text-lg">Nenhum filtro encontrado.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Adicionar Filtro -->
+  <div id="filterAddModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Adicionar Filtro</h2>
+      <div class="space-y-4">
+        <div>
+          <label for="filterAddLocal" class="block text-sm font-medium text-slate-700 mb-1">Local</label>
+          <input
+            id="filterAddLocal"
+            type="text"
+            class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+            placeholder="Ex: RSDDTC"
+          >
+        </div>
+        <div>
+          <label for="filterAddEquipamento" class="block text-sm font-medium text-slate-700 mb-1">Equipamento</label>
+          <input
+            id="filterAddEquipamento"
+            type="text"
+            class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+            placeholder="Ex: WM 01"
+          >
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="filterAddUf" class="block text-sm font-medium text-slate-700 mb-1">UF</label>
+            <input
+              id="filterAddUf"
+              type="text"
+              maxlength="2"
+              class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+              placeholder="Ex: RJ"
+            >
+          </div>
+          <div>
+            <label for="filterAddRegiao" class="block text-sm font-medium text-slate-700 mb-1">Região</label>
+            <input
+              id="filterAddRegiao"
+              type="text"
+              class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+              placeholder="Ex: Sudeste"
+            >
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="filterAddTamanho" class="block text-sm font-medium text-slate-700 mb-1">Tamanho</label>
+            <input
+              id="filterAddTamanho"
+              type="text"
+              class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+              placeholder="Ex: 510X390X25mm"
+            >
+          </div>
+          <div>
+            <label for="filterAddQtd" class="block text-sm font-medium text-slate-700 mb-1">Quantidade</label>
+            <input
+              id="filterAddQtd"
+              type="number"
+              min="1"
+              value="1"
+              class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+            >
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            data-action="close-add-filter"
+            class="bg-slate-300 hover:bg-slate-400 text-slate-900 px-4 py-2 rounded-xl font-semibold transition"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            id="filterAddSubmit"
+            class="bg-emerald-200 hover:bg-emerald-300 text-emerald-800 px-4 py-2 rounded-xl font-semibold transition"
+          >
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

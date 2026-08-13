@@ -305,4 +305,28 @@ class EquipmentRepository extends BaseRepository
 
         return $equipments;
     }
+
+    /**
+     * Retorna todos os equipamentos de um site (local_scm ou local) cujo nome
+     * contém o termo informado. Ex: local 'RSDDTC' + nome 'WM' → WM01, WM02...
+     */
+    public function findByLocalScmAndName(string $localScm, string $name): array
+    {
+        $sql = "SELECT id, equipamento FROM equipamentos
+                WHERE (local_scm = ? OR local = ?)
+                  AND equipamento LIKE CONCAT('%', ?, '%')
+                ORDER BY equipamento";
+        $stmt = $this->safePrepare($sql);
+        $nameLike = $name;
+        $stmt->bind_param('sss', $localScm, $localScm, $nameLike);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $rows = [];
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = ['id' => (int) $row['id'], 'equipamento' => $row['equipamento']];
+        }
+
+        return $rows;
+    }
 }
