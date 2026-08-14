@@ -698,24 +698,19 @@ function renderPendingStatusDropdown() {
       var val = cb.dataset.value;
       if (val === '__all__') {
         pendingStatusTodosChecked = cb.checked;
-        if (cb.checked) {
-          pendingStatusFilter.clear();
-        } else {
-          pendingStatusFilter = new Set(PENDING_STATUS_OPTIONS);
-        }
+        pendingStatusFilter.clear();
       } else {
         if (cb.checked) {
           pendingStatusFilter.add(val);
         } else {
-          if (pendingStatusTodosChecked) {
+          if (pendingStatusFilter.size === 0) {
             pendingStatusFilter = new Set(PENDING_STATUS_OPTIONS);
-            pendingStatusFilter.delete(val);
-            pendingStatusTodosChecked = false;
-          } else {
-            pendingStatusFilter.delete(val);
           }
+          pendingStatusFilter.delete(val);
         }
-        pendingStatusTodosChecked = pendingStatusFilter.size === PENDING_STATUS_OPTIONS.length;
+        pendingStatusTodosChecked = PENDING_STATUS_OPTIONS.every(function (opt) {
+          return pendingStatusFilter.has(opt);
+        });
       }
       renderPendingStatusDropdown();
       updatePendingStatusLabel();

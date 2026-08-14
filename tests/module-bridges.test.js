@@ -257,6 +257,56 @@ describe("pending-tickets/list.js bridge", function () {
     expect(globalThis.buildPendingQuery()).toContain('status=conclu%C3%ADdo');
   });
 
+  it("unchecks all status options when Todos is unchecked", function () {
+    delete globalThis.initPendingTickets;
+    document.body.innerHTML =
+      '<div id="pendingScrollContainer">' +
+      '<table id="pendingTable">' +
+      '<thead><tr><th data-sort="e.local">Site</th></tr></thead>' +
+      '<tbody id="pendingTableBody"></tbody>' +
+      '</table>' +
+      '<div id="pendingSentinel"></div>' +
+      '</div>' +
+      '<input id="pendingSearchInput" />' +
+      '<div id="pendingEmpty" class="hidden"></div>' +
+      '<div id="pendingStatusContainer">' +
+      '<button type="button" id="pendingStatusBtn"><span id="pendingStatusLabel">Todos</span></button>' +
+      '<div id="pendingStatusDropdown"></div>' +
+      '</div>';
+
+    globalThis.apiFetch = function () {
+      return Promise.resolve({
+        json: function () { return { success: true, data: { items: [], total: 0 } }; },
+      });
+    };
+
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/pending-tickets/list.js', '\nfunction escapeHtml(v) { return String(v); }\n');
+
+    globalThis.initPendingTickets();
+
+    var todosCb = document.querySelector('#pendingStatusDropdown input[data-value="__all__"]');
+    todosCb.checked = false;
+    todosCb.dispatchEvent(new Event('change', { bubbles: true }));
+
+    var individualCbs = document.querySelectorAll('#pendingStatusDropdown input.pending-status-check:not([data-value="__all__"])');
+    for (var i = 0; i < individualCbs.length; i++) {
+      expect(individualCbs[i].checked).toBe(false);
+    }
+    expect(document.getElementById('pendingStatusLabel').textContent).toBe('0 selecionado(s)');
+    expect(globalThis.buildPendingQuery()).not.toContain('&status=');
+
+    var pendenteCb = document.querySelector('#pendingStatusDropdown input[data-value="pendente"]');
+    pendenteCb.checked = true;
+    pendenteCb.dispatchEvent(new Event('change', { bubbles: true }));
+    var planejadoCb = document.querySelector('#pendingStatusDropdown input[data-value="planejado"]');
+    planejadoCb.checked = true;
+    planejadoCb.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(document.getElementById('pendingStatusLabel').textContent).toBe('2 selecionado(s)');
+    expect(globalThis.buildPendingQuery()).toContain('status=pendente,planejado');
+  });
+
   it("wraps the value and edit pencil in an inline-flex cell", function () {
     var code = readFileSync(resolve(__dirname, '../public/js/pending-tickets/list.js'), 'utf-8');
     if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
