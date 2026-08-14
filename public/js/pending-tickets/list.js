@@ -8,8 +8,9 @@ var pendingSortBy = 'e.local';
 var pendingSortDir = 'ASC';
 var pendingLoading = false;
 var pendingAllLoaded = false;
+var _pendingItemsById = {};
 
-const PENDING_COLUMNS = 14;
+const PENDING_COLUMNS = 15;
 const CSR_COLUMNS = [
   'SITE', 'OS', 'EQUIPAMENTO', 'LOCALIDADE', 'CATEGORIA', 'STATUS', 'PRIORIDADE',
   'DATA_ABERTURA', 'DATA_PROGRAMADA', 'DATA_REAL_INICIO', 'DATA_PREVISTA_CONCLUSAO',
@@ -233,6 +234,67 @@ function cancelPendingObs(wrap) {
   refreshPendingObs(wrap, prev);
 }
 
+function copyOs(os) {
+  if (!os || os === '-') return;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard
+      .writeText(os)
+      .then(function () { showToast('N\u00ba OS copiado: ' + os, 'success'); })
+      .catch(function () { fallbackCopy(os); });
+  } else {
+    fallbackCopy(os);
+  }
+}
+
+function fallbackCopy(text) {
+  var textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    showToast('N\u00ba OS copiado: ' + text, 'success');
+  } catch (e) {
+    showToast('Erro ao copiar', 'error');
+  }
+  document.body.removeChild(textarea);
+}
+
+function pendingPlanActionHtml(item) {
+  if (typeof getUser !== 'function') return '<td class="px-3 py-2.5 text-sm"></td>';
+  var role = (getUser().role || '').toLowerCase();
+  if (role !== 'admin' && role !== 'coordenador') return '<td class="px-3 py-2.5 text-sm"></td>';
+  if (typeof iconButtonHtml !== 'function') return '<td class="px-3 py-2.5 text-sm"></td>';
+  return '<td class="px-3 py-2.5 text-sm">'
+    + iconButtonHtml('plan', 'Planejar', { 'data-action': 'plan', 'data-plan-id': item.id }, 'below-left')
+    + '</td>';
+}
+
+function handlePendingPlanned(ticket, data) {
+  if (!data) return;
+  var newStatus = (data.item && data.item.status) || 'Planejado';
+  var filterMatch = !pendingStatusFilter
+    || pendingStatusFilter.toLowerCase() === String(newStatus).toLowerCase();
+  if (!filterMatch) {
+    _pendingReset();
+    showToast('Atividade planejada com sucesso!', 'success');
+    return;
+  }
+
+  var row = document.querySelector('tr.pending-row[data-id="' + ticket.id + '"]');
+  if (row) {
+    var statusTd = row.querySelector('td[data-field="status"]');
+    if (statusTd) refreshPendingCell(statusTd, 'status', newStatus);
+    var plannedDate = data.item ? (data.item.data_planejada || '') : '';
+    var dataTd = row.querySelector('td[data-field="data_planejada"]');
+    if (dataTd) refreshPendingCell(dataTd, 'data_planejada', plannedDate);
+  }
+  showToast('Atividade planejada com sucesso!', 'success');
+}
+
 async function savePendingField(td) {
   var input = td.querySelector('.pending-edit-input');
   if (!input) return;
@@ -279,18 +341,27 @@ function renderPendingTable(list, append) {
 
   if (empty) empty.classList.add('hidden');
 
+  if (!append) {
+    _pendingItemsById = {};
+  }
+
   var html = '';
 
   for (var i = 0; i < list.length; i++) {
     var item = list[i];
+    _pendingItemsById[item.id] = item;
 
     html += '<tr class="pending-row border-b border-slate-200 hover:bg-slate-50 cursor-pointer"'
       + ' data-id="' + item.id + '" data-expandable="true">'
+      + pendingPlanActionHtml(item)
       + '<td class="px-3 py-2.5 text-sm text-slate-800' + (pendingHiddenColumns.has('local') ? ' hidden' : '') + '" data-col="local">'
       + '<span class="expand-icon text-slate-400 mr-2">&#9654;</span>'
       + escapeHtml(item.local) + '</td>'
       + '<td class="px-3 py-2.5 text-sm font-medium text-slate-800' + (pendingHiddenColumns.has('os') ? ' hidden' : '') + '" data-col="os">'
-      + escapeHtml(item.os || '') + '</td>'
+      + '<span class="relative group inline-flex cursor-pointer hover:text-blue-600 hover:underline transition" data-action="copy-os" data-os="' + escapeHtml(item.os || '') + '" aria-label="Clique para copiar">' + escapeHtml(item.os || '-')
+      + '<span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 origin-top scale-0 group-hover:scale-100 transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Clique para copiar</span>'
+      + '</span>'
+      + '</td>'
       + '<td class="px-3 py-2.5 text-sm text-slate-600' + (pendingHiddenColumns.has('equipamento') ? ' hidden' : '') + '" data-col="equipamento">'
       + escapeHtml(item.equipamento || '') + '</td>'
       + '<td class="px-3 py-2.5 text-sm text-slate-600' + (pendingHiddenColumns.has('localidade') ? ' hidden' : '') + '" data-col="localidade">' + escapeHtml(item.localidade || '-') + '</td>'
@@ -572,6 +643,7 @@ function buildPendingQuery() {
 function _pendingReset() {
   pendingLoading = false;
   pendingAllLoaded = false;
+  _pendingItemsById = {};
   var tbody = document.getElementById('pendingTableBody');
   if (tbody) tbody.innerHTML = '';
   if (_pendingScroll) _pendingScroll.reset().init();
@@ -607,6 +679,7 @@ function initPendingTickets() {
   pendingAllLoaded = false;
   pendingHiddenColumns = new Set();
   pendingColTodosChecked = true;
+  _pendingItemsById = {};
 
   var searchInput = document.getElementById('pendingSearchInput');
   if (searchInput) {
@@ -655,6 +728,19 @@ function initPendingTickets() {
   var tbody = document.getElementById('pendingTableBody');
   if (tbody) {
     tbody.addEventListener('click', function (e) {
+      var planBtn = e.target.closest('button[data-action="plan"]');
+      if (planBtn) {
+        var planId = planBtn.getAttribute('data-plan-id');
+        var planTicket = planId != null ? _pendingItemsById[planId] : null;
+        if (planTicket && typeof PlanModal !== 'undefined' && PlanModal.open) {
+          PlanModal.open({
+            mode: 'pending',
+            ticket: planTicket,
+            onSubmit: function (data) { handlePendingPlanned(planTicket, data); },
+          });
+        }
+        return;
+      }
       var editBtn = e.target.closest('button.pending-edit');
       if (editBtn) {
         var field = editBtn.getAttribute('data-field');
@@ -685,10 +771,18 @@ function initPendingTickets() {
         }
         return;
       }
+      var copyOsEl = e.target.closest('[data-action="copy-os"]');
+      if (copyOsEl) {
+        copyOs(copyOsEl.getAttribute('data-os'));
+        return;
+      }
       var row = e.target.closest('tr.pending-row');
       if (row) {
-        var id = row.getAttribute('data-id');
-        if (id) togglePendingRow(parseInt(id));
+        var toggleTarget = e.target.closest('.expand-icon, td[data-col="local"]');
+        if (toggleTarget) {
+          var id = row.getAttribute('data-id');
+          if (id) togglePendingRow(parseInt(id));
+        }
       }
     });
 
@@ -760,3 +854,5 @@ globalThis.buildPendingCsvRow = buildPendingCsvRow;
 globalThis.buildPendingSortQuery = buildPendingSortQuery;
 globalThis.buildPendingQuery = buildPendingQuery;
 globalThis._pendingReset = _pendingReset;
+globalThis.pendingPlanActionHtml = pendingPlanActionHtml;
+globalThis.handlePendingPlanned = handlePendingPlanned;

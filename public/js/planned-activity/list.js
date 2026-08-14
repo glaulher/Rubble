@@ -4,8 +4,6 @@ let plannedSearch = '';
 let plannedDateFrom = '';
 let plannedDateTo = '';
 let plannedStatusFilter = '';
-let plannedEquipOptions = [];
-let plannedLocalOptions = [];
 let _plannedScroll = null;
 
 const PLANNED_LIMIT = 20;
@@ -153,12 +151,12 @@ function buildPlannedCardHtml(item) {
   if (tipo === 'preventiva') {
     headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
       '<span class="font-semibold text-sm ' + (mercadoTextColor || 'text-slate-800') + '">' + escapeHtml(local) + '</span>' +
-      (item.os ? '<span class="text-sm text-slate-600 cursor-pointer hover:text-blue-600 hover:underline transition" data-action="copy-os" data-os="' + escapeHtml(item.os) + '" title="Clique para copiar">Ticket ' + escapeHtml(item.os) + '</span>' : '') +
+      (item.os ? '<span class="relative group inline-flex text-sm text-slate-600 cursor-pointer hover:text-blue-600 hover:underline transition" data-action="copy-os" data-os="' + escapeHtml(item.os) + '" aria-label="Clique para copiar">Ticket ' + escapeHtml(item.os) + '<span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 origin-top scale-0 group-hover:scale-100 transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Clique para copiar</span></span>' : '') +
       (machineCount > 0 ? '<span class="text-xs text-slate-500">\u2014 ' + machineCount + ' m\u00e1quina' + (machineCount > 1 ? 's' : '') + '</span>' : '') +
     '</div>';
   } else {
     headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
-      '<span class="font-semibold text-sm text-slate-800 cursor-pointer hover:text-blue-600 hover:underline transition" data-action="copy-os" data-os="' + escapeHtml(item.os || '') + '" title="Clique para copiar">OS ' + escapeHtml(item.os || '') + '</span>' +
+      '<span class="relative group inline-flex font-semibold text-sm text-slate-800 cursor-pointer hover:text-blue-600 hover:underline transition" data-action="copy-os" data-os="' + escapeHtml(item.os || '') + '" aria-label="Clique para copiar">OS ' + escapeHtml(item.os || '') + '<span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 origin-top scale-0 group-hover:scale-100 transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Clique para copiar</span></span>' +
       '<span class="text-sm text-slate-600">' + escapeHtml(equipName) + '</span>' +
       capacidadeHtml +
     '</div>';
@@ -797,94 +795,6 @@ function setupPlannedScroll() {
   });
 }
 
-function openPlanModal() {
-  var modal = document.getElementById('modalPlanActivity');
-  if (!modal) return;
-  modal.classList.remove('hidden');
-
-  var form = document.getElementById('planForm');
-  if (form) form.reset();
-
-  var hiddenId = document.getElementById('planEquipamentoId');
-  if (hiddenId) hiddenId.value = '';
-
-  var prevFields = document.getElementById('preventivaFields');
-  var corrFields = document.getElementById('corretivaFields');
-  if (prevFields) prevFields.classList.add('hidden');
-  if (corrFields) corrFields.classList.add('hidden');
-}
-
-function closePlanModal() {
-  var modal = document.getElementById('modalPlanActivity');
-  if (modal) modal.classList.add('hidden');
-}
-
-function loadLocalsForPlan() {
-  return apiFetch('/app/api/index.php?route=locals')
-    .then(function (res) { return res.json(); })
-    .then(function (result) {
-      plannedLocalOptions = result.data || [];
-    })
-    .catch(function (err) {
-      console.error('Erro ao carregar locais:', err);
-      plannedLocalOptions = [];
-    });
-}
-
-function loadEquipamentosForPlan(local) {
-  var url = '/app/api/index.php?route=equipment&limit=9999';
-  if (local) {
-    url += '&local=' + encodeURIComponent(local);
-  }
-  return apiFetch(url)
-    .then(function (res) { return res.json(); })
-    .then(function (result) {
-      if (result && result.data) {
-        plannedEquipOptions = result.data;
-      }
-    })
-    .catch(function (err) {
-      console.error('Erro ao carregar equipamentos:', err);
-    });
-}
-
-function setupPlanAutocompletes() {
-  if (typeof createAutocomplete !== 'function') return;
-
-  createAutocomplete({
-    inputSelector: '#planSite',
-    dropdownSelector: '.site-dropdown',
-    dataSource: function () { return plannedLocalOptions; },
-    onSelect: function (item) {
-      loadEquipamentosForPlan(item);
-    },
-  });
-
-  createAutocomplete({
-    inputSelector: '#planEquipamento',
-    dropdownSelector: '.equipamento-dropdown',
-    dataSource: function () { return plannedEquipOptions; },
-    filterFn: function (items, q) {
-      if (!q) return items.slice(0, 20);
-      var lower = q.toLowerCase();
-      return items.filter(function (i) {
-        return i.equipamento && i.equipamento.toLowerCase().includes(lower);
-      }).slice(0, 20);
-    },
-    formatItem: function (item) {
-      var label = item.equipamento || '';
-      if (item.capacidade) label += ' \u2014 ' + item.capacidade + ' TR';
-      if (item.localidade) label += ' - ' + item.localidade;
-      return label;
-    },
-    onSelect: function (item) {
-      var hidden = document.getElementById('planEquipamentoId');
-      if (hidden) hidden.value = item.id;
-    },
-    onBlur: function ({ hide }) { hide(); },
-  });
-}
-
 function setupPlannedFilters() {
   var dateFromInput = document.getElementById('plannedDateFrom');
   var dateToInput = document.getElementById('plannedDateTo');
@@ -1189,7 +1099,11 @@ function initPlannedActivity() {
 
   var btnNew = document.getElementById('btnNewPlanned');
   if (btnNew) {
-    btnNew.addEventListener('click', openPlanModal);
+    btnNew.addEventListener('click', function () {
+      if (typeof PlanModal !== 'undefined' && PlanModal.open) {
+        PlanModal.open({ mode: 'create', onSubmit: handlePlannedCreated });
+      }
+    });
   }
 
   var btnCsv = document.getElementById('btnPlannedCsv');
@@ -1200,37 +1114,6 @@ function initPlannedActivity() {
   var btnWhatsApp = document.getElementById('btnPlannedWhatsApp');
   if (btnWhatsApp) {
     btnWhatsApp.addEventListener('click', copyPlannedWhatsApp);
-  }
-
-  var btnCancel = document.getElementById('btnCancelPlan');
-  if (btnCancel) {
-    btnCancel.addEventListener('click', closePlanModal);
-  }
-
-  var planForm = document.getElementById('planForm');
-  if (planForm) {
-    planForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      submitPlan();
-    });
-  }
-
-  var planTipo = document.getElementById('planTipo');
-  var prevFields = document.getElementById('preventivaFields');
-  var corrFields = document.getElementById('corretivaFields');
-  if (planTipo && prevFields && corrFields) {
-    planTipo.addEventListener('change', function () {
-      if (this.value === 'preventiva') {
-        prevFields.classList.remove('hidden');
-        corrFields.classList.add('hidden');
-      } else if (this.value === 'corretiva') {
-        corrFields.classList.remove('hidden');
-        prevFields.classList.add('hidden');
-      } else {
-        prevFields.classList.add('hidden');
-        corrFields.classList.add('hidden');
-      }
-    });
   }
 
   var btnConfirmDup = document.getElementById('btnConfirmDuplicate');
@@ -1296,31 +1179,6 @@ function initPlannedActivity() {
       dateGroup.classList.toggle('hidden', this.value !== 'Planejado');
     });
   }
-
-  // --- SLA Preview ---
-  var slaDays = document.getElementById('planSlaDays');
-  var slaSat = document.getElementById('planSlaSat');
-  var slaSun = document.getElementById('planSlaSun');
-  var slaData = document.getElementById('planData');
-  function updateSlaPreview() {
-    var days = slaDays && parseInt(slaDays.value, 10);
-    var dt = slaData && slaData.value;
-    var preview = document.getElementById('slaPreview');
-    var text = document.getElementById('slaPreviewText');
-    if (!days || days < 1 || !dt) {
-      if (preview) preview.classList.add('hidden');
-      return;
-    }
-    var includeSat = slaSat ? slaSat.checked : false;
-    var includeSun = slaSun ? slaSun.checked : false;
-    var dates = generateSlaDateList(dt, days, includeSat, includeSun);
-    if (preview) preview.classList.remove('hidden');
-    if (text) text.textContent = days + ' dia' + (days > 1 ? 's' : '') + ': ' + dates.join(', ');
-  }
-  if (slaDays) slaDays.addEventListener('input', updateSlaPreview);
-  if (slaSat) slaSat.addEventListener('change', updateSlaPreview);
-  if (slaSun) slaSun.addEventListener('change', updateSlaPreview);
-  if (slaData) slaData.addEventListener('change', updateSlaPreview);
 
   // --- Extend SLA Modal ---
   var btnCancelExtend = document.getElementById('btnCancelExtendSla');
@@ -1567,12 +1425,6 @@ function initPlannedActivity() {
     });
   }
 
-  loadLocalsForPlan().then(function () {
-    return loadEquipamentosForPlan();
-  }).then(function () {
-    setupPlanAutocompletes();
-  });
-
   _plannedScroll.init();
 }
 
@@ -1687,136 +1539,23 @@ globalThis._updatePlannedCounter = _updatePlannedCounter;
 
 globalThis.initPlannedActivity = initPlannedActivity;
 
-function submitPlan() {
-  var dataPlanejada = document.getElementById('planData');
-  var equipe = document.getElementById('planEquipe');
-  var obs = document.getElementById('planObs');
-  var planTipo = document.getElementById('planTipo');
-  var planSite = document.getElementById('planSite');
-
-  if (!planTipo || !planTipo.value) {
-    showToast('Selecione o tipo (Preventiva ou Corretiva).', 'error');
-    if (planTipo) planTipo.focus();
-    return;
-  }
-
-  if (!planSite || !planSite.value.trim()) {
-    showToast('Selecione um site.', 'error');
-    if (planSite) planSite.focus();
-    return;
-  }
-
-  if (!dataPlanejada.value) {
-    showToast('Informe a data planejada.', 'error');
-    dataPlanejada.focus();
-    return;
-  }
-
-  var isPreventiva = planTipo.value === 'preventiva';
-  var route;
-  var payload;
-
-  if (isPreventiva) {
-    var ticket = document.getElementById('planTicket');
-    route = '/app/api/index.php?route=preventiva';
-    payload = {
-      site: planSite.value.trim(),
-      data_planejada: dataPlanejada.value,
-      ticket: ticket ? ticket.value.trim() : '',
-      equipe: equipe.value.trim() || 'A definir',
-      obs: obs.value.trim() || '',
-    };
-    var slaDays = document.getElementById('planSlaDays');
-    if (slaDays && slaDays.value) {
-      payload.sla_days = parseInt(slaDays.value, 10);
-      payload.sla_include_saturday = document.getElementById('planSlaSat').checked ? 1 : 0;
-      payload.sla_include_sunday = document.getElementById('planSlaSun').checked ? 1 : 0;
-    }
+function handlePlannedCreated(data) {
+  if (!data) return;
+  if (data.action === 'updated') {
+    showToast('Atividade adicionada ao novo dia!', 'success');
+    resetPlannedState('');
+  } else if (data.item) {
+    showToast('Atividade registrada com sucesso!', 'success');
+    _appendPlannedToGroup(data.item);
+    var currentTotal = window._plannedTotal || 0;
+    _updatePlannedCounter(currentTotal + 1);
   } else {
-    var os = document.getElementById('planOs');
-    var equipamentoId = document.getElementById('planEquipamentoId');
-
-    if (!os.value.trim()) {
-      showToast('Informe o n\u00famero da OS.', 'error');
-      os.focus();
-      return;
-    }
-
-    if (!/^[a-zA-Z0-9]+$/.test(os.value.trim())) {
-      showToast('OS deve conter apenas letras e n\u00fameros.', 'error');
-      os.focus();
-      return;
-    }
-
-    if (!equipamentoId || !equipamentoId.value) {
-      showToast('Selecione um equipamento.', 'error');
-      return;
-    }
-
-    route = '/app/api/index.php?route=planned-activities';
-    payload = {
-      os: os.value.trim(),
-      equipamento_id: parseInt(equipamentoId.value, 10),
-      data_planejada: dataPlanejada.value,
-      equipe: equipe.value.trim() || 'A definir',
-      material: 'Sim',
-      obs: obs.value.trim() || '',
-      tipo: 'corretiva',
-    };
-    var slaDays = document.getElementById('planSlaDays');
-    if (slaDays && slaDays.value) {
-      payload.sla_days = parseInt(slaDays.value, 10);
-      payload.sla_include_saturday = document.getElementById('planSlaSat').checked ? 1 : 0;
-      payload.sla_include_sunday = document.getElementById('planSlaSun').checked ? 1 : 0;
-    }
+    showToast('Atividade registrada com sucesso!', 'success');
+    resetPlannedState('');
   }
-
-  var btn = document.querySelector('#planForm button[type="submit"]');
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Salvando...';
-  }
-
-  apiFetch(route, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
-    .then(function (res) { return res.json(); })
-    .then(function (result) {
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = 'Planejar';
-      }
-
-      if (result && result.success) {
-        if (result.data && result.data.action === 'updated') {
-          showToast('Atividade adicionada ao novo dia!', 'success');
-          closePlanModal();
-          resetPlannedState('');
-        } else if (result.data && result.data.item) {
-          showToast('Atividade registrada com sucesso!', 'success');
-          closePlanModal();
-          _appendPlannedToGroup(result.data.item);
-          var currentTotal = window._plannedTotal || 0;
-          _updatePlannedCounter(currentTotal + 1);
-        } else {
-          showToast('Atividade registrada com sucesso!', 'success');
-          closePlanModal();
-          resetPlannedState('');
-        }
-      } else {
-        showToast(result && result.message ? result.message : 'Erro ao salvar', 'error');
-      }
-    })
-    .catch(function (err) {
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = 'Planejar';
-      }
-      showToast('Erro ao salvar atividade.', 'error');
-      console.error('Erro ao planejar atividade:', err);
-    });
 }
+
+globalThis.handlePlannedCreated = handlePlannedCreated;
 
 function deletePlanned(id, tipo, dataPlanejada, slaDayNumber) {
   if (typeof confirmDelete !== 'function') return;

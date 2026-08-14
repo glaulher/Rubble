@@ -562,7 +562,7 @@
     <script src="/public/js/components/modal.js?v=1" defer></script>
     <script src="/public/js/components/messagebox.js?v=2" defer></script>
     <script src="/public/js/components/infinite-scroll.js?v=3" type="module"></script>
-    <script src="/public/js/components/button.js?v=2" type="module"></script>
+    <script src="/public/js/components/button.js?v=5" type="module"></script>
     <script src="/public/js/utils/csv.js?v=1" defer></script>
     <script src="/public/js/utils/upload.js?v=5" defer></script>
     <script src="/public/js/utils/report.js?v=1" defer></script>
@@ -576,7 +576,7 @@
     <script src="/public/js/pv/form-item-row.js?v=1" defer></script>
     <script src="/public/js/pv/form-autocomplete.js?v=1" defer></script>
     <script src="/public/js/pv/form-filter.js?v=1" defer></script>
-    <script src="/public/js/pv/list.js?v=4" type="module"></script>
+    <script src="/public/js/pv/list.js?v=6" type="module"></script>
     <script src="/public/js/pv/modals.js?v=7" defer></script>
     <script src="/public/js/pv/modal-email.js?v=1" defer></script>
     <script src="/public/js/pv/pdf-export.js?v=1" defer></script>
@@ -592,8 +592,9 @@
     <script src="/public/js/scm/scm-import.js?v=2" defer></script>
     <script src="/public/js/preventive-cycle/list.js?v=20" type="module"></script>
     <script src="/public/js/pdf-audit/audit.js?v=4" defer></script>
-    <script src="/public/js/planned-activity/list.js?v=29" type="module"></script>
-    <script src="/public/js/pending-tickets/list.js?v=16" type="module"></script>
+    <script src="/public/js/components/plan-modal.js?v=1" defer></script>
+    <script src="/public/js/planned-activity/list.js?v=32" type="module"></script>
+    <script src="/public/js/pending-tickets/list.js?v=20" type="module"></script>
     <script src="/public/js/filter-exchanges/list.js?v=1" type="module"></script>
     <script src="/public/js/router.js?v=15"></script>
 
@@ -672,6 +673,146 @@
         </div>
       </div>
     </footer>
+
+    <!-- TEMPLATE: MODAL PLANEJAR ATIVIDADE (componente PlanModal) -->
+    <template id="planModalTemplate">
+      <div id="modalPlanActivity" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40">
+        <div class="bg-white dark:bg-[#222838] rounded-2xl p-6 w-full max-w-lg shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
+          <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">Planejar Atividade</h2>
+          <form id="planForm" class="space-y-4" novalidate>
+            <div>
+              <label for="planSite" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Site</label>
+              <div class="autocomplete-wrap relative">
+                <input
+                  id="planSite"
+                  type="text"
+                  autocomplete="off"
+                  class="w-full border border-slate-300 dark:border-[#3b4459] dark:bg-[#1a1f2e] dark:text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+                  placeholder="Digite o site..."
+                >
+                <div class="site-dropdown hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-[#222838] border border-slate-200 dark:border-[#3b4459] rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"></div>
+              </div>
+            </div>
+            <div>
+              <label for="planTipo" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo</label>
+              <select
+                id="planTipo"
+                required
+                class="w-full border border-slate-300 dark:border-[#3b4459] dark:bg-[#1a1f2e] dark:text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+              >
+                <option value="">Selecione</option>
+                <option value="preventiva">Preventiva</option>
+                <option value="corretiva">Corretiva</option>
+              </select>
+            </div>
+            <!-- Preventiva fields -->
+            <div id="preventivaFields" class="hidden space-y-4">
+              <div>
+                <label for="planTicket" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nº Ticket</label>
+                <input
+                  id="planTicket"
+                  type="text"
+                  class="w-full border border-slate-300 dark:border-[#3b4459] dark:bg-[#1a1f2e] dark:text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+                  placeholder="Ex: 123"
+                >
+              </div>
+            </div>
+            <!-- Corretiva fields -->
+            <div id="corretivaFields" class="hidden space-y-4">
+              <div>
+                <label for="planEquipamento" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Equipamento</label>
+                <div class="autocomplete-wrap relative">
+                  <input
+                    id="planEquipamento"
+                    type="text"
+                    required
+                    autocomplete="off"
+                    class="w-full border border-slate-300 dark:border-[#3b4459] dark:bg-[#1a1f2e] dark:text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+                    placeholder="Digite o nome do equipamento..."
+                  >
+                  <input id="planEquipamentoId" type="hidden" name="equipamento_id">
+                  <div class="equipamento-dropdown hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-[#222838] border border-slate-200 dark:border-[#3b4459] rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"></div>
+                </div>
+              </div>
+              <div>
+                <label for="planOs" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nº OS</label>
+                <input
+                  id="planOs"
+                  type="text"
+                  required
+                  pattern="[a-zA-Z0-9]+"
+                  class="w-full border border-slate-300 dark:border-[#3b4459] dark:bg-[#1a1f2e] dark:text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+                  placeholder="Ex: 123456"
+                >
+              </div>
+            </div>
+            <div>
+              <label for="planData" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Data Planejada</label>
+              <input
+                id="planData"
+                type="date"
+                required
+                class="w-full border border-slate-300 dark:border-[#3b4459] dark:bg-[#1a1f2e] dark:text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+              >
+            </div>
+            <div>
+              <label for="planEquipe" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Equipe / Técnico</label>
+              <input
+                id="planEquipe"
+                type="text"
+                class="w-full border border-slate-300 dark:border-[#3b4459] dark:bg-[#1a1f2e] dark:text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+                placeholder="A definir"
+              >
+            </div>
+            <!-- SLA -->
+            <div class="border-t border-slate-200 dark:border-[#3b4459] pt-4">
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">SLA (dias programados)</label>
+              <div class="flex items-center gap-4">
+                <input
+                  id="planSlaDays"
+                  type="number"
+                  min="1"
+                  max="90"
+                  class="w-20 border border-slate-300 dark:border-[#3b4459] dark:bg-[#1a1f2e] dark:text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+                  placeholder="4"
+                >
+                <label class="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 cursor-pointer">
+                  <input type="checkbox" id="planSlaSat" class="rounded border-slate-300 text-sky-600">
+                  Sáb
+                </label>
+                <label class="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 cursor-pointer">
+                  <input type="checkbox" id="planSlaSun" class="rounded border-slate-300 text-sky-600">
+                  Dom
+                </label>
+              </div>
+              <div id="slaPreview" class="mt-2 text-xs text-slate-400 hidden">
+                <span id="slaPreviewText"></span>
+              </div>
+            </div>
+            <div>
+              <label for="planObs" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Observação</label>
+              <textarea
+                id="planObs"
+                rows="3"
+                maxlength="1000"
+                class="w-full border border-slate-300 dark:border-[#3b4459] dark:bg-[#1a1f2e] dark:text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+              ></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                id="btnCancelPlan"
+                class="bg-slate-300 hover:bg-slate-400 text-slate-900 px-4 py-2 rounded-xl text-sm transition"
+              >Cancelar</button>
+              <button
+                type="submit"
+                class="bg-emerald-300 hover:bg-emerald-400 text-emerald-800 px-4 py-2 rounded-xl text-sm font-medium"
+              >Planejar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </template>
 
     <!-- MODAL CONFIRM -->
     <div

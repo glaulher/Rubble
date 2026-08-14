@@ -563,6 +563,266 @@ describe("pending-tickets/list.js bridge", function () {
       else globalThis.formatDate = prevFormatDate;
     }
   });
+
+  it("renders a plan action button for admin/coordenador", function () {
+    var prevGetUser = globalThis.getUser;
+    var prevIconButtonHtml = globalThis.iconButtonHtml;
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    globalThis.getUser = function () { return { role: 'admin' }; };
+    globalThis.iconButtonHtml = function (type, tooltip, attrs, tooltipPos) {
+      var a = '';
+      for (var k in attrs) a += ' ' + k + '="' + attrs[k] + '"';
+      return '<button data-icon-type="' + type + '" data-tooltip="' + tooltip + '" data-tooltip-pos="' + tooltipPos + '"' + a + '></button>';
+    };
+    try {
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      var html = globalThis.pendingPlanActionHtml({ id: 9 });
+      expect(html).toContain('data-action="plan"');
+      expect(html).toContain('data-plan-id="9"');
+      expect(html).toContain('Planejar');
+
+      globalThis.getUser = function () { return { role: 'coordenador' }; };
+      html = globalThis.pendingPlanActionHtml({ id: 10 });
+      expect(html).toContain('data-action="plan"');
+      expect(html).toContain('data-plan-id="10"');
+    } finally {
+      if (prevGetUser === undefined) delete globalThis.getUser;
+      else globalThis.getUser = prevGetUser;
+      if (prevIconButtonHtml === undefined) delete globalThis.iconButtonHtml;
+      else globalThis.iconButtonHtml = prevIconButtonHtml;
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
+
+  it("renders an empty actions cell for roles without permission", function () {
+    var prevGetUser = globalThis.getUser;
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    globalThis.getUser = function () { return { role: 'supervisor' }; };
+    try {
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      var html = globalThis.pendingPlanActionHtml({ id: 9 });
+      expect(html).toBe('<td class="px-3 py-2.5 text-sm"></td>');
+    } finally {
+      if (prevGetUser === undefined) delete globalThis.getUser;
+      else globalThis.getUser = prevGetUser;
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
+
+  it("prepends an actions cell to each pending row (15 columns)", function () {
+    document.body.innerHTML =
+      '<table id="pendingTable">' +
+      '<thead><tr><th data-col="local">Site</th></tr></thead>' +
+      '<tbody id="pendingTableBody"></tbody>' +
+      '</table>';
+
+    var prevGetUser = globalThis.getUser;
+    var prevIconButtonHtml = globalThis.iconButtonHtml;
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    globalThis.getUser = function () { return { role: 'admin' }; };
+    globalThis.iconButtonHtml = function (type, tooltip, attrs) {
+      return '<button data-action="plan" data-plan-id="' + (attrs['data-plan-id'] || '') + '"></button>';
+    };
+    try {
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      globalThis.renderPendingTable(
+        [
+          {
+            id: 1,
+            local: 'BMA',
+            os: 'OS1',
+            equipamento: 'WM',
+            localidade: 'C1',
+            tipo: 'corretiva',
+            status: 'pendente',
+            prioridade: '0',
+            data: null,
+            data_planejada: null,
+            data_real_inicio: null,
+            data_prevista_conclusao: null,
+            data_concluido: null,
+            equipe: '',
+            material: '',
+            obs: 'x',
+          },
+        ],
+        false
+      );
+
+      var row = document.querySelector('#pendingTableBody tr.pending-row');
+      var cells = row.querySelectorAll('td');
+      expect(cells.length).toBe(15);
+      expect(cells[0].querySelector('button[data-action="plan"]')).not.toBe(null);
+    } finally {
+      if (prevGetUser === undefined) delete globalThis.getUser;
+      else globalThis.getUser = prevGetUser;
+      if (prevIconButtonHtml === undefined) delete globalThis.iconButtonHtml;
+      else globalThis.iconButtonHtml = prevIconButtonHtml;
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
+
+  function pendingRowsHtml() {
+    return '<div id="pendingScrollContainer">' +
+      '<table id="pendingTable">' +
+      '<thead><tr><th data-sort="e.local" data-col="local">Site</th><th data-sort="r.os" data-col="os">OS</th><th data-col="equipamento">Equipamento</th></tr></thead>' +
+      '<tbody id="pendingTableBody"></tbody>' +
+      '</table>' +
+      '<div id="pendingSentinel"></div>' +
+      '</div>' +
+      '<input id="pendingSearchInput" />' +
+      '<div id="pendingEmpty" class="hidden"></div>';
+  }
+
+  var PENDING_ROW = {
+    id: 1,
+    local: 'BMA',
+    os: 'OS123',
+    equipamento: 'WM 01',
+    localidade: 'Container 1',
+    tipo: 'corretiva',
+    status: 'pendente',
+    prioridade: '0',
+    data: null,
+    data_planejada: null,
+    data_real_inicio: null,
+    data_prevista_conclusao: null,
+    data_concluido: null,
+    equipe: '',
+    material: '',
+    obs: 'Filtro sujo',
+  };
+
+  it("renders the OS cell as a copy-os span with hover classes", function () {
+    var prevGetUser = globalThis.getUser;
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    globalThis.getUser = function () { return { role: 'admin' }; };
+    try {
+      document.body.innerHTML =
+        '<table id="pendingTable"><tbody id="pendingTableBody"></tbody></table>' +
+        '<div id="pendingEmpty" class="hidden"></div>';
+
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      globalThis.renderPendingTable([PENDING_ROW], false);
+
+      var osCell = document.querySelector('#pendingTableBody td[data-col="os"]');
+      var span = osCell.querySelector('[data-action="copy-os"]');
+      expect(span).not.toBe(null);
+      expect(span.getAttribute('data-os')).toBe('OS123');
+      expect(span.firstChild.textContent.trim()).toBe('OS123');
+      expect(span.getAttribute('title')).toBe(null);
+      expect(span.className).toContain('cursor-pointer');
+      expect(span.className).toContain('hover:text-blue-600');
+      expect(span.className).toContain('hover:underline');
+      var tooltip = span.querySelector('.scale-0');
+      expect(tooltip).not.toBe(null);
+      expect(tooltip.textContent.trim()).toBe('Clique para copiar');
+    } finally {
+      if (prevGetUser === undefined) delete globalThis.getUser;
+      else globalThis.getUser = prevGetUser;
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
+
+  it("toggles the details row only on arrow or site cell click", function () {
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    try {
+      document.body.innerHTML = pendingRowsHtml();
+      globalThis.apiFetch = function () {
+        return Promise.resolve({ json: function () { return { success: true, data: { items: [], total: 0 } }; } });
+      };
+
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      globalThis.renderPendingTable([PENDING_ROW], false);
+      globalThis.initPendingTickets();
+
+      var detail = document.querySelector('tr.pending-details');
+      var equipCell = document.querySelector('#pendingTableBody td[data-col="equipamento"]');
+      equipCell.click();
+      expect(detail.classList.contains('hidden')).toBe(true);
+
+      var siteCell = document.querySelector('#pendingTableBody td[data-col="local"]');
+      siteCell.click();
+      expect(detail.classList.contains('hidden')).toBe(false);
+
+      var arrow = document.querySelector('#pendingTableBody .expand-icon');
+      arrow.click();
+      expect(detail.classList.contains('hidden')).toBe(true);
+    } finally {
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
+
+  it("copies the OS on click without toggling the details row", async function () {
+    var prevShowToast = globalThis.showToast;
+    var prevEscapeHtml = globalThis.escapeHtml;
+    var prevFormatDate = globalThis.formatDate;
+    var written = '';
+    globalThis.showToast = function () {};
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
+      value: { writeText: function (t) { written = t; return Promise.resolve(); } },
+      writable: true,
+      configurable: true,
+    });
+    try {
+      document.body.innerHTML = pendingRowsHtml();
+      globalThis.apiFetch = function () {
+        return Promise.resolve({ json: function () { return { success: true, data: { items: [], total: 0 } }; } });
+      };
+
+      (0, eval)(mockInfiniteScroll);
+      (0, eval)(pendingModuleCode() + PENDING_HELPERS);
+
+      globalThis.renderPendingTable([PENDING_ROW], false);
+      globalThis.initPendingTickets();
+
+      var osSpan = document.querySelector('#pendingTableBody [data-action="copy-os"]');
+      osSpan.click();
+      await new Promise(function (r) { setTimeout(r, 0); });
+      expect(written).toBe('OS123');
+
+      var detail = document.querySelector('tr.pending-details');
+      expect(detail.classList.contains('hidden')).toBe(true);
+    } finally {
+      if (prevShowToast === undefined) delete globalThis.showToast;
+      else globalThis.showToast = prevShowToast;
+      delete globalThis.navigator.clipboard;
+      if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
+      else globalThis.escapeHtml = prevEscapeHtml;
+      if (prevFormatDate === undefined) delete globalThis.formatDate;
+      else globalThis.formatDate = prevFormatDate;
+    }
+  });
 });
 
 describe("filter-exchanges/list.js bridge", function () {

@@ -209,7 +209,7 @@ class PlannedActivityController
 
             $result = $this->service->planActivity($data, (array) $this->currentUser);
 
-            Cache::invalidateGroup('equipment_list:');
+            Cache::invalidateGroup('equipment_list:', 'planned_activities:', 'pending_tickets:');
 
             if ($result['action'] === 'updated') {
                 Response::success('Atividade adicionada ao novo dia', $result, 200);

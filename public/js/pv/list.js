@@ -83,9 +83,7 @@ function buildPvRowHtml(pv) {
     <td class="px-4 py-4 text-sm font-semibold text-slate-900">${escapeHtml(pv.numero_pv)}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${pv.data ? formatDate(pv.data) : '-'}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">
-      <span data-action="copy-os" data-os="${escapeHtml(pv.os || '')}"
-            class="cursor-pointer hover:text-blue-600 hover:underline transition"
-            title="Clique para copiar">${escapeHtml(pv.os || '-')}</span>
+      <span class="relative group inline-flex cursor-pointer hover:text-blue-600 hover:underline transition" data-action="copy-os" data-os="${escapeHtml(pv.os || '')}" aria-label="Clique para copiar">${escapeHtml(pv.os || '-')}<span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 origin-top scale-0 group-hover:scale-100 transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Clique para copiar</span></span>
     </td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${escapeHtml(pv.local)}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${escapeHtml(pv.equipamento || '-')}</td>
