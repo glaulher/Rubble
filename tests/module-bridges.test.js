@@ -294,7 +294,7 @@ describe("pending-tickets/list.js bridge", function () {
       expect(individualCbs[i].checked).toBe(false);
     }
     expect(document.getElementById('pendingStatusLabel').textContent).toBe('0 selecionado(s)');
-    expect(globalThis.buildPendingQuery()).not.toContain('&status=');
+    expect(globalThis.buildPendingQuery()).toContain('status=__none__');
 
     var pendenteCb = document.querySelector('#pendingStatusDropdown input[data-value="pendente"]');
     pendenteCb.checked = true;
@@ -495,6 +495,7 @@ describe("pending-tickets/list.js bridge", function () {
 
       globalThis.pendingSearch = 'BMA';
       globalThis.pendingStatusFilter = new Set(['pendente']);
+      globalThis.pendingStatusTodosChecked = false;
       globalThis.pendingOsFilter = 'OS123';
       globalThis.pendingSortBy = 'r.os';
       globalThis.pendingSortDir = 'DESC';

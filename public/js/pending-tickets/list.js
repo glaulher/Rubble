@@ -640,8 +640,13 @@ function buildPendingQuery() {
     + '&os=' + encodeURIComponent(pendingOsFilter)
     + '&sort_by=' + encodeURIComponent(pendingSortBy)
     + '&sort_dir=' + encodeURIComponent(pendingSortDir);
+  if (pendingStatusTodosChecked) {
+    return q;
+  }
   if (pendingStatusFilter.size > 0) {
     q += '&status=' + Array.from(pendingStatusFilter).map(encodeURIComponent).join(',');
+  } else {
+    q += '&status=__none__';
   }
   return q;
 }

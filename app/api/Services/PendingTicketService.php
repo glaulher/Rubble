@@ -10,6 +10,8 @@ class PendingTicketService
 
     private const ALLOWED_STATUSES = ['pendente', 'planejado', 'em andamento', 'projeto clean up', 'concluido', 'concluído'];
 
+    private const NO_STATUS = '__none__';
+
     private const ALLOWED_PRIORITIES = ['0', '0-A', '0-B', '0-C', '0-D', '0-E', '1', '3', '4', '5'];
 
     private const EXCLUDED_LOCATION = 'Fornecimento';
@@ -40,6 +42,9 @@ class PendingTicketService
         if ($status === '') {
             return [];
         }
+        if ($status === self::NO_STATUS) {
+            return [self::NO_STATUS];
+        }
 
         $parts = array_filter(array_map('trim', explode(',', $status)), static fn(string $s): bool => $s !== '');
         $statuses = [];
@@ -65,6 +70,10 @@ class PendingTicketService
     ): array {
         $statuses = $this->parseStatuses($status);
 
+        if (in_array(self::NO_STATUS, $statuses, true)) {
+            return ['items' => [], 'total' => 0];
+        }
+
         $sortBy = in_array($sortBy, self::ALLOWED_SORT, true) ? $sortBy : 'e.local';
         $sortDir = in_array(strtoupper($sortDir), self::ALLOWED_DIRS, true) ? strtoupper($sortDir) : 'ASC';
 
@@ -83,6 +92,10 @@ class PendingTicketService
     public function countPending(string $search, string $status, string $os = ''): int
     {
         $statuses = $this->parseStatuses($status);
+
+        if (in_array(self::NO_STATUS, $statuses, true)) {
+            return 0;
+        }
 
         return $this->repository->countPending($search, $statuses, $os, self::EXCLUDED_LOCATION);
     }

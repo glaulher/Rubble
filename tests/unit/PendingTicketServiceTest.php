@@ -398,4 +398,26 @@ class PendingTicketServiceTest extends TestCase
         $this->assertTrue($service->updatePendingField(10, 'status', 'concluído'));
         $this->assertTrue($service->updatePendingField(10, 'status', 'CONCLUIDO'));
     }
+
+    public function testListPendingBySiteReturnsEmptyForNoneStatus(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->never())->method('listPendingBySite');
+        $repo->expects($this->never())->method('countPending');
+
+        $service = $this->createService($repo);
+        $result = $service->listPendingBySite(20, 0, '', '__none__');
+
+        $this->assertSame([], $result['items']);
+        $this->assertSame(0, $result['total']);
+    }
+
+    public function testCountPendingReturnsZeroForNoneStatus(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->never())->method('countPending');
+
+        $service = $this->createService($repo);
+        $this->assertSame(0, $service->countPending('', '__none__'));
+    }
 }

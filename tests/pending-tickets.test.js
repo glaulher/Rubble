@@ -164,8 +164,13 @@ function buildPendingQuery() {
     + '&os=' + encodeURIComponent(pendingOsFilter)
     + '&sort_by=' + encodeURIComponent(pendingSortBy)
     + '&sort_dir=' + encodeURIComponent(pendingSortDir);
-  if (pendingStatusFilter && pendingStatusFilter.size > 0) {
+  if (pendingStatusTodosChecked) {
+    return q;
+  }
+  if (pendingStatusFilter.size > 0) {
     q += '&status=' + Array.from(pendingStatusFilter).map(encodeURIComponent).join(',');
+  } else {
+    q += '&status=__none__';
   }
   return q;
 }
@@ -226,6 +231,7 @@ describe("buildPendingQuery", () => {
   it("includes the os filter param", () => {
     pendingSearch = 'BMA';
     pendingStatusFilter = new Set(['pendente']);
+    pendingStatusTodosChecked = false;
     pendingOsFilter = 'OS123';
     pendingSortBy = 'r.os';
     pendingSortDir = 'DESC';
@@ -249,19 +255,31 @@ describe("buildPendingQuery", () => {
   it("joins multiple selected statuses with commas", () => {
     pendingSearch = '';
     pendingStatusFilter = new Set(['pendente', 'concluído']);
+    pendingStatusTodosChecked = false;
     pendingOsFilter = '';
     pendingSortBy = 'e.local';
     pendingSortDir = 'ASC';
     expect(buildPendingQuery()).toContain('status=pendente,conclu%C3%ADdo');
   });
 
-  it("omits the status param when none selected", () => {
+  it("omits the status param when Todos is checked", () => {
     pendingSearch = '';
     pendingStatusFilter = new Set();
+    pendingStatusTodosChecked = true;
     pendingOsFilter = '';
     pendingSortBy = 'e.local';
     pendingSortDir = 'ASC';
     expect(buildPendingQuery()).not.toContain('&status=');
+  });
+
+  it("sends the none sentinel when Todos is unchecked and nothing selected", () => {
+    pendingSearch = '';
+    pendingStatusFilter = new Set();
+    pendingStatusTodosChecked = false;
+    pendingOsFilter = '';
+    pendingSortBy = 'e.local';
+    pendingSortDir = 'ASC';
+    expect(buildPendingQuery()).toContain('status=__none__');
   });
 });
 
