@@ -1,4 +1,4 @@
-const VIEW_VERSION = 27;
+const VIEW_VERSION = 28;
 
 async function loadPage(url) {
   try {
@@ -145,7 +145,7 @@ async function router() {
   } else if (hash === "#/pending-tickets") {
     /*
     |--------------------------------------------------------------------------
-    | PENDING TICKETS (OS Pendentes)
+    | PENDING TICKETS (Gestão de OS)
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/pending-tickets/list.html?v=" + VIEW_VERSION);

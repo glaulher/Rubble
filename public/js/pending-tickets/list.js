@@ -2,7 +2,8 @@ import { createInfiniteScroll, debounce } from '/public/js/components/infinite-s
 
 var _pendingScroll = null;
 var pendingSearch = '';
-var pendingStatusFilter = '';
+var pendingStatusFilter = new Set();
+var pendingStatusTodosChecked = true;
 var pendingOsFilter = '';
 var pendingSortBy = 'e.local';
 var pendingSortDir = 'ASC';
@@ -17,7 +18,7 @@ const CSR_COLUMNS = [
   'DATA_CONCLUSAO', 'TECNICO', 'MATERIAL', 'OBSERVACAO',
 ];
 
-const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
+const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up', 'concluído'];
 const PENDING_PRIORITY_OPTIONS = ['0', '0-A', '0-B', '0-C', '0-D', '0-E', '1', '3', '4', '5'];
 
 const PENDING_COLUMNS_DEF = [
@@ -62,6 +63,9 @@ function getStatusBadgeClass(status) {
       return 'bg-blue-100 text-blue-700';
     case 'projeto clean up':
       return 'bg-purple-100 text-purple-700';
+    case 'concluído':
+    case 'concluido':
+      return 'bg-emerald-100 text-emerald-700';
     default:
       return 'bg-slate-100 text-slate-700';
   }
@@ -276,8 +280,8 @@ function pendingPlanActionHtml(item) {
 function handlePendingPlanned(ticket, data) {
   if (!data) return;
   var newStatus = (data.item && data.item.status) || 'Planejado';
-  var filterMatch = !pendingStatusFilter
-    || pendingStatusFilter.toLowerCase() === String(newStatus).toLowerCase();
+  var filterMatch = pendingStatusFilter.size === 0
+    || pendingStatusFilter.has(String(newStatus).toLowerCase());
   if (!filterMatch) {
     _pendingReset();
     showToast('Atividade planejada com sucesso!', 'success');
@@ -598,8 +602,8 @@ async function exportPendingCsv() {
     }
 
     var fileName = pendingSearch && pendingSearch.trim() !== ''
-      ? 'os_pendentes_' + pendingSearch.trim().replace(/\s+/g, '_') + '.csv'
-      : 'os_pendentes.csv';
+      ? 'os_corretivas_' + pendingSearch.trim().replace(/\s+/g, '_') + '.csv'
+      : 'os_corretivas.csv';
 
     var header = CSR_COLUMNS.join(';');
 
@@ -618,7 +622,6 @@ async function exportPendingCsv() {
 
 var pendingDebouncedSearch = debounce(function (val) {
   pendingSearch = val;
-  pendingStatusFilter = pendingStatusFilter || '';
   _pendingReset();
 }, 1000);
 
@@ -633,11 +636,14 @@ function buildPendingSortQuery() {
 }
 
 function buildPendingQuery() {
-  return 'search=' + encodeURIComponent(pendingSearch)
-    + '&status=' + encodeURIComponent(pendingStatusFilter)
+  var q = 'search=' + encodeURIComponent(pendingSearch)
     + '&os=' + encodeURIComponent(pendingOsFilter)
     + '&sort_by=' + encodeURIComponent(pendingSortBy)
     + '&sort_dir=' + encodeURIComponent(pendingSortDir);
+  if (pendingStatusFilter.size > 0) {
+    q += '&status=' + Array.from(pendingStatusFilter).map(encodeURIComponent).join(',');
+  }
+  return q;
 }
 
 function _pendingReset() {
@@ -669,9 +675,104 @@ function setupPendingSort() {
   });
 }
 
+function updatePendingStatusLabel() {
+  var label = document.getElementById('pendingStatusLabel');
+  if (!label) return;
+  if (pendingStatusTodosChecked) {
+    label.textContent = 'Todos';
+    label.classList.remove('text-blue-600');
+  } else {
+    label.textContent = pendingStatusFilter.size + ' selecionado(s)';
+    label.classList.add('text-blue-600');
+  }
+}
+
+function renderPendingStatusDropdown() {
+  var dropdown = document.getElementById('pendingStatusDropdown');
+  if (!dropdown) return;
+
+  if (!dropdown.dataset.delegated) {
+    dropdown.addEventListener('change', function (e) {
+      var cb = e.target.closest('.pending-status-check');
+      if (!cb) return;
+      var val = cb.dataset.value;
+      if (val === '__all__') {
+        pendingStatusTodosChecked = cb.checked;
+        if (cb.checked) {
+          pendingStatusFilter.clear();
+        } else {
+          pendingStatusFilter = new Set(PENDING_STATUS_OPTIONS);
+        }
+      } else {
+        if (cb.checked) {
+          pendingStatusFilter.add(val);
+        } else {
+          if (pendingStatusTodosChecked) {
+            pendingStatusFilter = new Set(PENDING_STATUS_OPTIONS);
+            pendingStatusFilter.delete(val);
+            pendingStatusTodosChecked = false;
+          } else {
+            pendingStatusFilter.delete(val);
+          }
+        }
+        pendingStatusTodosChecked = pendingStatusFilter.size === PENDING_STATUS_OPTIONS.length;
+      }
+      renderPendingStatusDropdown();
+      updatePendingStatusLabel();
+      _pendingReset();
+    });
+    dropdown.dataset.delegated = '1';
+  }
+
+  var html = '';
+  var allChecked = pendingStatusTodosChecked ? 'checked' : '';
+  html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100">';
+  html += '<input type="checkbox" class="pending-status-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="__all__" ' + allChecked + '>';
+  html += '<span class="text-sm text-slate-700 font-medium">Todos</span>';
+  html += '</label>';
+
+  for (var i = 0; i < PENDING_STATUS_OPTIONS.length; i++) {
+    var opt = PENDING_STATUS_OPTIONS[i];
+    var checked = pendingStatusTodosChecked || pendingStatusFilter.has(opt) ? 'checked' : '';
+    var labelText = opt.charAt(0).toUpperCase() + opt.slice(1);
+    html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">';
+    html += '<input type="checkbox" class="pending-status-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-value="' + opt + '" ' + checked + '>';
+    html += '<span class="text-sm text-slate-700">' + escapeHtml(labelText) + '</span>';
+    html += '</label>';
+  }
+
+  dropdown.innerHTML = html;
+}
+
+function initPendingStatusSelect() {
+  var btn = document.getElementById('pendingStatusBtn');
+  var dropdown = document.getElementById('pendingStatusDropdown');
+  if (!btn || !dropdown) return;
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    dropdown.classList.toggle('hidden');
+  });
+
+  if (!document._pendingStatusGlobalListener) {
+    document.addEventListener('click', function (e) {
+      var container = document.getElementById('pendingStatusContainer');
+      if (container && !container.contains(e.target)) {
+        var dd = document.getElementById('pendingStatusDropdown');
+        if (dd) dd.classList.add('hidden');
+      }
+    });
+    document._pendingStatusGlobalListener = true;
+  }
+
+  renderPendingStatusDropdown();
+  updatePendingStatusLabel();
+}
+
 function initPendingTickets() {
   pendingSearch = '';
-  pendingStatusFilter = '';
+  pendingStatusFilter = new Set();
+  pendingStatusTodosChecked = true;
   pendingOsFilter = '';
   pendingSortBy = 'e.local';
   pendingSortDir = 'ASC';
@@ -711,14 +812,7 @@ function initPendingTickets() {
     });
   }
 
-  var filterRadios = document.querySelectorAll('input[name="pendingFilter"]');
-  for (var i = 0; i < filterRadios.length; i++) {
-    filterRadios[i].addEventListener('change', function () {
-      if (!this.checked) return;
-      pendingStatusFilter = this.value;
-      _pendingReset();
-    });
-  }
+  initPendingStatusSelect();
 
   var csvBtn = document.getElementById('pendingCsvBtn');
   if (csvBtn) {
@@ -838,7 +932,8 @@ function initPendingTickets() {
       }
     },
     getFilterHash: function () {
-      return pendingSearch + '|' + pendingStatusFilter + '|' + pendingOsFilter + '|' + pendingSortBy + '|' + pendingSortDir;
+      return pendingSearch + '|' + Array.from(pendingStatusFilter).sort().join(',')
+        + '|' + pendingOsFilter + '|' + pendingSortBy + '|' + pendingSortDir;
     },
     sentinelId: 'pendingSentinel',
     scrollContainerId: 'pendingScrollContainer',

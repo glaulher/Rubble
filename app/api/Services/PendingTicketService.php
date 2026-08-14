@@ -8,7 +8,7 @@ class PendingTicketService
 {
     private TicketRepository $repository;
 
-    private const ALLOWED_STATUSES = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
+    private const ALLOWED_STATUSES = ['pendente', 'planejado', 'em andamento', 'projeto clean up', 'concluido', 'concluído'];
 
     private const ALLOWED_PRIORITIES = ['0', '0-A', '0-B', '0-C', '0-D', '0-E', '1', '3', '4', '5'];
 
@@ -32,6 +32,28 @@ class PendingTicketService
         $this->repository = $repository ?? new TicketRepository();
     }
 
+    /**
+     * @return string[]
+     */
+    private function parseStatuses(string $status): array
+    {
+        if ($status === '') {
+            return [];
+        }
+
+        $parts = array_filter(array_map('trim', explode(',', $status)), static fn(string $s): bool => $s !== '');
+        $statuses = [];
+        foreach ($parts as $part) {
+            $normalized = mb_strtolower($part, 'UTF-8');
+            if (!in_array($normalized, self::ALLOWED_STATUSES, true)) {
+                throw new \InvalidArgumentException('Status inválido: ' . $part);
+            }
+            $statuses[] = $normalized;
+        }
+
+        return $statuses;
+    }
+
     public function listPendingBySite(
         int $limit,
         int $offset = 0,
@@ -41,9 +63,7 @@ class PendingTicketService
         string $sortDir = 'ASC',
         string $os = ''
     ): array {
-        if ($status !== '' && !in_array($status, self::ALLOWED_STATUSES, true)) {
-            throw new \InvalidArgumentException('Status inválido: ' . $status);
-        }
+        $statuses = $this->parseStatuses($status);
 
         $sortBy = in_array($sortBy, self::ALLOWED_SORT, true) ? $sortBy : 'e.local';
         $sortDir = in_array(strtoupper($sortDir), self::ALLOWED_DIRS, true) ? strtoupper($sortDir) : 'ASC';
@@ -51,8 +71,8 @@ class PendingTicketService
         $search = mb_strimwidth($search, 0, 200);
         $os = mb_strimwidth($os, 0, 200);
 
-        $items = $this->repository->listPendingBySite($limit, max(0, $offset), $search, $status, $sortBy, $sortDir, $os, self::EXCLUDED_LOCATION);
-        $total = $this->repository->countPending($search, $status, $os, self::EXCLUDED_LOCATION);
+        $items = $this->repository->listPendingBySite($limit, max(0, $offset), $search, $statuses, $sortBy, $sortDir, $os, self::EXCLUDED_LOCATION);
+        $total = $this->repository->countPending($search, $statuses, $os, self::EXCLUDED_LOCATION);
 
         return [
             'items' => $items,
@@ -62,11 +82,9 @@ class PendingTicketService
 
     public function countPending(string $search, string $status, string $os = ''): int
     {
-        if ($status !== '' && !in_array($status, self::ALLOWED_STATUSES, true)) {
-            throw new \InvalidArgumentException('Status inválido: ' . $status);
-        }
+        $statuses = $this->parseStatuses($status);
 
-        return $this->repository->countPending($search, $status, $os, self::EXCLUDED_LOCATION);
+        return $this->repository->countPending($search, $statuses, $os, self::EXCLUDED_LOCATION);
     }
 
     public function updatePendingField(int $id, string $field, mixed $value): bool

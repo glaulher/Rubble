@@ -281,23 +281,33 @@ class TicketRepository extends BaseRepository
         int $limit,
         int $offset = 0,
         string $search = '',
-        string $status = '',
+        array $statuses = [],
         string $sortBy = 'e.local',
         string $sortDir = 'ASC',
         string $os = '',
         string $excludedLocation = ''
     ): array {
-        $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
+        $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up', 'concluido', 'concluído'];
 
         $where = 'LOWER(r.status) IN (\'' . implode("','", $statusList) . '\')'
             . " AND LOWER(r.tipo) = 'corretiva'";
         $params = [];
         $types = '';
 
-        if ($status !== '') {
-            $where .= ' AND LOWER(r.status) = LOWER(?)';
-            $params[] = $status;
-            $types .= 's';
+        if (!empty($statuses)) {
+            $inStatuses = [];
+            foreach ($statuses as $s) {
+                $inStatuses[] = $s;
+                if ($s === 'concluído') {
+                    $inStatuses[] = 'concluido';
+                }
+            }
+            $inStatuses = array_values(array_unique($inStatuses));
+            $where .= ' AND LOWER(r.status) IN (' . implode(',', array_fill(0, count($inStatuses), '?')) . ')';
+            foreach ($inStatuses as $s) {
+                $params[] = $s;
+                $types .= 's';
+            }
         }
 
         if ($search !== '') {
@@ -350,19 +360,29 @@ class TicketRepository extends BaseRepository
         return $records;
     }
 
-    public function countPending(string $search, string $status, string $os = '', string $excludedLocation = ''): int
+    public function countPending(string $search, array $statuses = [], string $os = '', string $excludedLocation = ''): int
     {
-        $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
+        $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up', 'concluido', 'concluído'];
 
         $where = 'LOWER(r.status) IN (\'' . implode("','", $statusList) . '\')'
             . " AND LOWER(r.tipo) = 'corretiva'";
         $params = [];
         $types = '';
 
-        if ($status !== '') {
-            $where .= ' AND LOWER(r.status) = LOWER(?)';
-            $params[] = $status;
-            $types .= 's';
+        if (!empty($statuses)) {
+            $inStatuses = [];
+            foreach ($statuses as $s) {
+                $inStatuses[] = $s;
+                if ($s === 'concluído') {
+                    $inStatuses[] = 'concluido';
+                }
+            }
+            $inStatuses = array_values(array_unique($inStatuses));
+            $where .= ' AND LOWER(r.status) IN (' . implode(',', array_fill(0, count($inStatuses), '?')) . ')';
+            foreach ($inStatuses as $s) {
+                $params[] = $s;
+                $types .= 's';
+            }
         }
 
         if ($search !== '') {

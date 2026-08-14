@@ -24,7 +24,8 @@ function sanitizeCSV(value) {
 }
 
 var pendingSearch = '';
-var pendingStatusFilter = '';
+var pendingStatusFilter = new Set();
+var pendingStatusTodosChecked = true;
 var pendingOsFilter = '';
 var pendingSortBy = 'e.local';
 var pendingSortDir = 'ASC';
@@ -35,7 +36,7 @@ const PENDING_COLUMNS = 14;
 
 function resetPendingState(search, status) {
   pendingSearch = search || '';
-  pendingStatusFilter = status || '';
+  pendingStatusFilter = status instanceof Set ? new Set(status) : new Set();
   pendingAllLoaded = false;
   pendingLoading = false;
 
@@ -52,6 +53,9 @@ function getStatusBadgeClass(status) {
     case 'planejado': return 'bg-yellow-100 text-yellow-700';
     case 'em andamento': return 'bg-blue-100 text-blue-700';
     case 'projeto clean up': return 'bg-purple-100 text-purple-700';
+    case 'concluído':
+    case 'concluido':
+      return 'bg-emerald-100 text-emerald-700';
     default: return 'bg-slate-100 text-slate-700';
   }
 }
@@ -156,15 +160,18 @@ function buildPendingSortQuery() {
 }
 
 function buildPendingQuery() {
-  return 'search=' + encodeURIComponent(pendingSearch)
-    + '&status=' + encodeURIComponent(pendingStatusFilter)
+  var q = 'search=' + encodeURIComponent(pendingSearch)
     + '&os=' + encodeURIComponent(pendingOsFilter)
     + '&sort_by=' + encodeURIComponent(pendingSortBy)
     + '&sort_dir=' + encodeURIComponent(pendingSortDir);
+  if (pendingStatusFilter && pendingStatusFilter.size > 0) {
+    q += '&status=' + Array.from(pendingStatusFilter).map(encodeURIComponent).join(',');
+  }
+  return q;
 }
 
 function buildPendingStatusSelect(selected) {
-  const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up'];
+  const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up', 'concluído'];
   let html = '<select class="pending-edit-input pending-status px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">';
   for (let i = 0; i < PENDING_STATUS_OPTIONS.length; i++) {
     const opt = PENDING_STATUS_OPTIONS[i];
@@ -218,7 +225,7 @@ describe("buildPendingSortQuery", () => {
 describe("buildPendingQuery", () => {
   it("includes the os filter param", () => {
     pendingSearch = 'BMA';
-    pendingStatusFilter = 'pendente';
+    pendingStatusFilter = new Set(['pendente']);
     pendingOsFilter = 'OS123';
     pendingSortBy = 'r.os';
     pendingSortDir = 'DESC';
@@ -232,21 +239,40 @@ describe("buildPendingQuery", () => {
 
   it("includes an empty os param when no filter is set", () => {
     pendingSearch = '';
-    pendingStatusFilter = '';
+    pendingStatusFilter = new Set();
     pendingOsFilter = '';
     pendingSortBy = 'e.local';
     pendingSortDir = 'ASC';
     expect(buildPendingQuery()).toContain('os=');
+  });
+
+  it("joins multiple selected statuses with commas", () => {
+    pendingSearch = '';
+    pendingStatusFilter = new Set(['pendente', 'concluído']);
+    pendingOsFilter = '';
+    pendingSortBy = 'e.local';
+    pendingSortDir = 'ASC';
+    expect(buildPendingQuery()).toContain('status=pendente,conclu%C3%ADdo');
+  });
+
+  it("omits the status param when none selected", () => {
+    pendingSearch = '';
+    pendingStatusFilter = new Set();
+    pendingOsFilter = '';
+    pendingSortBy = 'e.local';
+    pendingSortDir = 'ASC';
+    expect(buildPendingQuery()).not.toContain('&status=');
   });
 });
 
 describe("buildPendingStatusSelect", () => {
   it("renders an option for each pending status", () => {
     const html = buildPendingStatusSelect('');
-    expect((html.match(/<option/g) || []).length).toBe(4);
+    expect((html.match(/<option/g) || []).length).toBe(5);
     expect(html).toContain('value="pendente"');
     expect(html).toContain('value="em andamento"');
     expect(html).toContain('value="projeto clean up"');
+    expect(html).toContain('value="concluído"');
   });
 
   it("marks the current status as selected", () => {
@@ -275,7 +301,7 @@ describe("resetPendingState", () => {
     resetPendingState('', '');
 
     expect(pendingSearch).toBe('');
-    expect(pendingStatusFilter).toBe('');
+    expect(pendingStatusFilter.size).toBe(0);
     expect(pendingAllLoaded).toBe(false);
     expect(pendingLoading).toBe(false);
     expect((typeof pendingSortBy).toLowerCase()).toBe('string');
@@ -283,9 +309,9 @@ describe("resetPendingState", () => {
   });
 
   it("preserves search and status on reset", () => {
-    resetPendingState('BMA', 'pendente');
+    resetPendingState('BMA', new Set(['pendente']));
     expect(pendingSearch).toBe('BMA');
-    expect(pendingStatusFilter).toBe('pendente');
+    expect(pendingStatusFilter.has('pendente')).toBe(true);
   });
 });
 
@@ -467,6 +493,11 @@ describe("getStatusBadgeClass", () => {
 
   it("returns purple for projeto clean up", () => {
     expect(getStatusBadgeClass('projeto clean up')).toContain('bg-purple-100');
+  });
+
+  it("returns emerald for concluído (both accented and unaccented)", () => {
+    expect(getStatusBadgeClass('concluído')).toContain('bg-emerald-100');
+    expect(getStatusBadgeClass('concluido')).toContain('bg-emerald-100');
   });
 
   it("returns default for unknown", () => {

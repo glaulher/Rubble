@@ -301,7 +301,7 @@ $router->addRoute('planned-activities', 'DELETE', function () use ($auth) {
     (new PlannedActivityController($auth->getUser()))->delete();
 });
 
-// Pending Tickets (OS Pendentes)
+// Pending Tickets (Gestão de OS)
 $router->addRoute('pending-tickets', 'GET', function () {
     (new \App\Api\Controllers\PendingTicketsController())->listAll();
 });

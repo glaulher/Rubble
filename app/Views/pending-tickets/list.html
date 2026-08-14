@@ -5,13 +5,13 @@
   <div class="bg-slate-900 text-white shadow-lg">
     <div class="px-6 py-2 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 items-center">
       <div>
-        <h1 class="text-2xl font-light tracking-[0.1em]">OS Pendentes</h1>
-        <p class="text-sm text-slate-400/80 mt-0.5">Gerenciamento de tickets</p>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Gestão de OS</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Gerenciamento de OS corretivas</p>
       </div>
       <div class="text-center self-center">
         <span class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold">
           <span id="pendingBadge">0</span>
-          <span class="ml-1">pendentes</span>
+          <span class="ml-1">OS</span>
         </span>
       </div>
       <div class="flex items-center gap-4 justify-self-end self-start">
@@ -54,29 +54,24 @@
     </div>
   </div>
 
-  <!-- Status filter (radio) -->
+  <!-- Status filter (multi-select) -->
   <div class="px-6 py-3 flex flex-wrap gap-4 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 mt-4">
-    <div class="flex items-end gap-3">
-      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
-        <input type="radio" name="pendingFilter" value="" checked class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
-        Todos
-      </label>
-      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
-        <input type="radio" name="pendingFilter" value="pendente" class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
-        Pendente
-      </label>
-      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
-        <input type="radio" name="pendingFilter" value="planejado" class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
-        Planejado
-      </label>
-      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
-        <input type="radio" name="pendingFilter" value="em andamento" class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
-        Em andamento
-      </label>
-      <label class="text-sm text-slate-600 cursor-pointer flex items-center gap-1.5">
-        <input type="radio" name="pendingFilter" value="projeto clean up" class="text-blue-600 focus:ring-blue-500 cursor-pointer" />
-        Clean up
-      </label>
+    <div class="flex flex-col relative shrink-0" id="pendingStatusContainer">
+      <label for="pendingStatusBtn" class="text-xs text-slate-500 mb-1">Status</label>
+      <button
+        type="button"
+        id="pendingStatusBtn"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40 text-left flex items-center justify-between gap-1"
+      >
+        <span id="pendingStatusLabel" class="truncate">Todos</span>
+        <svg class="w-4 h-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div
+        id="pendingStatusDropdown"
+        class="hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
+      ></div>
     </div>
     <div class="ml-auto flex items-center gap-2">
       <label for="pendingOsFilter" class="text-sm text-slate-600 whitespace-nowrap">OS</label>
@@ -137,7 +132,7 @@
         </div>
       </div>
       <div id="pendingEmpty" class="hidden text-center py-20 text-slate-500">
-        <p class="text-lg">Nenhuma OS pendente encontrada.</p>
+        <p class="text-lg">Nenhuma OS encontrada.</p>
       </div>
     </div>
   </main>

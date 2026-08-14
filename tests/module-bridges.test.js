@@ -217,6 +217,46 @@ describe("pending-tickets/list.js bridge", function () {
     expect(document.querySelectorAll('#pendingTableBody tr.pending-row').length).toBe(0);
   });
 
+  it("renders the status multi-select with the concluded option and updates query", function () {
+    delete globalThis.initPendingTickets;
+    document.body.innerHTML =
+      '<div id="pendingScrollContainer">' +
+      '<table id="pendingTable">' +
+      '<thead><tr><th data-sort="e.local">Site</th></tr></thead>' +
+      '<tbody id="pendingTableBody"></tbody>' +
+      '</table>' +
+      '<div id="pendingSentinel"></div>' +
+      '</div>' +
+      '<input id="pendingSearchInput" />' +
+      '<div id="pendingEmpty" class="hidden"></div>' +
+      '<div id="pendingStatusContainer">' +
+      '<button type="button" id="pendingStatusBtn"><span id="pendingStatusLabel">Todos</span></button>' +
+      '<div id="pendingStatusDropdown"></div>' +
+      '</div>';
+
+    globalThis.apiFetch = function () {
+      return Promise.resolve({
+        json: function () { return { success: true, data: { items: [], total: 0 } }; },
+      });
+    };
+
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/pending-tickets/list.js', '\nfunction escapeHtml(v) { return String(v); }\n');
+
+    globalThis.initPendingTickets();
+
+    var checkboxes = document.querySelectorAll('#pendingStatusDropdown input.pending-status-check');
+    expect(checkboxes.length).toBe(6);
+    var concluidoCb = document.querySelector('#pendingStatusDropdown input[data-value="concluído"]');
+    expect(concluidoCb).not.toBe(null);
+
+    concluidoCb.checked = true;
+    concluidoCb.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(document.getElementById('pendingStatusLabel').textContent).toBe('1 selecionado(s)');
+    expect(globalThis.buildPendingQuery()).toContain('status=conclu%C3%ADdo');
+  });
+
   it("wraps the value and edit pencil in an inline-flex cell", function () {
     var code = readFileSync(resolve(__dirname, '../public/js/pending-tickets/list.js'), 'utf-8');
     if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
@@ -404,7 +444,7 @@ describe("pending-tickets/list.js bridge", function () {
       (0, eval)(pendingModuleCode() + PENDING_HELPERS);
 
       globalThis.pendingSearch = 'BMA';
-      globalThis.pendingStatusFilter = 'pendente';
+      globalThis.pendingStatusFilter = new Set(['pendente']);
       globalThis.pendingOsFilter = 'OS123';
       globalThis.pendingSortBy = 'r.os';
       globalThis.pendingSortDir = 'DESC';
