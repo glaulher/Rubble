@@ -64,6 +64,25 @@ describe('iconButtonHtml', function () {
     expect(html.indexOf('left-1/2')).toBe(-1);
   });
 
+  it('positions tooltip below when tooltipPos is below', function () {
+    var html = iconButtonHtml('edit', 'Edit', null, 'below');
+    expect(html.indexOf('top-full')).not.toBe(-1);
+    expect(html.indexOf('mt-2')).not.toBe(-1);
+    expect(html.indexOf('left-1/2')).not.toBe(-1);
+    expect(html.indexOf('origin-top')).not.toBe(-1);
+    expect(html.indexOf('bottom-full')).toBe(-1);
+  });
+
+  it('positions tooltip below-left when tooltipPos is below-left', function () {
+    var html = iconButtonHtml('edit', 'Edit', null, 'below-left');
+    expect(html.indexOf('top-full')).not.toBe(-1);
+    expect(html.indexOf('mt-2')).not.toBe(-1);
+    expect(html.indexOf('left-0')).not.toBe(-1);
+    expect(html.indexOf('origin-top')).not.toBe(-1);
+    expect(html.indexOf('left-1/2')).toBe(-1);
+    expect(html.indexOf('bottom-full')).toBe(-1);
+  });
+
   it('positions tooltip center by default', function () {
     var html = iconButtonHtml('edit', 'Edit');
     expect(html.indexOf('left-1/2')).not.toBe(-1);
