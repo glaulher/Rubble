@@ -218,6 +218,11 @@ async function saveFilterField(cell) {
       var nextCell = row ? row.querySelector('td[data-col="data_proxima_troca"]') : null;
       if (nextCell) refreshFilterCell(nextCell, 'data_proxima_troca', result.data.data_proxima_troca);
     }
+    if (field === 'data_troca' && result.data && result.data.status !== undefined) {
+      var row = cell.closest('tr.filter-row');
+      var statusCell = row ? row.querySelector('td[data-col="status"]') : null;
+      if (statusCell) refreshFilterCell(statusCell, 'status', result.data.status);
+    }
     if (typeof showToast === 'function') showToast('Campo atualizado', 'success');
   } catch (e) {
     console.error('Erro ao salvar campo', e);

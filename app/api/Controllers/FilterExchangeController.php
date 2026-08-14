@@ -100,6 +100,7 @@ class FilterExchangeController
             $data = [];
             if ($field === 'data_troca') {
                 $data['data_proxima_troca'] = $this->service->computeNextDate($value === null ? null : (string) $value);
+                $data['status'] = $this->service->computeStatus($data['data_proxima_troca']);
             }
 
             Cache::deleteByPrefix('filter_exchanges:');

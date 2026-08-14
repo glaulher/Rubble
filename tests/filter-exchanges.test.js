@@ -332,6 +332,40 @@ describe("filter-exchanges/list.js bridge", function () {
     expect(nextCell.querySelector('.filter-value').textContent.trim()).toBe('13/12/2026');
   });
 
+  it("refreshes the status cell from the backend response when saving data_troca", async function () {
+    document.body.innerHTML = feTableMarkup();
+    globalThis.apiFetch = function () {
+      return Promise.resolve({
+        json: function () { return { success: true, data: { data_proxima_troca: '2026-12-14', status: 'concluído' } }; },
+      });
+    };
+    (0, eval)(mockInfiniteScroll);
+    (0, eval)(feModuleCode() + FE_HELPERS);
+
+    globalThis.renderFilterTable([
+      {
+        id: 1,
+        local: 'RSDDTC',
+        equipamento: 'WM',
+        tamanho: '',
+        qtd: 1,
+        os: null,
+        data_troca: null,
+        data_proxima_troca: null,
+        status: 'pendente',
+      },
+    ], false);
+
+    var trocaCell = document.querySelector('#filterTableBody td[data-col="data_troca"]');
+    globalThis.enterFilterEdit(trocaCell, 'data_troca');
+    trocaCell.querySelector('input.filter-edit-input').value = '2026-08-14';
+    await globalThis.saveFilterField(trocaCell);
+
+    var statusCell = document.querySelector('#filterTableBody td[data-col="status"]');
+    expect(statusCell.querySelector('.filter-value').textContent.trim()).toBe('concluído');
+    expect(statusCell.querySelector('.status-badge').className).toContain('bg-emerald-100');
+  });
+
   it("saves the field when the edit input loses focus", async function () {
     document.body.innerHTML = feTableMarkup();
     var captured = [];
