@@ -94,9 +94,9 @@ export function confirmAction(title, message, buttonText, variant) {
     if (btnOk) btnOk.textContent = buttonText || 'Excluir';
 
     if (variant === 'confirm') {
-      btnOk.className = 'flex-1 bg-blue-200 hover:bg-blue-300 text-blue-800 py-3 rounded-xl font-medium transition';
+      btnOk.className = 'flex-1 bg-blue-300 hover:bg-blue-400 active:bg-blue-500 text-blue-800 py-3 rounded-xl font-medium transition';
     } else {
-      btnOk.className = 'flex-1 bg-red-200 hover:bg-red-300 text-red-800 py-3 rounded-xl font-medium transition';
+      btnOk.className = 'flex-1 bg-red-300 hover:bg-red-400 active:bg-red-500 text-red-800 py-3 rounded-xl font-medium transition';
     }
 
     showModal('modalConfirm');

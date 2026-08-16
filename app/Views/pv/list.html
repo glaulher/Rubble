@@ -27,14 +27,14 @@
       <div class="text-right flex items-center justify-end gap-2">
         <button
           id="batchEmailBtn"
-          class="hidden bg-sky-300 hover:bg-sky-400 text-sky-800 px-4 py-2 rounded-xl text-sm font-medium transition"
+          class="hidden bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 px-4 py-2 rounded-xl text-sm font-medium transition"
         >
           <span id="selectedCount" class="mr-1 font-bold">0</span>
           Enviar E-mail
         </button>
         <button
           data-action="navigate-pv-form"
-          class="bg-emerald-300 hover:bg-emerald-400 text-emerald-800 px-4 py-2 rounded-xl text-sm font-medium transition"
+          class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-4 py-2 rounded-xl text-sm font-medium transition"
         >
           + Nova PV
         </button>
@@ -75,7 +75,7 @@
       <div class="relative group">
         <button
             data-action="generate-pv-csv"
-          class="bg-emerald-200 hover:bg-emerald-300 text-emerald-800 px-3 py-2.5 rounded-xl font-semibold transition"
+          class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-3 py-2.5 rounded-xl font-semibold transition"
         >
           <svg
             class="w-7 h-7"
@@ -279,7 +279,7 @@
           <div class="relative group">
             <button
               data-action="download-pv-pdf"
-              class="bg-emerald-200 hover:bg-emerald-300 text-emerald-800 px-2 py-2 rounded-xl font-semibold transition"
+              class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-2 py-2 rounded-xl font-semibold transition"
             >
               <svg
                 class="w-8 h-8"
@@ -307,13 +307,13 @@
           </div>
           <button
             data-action="open-email-modal"
-            class="flex-1 bg-sky-300 hover:bg-sky-400 text-sky-800 py-3 rounded-xl font-medium transition"
+            class="flex-1 bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 py-3 rounded-xl font-medium transition"
           >
             Enviar PV
           </button>
           <button
             data-action="close-pv-item-modal"
-            class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-900 py-3 rounded-xl font-medium transition"
+            class="flex-1 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 py-3 rounded-xl font-medium transition"
           >
             Fechar
           </button>
@@ -412,13 +412,13 @@
           <button
             id="btnSendPvEmail"
             data-action="send-pv-email"
-            class="flex-1 bg-sky-200 hover:bg-sky-300 text-sky-800 py-3 rounded-xl font-medium transition"
+            class="flex-1 bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 py-3 rounded-xl font-medium transition"
           >
             Enviar
           </button>
           <button
             data-action="close-email-modal"
-            class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-900 py-3 rounded-xl font-medium transition"
+            class="flex-1 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 py-3 rounded-xl font-medium transition"
           >
             Cancelar
           </button>
@@ -447,13 +447,13 @@
       <div class="flex gap-3">
         <button
           data-action="confirm-status"
-          class="flex-1 bg-sky-200 hover:bg-sky-300 text-sky-800 py-3 rounded-xl font-medium transition"
+          class="flex-1 bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 py-3 rounded-xl font-medium transition"
         >
           Confirmar
         </button>
         <button
           data-action="close-status-modal"
-          class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-900 py-3 rounded-xl font-medium transition"
+          class="flex-1 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 py-3 rounded-xl font-medium transition"
         >
           Cancelar
         </button>

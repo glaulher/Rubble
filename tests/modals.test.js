@@ -273,16 +273,16 @@ describe("confirmAction", () => {
   it('applies blue classes when variant is "confirm"', () => {
     confirmAction('Duplicar PV', 'Tem certeza?', 'Duplicar', 'confirm');
     const btnOk = document.getElementById('modalConfirmOk');
-    expect(btnOk.className).toContain('bg-blue-200');
+    expect(btnOk.className).toContain('bg-blue-300');
     expect(btnOk.className).toContain('text-blue-800');
-    expect(btnOk.className).not.toContain('bg-red-200');
+    expect(btnOk.className).not.toContain('bg-red-300');
   });
 
   it('applies red classes when variant is "danger"', () => {
     confirmAction('Excluir', 'Tem certeza?', 'Excluir', 'danger');
     const btnOk = document.getElementById('modalConfirmOk');
-    expect(btnOk.className).toContain('bg-red-200');
+    expect(btnOk.className).toContain('bg-red-300');
     expect(btnOk.className).toContain('text-red-800');
-    expect(btnOk.className).not.toContain('bg-blue-200');
+    expect(btnOk.className).not.toContain('bg-blue-300');
   });
 });

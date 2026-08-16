@@ -109,27 +109,27 @@ describe('buttonHtml', function () {
   describe('button types', function () {
     it('primary uses emerald classes', function () {
       var html = buttonHtml('primary', 'OK');
-      expect(containsAll(html, ['bg-emerald-200', 'hover:bg-emerald-300', 'text-emerald-800'])).toBe(true);
+      expect(containsAll(html, ['bg-emerald-300', 'hover:bg-emerald-400', 'active:bg-emerald-500', 'text-emerald-800'])).toBe(true);
     });
 
     it('secondary uses sky classes', function () {
       var html = buttonHtml('secondary', 'OK');
-      expect(containsAll(html, ['bg-sky-200', 'hover:bg-sky-300', 'text-sky-800'])).toBe(true);
+      expect(containsAll(html, ['bg-sky-300', 'hover:bg-sky-400', 'active:bg-sky-500', 'text-sky-800'])).toBe(true);
     });
 
     it('submit uses blue classes', function () {
       var html = buttonHtml('submit', 'OK');
-      expect(containsAll(html, ['bg-blue-200', 'hover:bg-blue-300', 'text-blue-800'])).toBe(true);
+      expect(containsAll(html, ['bg-blue-300', 'hover:bg-blue-400', 'active:bg-blue-500', 'text-blue-800'])).toBe(true);
     });
 
     it('danger uses red classes', function () {
       var html = buttonHtml('danger', 'OK');
-      expect(containsAll(html, ['bg-red-200', 'hover:bg-red-300', 'text-red-800'])).toBe(true);
+      expect(containsAll(html, ['bg-red-300', 'hover:bg-red-400', 'active:bg-red-500', 'text-red-800'])).toBe(true);
     });
 
     it('neutral uses slate classes', function () {
       var html = buttonHtml('neutral', 'OK');
-      expect(containsAll(html, ['bg-slate-300', 'hover:bg-slate-400', 'text-slate-900'])).toBe(true);
+      expect(containsAll(html, ['bg-slate-300', 'hover:bg-slate-400', 'active:bg-slate-500', 'text-slate-900'])).toBe(true);
     });
 
     it('unknown type defaults to neutral', function () {

@@ -184,14 +184,19 @@ button:disabled { cursor: not-allowed; }
 .dark .bg-red-50 { background-color: #1e1a2a !important; }
 .dark .bg-amber-50 { background-color: #1c1814 !important; }
 
-/* Button backgrounds */
+/* Button backgrounds - buttons keep their light pastel colors in dark mode */
 .dark .bg-slate-200 { background-color: #334155 !important; }
 .dark .bg-slate-200:hover { background-color: #475569 !important; }
-.dark .bg-slate-300 { background-color: #475569 !important; }
-.dark .bg-slate-300:hover { background-color: #4b5563 !important; }
-.dark .hover\:bg-slate-400:hover { background-color: #4b5563 !important; }
-.dark .bg-blue-200 { background-color: #1e40af !important; }
-.dark .bg-blue-200:hover { background-color: #1e3a8a !important; }
+
+/* Toast status icon dots (keep dark-visible accent colors) */
+.dark #toastIcon.bg-emerald-400 { background-color: #059669 !important; }
+.dark #toastIcon.bg-red-400 { background-color: #dc2626 !important; }
+.dark #toastIcon.bg-sky-400 { background-color: #0284c7 !important; }
+.dark #toastIcon.bg-blue-400 { background-color: #1d4ed8 !important; }
+
+/* Progress bars (pdf-audit) - keep dark-visible fill colors */
+.dark #referenceProgressBar.bg-emerald-500 { background-color: #10b981 !important; }
+.dark #auditProgressBar.bg-blue-500 { background-color: #2563eb !important; }
 
 /* Icon button backgrounds */
 .dark .bg-blue-100 { background-color: rgba(30,64,175,0.3) !important; }
@@ -254,6 +259,13 @@ button:disabled { cursor: not-allowed; }
 .dark .text-blue-800 { color: #93c5fd !important; }
 .dark .text-slate-500 { color: #94a3b8 !important; }
 
+/* Buttons keep their light text color in dark mode (pastel bg + dark text) */
+.dark .bg-slate-300.text-slate-900 { color: #0f172a !important; }
+.dark .bg-blue-300.text-blue-800 { color: #1e3a8a !important; }
+.dark .bg-emerald-300.text-emerald-800 { color: #065f46 !important; }
+.dark .bg-sky-300.text-sky-800 { color: #075985 !important; }
+.dark .bg-red-300.text-red-800 { color: #991b1b !important; }
+
 /* Border colors */
 .dark .border-slate-200 { border-color: #2d3548 !important; }
 .dark .border-slate-100 { border-color: #252d3d !important; }
@@ -264,7 +276,6 @@ button:disabled { cursor: not-allowed; }
 /* Hover states */
 .dark .hover\:bg-slate-100:hover { background-color: #1e2536 !important; }
 .dark .hover\:bg-slate-50:hover { background-color: #1e2536 !important; }
-.dark .hover\:bg-slate-300:hover { background-color: #475569 !important; }
 .dark .hover\:bg-white:hover { background-color: #222838 !important; }
 
 /* Input fields */

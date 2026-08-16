@@ -16,11 +16,11 @@ var ICON_SVG = {
 };
 
 var BUTTON_STYLES = {
-  primary:   { bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300', text: 'text-emerald-800' },
-  secondary: { bg: 'bg-sky-200',     hover: 'hover:bg-sky-300',     text: 'text-sky-800' },
-  submit:    { bg: 'bg-blue-200',    hover: 'hover:bg-blue-300',    text: 'text-blue-800' },
-  danger:    { bg: 'bg-red-200',     hover: 'hover:bg-red-300',     text: 'text-red-800' },
-  neutral:   { bg: 'bg-slate-300',   hover: 'hover:bg-slate-400',   text: 'text-slate-900' }
+  primary:   { bg: 'bg-emerald-300', hover: 'hover:bg-emerald-400', active: 'active:bg-emerald-500', text: 'text-emerald-800' },
+  secondary: { bg: 'bg-sky-300',     hover: 'hover:bg-sky-400',     active: 'active:bg-sky-500',     text: 'text-sky-800' },
+  submit:    { bg: 'bg-blue-300',    hover: 'hover:bg-blue-400',    active: 'active:bg-blue-500',    text: 'text-blue-800' },
+  danger:    { bg: 'bg-red-300',     hover: 'hover:bg-red-400',     active: 'active:bg-red-500',     text: 'text-red-800' },
+  neutral:   { bg: 'bg-slate-300',   hover: 'hover:bg-slate-400',   active: 'active:bg-slate-500',   text: 'text-slate-900' }
 };
 
 var BUTTON_SIZES = {
@@ -73,7 +73,7 @@ export function buttonHtml(type, label, attrs, size) {
     }
   }
 
-  return '<button class="' + style.bg + ' ' + style.hover + ' ' + style.text + ' ' + sizeClass + ' rounded-xl font-medium transition cursor-pointer' + extraClass + '"' + attrStr + '>' +
+  return '<button class="' + style.bg + ' ' + style.hover + ' ' + style.active + ' ' + style.text + ' ' + sizeClass + ' rounded-xl font-medium transition cursor-pointer' + extraClass + '"' + attrStr + '>' +
     escapeHtml(label) +
   '</button>';
 }

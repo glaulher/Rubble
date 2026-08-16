@@ -155,9 +155,9 @@ export function enterPendingManagedEdit(td, field) {
   for (var i = 0; i < options.length; i++) {
     var opt = options[i];
     var selected = String(raw).toLowerCase() === String(opt.valor).toLowerCase();
-    var bgClass = selected ? 'bg-blue-50' : 'hover:bg-slate-50';
+    var bgClass = selected ? 'bg-sky-100 text-sky-900 font-medium' : 'text-slate-700 hover:bg-slate-100';
     html += '<div class="flex items-center justify-between px-3 py-2 cursor-pointer ' + bgClass + '" data-option-value="' + escapeHtml(opt.valor) + '">';
-    html += '<span class="text-sm text-slate-700">' + escapeHtml(opt.valor) + '</span>';
+    html += '<span class="text-sm">' + escapeHtml(opt.valor) + '</span>';
     if (opt.in_use) {
       html += '<span class="text-xs text-slate-400 italic">em uso</span>';
     } else {
@@ -175,12 +175,12 @@ export function enterPendingManagedEdit(td, field) {
   html += '</div>';
   html += '<div class="managed-add-input hidden flex items-center gap-1 px-3 py-2">';
   html += '<input type="text" class="flex-1 px-2 py-1 text-sm border border-slate-300 rounded" placeholder="Novo valor" maxlength="100">';
-  html += '<button type="button" class="managed-add-confirm px-1.5 py-1 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-800"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></button>';
-  html += '<button type="button" class="managed-add-cancel px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-900"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+  html += '<button type="button" class="managed-add-confirm px-1.5 py-1 rounded-lg bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></button>';
+  html += '<button type="button" class="managed-add-cancel px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
   html += '</div>';
   html += '<div class="border-t border-slate-200 flex items-center justify-end gap-1 px-3 py-2">';
-  html += '<button type="button" class="managed-confirm px-1.5 py-1 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-800" title="Confirmar" aria-label="Confirmar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></button>';
-  html += '<button type="button" class="managed-cancel-edit px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+  html += '<button type="button" class="managed-confirm px-1.5 py-1 rounded-lg bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800" title="Confirmar" aria-label="Confirmar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></button>';
+  html += '<button type="button" class="managed-cancel-edit px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
   html += '</div>';
   html += '</div>';
 
@@ -197,11 +197,11 @@ export function enterPendingManagedEdit(td, field) {
       td.dataset.pendingValue = val;
       var allOptions = dropdown.querySelectorAll('[data-option-value]');
       for (var j = 0; j < allOptions.length; j++) {
-        allOptions[j].classList.remove('bg-blue-50');
-        allOptions[j].classList.add('hover:bg-slate-50');
+        allOptions[j].classList.remove('bg-sky-100', 'text-sky-900', 'font-medium');
+        allOptions[j].classList.add('text-slate-700', 'hover:bg-slate-100');
       }
-      optionRow.classList.add('bg-blue-50');
-      optionRow.classList.remove('hover:bg-slate-50');
+      optionRow.classList.add('bg-sky-100', 'text-sky-900', 'font-medium');
+      optionRow.classList.remove('text-slate-700', 'hover:bg-slate-100');
       return;
     }
 
@@ -409,8 +409,8 @@ export function enterPendingEdit(td, field) {
   }
 
   td.innerHTML = inputHtml
-    + '<button type="button" class="pending-save ml-1 px-1.5 py-1 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-800" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
-    + '<button type="button" class="pending-cancel ml-1 px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+    + '<button type="button" class="pending-save ml-1 px-1.5 py-1 rounded-lg bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
+    + '<button type="button" class="pending-cancel ml-1 px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
 }
 
 export function refreshPendingCell(td, field, value) {
@@ -451,8 +451,8 @@ export function enterPendingObsEdit(wrap) {
   var raw = valueEl ? valueEl.getAttribute('data-raw') : '';
   wrap.setAttribute('data-prev-raw', raw);
   wrap.innerHTML = '<textarea rows="3" class="pending-edit-input obs-input flex-1 min-w-0 px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 resize-y" placeholder="Observa\u00e7\u00e3o">' + escapeHtml(raw) + '</textarea>'
-    + '<button type="button" class="pending-save ml-1 px-1.5 py-1 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-800" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
-    + '<button type="button" class="pending-cancel ml-1 px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+    + '<button type="button" class="pending-save ml-1 px-1.5 py-1 rounded-lg bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
+    + '<button type="button" class="pending-cancel ml-1 px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
 }
 
 export async function savePendingObs(wrap) {

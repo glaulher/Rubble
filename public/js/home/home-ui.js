@@ -89,7 +89,7 @@ export function buildEquipmentCardHtml(e, canEdit) {
             ${
               canEdit
                 ? `<a href="#/form?id=${e.id}"
-                  class="bg-emerald-200 hover:bg-emerald-300 text-emerald-800 px-5 py-2 rounded-xl font-medium transition">
+                  class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-5 py-2 rounded-xl font-medium transition">
                   Registrar
                 </a>`
                 : ''
