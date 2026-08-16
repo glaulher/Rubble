@@ -8,7 +8,7 @@ use App\Api\Router;
 use App\Api\Helpers\{Response, Request};
 use App\Api\Controllers\{
     AuthController, EquipmentController, EquipmentManagementController, EquipmentPriceController,
-    TicketController, DashboardController, PvDashboardController,
+    TicketController, DashboardController, PvDashboardController, OsDashboardController,
     PvController, UserController, ScmController, PreventiveCycleController,
     UploadController, EmailController, ExportController, PdfAuditController,
     PlannedActivityController, PreventivaController, FilterExchangeController
@@ -71,6 +71,9 @@ $router->addRoute('dashboard', 'GET', fn () => (new DashboardController())->stat
 
 // PV Dashboard
 $router->addRoute('pv-dashboard', 'GET', fn () => (new PvDashboardController())->stats());
+
+// OS Dashboard (Gestão de OS KPI)
+$router->addRoute('os-dashboard', 'GET', fn () => (new OsDashboardController())->stats());
 
 // Notifications
 $router->addRoute('notify', 'GET', function () use ($auth) {

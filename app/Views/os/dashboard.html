@@ -1,0 +1,120 @@
+<div class="min-h-screen" style="background: linear-gradient(90deg, #1a2332 0%, #1e3a5f 50%, #1a2332 100%);">
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-2 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Dashboard de Gestão de OS</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Indicadores consolidados das ordens de serviço</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <input
+          id="osDashboardSearchInput"
+          type="text"
+          aria-label="Buscar OS no dashboard"
+          placeholder="Filtrar OS..."
+          class="px-4 py-1.5 rounded-xl bg-slate-800 border border-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-slate-700 text-blue-200 w-60"
+        />
+        <button
+          id="osDashboardPdfBtn"
+          data-action="generate-pdf"
+          class="bg-emerald-300 hover:bg-emerald-400 text-emerald-800 px-4 py-2 rounded-xl text-sm font-medium transition"
+        >
+          Gerar PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <!-- Loading -->
+    <div id="osDashboardLoading" class="text-center py-20 text-slate-400">
+      <p class="text-lg">Carregando dados...</p>
+    </div>
+
+    <!-- KPI Cards -->
+    <div id="osKpiSection" class="hidden">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total de OS</p>
+          <p id="osKpiTotal" class="text-3xl font-light text-slate-800 mt-1">0</p>
+          <div id="osKpiTotalBreakdown" class="mt-2 space-y-1"></div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Pendentes</p>
+          <p id="osKpiPending" class="text-3xl font-light text-red-600 mt-1">0</p>
+          <div id="osKpiPendingBreakdown" class="mt-2 space-y-1"></div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Concluídas</p>
+          <p id="osKpiCompleted" class="text-3xl font-light text-emerald-600 mt-1">0</p>
+          <div id="osKpiCompletedBreakdown" class="mt-2 space-y-1"></div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Em Andamento</p>
+          <p id="osKpiInProgress" class="text-3xl font-light text-blue-600 mt-1">0</p>
+          <div id="osKpiInProgressBreakdown" class="mt-2 space-y-1"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Priority + Status Breakdown -->
+    <div id="osBreakdownSection" class="hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Priority -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <h3 class="text-sm font-semibold text-slate-700 mb-4">OS por Prioridade</h3>
+          <div id="osPriorityBars" class="space-y-3"></div>
+        </div>
+        <!-- Status -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <h3 class="text-sm font-semibold text-slate-700 mb-4">OS por Status</h3>
+          <div id="osStatusBars" class="space-y-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Completed Priority + Em Andamento Table -->
+    <div id="osTablesSection" class="hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Completed by Priority -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <h3 class="text-sm font-semibold text-slate-700 mb-4">OS por Prioridade Concluídas</h3>
+          <div id="osCompletedPriorityBars" class="space-y-3"></div>
+        </div>
+        <!-- Em Andamento Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <h3 class="text-sm font-semibold text-slate-700 mb-4">OS em Andamento</h3>
+          <div id="osEmAndamentoTable" class="overflow-x-auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Responsabilidade Claro -->
+    <div id="osClaroSection" class="hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+        <h3 class="text-sm font-semibold text-slate-700 mb-4">OS sob Responsabilidade Claro</h3>
+        <div id="osClaroTable" class="overflow-x-auto"></div>
+        <div class="mt-3 text-right">
+          <a href="#/pending-tickets" class="text-sm text-blue-600 hover:underline">Ver todas</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evolution Chart -->
+    <div id="osEvolutionSection" class="hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+        <h3 class="text-sm font-semibold text-slate-700 mb-4">Evolução de OS</h3>
+        <div style="height: 300px;">
+          <canvas id="osEvolutionChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Technicians -->
+    <div id="osTopTechSection" class="hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+        <h3 class="text-sm font-semibold text-slate-700 mb-4">Top 5 Técnicos por Número de OS</h3>
+        <div id="osTopTechBars" class="space-y-3"></div>
+      </div>
+    </div>
+  </main>
+</div>

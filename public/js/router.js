@@ -149,6 +149,13 @@ async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/pending-tickets/list.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/os-dashboard") {
+    /*
+    |--------------------------------------------------------------------------
+    | OS DASHBOARD (Gestão de OS KPI)
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/os/dashboard.html?v=" + VIEW_VERSION);
   } else if (hash === "#/filter-exchanges") {
     /*
     |--------------------------------------------------------------------------
@@ -248,6 +255,10 @@ async function router() {
     } else if (hash === "#/pending-tickets") {
       if (typeof initPendingTickets === "function") {
         initPendingTickets();
+      }
+    } else if (hash === "#/os-dashboard") {
+      if (typeof initOsDashboard === "function") {
+        initOsDashboard();
       }
     } else if (hash === "#/filter-exchanges") {
       if (typeof initFilters === "function") {
