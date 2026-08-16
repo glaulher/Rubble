@@ -14,6 +14,3 @@ export function downloadCSV(filename, headerRow, rowBuilder) {
   URL.revokeObjectURL(url);
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.downloadCSV = downloadCSV;
-}

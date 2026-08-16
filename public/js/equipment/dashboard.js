@@ -331,18 +331,3 @@ export function renderResolutionByMonth(data) {
   dashboardCharts.push(chart);
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.barGradient = barGradient;
-  globalThis.hbarGradient = hbarGradient;
-  globalThis.chartColors = chartColors;
-  globalThis.destroyCharts = destroyCharts;
-  globalThis.initEquipamentDashboard = initEquipamentDashboard;
-  globalThis.renderStatusCards = renderStatusCards;
-  globalThis.renderParetoChart = renderParetoChart;
-  globalThis.renderHorizontalBarChart = renderHorizontalBarChart;
-  globalThis.renderMachinesChart = renderMachinesChart;
-  globalThis.renderTechniciansChart = renderTechniciansChart;
-  globalThis.renderResolutionByMachine = renderResolutionByMachine;
-  globalThis.renderResolutionByTechnician = renderResolutionByTechnician;
-  globalThis.renderResolutionByMonth = renderResolutionByMonth;
-}

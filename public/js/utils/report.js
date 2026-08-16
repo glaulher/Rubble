@@ -194,6 +194,3 @@ function calcSlices(usableW, pageH) {
   return slices;
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.generateReport = generateReport;
-}

@@ -116,9 +116,3 @@ export async function readFileAsText(file) {
     }
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.importScm = importScm;
-  globalThis.parseCsvLine = parseCsvLine;
-  globalThis.parseScmCSV = parseScmCSV;
-  globalThis.readFileAsText = readFileAsText;
-}

@@ -327,11 +327,3 @@ export function setupItemRowDelegation() {
   });
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.loadPvForm = loadPvForm;
-  globalThis.resetForm = resetForm;
-  globalThis.getFormData = getFormData;
-  globalThis.savePvForm = savePvForm;
-  globalThis.uploadOsFile = uploadOsFile;
-  globalThis.setupItemRowDelegation = setupItemRowDelegation;
-}

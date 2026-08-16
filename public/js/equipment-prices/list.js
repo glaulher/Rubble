@@ -123,13 +123,6 @@ export function initPriceList() {
 export function navigatePriceFormHandler() { window.location.hash = '#/equipment-prices-form'; }
 
 if (typeof globalThis !== 'undefined') {
-  globalThis.loadPrices = loadPrices;
-  globalThis.renderPrices = renderPrices;
-  globalThis.editPrice = editPrice;
-  globalThis.confirmDeletePrice = confirmDeletePrice;
-  globalThis.deletePrice = deletePrice;
-  globalThis.initPriceList = initPriceList;
-  globalThis.navigatePriceFormHandler = navigatePriceFormHandler;
   Object.defineProperty(globalThis, 'prices', {
     get: function () { return prices; },
     set: function (v) { prices = v; },

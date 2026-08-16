@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import { evalModule } from './helpers/eval-module.js';
 
 // Mock sessionStorage
 const storage = {};
@@ -59,14 +60,29 @@ globalThis.escapeHtml = function (str) {
     .replace(/'/g, '&#039;');
 };
 
-// Load auth.js functions (strip ES import/export lines for eval-based loading)
-const fs = require('fs');
-const path = require('path');
-const authCode = fs
-  .readFileSync(path.resolve(__dirname, '../public/js/core/auth.js'), 'utf-8')
-  .replace(/^import .+$/gm, '')
-  .replace(/^export /gm, '');
-eval(authCode);
+// Load auth.js functions via the shared eval helper, which exposes the
+// module's real named exports on globalThis.
+evalModule('../public/js/core/auth.js', '');
+
+var getToken = globalThis.getToken;
+var getUser = globalThis.getUser;
+var setToken = globalThis.setToken;
+var setUser = globalThis.setUser;
+var isAuthenticated = globalThis.isAuthenticated;
+var parseJwtPayload = globalThis.parseJwtPayload;
+var storeAuth = globalThis.storeAuth;
+var clearAuth = globalThis.clearAuth;
+var destroyTurnstile = globalThis.destroyTurnstile;
+var login = globalThis.login;
+var logout = globalThis.logout;
+var authGuard = globalThis.authGuard;
+var toggleSidebar = globalThis.toggleSidebar;
+var updateUserDisplay = globalThis.updateUserDisplay;
+var initLogin = globalThis.initLogin;
+var startActiveCountPolling = globalThis.startActiveCountPolling;
+var stopActiveCountPolling = globalThis.stopActiveCountPolling;
+var fetchActiveCount = globalThis.fetchActiveCount;
+var applyRoleVisibility = globalThis.applyRoleVisibility;
 
 describe('auth.js', () => {
   beforeEach(() => {

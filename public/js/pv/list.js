@@ -44,7 +44,7 @@ export async function duplicatePv(id) {
     }
 
     showToast('PV duplicada com sucesso', 'success');
-    globalThis.resetPvState(globalThis.pvSearch, globalThis.pvStatusFilter, globalThis.pvCycleFilter, true);
+    resetPvState(globalThis.pvSearch, globalThis.pvStatusFilter, globalThis.pvCycleFilter, true);
   } catch (err) {
     showToast('Erro ao duplicar PV', 'error');
     console.error(err);
@@ -497,21 +497,3 @@ export function initPv() {
   if (_pvScroll) _pvScroll.init();
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.duplicatePv = duplicatePv;
-  globalThis.copyOs = copyOs;
-  globalThis.fallbackCopy = fallbackCopy;
-  globalThis.buildPvRowHtml = buildPvRowHtml;
-  globalThis.renderPvs = renderPvs;
-  globalThis.createPvRow = createPvRow;
-  globalThis.syncPvTable = syncPvTable;
-  globalThis.resetPvState = resetPvState;
-  globalThis.setupPvSearch = setupPvSearch;
-  globalThis.setupPvStatusFilter = setupPvStatusFilter;
-  globalThis.setupPvCycleFilter = setupPvCycleFilter;
-  globalThis.setupPvInfiniteScroll = setupPvInfiniteScroll;
-  globalThis.setupPvSort = setupPvSort;
-  globalThis.updateBatchButton = updateBatchButton;
-  globalThis.setupPvCheckboxes = setupPvCheckboxes;
-  globalThis.initPv = initPv;
-}

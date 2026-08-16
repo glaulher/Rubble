@@ -60,7 +60,6 @@ export function initPreventiveCycle() {
   _cycleSetupEvents();
 }
 
-globalThis.initPreventiveCycle = initPreventiveCycle;
 
 export function _cycleSetupEvents() {
   if (document._cycleSetupDone) return;
@@ -609,19 +608,3 @@ export function _cycleExportCsv() {
 
 var _cycleEscape = escapeHtml;
 
-if (typeof globalThis !== 'undefined') {
-  globalThis._cycleGenerateOptions = _cycleGenerateOptions;
-  globalThis.initPreventiveCycle = initPreventiveCycle;
-  globalThis._cycleSetupEvents = _cycleSetupEvents;
-  globalThis._cycleSetupScroll = _cycleSetupScroll;
-  globalThis._cycleLoadList = _cycleLoadList;
-  globalThis._cycleRenderCards = _cycleRenderCards;
-  globalThis._cycleValidateScm = _cycleValidateScm;
-  globalThis._cycleRenderScmBadge = _cycleRenderScmBadge;
-  globalThis._cycleUpdateBadge = _cycleUpdateBadge;
-  globalThis._cycleFetchSummary = _cycleFetchSummary;
-  globalThis._cycleFetchScmStatusCount = _cycleFetchScmStatusCount;
-  globalThis._cycleCollectSaveItems = _cycleCollectSaveItems;
-  globalThis._cycleSave = _cycleSave;
-  globalThis._cycleExportCsv = _cycleExportCsv;
-}

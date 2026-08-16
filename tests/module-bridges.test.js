@@ -1,6 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { readFileSync } from "fs";
 import { resolve } from "path";
+import { evalModule } from "./helpers/eval-module.js";
 
 var mockInfiniteScroll = `
   function createInfiniteScroll(opts) {
@@ -14,16 +15,6 @@ var mockInfiniteScroll = `
   }
   function debounce(fn, delay) { var t; return function () { clearTimeout(t); t = setTimeout(fn, delay); }; }
 `;
-
-function evalModule(path, extraCode) {
-  var code = readFileSync(resolve(__dirname, path), 'utf-8');
-  // Strip BOM if present
-  if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
-  var importStripped = code.replace(/^import .+$/gm, '').replace(/^export /gm, '');
-  // strict mode eval prevents function declaration hoisting to globalThis,
-  // simulating ES module scope where only explicit globalThis.X = X bridges leak
-  (0, eval)('"use strict"; ' + importStripped + '\n' + extraCode);
-}
 
 describe("equipment/list.js bridge", function () {
   it("sets globalThis.initEquipmentManager at module load time (not inside fetchFn)", function () {
@@ -85,7 +76,7 @@ describe("preventive-cycle/list.js bridge", function () {
   it("sets globalThis.initPreventiveCycle at module load time", function () {
     delete globalThis.initPreventiveCycle;
     (0, eval)(mockInfiniteScroll);
-    evalModule('../public/js/preventive-cycle/list.js', '');
+    evalModule('../public/js/preventive-cycle/list.js', '\nfunction escapeHtml(v) { return String(v); }\n');
     expect(typeof globalThis.initPreventiveCycle).toBe("function");
   });
 });

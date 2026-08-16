@@ -291,6 +291,3 @@ export function downloadPvPdf() {
   pdf.save(filename);
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.downloadPvPdf = downloadPvPdf;
-}

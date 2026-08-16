@@ -47,7 +47,3 @@ document.addEventListener('visibilitychange', function () {
     }
   }
 });
-
-if (typeof globalThis !== 'undefined') {
-  globalThis.PollingManager = PollingManager;
-}

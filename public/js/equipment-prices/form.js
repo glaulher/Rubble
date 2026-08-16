@@ -100,10 +100,6 @@ export function initPriceForm() {
 }
 
 if (typeof globalThis !== 'undefined') {
-  globalThis.loadPriceForm = loadPriceForm;
-  globalThis.fetchPrice = fetchPrice;
-  globalThis.savePrice = savePrice;
-  globalThis.initPriceForm = initPriceForm;
   Object.defineProperty(globalThis, 'currentPrice', {
     get: function () { return currentPrice; },
     set: function (v) { currentPrice = v; },

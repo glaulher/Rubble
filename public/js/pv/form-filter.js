@@ -172,12 +172,6 @@ export async function removeFilterData(index) {
 }
 
 if (typeof globalThis !== 'undefined') {
-  globalThis.toggleFilterButton = toggleFilterButton;
-  globalThis.openFilterModal = openFilterModal;
-  globalThis.closeFilterModal = closeFilterModal;
-  globalThis.calculateFilter = calculateFilter;
-  globalThis.saveFilterData = saveFilterData;
-  globalThis.removeFilterData = removeFilterData;
   Object.defineProperty(globalThis, 'currentFilterIndex', {
     get: function () { return currentFilterIndex; },
     set: function (v) { currentFilterIndex = v; },

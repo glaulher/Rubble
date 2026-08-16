@@ -120,7 +120,3 @@ export function saveEquipmentForm(e) {
   });
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.loadEquipmentForm = loadEquipmentForm;
-  globalThis.saveEquipmentForm = saveEquipmentForm;
-}

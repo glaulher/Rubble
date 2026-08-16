@@ -22,18 +22,6 @@ export const PV_STATUS_COLORS = {
   'Cancelado': 'bg-gray-100 text-gray-700',
 };
 
-export const PV_STATUS_PRIORITY = {
-  'SCM negado': 1,
-  'Aguardando envio': 2,
-  'Aprovado serv.': 3,
-  'E-mail de lib. aquisição/serviço': 4,
-  'Aprovado aquisição/serviço': 5,
-  'E-mail de aprov. serv. realizado': 6,
-  'SCM enviado': 7,
-  'SCM aprovado': 8,
-  'Cancelado': 9,
-};
-
 export const LPU_OPTIONS_ALL = [
   ['lpu_civil', 'LPU Civil'],
   ['lpu_material_clima', 'LPU Material Clima'],
@@ -96,15 +84,6 @@ export function getCurrentLpuOptions() {
 }
 
 if (typeof globalThis !== 'undefined') {
-  globalThis.PV_STATUSES = PV_STATUSES;
-  globalThis.PV_STATUS_COLORS = PV_STATUS_COLORS;
-  globalThis.PV_STATUS_PRIORITY = PV_STATUS_PRIORITY;
-  globalThis.LPU_OPTIONS_ALL = LPU_OPTIONS_ALL;
-  globalThis.LPU_OPTIONS_CHILLER = LPU_OPTIONS_CHILLER;
-  globalThis.LPU_OPTIONS_CLIMA = LPU_OPTIONS_CLIMA;
-  globalThis.UNIT_MIN_ONE = UNIT_MIN_ONE;
-  globalThis.isUnitMinOne = isUnitMinOne;
-  globalThis.getQuantityAttrs = getQuantityAttrs;
   Object.defineProperty(globalThis, 'pvItemCounter', {
     get: getPvItemCounter,
     set: function (v) { pvItemCounter = v; },

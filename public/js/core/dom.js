@@ -138,13 +138,3 @@ export function confirmDelete(title, message, itemName) {
     };
   });
 }
-
-if (typeof globalThis !== 'undefined') {
-  globalThis.showModal = showModal;
-  globalThis.hideModal = hideModal;
-  globalThis.showToast = showToast;
-  globalThis.updateToastProgress = updateToastProgress;
-  globalThis.dismissToast = dismissToast;
-  globalThis.confirmAction = confirmAction;
-  globalThis.confirmDelete = confirmDelete;
-}

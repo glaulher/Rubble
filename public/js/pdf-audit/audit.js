@@ -677,20 +677,3 @@ export async function clearReference() {
   showToast('Referência removida', 'success');
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.resetAuditCounts = resetAuditCounts;
-  globalThis.updateAuditCounts = updateAuditCounts;
-  globalThis.initPdfAudit = initPdfAudit;
-  globalThis.checkExistingReference = checkExistingReference;
-  globalThis.toggleAi = toggleAi;
-  globalThis.handleReferenceUpload = handleReferenceUpload;
-  globalThis.showReferencePreview = showReferencePreview;
-  globalThis.handleAuditFileSelect = handleAuditFileSelect;
-  globalThis.runAudit = runAudit;
-  globalThis.renderResults = renderResults;
-  globalThis.buildPhotoComparisonHtml = buildPhotoComparisonHtml;
-  globalThis.buildAuditCardHtml = buildAuditCardHtml;
-  globalThis.handleResultsClick = handleResultsClick;
-  globalThis.downloadCsv = downloadCsv;
-  globalThis.clearReference = clearReference;
-}

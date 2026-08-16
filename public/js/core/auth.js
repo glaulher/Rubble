@@ -404,25 +404,3 @@ export function updateUserDisplay() {
   }
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.getToken = getToken;
-  globalThis.setToken = setToken;
-  globalThis.setUser = setUser;
-  globalThis.getUser = getUser;
-  globalThis.isAuthenticated = isAuthenticated;
-  globalThis.parseJwtPayload = parseJwtPayload;
-  globalThis.storeAuth = storeAuth;
-  globalThis.clearAuth = clearAuth;
-  globalThis.destroyTurnstile = destroyTurnstile;
-  globalThis.login = login;
-  globalThis.logout = logout;
-  globalThis.apiFetch = apiFetch;
-  globalThis.authGuard = authGuard;
-  globalThis.applyRoleVisibility = applyRoleVisibility;
-  globalThis.toggleSidebar = toggleSidebar;
-  globalThis.updateUserDisplay = updateUserDisplay;
-  globalThis.initLogin = initLogin;
-  globalThis.startActiveCountPolling = startActiveCountPolling;
-  globalThis.stopActiveCountPolling = stopActiveCountPolling;
-  globalThis.fetchActiveCount = fetchActiveCount;
-}

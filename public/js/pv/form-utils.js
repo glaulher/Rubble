@@ -281,25 +281,6 @@ export async function uploadOrcamentoFile(index) {
 }
 
 if (typeof globalThis !== 'undefined') {
-  globalThis.updateItemUnit = updateItemUnit;
-  globalThis.getLpuOptionsForLocal = getLpuOptionsForLocal;
-  globalThis.resolveLpuMode = resolveLpuMode;
-  globalThis.getLpuOptions = getLpuOptions;
-  globalThis.updateSelectOptions = updateSelectOptions;
-  globalThis.getStatusBadge = getStatusBadge;
-  globalThis.formatDate = formatDate;
-  globalThis.updatePvCounter = updatePvCounter;
-  globalThis.generateCicloOptions = generateCicloOptions;
-  globalThis.populateStatusSelect = populateStatusSelect;
-  globalThis.loadLocals = loadLocals;
-  globalThis.loadOsList = loadOsList;
-  globalThis.loadEquipamentos = loadEquipamentos;
-  globalThis.checkChiller = checkChiller;
-  globalThis.filterEquipamentos = filterEquipamentos;
-  globalThis.updateAllItemLpuOptions = updateAllItemLpuOptions;
-  globalThis.updateHeaderTotal = updateHeaderTotal;
-  globalThis.uploadReportFile = uploadReportFile;
-  globalThis.uploadOrcamentoFile = uploadOrcamentoFile;
   Object.defineProperty(globalThis, 'pvLocalOptions', {
     get: function () { return pvLocalOptions; },
     set: function (v) { pvLocalOptions = v; },

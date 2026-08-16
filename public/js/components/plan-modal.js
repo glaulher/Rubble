@@ -332,4 +332,3 @@ export var PlanModal = (function () {
   };
 })();
 
-globalThis.PlanModal = PlanModal;

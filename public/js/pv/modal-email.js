@@ -173,8 +173,3 @@ export async function sendPvEmail() {
   }
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.openPvEmailModal = openPvEmailModal;
-  globalThis.closePvEmailModal = closePvEmailModal;
-  globalThis.sendPvEmail = sendPvEmail;
-}

@@ -94,6 +94,3 @@ export async function generatePvCSV() {
   }
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.generatePvCSV = generatePvCSV;
-}

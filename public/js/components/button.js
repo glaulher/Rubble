@@ -78,5 +78,3 @@ export function buttonHtml(type, label, attrs, size) {
   '</button>';
 }
 
-globalThis.iconButtonHtml = iconButtonHtml;
-globalThis.buttonHtml = buttonHtml;

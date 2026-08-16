@@ -163,13 +163,6 @@ export async function deleteUser(id) {
 }
 
 if (typeof globalThis !== 'undefined') {
-  globalThis.initUsers = initUsers;
-  globalThis.loadUsers = loadUsers;
-  globalThis.renderUsers = renderUsers;
-  globalThis.getRoleBadge = getRoleBadge;
-  globalThis.setupUserSearch = setupUserSearch;
-  globalThis.editUser = editUser;
-  globalThis.deleteUser = deleteUser;
   Object.defineProperty(globalThis, 'users', {
     get: function () { return users; },
     set: function (v) { users = v; },

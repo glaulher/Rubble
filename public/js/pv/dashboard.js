@@ -475,20 +475,3 @@ export function renderPvHorizontalChart(ctxId, data, getLabel, getValue, xTitle,
   pvCharts.push(chart);
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.pvBarGradient = pvBarGradient;
-  globalThis.pvHbarGradient = pvHbarGradient;
-  globalThis.pvChartColors = pvChartColors;
-  globalThis.destroyPvCharts = destroyPvCharts;
-  globalThis.pvFormatCurrency = pvFormatCurrency;
-  globalThis.pvToTitleCase = pvToTitleCase;
-  globalThis.getPvFilters = getPvFilters;
-  globalThis.initPvDashboard = initPvDashboard;
-  globalThis.setupFilterListeners = setupFilterListeners;
-  globalThis.renderPvStatusCards = renderPvStatusCards;
-  globalThis.renderMiniBar = renderMiniBar;
-  globalThis.renderPvFinancialChart = renderPvFinancialChart;
-  globalThis.renderPvParetoChart = renderPvParetoChart;
-  globalThis.pvTruncate = pvTruncate;
-  globalThis.renderPvHorizontalChart = renderPvHorizontalChart;
-}

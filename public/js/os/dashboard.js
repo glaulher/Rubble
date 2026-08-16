@@ -739,24 +739,3 @@ export function exportOsDashboardPdf() {
   printWindow.document.close();
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.formatDateOs = formatDateOs;
-  globalThis.renderBreakdownBar = renderBreakdownBar;
-  globalThis.renderResponsibilityBreakdown = renderResponsibilityBreakdown;
-  globalThis.renderEmAndamentoTable = renderEmAndamentoTable;
-  globalThis.renderClaroTable = renderClaroTable;
-  globalThis.getStatusBadgeClassOs = getStatusBadgeClassOs;
-  globalThis.renderTopTechnicians = renderTopTechnicians;
-  globalThis.renderEvolutionChart = renderEvolutionChart;
-  globalThis.escapeXml = escapeXml;
-  globalThis.truncateLabel = truncateLabel;
-  globalThis.breakdownToBarItems = breakdownToBarItems;
-  globalThis.osBarChartSvg = osBarChartSvg;
-  globalThis.osEvolutionChartSvg = osEvolutionChartSvg;
-  globalThis.computeStats = computeStats;
-  globalThis.getFilteredRows = getFilteredRows;
-  globalThis.renderOsDashboardFiltered = renderOsDashboardFiltered;
-  globalThis.showOsDashboardSections = showOsDashboardSections;
-  globalThis.initOsDashboard = initOsDashboard;
-  globalThis.exportOsDashboardPdf = exportOsDashboardPdf;
-}

@@ -1,6 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { evalModule } from "./helpers/eval-module.js";
 
 var mockInfiniteScroll = `
   function createInfiniteScroll(opts) {
@@ -21,13 +20,6 @@ var stepOptions = [
 ];
 
 var apiCalls = [];
-
-function evalModule(path, extraCode) {
-  var code = readFileSync(resolve(__dirname, path), 'utf-8');
-  if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
-  var importStripped = code.replace(/^import .+$/gm, '').replace(/^export /gm, '');
-  (0, eval)('"use strict"; ' + importStripped + '\n' + extraCode);
-}
 
 function loadPendingModule() {
   (0, eval)(mockInfiniteScroll);

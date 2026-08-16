@@ -451,11 +451,3 @@ export function setupCicloAutocomplete() {
   });
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.createAutocomplete = createAutocomplete;
-  globalThis.setupLpuDescriptionAutocomplete = setupLpuDescriptionAutocomplete;
-  globalThis.setupStatusAutocomplete = setupStatusAutocomplete;
-  globalThis.setupLocalAutocomplete = setupLocalAutocomplete;
-  globalThis.setupOsAutocomplete = setupOsAutocomplete;
-  globalThis.setupCicloAutocomplete = setupCicloAutocomplete;
-}

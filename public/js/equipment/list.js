@@ -172,12 +172,6 @@ export async function deleteEquipment(id) {
 }
 
 if (typeof globalThis !== 'undefined') {
-  globalThis.initEquipmentManager = initEquipmentManager;
-  globalThis.navigateEquipmentFormHandler = navigateEquipmentFormHandler;
-  globalThis.renderEquipments = renderEquipments;
-  globalThis.setupEquipmentSearch = setupEquipmentSearch;
-  globalThis.editEquipment = editEquipment;
-  globalThis.deleteEquipment = deleteEquipment;
   Object.defineProperty(globalThis, 'equipmentList', {
     get: function () { return equipmentList; },
     set: function (v) { equipmentList = v; },

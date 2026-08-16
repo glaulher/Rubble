@@ -354,13 +354,3 @@ export function toggleItemInvoice(index) {
   calculateItemTotal(index);
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.getItemRowHtml = getItemRowHtml;
-  globalThis.getFilterResultHtml = getFilterResultHtml;
-  globalThis.addItemRow = addItemRow;
-  globalThis.removeItemRow = removeItemRow;
-  globalThis.getItemData = getItemData;
-  globalThis.calculateItemTotal = calculateItemTotal;
-  globalThis.lookupItemRow = lookupItemRow;
-  globalThis.toggleItemInvoice = toggleItemInvoice;
-}

@@ -50,7 +50,6 @@ export function setupHomeScroll() {
   });
 }
 
-globalThis.setupHomeScroll = setupHomeScroll;
 
 export async function deleteTicket(id, button, osNumber) {
   const numericId = Number(id);
@@ -114,7 +113,6 @@ export async function deleteTicket(id, button, osNumber) {
   }
 }
 
-globalThis.deleteTicket = deleteTicket;
 
 function parseCSVToJSON(text) {
   if (!text || text.trim() === '') return [];
@@ -248,7 +246,6 @@ export async function importOS() {
   input.click();
 }
 
-globalThis.importOS = importOS;
 
 const CSV_CHUNK = 500;
 
@@ -351,4 +348,3 @@ export async function generateCSVReport() {
   }
 }
 
-globalThis.generateCSVReport = generateCSVReport;

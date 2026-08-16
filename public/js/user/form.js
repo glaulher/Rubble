@@ -97,8 +97,3 @@ export function saveUserForm(e) {
   });
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.loadUserForm = loadUserForm;
-  globalThis.navigateUsersHandler = navigateUsersHandler;
-  globalThis.saveUserForm = saveUserForm;
-}

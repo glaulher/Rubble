@@ -72,7 +72,3 @@ export function uploadFile({ accept = '.pdf', multiple = false, uploadType, onSu
   });
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.uploadWithProgress = uploadWithProgress;
-  globalThis.uploadFile = uploadFile;
-}

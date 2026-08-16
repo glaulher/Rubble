@@ -740,22 +740,3 @@ export function formatDateBr(date) {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.setupScmCicloAutocomplete = setupScmCicloAutocomplete;
-  globalThis.initScm = initScm;
-  globalThis.initSegmentMultiSelect = initSegmentMultiSelect;
-  globalThis.renderSegmentDropdown = renderSegmentDropdown;
-  globalThis.updateSegmentLabel = updateSegmentLabel;
-  globalThis.initSiteMultiSelect = initSiteMultiSelect;
-  globalThis.renderSiteDropdown = renderSiteDropdown;
-  globalThis.updateSiteLabel = updateSiteLabel;
-  globalThis.setupScmScroll = setupScmScroll;
-  globalThis.resetScmState = resetScmState;
-  globalThis.renderScm = renderScm;
-  globalThis.buildScmCardHtml = buildScmCardHtml;
-  globalThis.syncScmCards = syncScmCards;
-  globalThis.updateScmCounter = updateScmCounter;
-  globalThis.deleteScm = deleteScm;
-  globalThis.loadScmDetails = loadScmDetails;
-  globalThis.formatDateBr = formatDateBr;
-}

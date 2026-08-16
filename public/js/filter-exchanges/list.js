@@ -613,32 +613,4 @@ export function initFilterExchanges() {
   _filterScroll.init();
 }
 
-if (typeof globalThis !== 'undefined') {
-  globalThis.getFilterStatusBadgeClass = getFilterStatusBadgeClass;
-  globalThis.filterValueRaw = filterValueRaw;
-  globalThis.formatFilterDate = formatFilterDate;
-  globalThis.filterFieldDisplay = filterFieldDisplay;
-  globalThis.filterEditBtn = filterEditBtn;
-  globalThis.buildFilterCellHtml = buildFilterCellHtml;
-  globalThis.renderFilterTable = renderFilterTable;
-  globalThis.refreshFilterCell = refreshFilterCell;
-  globalThis.enterFilterEdit = enterFilterEdit;
-  globalThis.cancelFilterEdit = cancelFilterEdit;
-  globalThis.saveFilterField = saveFilterField;
-  globalThis.updateFilterBadge = updateFilterBadge;
-  globalThis.applyFilterColumnVisibility = applyFilterColumnVisibility;
-  globalThis.updateFilterColumnLabel = updateFilterColumnLabel;
-  globalThis.renderFilterColumnDropdown = renderFilterColumnDropdown;
-  globalThis.initFilterColumnSelect = initFilterColumnSelect;
-  globalThis.buildFilterQuery = buildFilterQuery;
-  globalThis.buildFilterCsvRow = buildFilterCsvRow;
-  globalThis.exportFilterCsv = exportFilterCsv;
-  globalThis.setupFilterSort = setupFilterSort;
-  globalThis._filterReset = _filterReset;
-  globalThis.openFilterAddModal = openFilterAddModal;
-  globalThis.submitFilterAdd = submitFilterAdd;
-  globalThis.initFilterExchanges = initFilterExchanges;
-  globalThis.initFilters = initFilterExchanges;
-}
-
 export var initFilters = initFilterExchanges;

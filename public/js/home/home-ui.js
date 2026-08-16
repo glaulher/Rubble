@@ -724,7 +724,3 @@ export function initHome() {
     .catch((err) => console.error('Erro ao verificar notificações:', err));
 }
 
-globalThis.initHome = initHome;
-globalThis.render = render;
-globalThis.syncHomeCards = syncHomeCards;
-globalThis.hubRecase = hubRecase;

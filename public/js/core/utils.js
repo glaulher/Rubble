@@ -41,12 +41,3 @@ export function formatCurrency(value) {
 export function isDarkMode() {
   return document.documentElement.classList.contains('dark');
 }
-
-if (typeof globalThis !== 'undefined') {
-  globalThis.escapeHtml = escapeHtml;
-  globalThis.formatAddress = formatAddress;
-  globalThis.titleCase = titleCase;
-  globalThis.sanitizeCSV = sanitizeCSV;
-  globalThis.formatCurrency = formatCurrency;
-  globalThis.isDarkMode = isDarkMode;
-}

@@ -230,12 +230,6 @@ export function closePvItemModal() {
 }
 
 if (typeof globalThis !== 'undefined') {
-  globalThis.deletePv = deletePv;
-  globalThis.openStatusModal = openStatusModal;
-  globalThis.closeStatusModal = closeStatusModal;
-  globalThis.confirmStatusChange = confirmStatusChange;
-  globalThis.openPvItemModal = openPvItemModal;
-  globalThis.closePvItemModal = closePvItemModal;
   Object.defineProperty(globalThis, 'pvEmailBatchIds', {
     get: function () { return pvEmailBatchIds; },
     set: function (v) { pvEmailBatchIds = v; },
