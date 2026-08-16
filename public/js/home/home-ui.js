@@ -41,7 +41,7 @@ export function buildEquipmentCardHtml(e, canEdit) {
               <span class="text-slate-400">-</span>
 
               <p class="text-slate-600 text-sm font-medium flex items-center gap-1">
-                ${escapeHtml(titleCase(e.localidade ?? ''))} ${e.icon ?? ''}
+                ${escapeHtml(titleCase(e.localidade ?? ''))}${e.tag_infratel ? ' - ' + escapeHtml(e.tag_infratel) : ''} ${e.icon ?? ''}
               </p>
 
             </div>
