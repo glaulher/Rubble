@@ -1,6 +1,0 @@
-{
-  "compilerOptions": {
-    "baseUrl": "/home/glaulher/Documentos/Project/Rubble",
-    "paths": { "/public/js/*": ["public/js/*"] }
-  }
-}
