@@ -4,7 +4,11 @@
 // encapsula estado, listeners (anexados uma única vez) e o fluxo de submit.
 // Exposed global: PlanModal.open({ mode, ticket, onSubmit }), PlanModal.close().
 
-var PlanModal = (function () {
+import { showToast } from '/public/js/core/dom.js';
+import { apiFetch } from '/public/js/core/auth.js';
+import { createAutocomplete } from '/public/js/pv/form-autocomplete.js';
+
+export var PlanModal = (function () {
   var _mounted = false;
   var _ctx = null;
   var _el = {};

@@ -1,3 +1,5 @@
+import { escapeHtml } from '../core/utils.js';
+
 var ICON_COLORS = {
   edit:   { bg: 'bg-blue-100',   hover: 'hover:bg-blue-200',   text: 'text-blue-600' },
   delete: { bg: 'bg-red-100',    hover: 'hover:bg-red-200',    text: 'text-red-500' },

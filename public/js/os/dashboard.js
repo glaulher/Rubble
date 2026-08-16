@@ -1,3 +1,7 @@
+import { apiFetch } from '/public/js/core/auth.js';
+import { escapeHtml } from '/public/js/core/utils.js';
+import { showToast } from '/public/js/core/dom.js';
+
 var _osDashboardData = null;
 var _osDashboardSearch = '';
 var _osDashboardSearchDebounce = null;
@@ -19,14 +23,14 @@ var STATUS_COLORS_OS = {
 
 var _osEvolutionChart = null;
 
-function formatDateOs(dateStr) {
+export function formatDateOs(dateStr) {
   if (!dateStr) return '-';
   var parts = dateStr.split('-');
   if (parts.length !== 3) return dateStr;
   return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
-function renderBreakdownBar(containerId, data, colorMap, total) {
+export function renderBreakdownBar(containerId, data, colorMap, total) {
   var container = document.getElementById(containerId);
   if (!container) return;
 
@@ -49,7 +53,7 @@ function renderBreakdownBar(containerId, data, colorMap, total) {
   container.innerHTML = html || '<p class="text-sm text-slate-400">Nenhum dado</p>';
 }
 
-function renderResponsibilityBreakdown(containerId, responsibilityCounts, key) {
+export function renderResponsibilityBreakdown(containerId, responsibilityCounts, key) {
   var container = document.getElementById(containerId);
   if (!container) return;
 
@@ -75,7 +79,7 @@ function renderResponsibilityBreakdown(containerId, responsibilityCounts, key) {
   container.innerHTML = html || '<p class="text-sm text-slate-400">-</p>';
 }
 
-function renderEmAndamentoTable(osList) {
+export function renderEmAndamentoTable(osList) {
   var container = document.getElementById('osEmAndamentoTable');
   if (!container) return;
 
@@ -110,7 +114,7 @@ function renderEmAndamentoTable(osList) {
   container.innerHTML = html;
 }
 
-function renderClaroTable(osList) {
+export function renderClaroTable(osList) {
   var container = document.getElementById('osClaroTable');
   if (!container) return;
 
@@ -146,7 +150,7 @@ function renderClaroTable(osList) {
   container.innerHTML = html;
 }
 
-function getStatusBadgeClassOs(status) {
+export function getStatusBadgeClassOs(status) {
   switch ((status || '').toLowerCase()) {
     case 'concluído': case 'concluido': return 'bg-emerald-100 text-emerald-700';
     case 'pendente': return 'bg-red-100 text-red-700';
@@ -158,7 +162,7 @@ function getStatusBadgeClassOs(status) {
   }
 }
 
-function renderTopTechnicians(topTech) {
+export function renderTopTechnicians(topTech) {
   var container = document.getElementById('osTopTechBars');
   if (!container) return;
 
@@ -189,7 +193,7 @@ function renderTopTechnicians(topTech) {
   container.innerHTML = html || '<p class="text-sm text-slate-400">Nenhum técnico</p>';
 }
 
-function renderEvolutionChart(evolution) {
+export function renderEvolutionChart(evolution) {
   var canvas = document.getElementById('osEvolutionChart');
   if (!canvas || !evolution || evolution.length === 0) return;
 
@@ -265,7 +269,7 @@ function renderEvolutionChart(evolution) {
   });
 }
 
-function escapeXml(str) {
+export function escapeXml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -273,11 +277,11 @@ function escapeXml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function truncateLabel(label, max) {
+export function truncateLabel(label, max) {
   return label.length > max ? label.substring(0, max - 1) + '\u2026' : label;
 }
 
-function breakdownToBarItems(map, colorMap) {
+export function breakdownToBarItems(map, colorMap) {
   var items = [];
   for (var k in map) {
     if (!map.hasOwnProperty(k)) continue;
@@ -287,7 +291,7 @@ function breakdownToBarItems(map, colorMap) {
   return items;
 }
 
-function osBarChartSvg(items) {
+export function osBarChartSvg(items) {
   if (!items || items.length === 0) {
     return '<p style="color:#94a3b8;font-style:italic;padding:12px;">Sem dados.</p>';
   }
@@ -315,7 +319,7 @@ function osBarChartSvg(items) {
   return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;" xmlns="http://www.w3.org/2000/svg">' + bars + '</svg>';
 }
 
-function osEvolutionChartSvg(data) {
+export function osEvolutionChartSvg(data) {
   if (!data || data.length === 0) {
     return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Sem dados de evolu\u00e7\u00e3o.</p>';
   }
@@ -362,7 +366,7 @@ function osEvolutionChartSvg(data) {
     + grids + '<path d="' + area + '" fill="url(#evoGrad)"/><path d="' + line + '" fill="none" stroke="#1E3A5F" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' + dots + xLabels + '</svg>';
 }
 
-function computeStats(rows) {
+export function computeStats(rows) {
   var total = rows.length;
   var completed = 0;
   var pending = 0;
@@ -480,7 +484,7 @@ function computeStats(rows) {
   };
 }
 
-function getFilteredRows() {
+export function getFilteredRows() {
   if (!_osDashboardData || !_osDashboardData._allRows) return [];
   if (!_osDashboardSearch) return _osDashboardData._allRows;
 
@@ -493,7 +497,7 @@ function getFilteredRows() {
   });
 }
 
-function renderOsDashboardFiltered() {
+export function renderOsDashboardFiltered() {
   var rows = getFilteredRows();
   var d = computeStats(rows);
 
@@ -517,7 +521,7 @@ function renderOsDashboardFiltered() {
   renderEvolutionChart(d.evolution);
 }
 
-function showOsDashboardSections() {
+export function showOsDashboardSections() {
   var ids = ['osKpiSection', 'osBreakdownSection', 'osTablesSection', 'osClaroSection', 'osEvolutionSection', 'osTopTechSection'];
   for (var i = 0; i < ids.length; i++) {
     var el = document.getElementById(ids[i]);
@@ -527,7 +531,7 @@ function showOsDashboardSections() {
   if (loading) loading.classList.add('hidden');
 }
 
-async function initOsDashboard() {
+export async function initOsDashboard() {
   var loading = document.getElementById('osDashboardLoading');
   if (loading) loading.classList.remove('hidden');
 
@@ -569,7 +573,7 @@ async function initOsDashboard() {
   }
 }
 
-function exportOsDashboardPdf() {
+export function exportOsDashboardPdf() {
   if (!_osDashboardData) {
     showToast('Dados não carregados', 'error');
     return;
@@ -735,9 +739,24 @@ function exportOsDashboardPdf() {
   printWindow.document.close();
 }
 
-globalThis.initOsDashboard = initOsDashboard;
-globalThis.exportOsDashboardPdf = exportOsDashboardPdf;
-globalThis.osBarChartSvg = osBarChartSvg;
-globalThis.osEvolutionChartSvg = osEvolutionChartSvg;
-globalThis.breakdownToBarItems = breakdownToBarItems;
-globalThis.escapeXml = escapeXml;
+if (typeof globalThis !== 'undefined') {
+  globalThis.formatDateOs = formatDateOs;
+  globalThis.renderBreakdownBar = renderBreakdownBar;
+  globalThis.renderResponsibilityBreakdown = renderResponsibilityBreakdown;
+  globalThis.renderEmAndamentoTable = renderEmAndamentoTable;
+  globalThis.renderClaroTable = renderClaroTable;
+  globalThis.getStatusBadgeClassOs = getStatusBadgeClassOs;
+  globalThis.renderTopTechnicians = renderTopTechnicians;
+  globalThis.renderEvolutionChart = renderEvolutionChart;
+  globalThis.escapeXml = escapeXml;
+  globalThis.truncateLabel = truncateLabel;
+  globalThis.breakdownToBarItems = breakdownToBarItems;
+  globalThis.osBarChartSvg = osBarChartSvg;
+  globalThis.osEvolutionChartSvg = osEvolutionChartSvg;
+  globalThis.computeStats = computeStats;
+  globalThis.getFilteredRows = getFilteredRows;
+  globalThis.renderOsDashboardFiltered = renderOsDashboardFiltered;
+  globalThis.showOsDashboardSections = showOsDashboardSections;
+  globalThis.initOsDashboard = initOsDashboard;
+  globalThis.exportOsDashboardPdf = exportOsDashboardPdf;
+}

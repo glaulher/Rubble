@@ -1,11 +1,15 @@
 import { createInfiniteScroll } from '/public/js/components/infinite-scroll.js';
+import { showToast, confirmDelete } from '/public/js/core/dom.js';
+import { escapeHtml } from '/public/js/core/utils.js';
+import { getUser } from '/public/js/core/auth.js';
+import { iconButtonHtml } from '/public/js/components/button.js';
 
 let equipmentLimit = 20;
 let equipmentList = [];
 let equipmentSearch = '';
 var _equipmentScroll = null;
 
-async function initEquipmentManager() {
+export async function initEquipmentManager() {
   equipmentList = [];
   equipmentSearch = '';
   const input = document.getElementById('equipmentSearchInput');
@@ -65,11 +69,9 @@ async function initEquipmentManager() {
   setupEquipmentSearch();
 }
 
-globalThis.initEquipmentManager = initEquipmentManager;
+export function navigateEquipmentFormHandler() { window.location.hash = '#/equipmentForm'; }
 
-function navigateEquipmentFormHandler() { window.location.hash = '#/equipmentForm'; }
-
-function renderEquipments() {
+export function renderEquipments() {
   const tbody = document.getElementById('equipmentTableBody');
   const empty = document.getElementById('equipmentEmpty');
   const counter = document.getElementById('equipmentCounter');
@@ -116,7 +118,7 @@ function renderEquipments() {
   }).join('');
 }
 
-function setupEquipmentSearch() {
+export function setupEquipmentSearch() {
   var input = document.getElementById('equipmentSearchInput');
   if (!input) return;
 
@@ -140,11 +142,11 @@ function setupEquipmentSearch() {
   });
 }
 
-function editEquipment(id) {
+export function editEquipment(id) {
   window.location.hash = '#/equipmentForm?id=' + id;
 }
 
-async function deleteEquipment(id) {
+export async function deleteEquipment(id) {
   var eq = equipmentList.find(function(e) { return e.id === id; });
   var eqName = eq ? eq.equipamento : '';
   const confirmed = await confirmDelete('Excluir Equipamento', 'Tem certeza que deseja excluir', eqName);
@@ -167,4 +169,23 @@ async function deleteEquipment(id) {
   } catch {
     showToast('Erro ao excluir', 'error');
   }
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.initEquipmentManager = initEquipmentManager;
+  globalThis.navigateEquipmentFormHandler = navigateEquipmentFormHandler;
+  globalThis.renderEquipments = renderEquipments;
+  globalThis.setupEquipmentSearch = setupEquipmentSearch;
+  globalThis.editEquipment = editEquipment;
+  globalThis.deleteEquipment = deleteEquipment;
+  Object.defineProperty(globalThis, 'equipmentList', {
+    get: function () { return equipmentList; },
+    set: function (v) { equipmentList = v; },
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'equipmentSearch', {
+    get: function () { return equipmentSearch; },
+    set: function (v) { equipmentSearch = v; },
+    configurable: true,
+  });
 }

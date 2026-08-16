@@ -1,4 +1,4 @@
-function escapeHtml(str) {
+export function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
     .replace(/&/g, '&amp;')
@@ -8,19 +8,19 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-function formatAddress(text) {
+export function formatAddress(text) {
   if (!text) return '';
   return text.toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
-function titleCase(str) {
+export function titleCase(str) {
   if (!str) return '';
   return str
     .toLocaleLowerCase('pt-BR')
     .replace(/(\p{L})(\p{L}*)/gu, (_, first, rest) => first.toLocaleUpperCase('pt-BR') + rest);
 }
 
-function sanitizeCSV(value) {
+export function sanitizeCSV(value) {
   if (value === null || value === undefined) {
     return '';
   }
@@ -33,11 +33,20 @@ function sanitizeCSV(value) {
   return result.replace(/^[=+\-@]/g, "'$&");
 }
 
-function formatCurrency(value) {
+export function formatCurrency(value) {
   const val = parseFloat(value) || 0;
   return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function isDarkMode() {
+export function isDarkMode() {
   return document.documentElement.classList.contains('dark');
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.escapeHtml = escapeHtml;
+  globalThis.formatAddress = formatAddress;
+  globalThis.titleCase = titleCase;
+  globalThis.sanitizeCSV = sanitizeCSV;
+  globalThis.formatCurrency = formatCurrency;
+  globalThis.isDarkMode = isDarkMode;
 }

@@ -1,4 +1,11 @@
-function getItemRowHtml(index, data, lpuOptions) {
+import { LPU_OPTIONS_ALL, getQuantityAttrs, PV_STATUSES, getPvItemCounter, incrementPvItemCounter, getCurrentLpuOptions } from './constants.js';
+import { escapeHtml } from '/public/js/core/utils.js';
+import { buttonHtml } from '/public/js/components/button.js';
+import { confirmAction } from '/public/js/core/dom.js';
+import { updateItemUnit } from './form-utils.js';
+import { setupLpuDescriptionAutocomplete, setupStatusAutocomplete } from './form-autocomplete.js';
+
+export function getItemRowHtml(index, data, lpuOptions) {
   const d = data || {};
   let parsedFiltro = null;
   try {
@@ -135,7 +142,7 @@ function getItemRowHtml(index, data, lpuOptions) {
   `;
 }
 
-function getFilterResultHtml(filtro, index) {
+export function getFilterResultHtml(filtro, index) {
   if (!filtro) return '';
   const tamanho = escapeHtml(filtro.tamanho || '');
   const qtd = filtro.qtd_pecas || 0;
@@ -180,10 +187,10 @@ function getFilterResultHtml(filtro, index) {
   `;
 }
 
-function addItemRow(data, lpuOptions) {
+export function addItemRow(data, lpuOptions) {
   const container = document.getElementById('pvItemsContainer');
-  const index = pvItemCounter++;
-  const options = lpuOptions || currentLpuOptions;
+  const index = incrementPvItemCounter();
+  const options = lpuOptions || getCurrentLpuOptions();
   const wrapper = document.createElement('div');
   wrapper.innerHTML = getItemRowHtml(index, data || {}, options);
   const div = wrapper.firstElementChild;
@@ -205,14 +212,14 @@ function addItemRow(data, lpuOptions) {
   setupStatusAutocomplete(index);
 }
 
-async function removeItemRow(index) {
+export async function removeItemRow(index) {
   const confirmed = await confirmAction('Remover este item da proposta?');
   if (!confirmed) return;
   const row = document.querySelector(`.item-row[data-item-index="${index}"]`);
   if (row) row.remove();
 }
 
-function getItemData(index) {
+export function getItemData(index) {
   const row = document.querySelector(`.item-row[data-item-index="${index}"]`);
   if (!row) return null;
 
@@ -252,7 +259,7 @@ function getItemData(index) {
   };
 }
 
-function calculateItemTotal(index) {
+export function calculateItemTotal(index) {
   const row = document.querySelector(`.item-row[data-item-index="${index}"]`);
   if (!row) return;
 
@@ -279,7 +286,7 @@ function calculateItemTotal(index) {
   });
 }
 
-async function lookupItemRow(index) {
+export async function lookupItemRow(index) {
   const row = document.querySelector(`.item-row[data-item-index="${index}"]`);
   if (!row) return;
 
@@ -311,7 +318,7 @@ async function lookupItemRow(index) {
   }
 }
 
-function toggleItemInvoice(index) {
+export function toggleItemInvoice(index) {
   const row = document.querySelector(`.item-row[data-item-index="${index}"]`);
   if (!row) return;
 
@@ -345,4 +352,15 @@ function toggleItemInvoice(index) {
   }
 
   calculateItemTotal(index);
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.getItemRowHtml = getItemRowHtml;
+  globalThis.getFilterResultHtml = getFilterResultHtml;
+  globalThis.addItemRow = addItemRow;
+  globalThis.removeItemRow = removeItemRow;
+  globalThis.getItemData = getItemData;
+  globalThis.calculateItemTotal = calculateItemTotal;
+  globalThis.lookupItemRow = lookupItemRow;
+  globalThis.toggleItemInvoice = toggleItemInvoice;
 }

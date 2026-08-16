@@ -19,7 +19,7 @@ function evalModule(path, extraCode) {
   var code = readFileSync(resolve(__dirname, path), 'utf-8');
   // Strip BOM if present
   if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
-  var importStripped = code.replace(/^import .+$/gm, '');
+  var importStripped = code.replace(/^import .+$/gm, '').replace(/^export /gm, '');
   // strict mode eval prevents function declaration hoisting to globalThis,
   // simulating ES module scope where only explicit globalThis.X = X bridges leak
   (0, eval)('"use strict"; ' + importStripped + '\n' + extraCode);
@@ -310,7 +310,7 @@ describe("pending-tickets/list.js bridge", function () {
   it("wraps the value and edit pencil in an inline-flex cell", function () {
     var code = readFileSync(resolve(__dirname, '../public/js/pending-tickets/list.js'), 'utf-8');
     if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
-    var importStripped = code.replace(/^import .+$/gm, '');
+    var importStripped = code.replace(/^import .+$/gm, '').replace(/^export /gm, '');
 
     document.body.innerHTML =
       '<table id="pendingTable">' +
@@ -369,7 +369,7 @@ describe("pending-tickets/list.js bridge", function () {
   function pendingModuleCode() {
     var code = readFileSync(resolve(__dirname, '../public/js/pending-tickets/list.js'), 'utf-8');
     if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
-    return code.replace(/^import .+$/gm, '');
+    return code.replace(/^import .+$/gm, '').replace(/^export /gm, '');
   }
 
   var PENDING_HELPERS =

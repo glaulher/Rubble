@@ -1,7 +1,13 @@
+import { showToast, showModal, hideModal, confirmDelete } from '/public/js/core/dom.js';
+import { escapeHtml } from '/public/js/core/utils.js';
+import { iconButtonHtml } from '/public/js/components/button.js';
+import { updateHeaderTotal, populateStatusSelect } from './form-utils.js';
+import { resetPvState } from './list.js';
+
 let pvEmailBatchIds = null;
 let pvEmailBatchUf = null;
 
-async function deletePv(id) {
+export async function deletePv(id) {
   var numeroPv = id;
   try {
     const response = await fetch('/app/api/index.php?route=pv&id=' + id);
@@ -38,18 +44,18 @@ async function deletePv(id) {
   }
 }
 
-function openStatusModal(id, pvNumber) {
+export function openStatusModal(id, pvNumber) {
   document.getElementById('statusPvId').value = id;
   document.getElementById('statusPvNumber').textContent = pvNumber;
   populateStatusSelect('statusSelect', '');
   showModal('statusModal');
 }
 
-function closeStatusModal() {
+export function closeStatusModal() {
   hideModal('statusModal');
 }
 
-async function confirmStatusChange() {
+export async function confirmStatusChange() {
   const pvId = document.getElementById('statusPvId').value;
   const status = document.getElementById('statusSelect').value;
 
@@ -81,7 +87,7 @@ async function confirmStatusChange() {
   }
 }
 
-async function openPvItemModal(id) {
+export async function openPvItemModal(id) {
   try {
     const response = await fetch(`/app/api/index.php?route=pv&id=${id}`);
     const result = await response.json();
@@ -219,6 +225,25 @@ async function openPvItemModal(id) {
   }
 }
 
-function closePvItemModal() {
+export function closePvItemModal() {
   hideModal('pvItemModal');
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.deletePv = deletePv;
+  globalThis.openStatusModal = openStatusModal;
+  globalThis.closeStatusModal = closeStatusModal;
+  globalThis.confirmStatusChange = confirmStatusChange;
+  globalThis.openPvItemModal = openPvItemModal;
+  globalThis.closePvItemModal = closePvItemModal;
+  Object.defineProperty(globalThis, 'pvEmailBatchIds', {
+    get: function () { return pvEmailBatchIds; },
+    set: function (v) { pvEmailBatchIds = v; },
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'pvEmailBatchUf', {
+    get: function () { return pvEmailBatchUf; },
+    set: function (v) { pvEmailBatchUf = v; },
+    configurable: true,
+  });
 }

@@ -1,4 +1,9 @@
 import { createInfiniteScroll, debounce } from '/public/js/components/infinite-scroll.js';
+import { apiFetch } from '/public/js/core/auth.js';
+import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
+import { showToast, showModal, hideModal } from '/public/js/core/dom.js';
+import { downloadCSV } from '/public/js/utils/csv.js';
+import { formatDate } from '/public/js/pv/form-utils.js';
 
 var _filterScroll = null;
 var filterSearch = '';
@@ -28,7 +33,7 @@ var FILTER_CSR_HEADER = [
 var filterHiddenColumns = new Set();
 var filterColTodosChecked = true;
 
-function getFilterStatusBadgeClass(status) {
+export function getFilterStatusBadgeClass(status) {
   switch ((status || '').toLowerCase()) {
     case 'pendente':
       return 'bg-red-100 text-red-700';
@@ -41,30 +46,30 @@ function getFilterStatusBadgeClass(status) {
   }
 }
 
-function filterValueRaw(value) {
+export function filterValueRaw(value) {
   return value === null || value === undefined ? '' : value;
 }
 
-function formatFilterDate(value) {
+export function formatFilterDate(value) {
   if (value === null || value === undefined || value === '') return '-';
   var parts = String(value).split('-');
   if (parts.length !== 3) return String(value);
   return parts[2] + '/' + parts[1] + '/' + parts[0];
 }
 
-function filterFieldDisplay(field, value) {
+export function filterFieldDisplay(field, value) {
   if (value === null || value === undefined || value === '') return '-';
   if (field === 'data_troca' || field === 'data_proxima_troca') return formatFilterDate(value);
   return value;
 }
 
-function filterEditBtn(field) {
+export function filterEditBtn(field) {
   return '<button type="button" class="filter-edit text-slate-400 hover:text-blue-500 ml-1 align-middle" data-field="' + field + '" title="Editar" aria-label="Editar">'
     + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>'
     + '</button>';
 }
 
-function buildFilterCellHtml(field, value) {
+export function buildFilterCellHtml(field, value) {
   var raw = filterValueRaw(value);
   var display = filterFieldDisplay(field, value);
   var hidden = filterHiddenColumns.has(field) ? ' hidden' : '';
@@ -90,7 +95,7 @@ function buildFilterCellHtml(field, value) {
     + '</td>';
 }
 
-function renderFilterTable(list, append) {
+export function renderFilterTable(list, append) {
   append = append || false;
   var tbody = document.getElementById('filterTableBody');
   var empty = document.getElementById('filterEmpty');
@@ -134,7 +139,7 @@ function renderFilterTable(list, append) {
   applyFilterColumnVisibility();
 }
 
-function refreshFilterCell(cell, field, value) {
+export function refreshFilterCell(cell, field, value) {
   var raw = filterValueRaw(value);
   cell.removeAttribute('data-prev-raw');
   var display = filterFieldDisplay(field, value);
@@ -156,7 +161,7 @@ function refreshFilterCell(cell, field, value) {
   cell.innerHTML = '<span class="filter-value" data-raw="' + escapeHtml(raw) + '">' + escapeHtml(display) + '</span>';
 }
 
-function enterFilterEdit(cell, field) {
+export function enterFilterEdit(cell, field) {
   if (cell.querySelector('.filter-edit-input')) return;
   var valueEl = cell.querySelector('.filter-value');
   var raw = valueEl ? (valueEl.getAttribute('data-raw') || '') : '';
@@ -186,13 +191,13 @@ function enterFilterEdit(cell, field) {
   }
 }
 
-function cancelFilterEdit(cell) {
+export function cancelFilterEdit(cell) {
   var field = cell.getAttribute('data-col') || cell.getAttribute('data-field') || '';
   var prev = cell.getAttribute('data-prev-raw') || '';
   refreshFilterCell(cell, field, prev);
 }
 
-async function saveFilterField(cell) {
+export async function saveFilterField(cell) {
   var input = cell.querySelector('.filter-edit-input');
   if (!input) return;
   var value = input.value;
@@ -230,12 +235,12 @@ async function saveFilterField(cell) {
   }
 }
 
-function updateFilterBadge(total) {
+export function updateFilterBadge(total) {
   var badge = document.getElementById('filterBadge');
   if (badge) badge.textContent = total || 0;
 }
 
-function applyFilterColumnVisibility() {
+export function applyFilterColumnVisibility() {
   for (var i = 0; i < FILTER_COLUMNS_DEF.length; i++) {
     var col = FILTER_COLUMNS_DEF[i].key;
     var hidden = filterHiddenColumns.has(col);
@@ -246,7 +251,7 @@ function applyFilterColumnVisibility() {
   }
 }
 
-function updateFilterColumnLabel() {
+export function updateFilterColumnLabel() {
   var label = document.getElementById('filterColLabel');
   if (!label) return;
   if (filterColTodosChecked) {
@@ -258,7 +263,7 @@ function updateFilterColumnLabel() {
   }
 }
 
-function renderFilterColumnDropdown() {
+export function renderFilterColumnDropdown() {
   var dropdown = document.getElementById('filterColDropdown');
   if (!dropdown) return;
 
@@ -308,7 +313,7 @@ function renderFilterColumnDropdown() {
   dropdown.innerHTML = html;
 }
 
-function initFilterColumnSelect() {
+export function initFilterColumnSelect() {
   var btn = document.getElementById('filterColBtn');
   var dropdown = document.getElementById('filterColDropdown');
   if (!btn || !dropdown) return;
@@ -333,14 +338,14 @@ function initFilterColumnSelect() {
   applyFilterColumnVisibility();
 }
 
-function buildFilterQuery() {
+export function buildFilterQuery() {
   return 'search=' + encodeURIComponent(filterSearch)
     + '&status=' + encodeURIComponent(filterStatusFilter)
     + '&sort_by=' + encodeURIComponent(filterSortBy)
     + '&sort_dir=' + encodeURIComponent(filterSortDir);
 }
 
-function buildFilterCsvRow(item) {
+export function buildFilterCsvRow(item) {
   return [
     sanitizeCSV(item.local),
     sanitizeCSV(item.equipamento),
@@ -353,7 +358,7 @@ function buildFilterCsvRow(item) {
   ];
 }
 
-async function exportFilterCsv() {
+export async function exportFilterCsv() {
   try {
     var allRows = [];
     var offset = 0;
@@ -405,7 +410,7 @@ var filterDebouncedSearch = debounce(function (val) {
   _filterReset();
 }, 1000);
 
-function setupFilterSort() {
+export function setupFilterSort() {
   document.querySelectorAll('#filterTable thead th[data-sort]').forEach(function (th) {
     th.addEventListener('click', function () {
       var col = this.dataset.sort;
@@ -425,7 +430,7 @@ function setupFilterSort() {
   });
 }
 
-function _filterReset() {
+export function _filterReset() {
   filterLoading = false;
   filterAllLoaded = false;
   var tbody = document.getElementById('filterTableBody');
@@ -433,13 +438,13 @@ function _filterReset() {
   if (_filterScroll) _filterScroll.reset().init();
 }
 
-async function openFilterAddModal() {
+export async function openFilterAddModal() {
   if (typeof showModal === 'function') {
     showModal('filterAddModal');
   }
 }
 
-async function submitFilterAdd() {
+export async function submitFilterAdd() {
   var local = document.getElementById('filterAddLocal');
   var equipamento = document.getElementById('filterAddEquipamento');
   var uf = document.getElementById('filterAddUf');
@@ -481,7 +486,7 @@ async function submitFilterAdd() {
   }
 }
 
-function initFilterExchanges() {
+export function initFilterExchanges() {
   filterSearch = '';
   filterStatusFilter = '';
   filterSortBy = 'f.local';
@@ -608,14 +613,32 @@ function initFilterExchanges() {
   _filterScroll.init();
 }
 
-globalThis.initFilterExchanges = initFilterExchanges;
-globalThis.initFilters = initFilterExchanges;
-globalThis.renderFilterTable = renderFilterTable;
-globalThis.enterFilterEdit = enterFilterEdit;
-globalThis.cancelFilterEdit = cancelFilterEdit;
-globalThis.saveFilterField = saveFilterField;
-globalThis.getFilterStatusBadgeClass = getFilterStatusBadgeClass;
-globalThis.buildFilterQuery = buildFilterQuery;
-globalThis.buildFilterCsvRow = buildFilterCsvRow;
-globalThis.exportFilterCsv = exportFilterCsv;
-globalThis._filterReset = _filterReset;
+if (typeof globalThis !== 'undefined') {
+  globalThis.getFilterStatusBadgeClass = getFilterStatusBadgeClass;
+  globalThis.filterValueRaw = filterValueRaw;
+  globalThis.formatFilterDate = formatFilterDate;
+  globalThis.filterFieldDisplay = filterFieldDisplay;
+  globalThis.filterEditBtn = filterEditBtn;
+  globalThis.buildFilterCellHtml = buildFilterCellHtml;
+  globalThis.renderFilterTable = renderFilterTable;
+  globalThis.refreshFilterCell = refreshFilterCell;
+  globalThis.enterFilterEdit = enterFilterEdit;
+  globalThis.cancelFilterEdit = cancelFilterEdit;
+  globalThis.saveFilterField = saveFilterField;
+  globalThis.updateFilterBadge = updateFilterBadge;
+  globalThis.applyFilterColumnVisibility = applyFilterColumnVisibility;
+  globalThis.updateFilterColumnLabel = updateFilterColumnLabel;
+  globalThis.renderFilterColumnDropdown = renderFilterColumnDropdown;
+  globalThis.initFilterColumnSelect = initFilterColumnSelect;
+  globalThis.buildFilterQuery = buildFilterQuery;
+  globalThis.buildFilterCsvRow = buildFilterCsvRow;
+  globalThis.exportFilterCsv = exportFilterCsv;
+  globalThis.setupFilterSort = setupFilterSort;
+  globalThis._filterReset = _filterReset;
+  globalThis.openFilterAddModal = openFilterAddModal;
+  globalThis.submitFilterAdd = submitFilterAdd;
+  globalThis.initFilterExchanges = initFilterExchanges;
+  globalThis.initFilters = initFilterExchanges;
+}
+
+export var initFilters = initFilterExchanges;

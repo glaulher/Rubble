@@ -1,3 +1,9 @@
+import { apiFetch, applyRoleVisibility } from '/public/js/core/auth.js';
+import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
+import { showToast, dismissToast } from '/public/js/core/dom.js';
+import { buttonHtml } from '/public/js/components/button.js';
+import { uploadWithProgress } from '/public/js/utils/upload.js';
+
 let auditReference = null;
 let auditResults = [];
 let selectedPhotoIndices = new Set();
@@ -5,17 +11,17 @@ let aiEnabled = true;
 let maxAuditFiles = 10;
 let _auditSimTimer = null;
 
-function resetAuditCounts() {
+export function resetAuditCounts() {
   const el = document.getElementById('auditCenterBadgeText');
   if (el) el.innerHTML = '<span class="text-emerald-300">0</span> aprovado - <span class="text-red-300">0</span> rejeitado';
 }
 
-function updateAuditCounts(approved, rejected) {
+export function updateAuditCounts(approved, rejected) {
   const el = document.getElementById('auditCenterBadgeText');
   if (el) el.innerHTML = '<span class="text-emerald-300">' + approved + '</span> aprovado - <span class="text-red-300">' + rejected + '</span> rejeitado';
 }
 
-function initPdfAudit() {
+export function initPdfAudit() {
   auditReference = null;
   auditResults = [];
   selectedPhotoIndices = new Set();
@@ -61,7 +67,7 @@ function initPdfAudit() {
   checkExistingReference();
 }
 
-async function checkExistingReference() {
+export async function checkExistingReference() {
   try {
     const resp = await apiFetch('/app/api/index.php?route=pdf-audit&action=get-reference');
     const result = await resp.json();
@@ -74,7 +80,7 @@ async function checkExistingReference() {
   }
 }
 
-function toggleAi() {
+export function toggleAi() {
   aiEnabled = !aiEnabled;
   maxAuditFiles = aiEnabled ? 10 : 30;
   const btn = document.getElementById('aiToggleBtn');
@@ -113,7 +119,7 @@ function toggleAi() {
   }
 }
 
-async function handleReferenceUpload(e) {
+export async function handleReferenceUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
 
@@ -184,7 +190,7 @@ async function handleReferenceUpload(e) {
   }
 }
 
-function showReferencePreview(data) {
+export function showReferencePreview(data) {
   const preview = document.getElementById('referencePreview');
   const fieldsEl = document.getElementById('referenceFields');
   const checklistCount = document.getElementById('refChecklistCount');
@@ -265,7 +271,7 @@ function showReferencePreview(data) {
   }
 }
 
-function handleAuditFileSelect(e) {
+export function handleAuditFileSelect(e) {
   const files = e.target.files;
   if (!files || files.length === 0) return;
 
@@ -287,7 +293,7 @@ function handleAuditFileSelect(e) {
   showToast(`${files.length} arquivo(s) selecionado(s)`, 'success');
 }
 
-async function runAudit() {
+export async function runAudit() {
   const input = document.getElementById('auditInput');
   const files = input?.files;
   if (!files || files.length === 0) {
@@ -400,7 +406,7 @@ async function runAudit() {
   }
 }
 
-function renderResults(results) {
+export function renderResults(results) {
   const container = document.getElementById('auditResults');
   const stepResults = document.getElementById('stepResults');
   const summary = document.getElementById('resultsSummary');
@@ -427,7 +433,7 @@ function renderResults(results) {
   }
 }
 
-function buildPhotoComparisonHtml(result) {
+export function buildPhotoComparisonHtml(result) {
   const images = result.images || [];
   if (images.length === 0) return '';
 
@@ -490,7 +496,7 @@ function buildPhotoComparisonHtml(result) {
     + '</div>';
 }
 
-function buildAuditCardHtml(result) {
+export function buildAuditCardHtml(result) {
   const approved = result.approved;
   const nokItems = result.nok_items || [];
   const photoIssues = result.photo_issues || [];
@@ -573,7 +579,7 @@ function buildAuditCardHtml(result) {
   `;
 }
 
-function handleResultsClick(e) {
+export function handleResultsClick(e) {
   const btn = e.target.closest('[data-toggle-id]');
   if (!btn) return;
   const id = btn.dataset.toggleId;
@@ -584,7 +590,7 @@ function handleResultsClick(e) {
   }
 }
 
-function downloadCsv() {
+export function downloadCsv() {
   if (!auditResults || auditResults.length === 0) {
     showToast('Nenhum resultado para exportar', 'error');
     return;
@@ -616,7 +622,7 @@ function downloadCsv() {
   showToast('CSV baixado com sucesso', 'success');
 }
 
-async function clearReference() {
+export async function clearReference() {
   dismissToast();
   if (_auditSimTimer) {
     clearInterval(_auditSimTimer);
@@ -671,4 +677,20 @@ async function clearReference() {
   showToast('Referência removida', 'success');
 }
 
-window.initPdfAudit = initPdfAudit;
+if (typeof globalThis !== 'undefined') {
+  globalThis.resetAuditCounts = resetAuditCounts;
+  globalThis.updateAuditCounts = updateAuditCounts;
+  globalThis.initPdfAudit = initPdfAudit;
+  globalThis.checkExistingReference = checkExistingReference;
+  globalThis.toggleAi = toggleAi;
+  globalThis.handleReferenceUpload = handleReferenceUpload;
+  globalThis.showReferencePreview = showReferencePreview;
+  globalThis.handleAuditFileSelect = handleAuditFileSelect;
+  globalThis.runAudit = runAudit;
+  globalThis.renderResults = renderResults;
+  globalThis.buildPhotoComparisonHtml = buildPhotoComparisonHtml;
+  globalThis.buildAuditCardHtml = buildAuditCardHtml;
+  globalThis.handleResultsClick = handleResultsClick;
+  globalThis.downloadCsv = downloadCsv;
+  globalThis.clearReference = clearReference;
+}

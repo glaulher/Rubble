@@ -24,7 +24,7 @@ var FE_HELPERS =
 function feModuleCode() {
   var code = readFileSync(resolve(__dirname, '../public/js/filter-exchanges/list.js'), 'utf-8');
   if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
-  return code.replace(/^import .+$/gm, '');
+  return code.replace(/^import .+$/gm, '').replace(/^export /gm, '');
 }
 
 function feTableMarkup() {

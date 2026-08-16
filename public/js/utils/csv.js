@@ -1,4 +1,4 @@
-function downloadCSV(filename, headerRow, rowBuilder) {
+export function downloadCSV(filename, headerRow, rowBuilder) {
   let csv = headerRow + '\n';
   rowBuilder((cells) => {
     csv += cells.join(';') + '\n';
@@ -12,4 +12,8 @@ function downloadCSV(filename, headerRow, rowBuilder) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.downloadCSV = downloadCSV;
 }

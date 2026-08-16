@@ -19,6 +19,7 @@ function evalModule(path, extraCode) {
   var code = readFileSync(resolve(__dirname, path), 'utf-8');
   if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
   var importStripped = code.replace(/^import .+$/gm, '');
+  importStripped = importStripped.replace(/^export\s+/gm, '');
   (0, eval)('"use strict"; ' + importStripped + '\n' + extraCode);
 }
 

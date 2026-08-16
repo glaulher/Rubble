@@ -1,4 +1,4 @@
-const PV_STATUSES = [
+export const PV_STATUSES = [
   'Aguardando envio',
   'Aprovado serv.',
   'E-mail de lib. aquisição/serviço',
@@ -10,7 +10,7 @@ const PV_STATUSES = [
   'Cancelado',
 ];
 
-const PV_STATUS_COLORS = {
+export const PV_STATUS_COLORS = {
   'Aguardando envio': 'bg-amber-100 text-amber-700',
   'Aprovado serv.': 'bg-emerald-100 text-emerald-700',
   'E-mail de lib. aquisição/serviço': 'bg-indigo-100 text-indigo-700',
@@ -22,7 +22,7 @@ const PV_STATUS_COLORS = {
   'Cancelado': 'bg-gray-100 text-gray-700',
 };
 
-const PV_STATUS_PRIORITY = {
+export const PV_STATUS_PRIORITY = {
   'SCM negado': 1,
   'Aguardando envio': 2,
   'Aprovado serv.': 3,
@@ -34,7 +34,7 @@ const PV_STATUS_PRIORITY = {
   'Cancelado': 9,
 };
 
-const LPU_OPTIONS_ALL = [
+export const LPU_OPTIONS_ALL = [
   ['lpu_civil', 'LPU Civil'],
   ['lpu_material_clima', 'LPU Material Clima'],
   ['lpu_material_chiller', 'LPU Material Chiller'],
@@ -42,13 +42,13 @@ const LPU_OPTIONS_ALL = [
   ['lpu_servico_chiller', 'LPU Serviço Chiller'],
 ];
 
-const LPU_OPTIONS_CHILLER = [
+export const LPU_OPTIONS_CHILLER = [
   ['lpu_civil', 'LPU Civil'],
   ['lpu_material_chiller', 'LPU Material Chiller'],
   ['lpu_servico_chiller', 'LPU Serviço Chiller'],
 ];
 
-const LPU_OPTIONS_CLIMA = [
+export const LPU_OPTIONS_CLIMA = [
   ['lpu_civil', 'LPU Civil'],
   ['lpu_material_clima', 'LPU Material Clima'],
   ['lpu_servico_clima', 'LPU Serviço Clima'],
@@ -57,20 +57,62 @@ const LPU_OPTIONS_CLIMA = [
 let pvItemCounter = 0;
 let currentLpuOptions = LPU_OPTIONS_ALL;
 
-const UNIT_MIN_ONE = [
+export const UNIT_MIN_ONE = [
   'CONJUNTO', 'CV', 'DIARIA', 'HH', 'HORA', 'KIT', 'LOCAÇÃO MENSAL',
   'MENSAL', 'PAR', 'PÇ', 'PEÇA', 'PONTO', 'PROJETO', 'SACO', 'SERV.',
   'TR', 'UN.', 'UNIDADE', 'UNIT.',
 ];
 
-function isUnitMinOne(unidade) {
+export function isUnitMinOne(unidade) {
   if (!unidade) return false;
   return UNIT_MIN_ONE.includes(unidade.trim().toUpperCase());
 }
 
-function getQuantityAttrs(unidade) {
+export function getQuantityAttrs(unidade) {
   if (isUnitMinOne(unidade)) {
     return 'step="1" min="1"';
   }
   return 'step="0.01" min="0"';
+}
+
+export function getPvItemCounter() {
+  return pvItemCounter;
+}
+
+export function incrementPvItemCounter() {
+  return pvItemCounter++;
+}
+
+export function resetPvItemCounter() {
+  pvItemCounter = 0;
+}
+
+export function setCurrentLpuOptions(options) {
+  currentLpuOptions = options;
+}
+
+export function getCurrentLpuOptions() {
+  return currentLpuOptions;
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.PV_STATUSES = PV_STATUSES;
+  globalThis.PV_STATUS_COLORS = PV_STATUS_COLORS;
+  globalThis.PV_STATUS_PRIORITY = PV_STATUS_PRIORITY;
+  globalThis.LPU_OPTIONS_ALL = LPU_OPTIONS_ALL;
+  globalThis.LPU_OPTIONS_CHILLER = LPU_OPTIONS_CHILLER;
+  globalThis.LPU_OPTIONS_CLIMA = LPU_OPTIONS_CLIMA;
+  globalThis.UNIT_MIN_ONE = UNIT_MIN_ONE;
+  globalThis.isUnitMinOne = isUnitMinOne;
+  globalThis.getQuantityAttrs = getQuantityAttrs;
+  Object.defineProperty(globalThis, 'pvItemCounter', {
+    get: getPvItemCounter,
+    set: function (v) { pvItemCounter = v; },
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'currentLpuOptions', {
+    get: getCurrentLpuOptions,
+    set: function (v) { currentLpuOptions = v; },
+    configurable: true,
+  });
 }

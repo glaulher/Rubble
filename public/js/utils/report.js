@@ -1,4 +1,6 @@
-async function generateReport() {
+import { showToast } from '/public/js/core/dom.js';
+
+export async function generateReport() {
   const btn = document.getElementById('generateReportBtn');
   if (!btn) return;
 
@@ -190,4 +192,8 @@ function calcSlices(usableW, pageH) {
   }
 
   return slices;
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.generateReport = generateReport;
 }

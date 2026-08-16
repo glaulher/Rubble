@@ -1,4 +1,26 @@
-const VIEW_VERSION = 31;
+import { PollingManager } from '/public/js/core/polling.js';
+import { authGuard, updateUserDisplay, applyRoleVisibility, destroyTurnstile, initLogin } from '/public/js/core/auth.js';
+import { initHome } from '/public/js/home/home-ui.js';
+import { loadHomeForm } from '/public/js/home/form.js';
+import { loadPvForm } from '/public/js/pv/form.js';
+import { initPvDashboard } from '/public/js/pv/dashboard.js';
+import { initPv } from '/public/js/pv/list.js';
+import { loadUserForm } from '/public/js/user/form.js';
+import { initUsers } from '/public/js/user/list.js';
+import { loadEquipmentForm } from '/public/js/equipment/form.js';
+import { initEquipmentManager } from '/public/js/equipment/list.js';
+import { initPriceForm } from '/public/js/equipment-prices/form.js';
+import { initPriceList } from '/public/js/equipment-prices/list.js';
+import { initPreventiveCycle } from '/public/js/preventive-cycle/list.js';
+import { initScm } from '/public/js/scm/scm-list.js';
+import { initPlannedActivity } from '/public/js/planned-activity/list.js';
+import { initPendingTickets } from '/public/js/pending-tickets/list.js';
+import { initOsDashboard } from '/public/js/os/dashboard.js';
+import { initFilters } from '/public/js/filter-exchanges/list.js';
+import { initPdfAudit } from '/public/js/pdf-audit/audit.js';
+import { initEquipamentDashboard } from '/public/js/equipment/dashboard.js';
+
+const VIEW_VERSION = 32;
 
 async function loadPage(url) {
   try {
@@ -17,13 +39,11 @@ async function loadPage(url) {
 }
 
 async function router() {
-  if (globalThis.PollingManager) {
-    PollingManager.stopAll();
-  }
+  PollingManager.stopAll();
 
   const hash = window.location.hash;
 
-  if (hash !== '#/login' && typeof destroyTurnstile === 'function') {
+  if (hash !== '#/login') {
     destroyTurnstile();
   }
 
@@ -197,85 +217,45 @@ async function router() {
   */
   requestAnimationFrame(() => {
     if (hash.startsWith("#/form")) {
-      if (typeof loadHomeForm === "function") {
-        loadHomeForm();
-      }
+      loadHomeForm();
     } else if (hash.startsWith("#/pvForm")) {
-      if (typeof loadPvForm === "function") {
-        loadPvForm();
-      }
+      loadPvForm();
     } else if (hash.startsWith("#/equipament-dashboard")) {
-      if (typeof initEquipamentDashboard === "function") {
-        initEquipamentDashboard();
-      }
+      initEquipamentDashboard();
     } else if (hash.startsWith("#/pv-dashboard")) {
-      if (typeof initPvDashboard === "function") {
-        initPvDashboard();
-      }
+      initPvDashboard();
     } else if (hash === "#/pv" || hash.startsWith("#/pv?")) {
-      if (typeof initPv === "function") {
-        initPv();
-      }
+      initPv();
     } else if (hash.startsWith("#/usersForm")) {
-      if (typeof loadUserForm === "function") {
-        loadUserForm();
-      }
+      loadUserForm();
     } else if (hash === "#/users" || hash.startsWith("#/users?")) {
-      if (typeof initUsers === "function") {
-        initUsers();
-      }
+      initUsers();
     } else if (hash.startsWith("#/equipmentForm")) {
-      if (typeof loadEquipmentForm === "function") {
-        loadEquipmentForm();
-      }
+      loadEquipmentForm();
     } else if (hash === "#/equipment-manager" || hash.startsWith("#/equipment-manager?")) {
-      if (typeof initEquipmentManager === "function") {
-        initEquipmentManager();
-      }
+      initEquipmentManager();
     } else if (hash.startsWith("#/equipment-prices-form")) {
-      if (typeof initPriceForm === "function") {
-        initPriceForm();
-      }
+      initPriceForm();
     } else if (hash === "#/equipment-prices" || hash.startsWith("#/equipment-prices?")) {
-      if (typeof initPriceList === "function") {
-        initPriceList();
-      }
+      initPriceList();
     } else if (hash === "#/preventive-cycle") {
-      if (typeof initPreventiveCycle === "function") {
-        initPreventiveCycle();
-      }
+      initPreventiveCycle();
     } else if (hash === "#/scm") {
-      if (typeof initScm === "function") {
-        initScm();
-      }
+      initScm();
     } else if (hash === "#/planned-activity") {
-      if (typeof initPlannedActivity === "function") {
-        initPlannedActivity();
-      }
+      initPlannedActivity();
     } else if (hash === "#/pending-tickets") {
-      if (typeof initPendingTickets === "function") {
-        initPendingTickets();
-      }
+      initPendingTickets();
     } else if (hash === "#/os-dashboard") {
-      if (typeof initOsDashboard === "function") {
-        initOsDashboard();
-      }
+      initOsDashboard();
     } else if (hash === "#/filter-exchanges") {
-      if (typeof initFilters === "function") {
-        initFilters();
-      }
+      initFilters();
     } else if (hash === "#/pdf-audit") {
-      if (typeof initPdfAudit === "function") {
-        initPdfAudit();
-      }
+      initPdfAudit();
     } else if (hash === "#/login") {
-      if (typeof initLogin === "function") {
-        initLogin();
-      }
+      initLogin();
     } else {
-      if (typeof initHome === "function") {
-        initHome();
-      }
+      initHome();
     }
   });
 }

@@ -1,4 +1,12 @@
-async function loadPvForm() {
+import { showToast, updateToastProgress, dismissToast } from '/public/js/core/dom.js';
+import { uploadFile } from '/public/js/utils/upload.js';
+import { LPU_OPTIONS_ALL, isUnitMinOne, resetPvItemCounter, getPvItemCounter } from './constants.js';
+import { loadLocals, loadOsList, loadEquipamentos, resolveLpuMode, uploadReportFile, uploadOrcamentoFile } from './form-utils.js';
+import { addItemRow, getItemData, toggleItemInvoice, calculateItemTotal, removeItemRow } from './form-item-row.js';
+import { setupLocalAutocomplete, setupOsAutocomplete, setupCicloAutocomplete } from './form-autocomplete.js';
+import { toggleFilterButton, openFilterModal, closeFilterModal, saveFilterData, removeFilterData, calculateFilter } from './form-filter.js';
+
+export async function loadPvForm() {
   const form = document.getElementById('pvForm');
   if (!form) return;
 
@@ -57,7 +65,7 @@ async function loadPvForm() {
           item.valor_total_formatted = rawTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
           addItemRow(item, lpuOptions);
           if (item.fatura === 'flpu') {
-            const lastIndex = pvItemCounter - 1;
+            const lastIndex = getPvItemCounter() - 1;
             toggleItemInvoice(lastIndex);
             calculateItemTotal(lastIndex);
           }
@@ -107,7 +115,7 @@ async function loadPvForm() {
   }, { signal: form._submitController.signal });
 }
 
-function resetForm() {
+export function resetForm() {
   document.getElementById('pvId').value = '';
   document.getElementById('numeroPv').value = '';
   document.getElementById('numeroPv').placeholder = 'Auto';
@@ -123,13 +131,13 @@ function resetForm() {
   const container = document.getElementById('pvItemsContainer');
   container.innerHTML = '';
 
-  pvItemCounter = 0;
+  resetPvItemCounter();
 
   document.getElementById('buttonText').textContent = 'Salvar PV';
   document.getElementById('formTitle').textContent = 'Nova PV';
 }
 
-function getFormData() {
+export function getFormData() {
   const itemRows = document.querySelectorAll('.item-row');
   const itens = [];
 
@@ -155,7 +163,7 @@ function getFormData() {
   };
 }
 
-async function savePvForm() {
+export async function savePvForm() {
   const data = getFormData();
 
   if (!data.local) {
@@ -241,7 +249,7 @@ async function savePvForm() {
   }
 }
 
-async function uploadOsFile() {
+export async function uploadOsFile() {
   const osField = document.getElementById('os');
   const names = [];
   let uploadError = false;
@@ -273,7 +281,7 @@ async function uploadOsFile() {
   }
 }
 
-function setupItemRowDelegation() {
+export function setupItemRowDelegation() {
   var container = document.getElementById('pvItemsContainer');
   if (!container) return;
 
@@ -317,4 +325,13 @@ function setupItemRowDelegation() {
       if (idx !== null) calculateItemTotal(parseInt(idx));
     }
   });
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.loadPvForm = loadPvForm;
+  globalThis.resetForm = resetForm;
+  globalThis.getFormData = getFormData;
+  globalThis.savePvForm = savePvForm;
+  globalThis.uploadOsFile = uploadOsFile;
+  globalThis.setupItemRowDelegation = setupItemRowDelegation;
 }

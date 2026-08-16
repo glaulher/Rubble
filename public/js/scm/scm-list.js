@@ -1,6 +1,12 @@
 // public/js/scm/scm-list.js
 
 import { createInfiniteScroll, debounce } from '/public/js/components/infinite-scroll.js';
+import { showToast, confirmDelete } from '/public/js/core/dom.js';
+import { escapeHtml, formatCurrency } from '/public/js/core/utils.js';
+import { PollingManager } from '/public/js/core/polling.js';
+import { getUser, apiFetch } from '/public/js/core/auth.js';
+import { iconButtonHtml, buttonHtml } from '/public/js/components/button.js';
+import { importScm } from './scm-import.js';
 
 let scmList = [];
 var _scmScroll = null;
@@ -19,7 +25,7 @@ let scmAllSites = [];
 let segmentTodosChecked = true;
 let siteTodosChecked = true;
 
-function setupScmCicloAutocomplete() {
+export function setupScmCicloAutocomplete() {
     var input = document.getElementById('scmCicloFilter');
     var dropdown = document.getElementById('scmCicloDropdown');
     if (!input || !dropdown) return;
@@ -145,7 +151,7 @@ function setupScmCicloAutocomplete() {
     });
 }
 
-function initScm() {
+export function initScm() {
     if (window._scmInitialized) {
         PollingManager.stop('scm');
         var existingContent = document.getElementById('scmContent');
@@ -231,7 +237,7 @@ function initScm() {
     _scmScroll.init();
 }
 
-function initSegmentMultiSelect() {
+export function initSegmentMultiSelect() {
     const btn = document.getElementById('scmSegmentBtn');
     const dropdown = document.getElementById('scmSegmentDropdown');
     const label = document.getElementById('scmSegmentLabel');
@@ -254,7 +260,7 @@ function initSegmentMultiSelect() {
     updateSegmentLabel();
 }
 
-function renderSegmentDropdown() {
+export function renderSegmentDropdown() {
     const dropdown = document.getElementById('scmSegmentDropdown');
     if (!dropdown) return;
 
@@ -303,7 +309,7 @@ function renderSegmentDropdown() {
     dropdown.innerHTML = html;
 }
 
-function updateSegmentLabel() {
+export function updateSegmentLabel() {
     const label = document.getElementById('scmSegmentLabel');
     if (!label) return;
     if (segmentTodosChecked) {
@@ -315,7 +321,7 @@ function updateSegmentLabel() {
     }
 }
 
-function initSiteMultiSelect() {
+export function initSiteMultiSelect() {
     const btn = document.getElementById('scmSiteBtn');
     const dropdown = document.getElementById('scmSiteDropdown');
     const label = document.getElementById('scmSiteLabel');
@@ -338,7 +344,7 @@ function initSiteMultiSelect() {
     updateSiteLabel();
 }
 
-function renderSiteDropdown() {
+export function renderSiteDropdown() {
     const dropdown = document.getElementById('scmSiteDropdown');
     if (!dropdown) return;
 
@@ -386,7 +392,7 @@ function renderSiteDropdown() {
     dropdown.innerHTML = html;
 }
 
-function updateSiteLabel() {
+export function updateSiteLabel() {
     const label = document.getElementById('scmSiteLabel');
     if (!label) return;
     if (siteTodosChecked) {
@@ -398,7 +404,7 @@ function updateSiteLabel() {
     }
 }
 
-function setupScmScroll() {
+export function setupScmScroll() {
     _scmScroll = createInfiniteScroll({
         sentinelId: 'scmSentinel',
         limit: 20,
@@ -436,7 +442,7 @@ function setupScmScroll() {
     });
 }
 
-function resetScmState() {
+export function resetScmState() {
     scmList = [];
     const content = document.getElementById('scmContent');
     if (content) content.innerHTML = '';
@@ -444,7 +450,7 @@ function resetScmState() {
 }
 
 
-function renderScm(items, append = false) {
+export function renderScm(items, append = false) {
     const content = document.getElementById('scmContent');
     if (!content) return;
 
@@ -471,7 +477,7 @@ function renderScm(items, append = false) {
     content.insertAdjacentHTML('beforeend', html);
 }
 
-function buildScmCardHtml(s) {
+export function buildScmCardHtml(s) {
     const statusColors = {
         'SCM aprovado': 'bg-emerald-100 text-emerald-700',
         'SCM negado': 'bg-red-100 text-red-700',
@@ -534,7 +540,7 @@ function buildScmCardHtml(s) {
     </div>`;
 }
 
-function syncScmCards(newItems) {
+export function syncScmCards(newItems) {
     const content = document.getElementById('scmContent');
     if (!content) return;
 
@@ -584,7 +590,7 @@ function syncScmCards(newItems) {
     });
 }
 
-function updateScmCounter(total, totalValor) {
+export function updateScmCounter(total, totalValor) {
     const counter = document.getElementById('scmCounter');
     const valueEl = document.getElementById('scmTotalValue');
     if (counter) counter.textContent = total || 0;
@@ -597,7 +603,7 @@ function updateScmCounter(total, totalValor) {
     }
 }
 
-async function deleteScm(id) {
+export async function deleteScm(id) {
     var scm = scmList.find(function(s) { return s.id === id; });
     var scmName = scm ? scm.scm : '';
     const confirmed = await confirmDelete('Excluir SCM', 'Tem certeza que deseja excluir o SCM', scmName);
@@ -660,7 +666,7 @@ if (!document._scmGlobalListener) {
     document.addEventListener('click', document._scmGlobalListener);
 }
 
-async function loadScmDetails(id) {
+export async function loadScmDetails(id) {
     const details = document.getElementById(`scmDet${id}`);
     if (!details) return;
 
@@ -727,12 +733,29 @@ async function loadScmDetails(id) {
     }
 }
 
-function formatDateBr(date) {
+export function formatDateBr(date) {
     if (!date) return '';
     const parts = date.split('-');
     if (parts.length !== 3) return date;
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
-globalThis.initScm = initScm;
-globalThis.resetScmState = resetScmState;
+if (typeof globalThis !== 'undefined') {
+  globalThis.setupScmCicloAutocomplete = setupScmCicloAutocomplete;
+  globalThis.initScm = initScm;
+  globalThis.initSegmentMultiSelect = initSegmentMultiSelect;
+  globalThis.renderSegmentDropdown = renderSegmentDropdown;
+  globalThis.updateSegmentLabel = updateSegmentLabel;
+  globalThis.initSiteMultiSelect = initSiteMultiSelect;
+  globalThis.renderSiteDropdown = renderSiteDropdown;
+  globalThis.updateSiteLabel = updateSiteLabel;
+  globalThis.setupScmScroll = setupScmScroll;
+  globalThis.resetScmState = resetScmState;
+  globalThis.renderScm = renderScm;
+  globalThis.buildScmCardHtml = buildScmCardHtml;
+  globalThis.syncScmCards = syncScmCards;
+  globalThis.updateScmCounter = updateScmCounter;
+  globalThis.deleteScm = deleteScm;
+  globalThis.loadScmDetails = loadScmDetails;
+  globalThis.formatDateBr = formatDateBr;
+}

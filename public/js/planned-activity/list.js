@@ -1,4 +1,10 @@
 import { createInfiniteScroll } from '/public/js/components/infinite-scroll.js';
+import { apiFetch, applyRoleVisibility, getUser } from '/public/js/core/auth.js';
+import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
+import { showToast, confirmDelete } from '/public/js/core/dom.js';
+import { iconButtonHtml } from '/public/js/components/button.js';
+import { downloadCSV } from '/public/js/utils/csv.js';
+import { PlanModal } from '/public/js/components/plan-modal.js';
 
 let plannedSearch = '';
 let plannedDateFrom = '';
@@ -24,7 +30,7 @@ const PLANNED_MESES = [
 
 const DIAS_SEMANA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
 
-function duplicateDayIconHtml(dateStr) {
+export function duplicateDayIconHtml(dateStr) {
   if (!canEditPlanned()) return '';
   var safeDate = dateStr.replace(/"/g, '\\"');
   return '<button class="inline-flex items-center justify-center text-slate-400 hover:text-emerald-600 ml-2 align-middle transition-colors" data-action="duplicate-day" data-date="' + safeDate + '" aria-label="Duplicar programação deste dia" title="Duplicar programação">' +
@@ -34,7 +40,7 @@ function duplicateDayIconHtml(dateStr) {
   '</button>';
 }
 
-function formatDateTimeline(dateStr) {
+export function formatDateTimeline(dateStr) {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
   if (parts.length !== 3) return dateStr;
@@ -46,20 +52,20 @@ function formatDateTimeline(dateStr) {
   return diaSemana + ', ' + dia + ' de ' + PLANNED_MESES[mes] + ' de ' + ano;
 }
 
-function plannedStatusBadgeHtml(status) {
+export function plannedStatusBadgeHtml(status) {
   if (!status) return '';
   const lower = status.toLowerCase().trim();
   const colorClass = PLANNED_STATUS_BADGES[lower] || 'bg-slate-100 text-slate-700';
   return '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium planned-badge-status ' + colorClass + '">' + escapeHtml(status) + '</span>';
 }
 
-function canEditPlanned() {
+export function canEditPlanned() {
   if (typeof getUser !== 'function') return false;
   var user = getUser();
   return user && (user.role === 'admin' || user.role === 'coordenador');
 }
 
-function buildPlannedCardHtml(item) {
+export function buildPlannedCardHtml(item) {
   var tipo = item.tipo || 'preventiva';
   var equipName = item.equipamento || 'N/A';
   var localidade = item.localidade || '';
@@ -220,7 +226,7 @@ function buildSlaLineHtml(item) {
   '</div>';
 }
 
-function copyOs(os) {
+export function copyOs(os) {
   if (!os || os === '-') return;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(os)
@@ -231,7 +237,7 @@ function copyOs(os) {
   }
 }
 
-function fallbackCopy(text) {
+export function fallbackCopy(text) {
   var textarea = document.createElement('textarea');
   textarea.value = text;
   textarea.style.position = 'fixed';
@@ -247,7 +253,7 @@ function fallbackCopy(text) {
   document.body.removeChild(textarea);
 }
 
-function startTeamInlineEdit(btn) {
+export function startTeamInlineEdit(btn) {
   var card = btn.closest('.planned-card');
   if (!card) return;
   var strong = card.querySelector('.team-name-text');
@@ -295,7 +301,7 @@ function startTeamInlineEdit(btn) {
   });
 }
 
-function saveTeamInlineEdit(input, strong) {
+export function saveTeamInlineEdit(input, strong) {
   var newValue = input.value.trim();
   var originalValue = input.dataset.originalValue;
   var id = input.dataset.id;
@@ -328,11 +334,11 @@ function saveTeamInlineEdit(input, strong) {
   }
 }
 
-function cancelTeamInlineEdit(input, strong) {
+export function cancelTeamInlineEdit(input, strong) {
   finishTeamEdit(input, strong);
 }
 
-function finishTeamEdit(input, strong) {
+export function finishTeamEdit(input, strong) {
   if (input && input.parentNode) {
     input.parentNode.removeChild(input);
   }
@@ -355,11 +361,11 @@ const PLANNED_ROLE_LABELS = {
   cliente: 'cliente',
 };
 
-function pad2(n) {
+export function pad2(n) {
   return n < 10 ? '0' + n : String(n);
 }
 
-function buildObsSignature() {
+export function buildObsSignature() {
   var user = typeof getUser === 'function' ? getUser() : null;
   var name = (user && user.nome) ? user.nome : '';
   var role = user && user.role ? (PLANNED_ROLE_LABELS[user.role] || user.role) : '';
@@ -369,7 +375,7 @@ function buildObsSignature() {
   return stamp + (name ? ' ' + name : '') + (role ? ' (' + role + ')' : '') + ': ';
 }
 
-function startObsInlineEdit(btn) {
+export function startObsInlineEdit(btn) {
   var container = btn.closest('.obs-container');
   if (!container) return;
   var span = container.querySelector('.obs-text');
@@ -424,7 +430,7 @@ function startObsInlineEdit(btn) {
   });
 }
 
-function saveObsInlineEdit(textarea, span) {
+export function saveObsInlineEdit(textarea, span) {
   var newValue = textarea.value.trim();
   var originalValue = textarea.dataset.originalValue;
   var id = textarea.dataset.id;
@@ -458,11 +464,11 @@ function saveObsInlineEdit(textarea, span) {
   }
 }
 
-function cancelObsEdit(textarea, span) {
+export function cancelObsEdit(textarea, span) {
   finishObsEdit(textarea, span);
 }
 
-function finishObsEdit(textarea, span) {
+export function finishObsEdit(textarea, span) {
   if (textarea && textarea.parentNode) {
     textarea.parentNode.removeChild(textarea);
   }
@@ -479,7 +485,7 @@ function finishObsEdit(textarea, span) {
 
 const CORRETIVA_STATUSES = ['Concluído', 'Pendente', 'Em andamento', 'Planejado', 'Projeto Clean up'];
 
-function openCorretivaStatusModal(id, currentStatus, currentDate) {
+export function openCorretivaStatusModal(id, currentStatus, currentDate) {
   var modal = document.getElementById('modalStatusCorretiva');
   if (!modal) return;
   document.getElementById('corretivaStatusId').value = id;
@@ -504,7 +510,7 @@ function openCorretivaStatusModal(id, currentStatus, currentDate) {
   modal.classList.remove('hidden');
 }
 
-function submitCorretivaStatus() {
+export function submitCorretivaStatus() {
   var id = parseInt(document.getElementById('corretivaStatusId').value, 10);
   var status = document.getElementById('corretivaStatusSelect').value;
   if (!id || !status) return;
@@ -555,7 +561,7 @@ function submitCorretivaStatus() {
   });
 }
 
-function closeCorretivaStatusModal() {
+export function closeCorretivaStatusModal() {
   var modal = document.getElementById('modalStatusCorretiva');
   if (modal) modal.classList.add('hidden');
   var dateGroup = document.getElementById('corretivaStatusDataGroup');
@@ -564,7 +570,7 @@ function closeCorretivaStatusModal() {
   if (dateInput) dateInput.value = '';
 }
 
-function renderPlanned(items, append) {
+export function renderPlanned(items, append) {
   var counter = document.getElementById('plannedCounter');
   if (counter) {
     counter.textContent = items.length + ' atividades';
@@ -644,7 +650,7 @@ function renderPlanned(items, append) {
   applyRoleVisibility();
 }
 
-function syncPlannedCards(newItems, total) {
+export function syncPlannedCards(newItems, total) {
   var content = document.getElementById('plannedContent');
   if (!content) return;
 
@@ -746,7 +752,7 @@ function syncPlannedCards(newItems, total) {
   applyRoleVisibility();
 }
 
-function resetPlannedState(newSearch) {
+export function resetPlannedState(newSearch) {
   plannedSearch = newSearch || '';
   window._plannedTotal = 0;
   var content = document.getElementById('plannedContent');
@@ -754,7 +760,7 @@ function resetPlannedState(newSearch) {
   if (_plannedScroll) _plannedScroll.reset().init();
 }
 
-function setupPlannedScroll() {
+export function setupPlannedScroll() {
   _plannedScroll = createInfiniteScroll({
     sentinelId: 'plannedSentinel',
     limit: PLANNED_LIMIT,
@@ -795,7 +801,7 @@ function setupPlannedScroll() {
   });
 }
 
-function setupPlannedFilters() {
+export function setupPlannedFilters() {
   var dateFromInput = document.getElementById('plannedDateFrom');
   var dateToInput = document.getElementById('plannedDateTo');
   var statusSelect = document.getElementById('plannedStatusFilter');
@@ -854,7 +860,7 @@ function setupPlannedFilters() {
   }
 }
 
-function exportPlannedCsv() {
+export function exportPlannedCsv() {
   var params = new URLSearchParams();
   params.set('limit', '99999');
   if (plannedDateFrom) params.set('date_from', plannedDateFrom);
@@ -901,7 +907,7 @@ function exportPlannedCsv() {
     });
 }
 
-function copyPlannedWhatsApp() {
+export function copyPlannedWhatsApp() {
   var params = new URLSearchParams();
   params.set('limit', '99999');
   if (plannedDateFrom) params.set('date_from', plannedDateFrom);
@@ -1053,7 +1059,7 @@ function copyPlannedWhatsApp() {
     });
 }
 
-function setupPlannedSearch() {
+export function setupPlannedSearch() {
   var searchInput = document.getElementById('plannedSearch');
   if (!searchInput) return;
 
@@ -1077,7 +1083,7 @@ function setupPlannedSearch() {
   });
 }
 
-function initPlannedActivity() {
+export function initPlannedActivity() {
   plannedSearch = '';
   plannedDateFrom = '';
   plannedDateTo = '';
@@ -1428,17 +1434,17 @@ function initPlannedActivity() {
   _plannedScroll.init();
 }
 
-function _plannedItemKey(item) {
+export function _plannedItemKey(item) {
   return (item.tipo || 'preventiva') + ':' + item.id;
 }
 
-function _updatePlannedCounter(total) {
+export function _updatePlannedCounter(total) {
   window._plannedTotal = total;
   var counter = document.getElementById('plannedCounter');
   if (counter) counter.textContent = total + ' atividades';
 }
 
-function _appendPlannedToGroup(item) {
+export function _appendPlannedToGroup(item) {
   var content = document.getElementById('plannedContent');
   if (!content) return;
   var dateKey = item.data_planejada || 'sem_data';
@@ -1480,7 +1486,7 @@ function _appendPlannedToGroup(item) {
   applyRoleVisibility();
 }
 
-function _removePlannedCards(id, tipo) {
+export function _removePlannedCards(id, tipo) {
   var content = document.getElementById('plannedContent');
   if (!content) return;
   var key = (tipo || 'preventiva') + ':' + id;
@@ -1499,7 +1505,7 @@ function _removePlannedCards(id, tipo) {
   applyRoleVisibility();
 }
 
-function _applyPlannedCardUpdate(item) {
+export function _applyPlannedCardUpdate(item) {
   var content = document.getElementById('plannedContent');
   if (!content || !item) return;
   var key = _plannedItemKey(item);
@@ -1532,14 +1538,7 @@ function _applyPlannedCardUpdate(item) {
   applyRoleVisibility();
 }
 
-globalThis._applyPlannedCardUpdate = _applyPlannedCardUpdate;
-globalThis._appendPlannedToGroup = _appendPlannedToGroup;
-globalThis._removePlannedCards = _removePlannedCards;
-globalThis._updatePlannedCounter = _updatePlannedCounter;
-
-globalThis.initPlannedActivity = initPlannedActivity;
-
-function handlePlannedCreated(data) {
+export function handlePlannedCreated(data) {
   if (!data) return;
   if (data.action === 'updated') {
     showToast('Atividade adicionada ao novo dia!', 'success');
@@ -1555,9 +1554,7 @@ function handlePlannedCreated(data) {
   }
 }
 
-globalThis.handlePlannedCreated = handlePlannedCreated;
-
-function deletePlanned(id, tipo, dataPlanejada, slaDayNumber) {
+export function deletePlanned(id, tipo, dataPlanejada, slaDayNumber) {
   if (typeof confirmDelete !== 'function') return;
 
   var route = tipo === 'preventiva'
@@ -1611,7 +1608,7 @@ var STATUS_TRANSITIONS = {
   'Conclu\u00eddo': ['Em Andamento'],
 };
 
-function openStatusPreventiva(id, currentStatus, currentDate) {
+export function openStatusPreventiva(id, currentStatus, currentDate) {
   var modal = document.getElementById('modalStatusPreventiva');
   if (!modal) return;
   modal.classList.remove('hidden');
@@ -1644,7 +1641,7 @@ function openStatusPreventiva(id, currentStatus, currentDate) {
   if (dateGroup) dateGroup.classList.add('hidden');
 }
 
-function closeStatusPreventiva() {
+export function closeStatusPreventiva() {
   var modal = document.getElementById('modalStatusPreventiva');
   if (modal) modal.classList.add('hidden');
   var dateGroup = document.getElementById('statusDataGroup');
@@ -1653,7 +1650,7 @@ function closeStatusPreventiva() {
   if (dateInput) dateInput.value = '';
 }
 
-function generateSlaDateList(startDate, days, includeSat, includeSun) {
+export function generateSlaDateList(startDate, days, includeSat, includeSun) {
   var dates = [];
   var current = new Date(startDate + 'T12:00:00');
   var created = 0;
@@ -1677,7 +1674,7 @@ function generateSlaDateList(startDate, days, includeSat, includeSun) {
   return dates;
 }
 
-function openExtendSlaModal(id, tipo) {
+export function openExtendSlaModal(id, tipo) {
   var modal = document.getElementById('modalExtendSla');
   var info = document.getElementById('extendSlaInfo');
   var idInput = document.getElementById('extendSlaId');
@@ -1693,12 +1690,12 @@ function openExtendSlaModal(id, tipo) {
   modal.classList.remove('hidden');
 }
 
-function closeExtendSlaModal() {
+export function closeExtendSlaModal() {
   var modal = document.getElementById('modalExtendSla');
   if (modal) modal.classList.add('hidden');
 }
 
-function submitExtendSla() {
+export function submitExtendSla() {
   var id = document.getElementById('extendSlaId');
   var tipo = document.getElementById('extendSlaTipo');
   var days = document.getElementById('extendSlaDays');
@@ -1737,7 +1734,7 @@ function submitExtendSla() {
     });
 }
 
-function openSetSlaModal(id, tipo) {
+export function openSetSlaModal(id, tipo) {
   var modal = document.getElementById('modalSetSla');
   var info = document.getElementById('setSlaInfo');
   var idInput = document.getElementById('setSlaId');
@@ -1758,12 +1755,12 @@ function openSetSlaModal(id, tipo) {
   if (daysInput) daysInput.focus();
 }
 
-function closeSetSlaModal() {
+export function closeSetSlaModal() {
   var modal = document.getElementById('modalSetSla');
   if (modal) modal.classList.add('hidden');
 }
 
-function submitSetSla() {
+export function submitSetSla() {
   var id = document.getElementById('setSlaId');
   var tipo = document.getElementById('setSlaTipo');
   var days = document.getElementById('setSlaDays');
@@ -1806,7 +1803,7 @@ function submitSetSla() {
 var _duplicateSourceDate = null;
 var _dragState = {};
 
-function showDuplicateModal(sourceDate, dateLabel) {
+export function showDuplicateModal(sourceDate, dateLabel) {
   var modal = document.getElementById('modalDuplicateDay');
   var label = document.getElementById('duplicateDayLabel');
   var input = document.getElementById('duplicateTargetDate');
@@ -1817,13 +1814,13 @@ function showDuplicateModal(sourceDate, dateLabel) {
   modal.classList.remove('hidden');
 }
 
-function closeDuplicateModal() {
+export function closeDuplicateModal() {
   var modal = document.getElementById('modalDuplicateDay');
   if (modal) modal.classList.add('hidden');
   _duplicateSourceDate = null;
 }
 
-function confirmDuplicate() {
+export function confirmDuplicate() {
   var sourceDate = _duplicateSourceDate;
   var targetDate = document.getElementById('duplicateTargetDate');
   if (!sourceDate) { showToast('Data de origem não definida.', 'error'); return; }
@@ -1859,7 +1856,7 @@ function confirmDuplicate() {
     });
 }
 
-function submitStatusPreventiva() {
+export function submitStatusPreventiva() {
   var id = document.getElementById('statusPreventivaId').value;
   var status = document.getElementById('statusSelect').value;
   var obs = document.getElementById('statusObs').value.trim() || '';
@@ -1925,4 +1922,56 @@ function submitStatusPreventiva() {
       showToast('Erro ao atualizar status.', 'error');
       console.error('Erro ao atualizar status:', err);
     });
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.duplicateDayIconHtml = duplicateDayIconHtml;
+  globalThis.formatDateTimeline = formatDateTimeline;
+  globalThis.plannedStatusBadgeHtml = plannedStatusBadgeHtml;
+  globalThis.canEditPlanned = canEditPlanned;
+  globalThis.buildPlannedCardHtml = buildPlannedCardHtml;
+  globalThis.copyOs = copyOs;
+  globalThis.fallbackCopy = fallbackCopy;
+  globalThis.startTeamInlineEdit = startTeamInlineEdit;
+  globalThis.saveTeamInlineEdit = saveTeamInlineEdit;
+  globalThis.cancelTeamInlineEdit = cancelTeamInlineEdit;
+  globalThis.finishTeamEdit = finishTeamEdit;
+  globalThis.pad2 = pad2;
+  globalThis.buildObsSignature = buildObsSignature;
+  globalThis.startObsInlineEdit = startObsInlineEdit;
+  globalThis.saveObsInlineEdit = saveObsInlineEdit;
+  globalThis.cancelObsEdit = cancelObsEdit;
+  globalThis.finishObsEdit = finishObsEdit;
+  globalThis.openCorretivaStatusModal = openCorretivaStatusModal;
+  globalThis.submitCorretivaStatus = submitCorretivaStatus;
+  globalThis.closeCorretivaStatusModal = closeCorretivaStatusModal;
+  globalThis.renderPlanned = renderPlanned;
+  globalThis.syncPlannedCards = syncPlannedCards;
+  globalThis.resetPlannedState = resetPlannedState;
+  globalThis.setupPlannedScroll = setupPlannedScroll;
+  globalThis.setupPlannedFilters = setupPlannedFilters;
+  globalThis.exportPlannedCsv = exportPlannedCsv;
+  globalThis.copyPlannedWhatsApp = copyPlannedWhatsApp;
+  globalThis.setupPlannedSearch = setupPlannedSearch;
+  globalThis.initPlannedActivity = initPlannedActivity;
+  globalThis._plannedItemKey = _plannedItemKey;
+  globalThis._updatePlannedCounter = _updatePlannedCounter;
+  globalThis._appendPlannedToGroup = _appendPlannedToGroup;
+  globalThis._removePlannedCards = _removePlannedCards;
+  globalThis._applyPlannedCardUpdate = _applyPlannedCardUpdate;
+  globalThis.handlePlannedCreated = handlePlannedCreated;
+  globalThis.deletePlanned = deletePlanned;
+  globalThis.openStatusPreventiva = openStatusPreventiva;
+  globalThis.closeStatusPreventiva = closeStatusPreventiva;
+  globalThis.generateSlaDateList = generateSlaDateList;
+  globalThis.openExtendSlaModal = openExtendSlaModal;
+  globalThis.closeExtendSlaModal = closeExtendSlaModal;
+  globalThis.submitExtendSla = submitExtendSla;
+  globalThis.openSetSlaModal = openSetSlaModal;
+  globalThis.closeSetSlaModal = closeSetSlaModal;
+  globalThis.submitSetSla = submitSetSla;
+  globalThis.showDuplicateModal = showDuplicateModal;
+  globalThis.closeDuplicateModal = closeDuplicateModal;
+  globalThis.confirmDuplicate = confirmDuplicate;
+  globalThis.submitStatusPreventiva = submitStatusPreventiva;
 }

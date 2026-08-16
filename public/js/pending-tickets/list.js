@@ -1,4 +1,11 @@
 import { createInfiniteScroll, debounce } from '/public/js/components/infinite-scroll.js';
+import { apiFetch, getUser } from '/public/js/core/auth.js';
+import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
+import { showToast, confirmAction } from '/public/js/core/dom.js';
+import { iconButtonHtml } from '/public/js/components/button.js';
+import { downloadCSV } from '/public/js/utils/csv.js';
+import { PlanModal } from '/public/js/components/plan-modal.js';
+import { formatDate } from '/public/js/pv/form-utils.js';
 
 var _pendingScroll = null;
 var pendingSearch = '';
@@ -64,7 +71,7 @@ const PENDING_EDITABLE_TYPES = {
   material: 'text',
 };
 
-function getStatusBadgeClass(status) {
+export function getStatusBadgeClass(status) {
   switch ((status || '').toLowerCase()) {
     case 'pendente':
       return 'bg-red-100 text-red-700';
@@ -82,7 +89,7 @@ function getStatusBadgeClass(status) {
   }
 }
 
-function getCategoryBadgeClass(tipo) {
+export function getCategoryBadgeClass(tipo) {
   switch ((tipo || '').toLowerCase()) {
     case 'corretiva':
       return 'bg-orange-100 text-orange-700';
@@ -93,7 +100,7 @@ function getCategoryBadgeClass(tipo) {
   }
 }
 
-function getPriorityBadgeClass(priority) {
+export function getPriorityBadgeClass(priority) {
   var p = (priority || '').toUpperCase();
   if (p === '0' || p.indexOf('0-') === 0) return 'bg-red-100 text-red-700';
   if (p === '1') return 'bg-amber-100 text-amber-700';
@@ -102,17 +109,17 @@ function getPriorityBadgeClass(priority) {
   return 'bg-slate-100 text-slate-700';
 }
 
-function pendingValueRaw(value) {
+export function pendingValueRaw(value) {
   return value === null || value === undefined ? '' : value;
 }
 
-function pendingFieldDisplay(field, value) {
+export function pendingFieldDisplay(field, value) {
   if (field.indexOf('data') === 0) return formatDate(value);
   if (value === null || value === undefined || value === '') return '-';
   return value;
 }
 
-function pendingBadgeClassFor(field, value) {
+export function pendingBadgeClassFor(field, value) {
   if (field === 'status') return 'status-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeClass(value);
   if (field === 'tipo') return 'category-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getCategoryBadgeClass(value);
   if (field === 'prioridade') return 'priority-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getPriorityBadgeClass(value);
@@ -121,7 +128,7 @@ function pendingBadgeClassFor(field, value) {
   return '';
 }
 
-async function loadPendingFieldOptions(field) {
+export async function loadPendingFieldOptions(field) {
   try {
     var resp = await apiFetch('/app/api/index.php?route=pending-tickets&action=options&field=' + field);
     var result = await resp.json();
@@ -134,11 +141,12 @@ async function loadPendingFieldOptions(field) {
   }
 }
 
-function enterPendingManagedEdit(td, field) {
+export function enterPendingManagedEdit(td, field) {
   if (td.querySelector('.managed-dropdown')) return;
   var valueEl = td.querySelector('.pending-value');
   var raw = valueEl ? valueEl.getAttribute('data-raw') : '';
   td.setAttribute('data-prev-raw', raw);
+  delete td.dataset.pendingValue;
 
   var options = field === 'step' ? _pendingStepOptions : _pendingResponsavelOptions;
   var html = '<div class="managed-dropdown relative" style="min-width:180px">';
@@ -186,7 +194,14 @@ function enterPendingManagedEdit(td, field) {
     var optionRow = e.target.closest('[data-option-value]');
     if (optionRow && !e.target.closest('.managed-delete')) {
       var val = optionRow.getAttribute('data-option-value');
-      savePendingManagedOption(td, field, val);
+      td.dataset.pendingValue = val;
+      var allOptions = dropdown.querySelectorAll('[data-option-value]');
+      for (var j = 0; j < allOptions.length; j++) {
+        allOptions[j].classList.remove('bg-blue-50');
+        allOptions[j].classList.add('hover:bg-slate-50');
+      }
+      optionRow.classList.add('bg-blue-50');
+      optionRow.classList.remove('hover:bg-slate-50');
       return;
     }
 
@@ -232,7 +247,12 @@ function enterPendingManagedEdit(td, field) {
 
     var confirmEditBtn = e.target.closest('.managed-confirm');
     if (confirmEditBtn) {
-      cancelPendingEdit(td);
+      var pendingVal = td.dataset.pendingValue;
+      if (pendingVal !== undefined) {
+        savePendingManagedOption(td, field, pendingVal);
+      } else {
+        cancelPendingEdit(td);
+      }
       return;
     }
 
@@ -256,7 +276,7 @@ function enterPendingManagedEdit(td, field) {
   });
 }
 
-async function savePendingManagedOption(td, field, value) {
+export async function savePendingManagedOption(td, field, value) {
   var tr = td.closest('tr.pending-row');
   var id = tr ? tr.getAttribute('data-id') : null;
   if (!id) return;
@@ -280,7 +300,7 @@ async function savePendingManagedOption(td, field, value) {
   }
 }
 
-async function deletePendingManagedOption(field, id) {
+export async function deletePendingManagedOption(field, id) {
   var confirmed = await confirmAction('Excluir opção', 'Tem certeza que deseja excluir esta opção?');
   if (!confirmed) return;
 
@@ -305,7 +325,7 @@ async function deletePendingManagedOption(field, id) {
   }
 }
 
-async function addPendingManagedOption(td, field, value) {
+export async function addPendingManagedOption(td, field, value) {
   try {
     var resp = await apiFetch('/app/api/index.php?route=pending-tickets', {
       method: 'POST',
@@ -326,13 +346,13 @@ async function addPendingManagedOption(td, field, value) {
   }
 }
 
-function pendingEditBtn(field) {
+export function pendingEditBtn(field) {
   return '<button type="button" class="pending-edit text-slate-400 hover:text-blue-500 ml-1 align-middle" data-field="' + field + '" title="Editar" aria-label="Editar">'
     + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>'
     + '</button>';
 }
 
-function buildPendingSelect(options, selected, capitalize) {
+export function buildPendingSelect(options, selected, capitalize) {
   var html = '<select class="pending-edit-input pending-select px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800">';
   if (selected === '') {
     html += '<option value="">Selecionar</option>';
@@ -347,7 +367,7 @@ function buildPendingSelect(options, selected, capitalize) {
   return html;
 }
 
-function pendingEditableCellHtml(field, value) {
+export function pendingEditableCellHtml(field, value) {
   var raw = pendingValueRaw(value);
   var display = pendingFieldDisplay(field, value);
   var badge = pendingBadgeClassFor(field, value);
@@ -360,7 +380,7 @@ function pendingEditableCellHtml(field, value) {
     + '</td>';
 }
 
-function enterPendingEdit(td, field) {
+export function enterPendingEdit(td, field) {
   if (td.querySelector('.pending-edit-input') || td.querySelector('.managed-dropdown')) return;
   var type = PENDING_EDITABLE_TYPES[field] || 'text';
 
@@ -393,10 +413,12 @@ function enterPendingEdit(td, field) {
     + '<button type="button" class="pending-cancel ml-1 px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
 }
 
-function refreshPendingCell(td, field, value) {
+export function refreshPendingCell(td, field, value) {
   var raw = pendingValueRaw(value);
   var display = pendingFieldDisplay(field, value);
   var badge = pendingBadgeClassFor(field, value);
+  td.classList.remove('managed-active');
+  delete td.dataset.pendingValue;
   td.removeAttribute('data-prev-raw');
   td.innerHTML = '<span class="inline-flex items-center gap-1">'
     + '<span class="pending-value' + (badge ? ' ' + badge : '') + '" data-raw="' + escapeHtml(raw) + '">' + escapeHtml(display) + '</span>'
@@ -404,26 +426,26 @@ function refreshPendingCell(td, field, value) {
     + '</span>';
 }
 
-function cancelPendingEdit(td) {
+export function cancelPendingEdit(td) {
   var field = td.getAttribute('data-field');
   var prev = td.getAttribute('data-prev-raw') || '';
   td.classList.remove('managed-active');
   refreshPendingCell(td, field, prev);
 }
 
-function obsDisplayHtml(value) {
+export function obsDisplayHtml(value) {
   var display = value === null || value === undefined || value === '' ? '-' : value;
   return escapeHtml(display).replace(/\n/g, '<br>');
 }
 
-function refreshPendingObs(wrap, value) {
+export function refreshPendingObs(wrap, value) {
   var raw = pendingValueRaw(value);
   wrap.removeAttribute('data-prev-raw');
   wrap.innerHTML = '<span class="obs-value text-slate-700" data-raw="' + escapeHtml(raw) + '">' + obsDisplayHtml(value) + '</span>'
     + pendingEditBtn('obs');
 }
 
-function enterPendingObsEdit(wrap) {
+export function enterPendingObsEdit(wrap) {
   if (wrap.querySelector('.pending-edit-input')) return;
   var valueEl = wrap.querySelector('.obs-value');
   var raw = valueEl ? valueEl.getAttribute('data-raw') : '';
@@ -433,7 +455,7 @@ function enterPendingObsEdit(wrap) {
     + '<button type="button" class="pending-cancel ml-1 px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
 }
 
-async function savePendingObs(wrap) {
+export async function savePendingObs(wrap) {
   var input = wrap.querySelector('.pending-edit-input');
   if (!input) return;
   var value = input.value;
@@ -460,12 +482,12 @@ async function savePendingObs(wrap) {
   }
 }
 
-function cancelPendingObs(wrap) {
+export function cancelPendingObs(wrap) {
   var prev = wrap.getAttribute('data-prev-raw') || '';
   refreshPendingObs(wrap, prev);
 }
 
-function copyOs(os) {
+export function copyOs(os) {
   if (!os || os === '-') return;
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -478,7 +500,7 @@ function copyOs(os) {
   }
 }
 
-function fallbackCopy(text) {
+export function fallbackCopy(text) {
   var textarea = document.createElement('textarea');
   textarea.value = text;
   textarea.style.position = 'fixed';
@@ -494,7 +516,7 @@ function fallbackCopy(text) {
   document.body.removeChild(textarea);
 }
 
-function pendingPlanActionHtml(item) {
+export function pendingPlanActionHtml(item) {
   if (typeof getUser !== 'function') return '<td class="px-3 py-2.5 text-sm"></td>';
   var role = (getUser().role || '').toLowerCase();
   if (role !== 'admin' && role !== 'coordenador') return '<td class="px-3 py-2.5 text-sm"></td>';
@@ -504,7 +526,7 @@ function pendingPlanActionHtml(item) {
     + '</td>';
 }
 
-function handlePendingPlanned(ticket, data) {
+export function handlePendingPlanned(ticket, data) {
   if (!data) return;
   var newStatus = (data.item && data.item.status) || 'Planejado';
   var filterMatch = pendingStatusFilter.size === 0
@@ -526,7 +548,7 @@ function handlePendingPlanned(ticket, data) {
   showToast('Atividade planejada com sucesso!', 'success');
 }
 
-async function savePendingField(td) {
+export async function savePendingField(td) {
   var input = td.querySelector('.pending-edit-input');
   if (!input) return;
   var value = input.value;
@@ -554,7 +576,7 @@ async function savePendingField(td) {
   }
 }
 
-function renderPendingTable(list, append) {
+export function renderPendingTable(list, append) {
   append = append || false;
   var tbody = document.getElementById('pendingTableBody');
   var empty = document.getElementById('pendingEmpty');
@@ -633,7 +655,7 @@ function renderPendingTable(list, append) {
   applyPendingColumnVisibility();
 }
 
-function syncPendingTable(newItems) {
+export function syncPendingTable(newItems) {
   var tbody = document.getElementById('pendingTableBody');
   if (!tbody) return;
 
@@ -659,7 +681,7 @@ function syncPendingTable(newItems) {
   }
 }
 
-function togglePendingRow(id) {
+export function togglePendingRow(id) {
   var row = document.querySelector('tr.pending-row[data-id="' + id + '"]');
   var detail = document.querySelector('tr.pending-details[data-detail-for="' + id + '"]');
   if (!row || !detail) return;
@@ -671,16 +693,16 @@ function togglePendingRow(id) {
   }
 }
 
-function updatePendingBadge(data) {
+export function updatePendingBadge(data) {
   var badge = document.getElementById('pendingBadge');
   if (badge) badge.textContent = data.total || 0;
 }
 
-function pendingColspan() {
+export function pendingColspan() {
   return PENDING_COLUMNS - pendingHiddenColumns.size;
 }
 
-function applyPendingColumnVisibility() {
+export function applyPendingColumnVisibility() {
   for (var i = 0; i < PENDING_COLUMNS_DEF.length; i++) {
     var col = PENDING_COLUMNS_DEF[i].key;
     var hidden = pendingHiddenColumns.has(col);
@@ -695,7 +717,7 @@ function applyPendingColumnVisibility() {
   }
 }
 
-function updatePendingColumnLabel() {
+export function updatePendingColumnLabel() {
   var label = document.getElementById('pendingColLabel');
   if (!label) return;
   if (pendingColTodosChecked) {
@@ -707,7 +729,7 @@ function updatePendingColumnLabel() {
   }
 }
 
-function renderPendingColumnDropdown() {
+export function renderPendingColumnDropdown() {
   var dropdown = document.getElementById('pendingColDropdown');
   if (!dropdown) return;
 
@@ -757,7 +779,7 @@ function renderPendingColumnDropdown() {
   dropdown.innerHTML = html;
 }
 
-function initPendingColumnSelect() {
+export function initPendingColumnSelect() {
   var btn = document.getElementById('pendingColBtn');
   var dropdown = document.getElementById('pendingColDropdown');
   if (!btn || !dropdown) return;
@@ -782,7 +804,7 @@ function initPendingColumnSelect() {
   applyPendingColumnVisibility();
 }
 
-function buildPendingCsvRow(item) {
+export function buildPendingCsvRow(item) {
   return [
     sanitizeCSV(item.local),
     sanitizeCSV(item.os || ''),
@@ -806,7 +828,7 @@ function buildPendingCsvRow(item) {
   ];
 }
 
-async function exportPendingCsv() {
+export async function exportPendingCsv() {
   try {
     var allRows = [];
     var offset = 0;
@@ -865,12 +887,12 @@ var pendingDebouncedOsFilter = debounce(function (val) {
   _pendingReset();
 }, 1000);
 
-function buildPendingSortQuery() {
+export function buildPendingSortQuery() {
   return '&sort_by=' + encodeURIComponent(pendingSortBy)
     + '&sort_dir=' + encodeURIComponent(pendingSortDir);
 }
 
-function buildPendingQuery() {
+export function buildPendingQuery() {
   var q = 'search=' + encodeURIComponent(pendingSearch)
     + '&os=' + encodeURIComponent(pendingOsFilter)
     + '&sort_by=' + encodeURIComponent(pendingSortBy)
@@ -886,7 +908,7 @@ function buildPendingQuery() {
   return q;
 }
 
-function _pendingReset() {
+export function _pendingReset() {
   pendingLoading = false;
   pendingAllLoaded = false;
   _pendingItemsById = {};
@@ -895,7 +917,7 @@ function _pendingReset() {
   if (_pendingScroll) _pendingScroll.reset().init();
 }
 
-function setupPendingSort() {
+export function setupPendingSort() {
   document.querySelectorAll('#pendingTable thead th[data-sort]').forEach(function (th) {
     th.addEventListener('click', function () {
       var col = this.dataset.sort;
@@ -915,7 +937,7 @@ function setupPendingSort() {
   });
 }
 
-function updatePendingStatusLabel() {
+export function updatePendingStatusLabel() {
   var label = document.getElementById('pendingStatusLabel');
   if (!label) return;
   if (pendingStatusTodosChecked) {
@@ -927,7 +949,7 @@ function updatePendingStatusLabel() {
   }
 }
 
-function renderPendingStatusDropdown() {
+export function renderPendingStatusDropdown() {
   var dropdown = document.getElementById('pendingStatusDropdown');
   if (!dropdown) return;
 
@@ -979,7 +1001,7 @@ function renderPendingStatusDropdown() {
   dropdown.innerHTML = html;
 }
 
-function initPendingStatusSelect() {
+export function initPendingStatusSelect() {
   var btn = document.getElementById('pendingStatusBtn');
   var dropdown = document.getElementById('pendingStatusDropdown');
   if (!btn || !dropdown) return;
@@ -1004,7 +1026,7 @@ function initPendingStatusSelect() {
   updatePendingStatusLabel();
 }
 
-function initPendingTickets() {
+export function initPendingTickets() {
   pendingSearch = '';
   pendingStatusFilter = new Set();
   pendingStatusTodosChecked = true;
@@ -1199,11 +1221,51 @@ function initPendingTickets() {
   _pendingScroll.init();
 }
 
-globalThis.initPendingTickets = initPendingTickets;
-globalThis.exportPendingCsv = exportPendingCsv;
-globalThis.buildPendingCsvRow = buildPendingCsvRow;
-globalThis.buildPendingSortQuery = buildPendingSortQuery;
-globalThis.buildPendingQuery = buildPendingQuery;
-globalThis._pendingReset = _pendingReset;
-globalThis.pendingPlanActionHtml = pendingPlanActionHtml;
-globalThis.handlePendingPlanned = handlePendingPlanned;
+if (typeof globalThis !== 'undefined') {
+  globalThis.getStatusBadgeClass = getStatusBadgeClass;
+  globalThis.getCategoryBadgeClass = getCategoryBadgeClass;
+  globalThis.getPriorityBadgeClass = getPriorityBadgeClass;
+  globalThis.pendingValueRaw = pendingValueRaw;
+  globalThis.pendingFieldDisplay = pendingFieldDisplay;
+  globalThis.pendingBadgeClassFor = pendingBadgeClassFor;
+  globalThis.loadPendingFieldOptions = loadPendingFieldOptions;
+  globalThis.enterPendingManagedEdit = enterPendingManagedEdit;
+  globalThis.savePendingManagedOption = savePendingManagedOption;
+  globalThis.deletePendingManagedOption = deletePendingManagedOption;
+  globalThis.addPendingManagedOption = addPendingManagedOption;
+  globalThis.pendingEditBtn = pendingEditBtn;
+  globalThis.buildPendingSelect = buildPendingSelect;
+  globalThis.pendingEditableCellHtml = pendingEditableCellHtml;
+  globalThis.enterPendingEdit = enterPendingEdit;
+  globalThis.refreshPendingCell = refreshPendingCell;
+  globalThis.cancelPendingEdit = cancelPendingEdit;
+  globalThis.obsDisplayHtml = obsDisplayHtml;
+  globalThis.refreshPendingObs = refreshPendingObs;
+  globalThis.enterPendingObsEdit = enterPendingObsEdit;
+  globalThis.savePendingObs = savePendingObs;
+  globalThis.cancelPendingObs = cancelPendingObs;
+  globalThis.copyOs = copyOs;
+  globalThis.fallbackCopy = fallbackCopy;
+  globalThis.pendingPlanActionHtml = pendingPlanActionHtml;
+  globalThis.handlePendingPlanned = handlePendingPlanned;
+  globalThis.savePendingField = savePendingField;
+  globalThis.renderPendingTable = renderPendingTable;
+  globalThis.syncPendingTable = syncPendingTable;
+  globalThis.togglePendingRow = togglePendingRow;
+  globalThis.updatePendingBadge = updatePendingBadge;
+  globalThis.pendingColspan = pendingColspan;
+  globalThis.applyPendingColumnVisibility = applyPendingColumnVisibility;
+  globalThis.updatePendingColumnLabel = updatePendingColumnLabel;
+  globalThis.renderPendingColumnDropdown = renderPendingColumnDropdown;
+  globalThis.initPendingColumnSelect = initPendingColumnSelect;
+  globalThis.buildPendingCsvRow = buildPendingCsvRow;
+  globalThis.exportPendingCsv = exportPendingCsv;
+  globalThis.buildPendingSortQuery = buildPendingSortQuery;
+  globalThis.buildPendingQuery = buildPendingQuery;
+  globalThis._pendingReset = _pendingReset;
+  globalThis.setupPendingSort = setupPendingSort;
+  globalThis.updatePendingStatusLabel = updatePendingStatusLabel;
+  globalThis.renderPendingStatusDropdown = renderPendingStatusDropdown;
+  globalThis.initPendingStatusSelect = initPendingStatusSelect;
+  globalThis.initPendingTickets = initPendingTickets;
+}

@@ -1,4 +1,7 @@
-function openPvEmailModal(options) {
+import { showToast, showModal, hideModal } from '/public/js/core/dom.js';
+import { resetPvState } from './list.js';
+
+export function openPvEmailModal(options) {
   const isBatch = options && options.batch;
   const pv = isBatch ? null : pvEmailPvData;
   const pvs = isBatch ? (options.pvs || []) : null;
@@ -82,13 +85,13 @@ function openPvEmailModal(options) {
   showModal('pvEmailModal');
 }
 
-function closePvEmailModal() {
+export function closePvEmailModal() {
   pvEmailBatchIds = null;
   pvEmailBatchUf = null;
   hideModal('pvEmailModal');
 }
 
-async function sendPvEmail() {
+export async function sendPvEmail() {
   const selected = document.querySelector('input[name="pvSubject"]:checked');
   if (!selected) {
     showToast('Selecione um assunto', 'error');
@@ -168,4 +171,10 @@ async function sendPvEmail() {
       btn.classList.remove('opacity-75', 'cursor-not-allowed');
     }
   }
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.openPvEmailModal = openPvEmailModal;
+  globalThis.closePvEmailModal = closePvEmailModal;
+  globalThis.sendPvEmail = sendPvEmail;
 }

@@ -1,6 +1,10 @@
 // public/js/scm/scm-import.js
 
-async function importScm() {
+import { showToast, dismissToast } from '/public/js/core/dom.js';
+import { apiFetch } from '/public/js/core/auth.js';
+import { resetScmState } from './scm-list.js';
+
+export async function importScm() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.csv';
@@ -45,7 +49,7 @@ async function importScm() {
     input.click();
 }
 
-function parseCsvLine(line, delimiter) {
+export function parseCsvLine(line, delimiter) {
     const result = [];
     let current = '';
     let inQuotes = false;
@@ -64,7 +68,7 @@ function parseCsvLine(line, delimiter) {
     return result;
 }
 
-function parseScmCSV(text) {
+export function parseScmCSV(text) {
     // Remove BOM
     if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
 
@@ -100,7 +104,7 @@ function parseScmCSV(text) {
     return rows;
 }
 
-async function readFileAsText(file) {
+export async function readFileAsText(file) {
     const buffer = await file.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     const hasUtf8Bom = bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF;
@@ -110,4 +114,11 @@ async function readFileAsText(file) {
     } catch {
         return new TextDecoder('iso-8859-1').decode(buffer);
     }
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.importScm = importScm;
+  globalThis.parseCsvLine = parseCsvLine;
+  globalThis.parseScmCSV = parseScmCSV;
+  globalThis.readFileAsText = readFileAsText;
 }

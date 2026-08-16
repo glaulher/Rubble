@@ -1,4 +1,6 @@
-function uploadWithProgress(url, formData, { onProgress }) {
+import { getToken } from '/public/js/core/auth.js';
+
+export function uploadWithProgress(url, formData, { onProgress }) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', url);
@@ -29,7 +31,7 @@ function uploadWithProgress(url, formData, { onProgress }) {
   });
 }
 
-function uploadFile({ accept = '.pdf', multiple = false, uploadType, onSuccess, onError, onProgress, onStart }) {
+export function uploadFile({ accept = '.pdf', multiple = false, uploadType, onSuccess, onError, onProgress, onStart }) {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -68,4 +70,9 @@ function uploadFile({ accept = '.pdf', multiple = false, uploadType, onSuccess, 
     };
     input.click();
   });
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.uploadWithProgress = uploadWithProgress;
+  globalThis.uploadFile = uploadFile;
 }

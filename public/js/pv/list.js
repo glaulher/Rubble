@@ -1,4 +1,13 @@
 import { createInfiniteScroll, debounce } from '/public/js/components/infinite-scroll.js';
+import { showToast, confirmAction } from '/public/js/core/dom.js';
+import { escapeHtml } from '/public/js/core/utils.js';
+import { iconButtonHtml } from '/public/js/components/button.js';
+import { PV_STATUSES } from './constants.js';
+import { formatDate, getStatusBadge, generateCicloOptions, updatePvCounter } from './form-utils.js';
+import { deletePv, openStatusModal, closeStatusModal, confirmStatusChange, openPvItemModal, closePvItemModal } from './modals.js';
+import { openPvEmailModal, sendPvEmail, closePvEmailModal } from './modal-email.js';
+import { generatePvCSV } from './csv-export.js';
+import { downloadPvPdf } from './pdf-export.js';
 
 let pvLimit = 20;
 let pvList = [];
@@ -12,7 +21,13 @@ globalThis.pvEmailPvId = null;
 globalThis.pvEmailPvData = null;
 globalThis.selectedPvIds = [];
 
-async function duplicatePv(id) {
+Object.defineProperty(globalThis, 'pvList', {
+  get: function () { return pvList; },
+  set: function (v) { pvList = v; },
+  configurable: true,
+});
+
+export async function duplicatePv(id) {
   const confirmed = await confirmAction('Duplicar PV', 'Tem certeza que deseja duplicar esta PV?', 'Duplicar', 'confirm');
   if (!confirmed) return;
 
@@ -36,7 +51,7 @@ async function duplicatePv(id) {
   }
 }
 
-function copyOs(os) {
+export function copyOs(os) {
   if (!os || os === '-') return;
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -49,7 +64,7 @@ function copyOs(os) {
   }
 }
 
-function fallbackCopy(text) {
+export function fallbackCopy(text) {
   const textarea = document.createElement('textarea');
   textarea.value = text;
   textarea.style.position = 'fixed';
@@ -65,7 +80,7 @@ function fallbackCopy(text) {
   document.body.removeChild(textarea);
 }
 
-function buildPvRowHtml(pv) {
+export function buildPvRowHtml(pv) {
   const itensCount = pv.itens_count || 0;
   const valorTotal =
     pv.valor_total != null
@@ -101,7 +116,7 @@ function buildPvRowHtml(pv) {
   `;
 }
 
-function renderPvs(list, append = false) {
+export function renderPvs(list, append = false) {
   const tbody = document.getElementById('pvTableBody');
   const empty = document.getElementById('pvEmpty');
 
@@ -126,7 +141,7 @@ function renderPvs(list, append = false) {
   updateBatchButton();
 }
 
-function createPvRow(pv) {
+export function createPvRow(pv) {
   const tr = document.createElement('tr');
   tr.className =
     'border-b border-slate-100 hover:bg-slate-100 transition cursor-pointer';
@@ -164,7 +179,7 @@ function createPvRow(pv) {
   return tr;
 }
 
-function syncPvTable(newItems) {
+export function syncPvTable(newItems) {
   const tbody = document.getElementById('pvTableBody');
   const empty = document.getElementById('pvEmpty');
   if (!tbody) return;
@@ -188,7 +203,7 @@ function syncPvTable(newItems) {
   updateBatchButton();
 }
 
-function resetPvState(search, status, cycle, keepSort) {
+export function resetPvState(search, status, cycle, keepSort) {
   globalThis.selectedPvIds = [];
   globalThis.pvSearch = search;
   globalThis.pvStatusFilter = status;
@@ -208,7 +223,7 @@ function resetPvState(search, status, cycle, keepSort) {
   if (_pvScroll) _pvScroll.reset().init();
 }
 
-function setupPvSearch() {
+export function setupPvSearch() {
   const searchInputPv = document.getElementById('searchInputPv');
   if (!searchInputPv) return;
 
@@ -230,7 +245,7 @@ function setupPvSearch() {
   searchInputPv.addEventListener('input', onSearch);
 }
 
-function setupPvStatusFilter() {
+export function setupPvStatusFilter() {
   const datalist = document.getElementById('statusFilterList');
   if (datalist) {
     PV_STATUSES.forEach((s) => {
@@ -265,7 +280,7 @@ function setupPvStatusFilter() {
   });
 }
 
-function setupPvCycleFilter() {
+export function setupPvCycleFilter() {
   const filter = document.getElementById('cicloFilter');
   if (!filter) return;
 
@@ -303,7 +318,7 @@ function setupPvCycleFilter() {
   });
 }
 
-function setupPvInfiniteScroll() {
+export function setupPvInfiniteScroll() {
   var _pvTotalValor = 0;
 
   _pvScroll = createInfiniteScroll({
@@ -339,7 +354,7 @@ function setupPvInfiniteScroll() {
   });
 }
 
-function setupPvSort() {
+export function setupPvSort() {
   document.querySelectorAll('#pvTable thead th[data-sort]').forEach((th) => {
     th.addEventListener('click', function () {
       const col = this.dataset.sort;
@@ -361,7 +376,7 @@ function setupPvSort() {
   });
 }
 
-function updateBatchButton() {
+export function updateBatchButton() {
   const batchBtn = document.getElementById('batchEmailBtn');
   const selectedCountEl = document.getElementById('selectedCount');
   if (!batchBtn || !selectedCountEl) return;
@@ -374,7 +389,7 @@ function updateBatchButton() {
   }
 }
 
-function setupPvCheckboxes() {
+export function setupPvCheckboxes() {
   const selectAll = document.getElementById('selectAllPv');
   const batchBtn = document.getElementById('batchEmailBtn');
   const pvTableBody = document.getElementById('pvTableBody');
@@ -433,7 +448,7 @@ function setupPvCheckboxes() {
   updateBatchButton();
 }
 
-function initPv() {
+export function initPv() {
   pvList = [];
   globalThis.selectedPvIds = [];
 
@@ -482,5 +497,21 @@ function initPv() {
   if (_pvScroll) _pvScroll.init();
 }
 
-globalThis.resetPvState = resetPvState;
-globalThis.initPv = initPv;
+if (typeof globalThis !== 'undefined') {
+  globalThis.duplicatePv = duplicatePv;
+  globalThis.copyOs = copyOs;
+  globalThis.fallbackCopy = fallbackCopy;
+  globalThis.buildPvRowHtml = buildPvRowHtml;
+  globalThis.renderPvs = renderPvs;
+  globalThis.createPvRow = createPvRow;
+  globalThis.syncPvTable = syncPvTable;
+  globalThis.resetPvState = resetPvState;
+  globalThis.setupPvSearch = setupPvSearch;
+  globalThis.setupPvStatusFilter = setupPvStatusFilter;
+  globalThis.setupPvCycleFilter = setupPvCycleFilter;
+  globalThis.setupPvInfiniteScroll = setupPvInfiniteScroll;
+  globalThis.setupPvSort = setupPvSort;
+  globalThis.updateBatchButton = updateBatchButton;
+  globalThis.setupPvCheckboxes = setupPvCheckboxes;
+  globalThis.initPv = initPv;
+}

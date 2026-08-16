@@ -1,4 +1,10 @@
 import { createInfiniteScroll } from '/public/js/components/infinite-scroll.js';
+import { apiFetch, applyRoleVisibility } from '/public/js/core/auth.js';
+import { PollingManager } from '/public/js/core/polling.js';
+import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
+import { showToast, dismissToast } from '/public/js/core/dom.js';
+import { downloadCSV } from '/public/js/utils/csv.js';
+import { hubRecase } from '/public/js/home/home-ui.js';
 
 var _cycleCurrent = '';
 var _cycleSelectedIds = new Set();
@@ -17,7 +23,7 @@ var _cycleScmValidationCache = {};
 var _cycleSummaryData = null;
 var _cycleScmData = null;
 
-function _cycleGenerateOptions() {
+export function _cycleGenerateOptions() {
   var opts = [];
   for (var y = 2026; y <= 2036; y++) {
     for (var m = 1; m <= 12; m++) {
@@ -27,7 +33,7 @@ function _cycleGenerateOptions() {
   return opts;
 }
 
-function initPreventiveCycle() {
+export function initPreventiveCycle() {
   document._cycleSetupDone = false;
   _cycleCurrent = '';
   _cycleSelectedIds = new Set();
@@ -56,7 +62,7 @@ function initPreventiveCycle() {
 
 globalThis.initPreventiveCycle = initPreventiveCycle;
 
-function _cycleSetupEvents() {
+export function _cycleSetupEvents() {
   if (document._cycleSetupDone) return;
   document._cycleSetupDone = true;
   var cycleInput = document.getElementById('cycleInput');
@@ -184,7 +190,7 @@ function _cycleSetupEvents() {
   }
 }
 
-function _cycleSetupScroll() {
+export function _cycleSetupScroll() {
   if (_cycleScroll) _cycleScroll.destroy();
   _cycleScroll = createInfiniteScroll({
     sentinelId: 'cycleSentinel',
@@ -225,7 +231,7 @@ function _cycleSetupScroll() {
   });
 }
 
-function _cycleLoadList(ciclo) {
+export function _cycleLoadList(ciclo) {
   if (!ciclo) return;
   _cycleSelectedIds = new Set();
   _cycleSummaryData = null;
@@ -237,7 +243,7 @@ function _cycleLoadList(ciclo) {
   if (_cycleScroll) _cycleScroll.reset().init();
 }
 
-function _cycleRenderCards(items, append) {
+export function _cycleRenderCards(items, append) {
   var container = document.getElementById('cycleContent');
   if (!container) return;
 
@@ -348,7 +354,7 @@ function _cycleRenderCards(items, append) {
   }
 }
 
-function _cycleValidateScm(scmNumber, equipId, badgeEl) {
+export function _cycleValidateScm(scmNumber, equipId, badgeEl) {
     if (_cycleScmValidationCache[scmNumber]) {
         _cycleRenderScmBadge(_cycleScmValidationCache[scmNumber], badgeEl);
         return;
@@ -364,7 +370,7 @@ function _cycleValidateScm(scmNumber, equipId, badgeEl) {
         .catch(function (e) { console.warn('[preventive-cycle]', e); });
 }
 
-function _cycleRenderScmBadge(data, badgeEl) {
+export function _cycleRenderScmBadge(data, badgeEl) {
     if (!data.found) {
         badgeEl.innerHTML = '<span class="inline-flex items-center bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">SCM sem n&uacute;mero correspondente</span>';
         return;
@@ -386,7 +392,7 @@ function _cycleRenderScmBadge(data, badgeEl) {
     badgeEl.innerHTML = '<span class="inline-flex items-center ' + statusClass + ' text-xs px-2 py-0.5 rounded-full">' + _cycleEscape(status) + '</span>';
 }
 
-function _cycleUpdateBadge() {
+export function _cycleUpdateBadge() {
     var el = document.getElementById('cycleBadge');
     if (!el) return;
     if (!_cycleSummaryData && !_cycleScmData) return;
@@ -412,7 +418,7 @@ function _cycleUpdateBadge() {
     el.textContent = parts.join(' | ');
 }
 
-function _cycleFetchSummary(ciclo) {
+export function _cycleFetchSummary(ciclo) {
   if (!ciclo) return;
   var url = '/app/api/index.php?route=preventive-cycle&action=summary&ciclo=' + encodeURIComponent(ciclo);
   if (_cycleFilter === 'observacao') url += '&has_observacao=1';
@@ -428,7 +434,7 @@ function _cycleFetchSummary(ciclo) {
     .catch(function (e) { console.warn('[preventive-cycle]', e); });
 }
 
-function _cycleFetchScmStatusCount(ciclo) {
+export function _cycleFetchScmStatusCount(ciclo) {
     if (!ciclo) return;
     var url = '/app/api/index.php?route=preventive-cycle&action=scm-status-count&ciclo=' + encodeURIComponent(ciclo);
     apiFetch(url)
@@ -441,7 +447,7 @@ function _cycleFetchScmStatusCount(ciclo) {
         .catch(function (e) { console.warn('[preventive-cycle]', e); });
 }
 
-function _cycleCollectSaveItems() {
+export function _cycleCollectSaveItems() {
   var cards = document.querySelectorAll('[data-equip-id][data-valor]');
   var items = [];
   var rendered = {};
@@ -474,7 +480,7 @@ function _cycleCollectSaveItems() {
   return items;
 }
 
-function _cycleSave() {
+export function _cycleSave() {
   var items = _cycleCollectSaveItems();
 
   var saveBtn = document.getElementById('saveCycleBtn');
@@ -510,7 +516,7 @@ function _cycleSave() {
     });
 }
 
-function _cycleExportCsv() {
+export function _cycleExportCsv() {
   var ciclo = _cycleCurrent;
   if (!ciclo) {
     if (typeof showToast === 'function') showToast('Selecione um ciclo primeiro', 'error');
@@ -601,11 +607,21 @@ function _cycleExportCsv() {
     });
 }
 
-var _cycleEscape = typeof escapeHtml === 'function' ? escapeHtml : function (str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-};
+var _cycleEscape = escapeHtml;
+
+if (typeof globalThis !== 'undefined') {
+  globalThis._cycleGenerateOptions = _cycleGenerateOptions;
+  globalThis.initPreventiveCycle = initPreventiveCycle;
+  globalThis._cycleSetupEvents = _cycleSetupEvents;
+  globalThis._cycleSetupScroll = _cycleSetupScroll;
+  globalThis._cycleLoadList = _cycleLoadList;
+  globalThis._cycleRenderCards = _cycleRenderCards;
+  globalThis._cycleValidateScm = _cycleValidateScm;
+  globalThis._cycleRenderScmBadge = _cycleRenderScmBadge;
+  globalThis._cycleUpdateBadge = _cycleUpdateBadge;
+  globalThis._cycleFetchSummary = _cycleFetchSummary;
+  globalThis._cycleFetchScmStatusCount = _cycleFetchScmStatusCount;
+  globalThis._cycleCollectSaveItems = _cycleCollectSaveItems;
+  globalThis._cycleSave = _cycleSave;
+  globalThis._cycleExportCsv = _cycleExportCsv;
+}

@@ -1,4 +1,7 @@
-function downloadPvPdf() {
+import { showToast } from '/public/js/core/dom.js';
+import { formatCurrency } from '/public/js/core/utils.js';
+
+export function downloadPvPdf() {
   const pv = pvEmailPvData;
   if (!pv || !pv.itens || pv.itens.length === 0) {
     showToast('Nenhum item para exportar', 'error');
@@ -286,4 +289,8 @@ function downloadPvPdf() {
   const filename = 'PV-' + (pv.numero_pv || '') + '-' + safeLocal + '-' + safeEquip + capacityStr + '.pdf';
 
   pdf.save(filename);
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.downloadPvPdf = downloadPvPdf;
 }

@@ -1,7 +1,12 @@
+import { showToast, confirmDelete } from '/public/js/core/dom.js';
+import { escapeHtml } from '/public/js/core/utils.js';
+import { getUser } from '/public/js/core/auth.js';
+import { iconButtonHtml } from '/public/js/components/button.js';
+
 let users = [];
 let userSearch = '';
 
-async function initUsers() {
+export async function initUsers() {
   userSearch = '';
   const input = document.getElementById('userSearchInput');
   if (input) input.value = '';
@@ -27,7 +32,7 @@ async function initUsers() {
   }
 }
 
-async function loadUsers() {
+export async function loadUsers() {
   try {
     let url = '/app/api/index.php?route=users&limit=999';
     if (userSearch) {
@@ -48,7 +53,7 @@ async function loadUsers() {
   }
 }
 
-function renderUsers() {
+export function renderUsers() {
   const tbody = document.getElementById('userTableBody');
   const empty = document.getElementById('userEmpty');
   const counter = document.getElementById('userCounter');
@@ -93,7 +98,7 @@ function renderUsers() {
 
 }
 
-function getRoleBadge(role) {
+export function getRoleBadge(role) {
   var colors = {
     'admin': 'bg-red-100 text-red-700',
     'supervisor': 'bg-yellow-100 text-yellow-700',
@@ -107,7 +112,7 @@ function getRoleBadge(role) {
     '</span>';
 }
 
-function setupUserSearch() {
+export function setupUserSearch() {
   var input = document.getElementById('userSearchInput');
   if (!input) return;
 
@@ -129,11 +134,11 @@ function setupUserSearch() {
   });
 }
 
-function editUser(id) {
+export function editUser(id) {
   window.location.hash = '#/usersForm?id=' + id;
 }
 
-async function deleteUser(id) {
+export async function deleteUser(id) {
   var u = users.find(function(u) { return u.id === id; });
   var userName = u ? u.nome : '';
   const confirmed = await confirmDelete('Excluir Usuário', 'Tem certeza que deseja excluir', userName);
@@ -155,4 +160,24 @@ async function deleteUser(id) {
   } catch {
     showToast('Erro ao excluir', 'error');
   }
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.initUsers = initUsers;
+  globalThis.loadUsers = loadUsers;
+  globalThis.renderUsers = renderUsers;
+  globalThis.getRoleBadge = getRoleBadge;
+  globalThis.setupUserSearch = setupUserSearch;
+  globalThis.editUser = editUser;
+  globalThis.deleteUser = deleteUser;
+  Object.defineProperty(globalThis, 'users', {
+    get: function () { return users; },
+    set: function (v) { users = v; },
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'userSearch', {
+    get: function () { return userSearch; },
+    set: function (v) { userSearch = v; },
+    configurable: true,
+  });
 }

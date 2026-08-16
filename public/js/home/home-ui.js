@@ -1,6 +1,12 @@
 ﻿import { debounce } from '/public/js/components/infinite-scroll.js';
+import { escapeHtml, titleCase, formatAddress } from '/public/js/core/utils.js';
+import { getUser, applyRoleVisibility } from '/public/js/core/auth.js';
+import { showToast } from '/public/js/core/dom.js';
+import { buttonHtml, iconButtonHtml } from '/public/js/components/button.js';
+import { formatDate } from '/public/js/pv/form-utils.js';
+import { deleteTicket, importOS, generateCSVReport, setupHomeScroll } from './equipment.js';
 
-function hubRecase(str) {
+export function hubRecase(str) {
   if (!str || str !== str.toUpperCase()) return str;
   const u = str.toUpperCase();
   if (u.startsWith('HUB ') || u.startsWith('HEADEND ')) {
@@ -9,14 +15,14 @@ function hubRecase(str) {
   return str;
 }
 
-function formatPvDisplay(pvEntry) {
+export function formatPvDisplay(pvEntry) {
   const parts = pvEntry.split('|');
   const pvNum = escapeHtml(parts[0]);
   const osNum = escapeHtml(parts[1] || '');
   return osNum ? `PV${pvNum} - OS${osNum}` : `PV${pvNum}`;
 }
 
-function buildEquipmentCardHtml(e, canEdit) {
+export function buildEquipmentCardHtml(e, canEdit) {
   return `
     <div class="card-item bg-white rounded-2xl shadow-sm hover:shadow-xl transition border border-slate-200" data-equip-id="${e.id}">
 
@@ -129,7 +135,7 @@ function buildEquipmentCardHtml(e, canEdit) {
   `;
 }
 
-function render(list, append = false) {
+export function render(list, append = false) {
   const content = document.getElementById('content');
 
   if (!content) {
@@ -322,7 +328,7 @@ function updateCardInPlace(card, e, canEdit) {
   }
 }
 
-function syncHomeCards(newEquipment) {
+export function syncHomeCards(newEquipment) {
   const content = document.getElementById('content');
   if (!content) return;
 
@@ -443,7 +449,7 @@ function syncHomeCards(newEquipment) {
   if (typeof applyRoleVisibility === 'function') applyRoleVisibility();
 }
 
-function resetState(search) {
+export function resetState(search) {
   globalThis.currentSearch = search || '';
 
   const content = document.getElementById('content');
@@ -455,7 +461,7 @@ function resetState(search) {
   if (globalThis._homeScroll) globalThis._homeScroll.reset().init();
 }
 
-function setupSearch() {
+export function setupSearch() {
   const searchInput = document.getElementById('searchInput');
 
   if (!searchInput) return;
@@ -491,7 +497,7 @@ function restoreExpandedIds(ids) {
   });
 }
 
-function handleContentClick(event) {
+export function handleContentClick(event) {
   const target = event.target.closest('button');
   if (!target) return;
 
@@ -528,7 +534,7 @@ function handleContentClick(event) {
   }
 }
 
-async function loadTicketsForEquipment(equipId, container) {
+export async function loadTicketsForEquipment(equipId, container) {
   const currentUser = getUser();
   const userRole = currentUser ? currentUser.role : '';
   const canEdit = userRole !== 'cliente';
@@ -572,7 +578,7 @@ async function loadTicketsForEquipment(equipId, container) {
   }
 }
 
-function buildTicketHtml(r, canEdit) {
+export function buildTicketHtml(r, canEdit) {
   const status = (r.status || '').toLowerCase();
 
   const statusColor =
@@ -625,7 +631,7 @@ function buildTicketHtml(r, canEdit) {
   `;
 }
 
-async function loadEquipmentSummary() {
+export async function loadEquipmentSummary() {
   const search = globalThis.currentSearch || '';
   const statusKeywords = ['pendente', 'conclu', 'planej', 'andamento', 'clean'];
   const isStatusSearch =
@@ -664,7 +670,7 @@ async function loadEquipmentSummary() {
   }
 }
 
-function initHome() {
+export function initHome() {
   globalThis.currentSearch = '';
   globalThis.totalEquipment = 0;
   globalThis.totalOS = 0;

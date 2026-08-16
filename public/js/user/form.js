@@ -1,4 +1,6 @@
-async function loadUserForm() {
+import { showToast } from '/public/js/core/dom.js';
+
+export async function loadUserForm() {
   const form = document.getElementById('userForm');
   if (!form) return;
 
@@ -46,9 +48,9 @@ async function loadUserForm() {
   form.addEventListener('submit', saveUserForm);
 }
 
-function navigateUsersHandler() { window.location.hash = '#/users'; }
+export function navigateUsersHandler() { window.location.hash = '#/users'; }
 
-function saveUserForm(e) {
+export function saveUserForm(e) {
   e.preventDefault();
 
   const id = document.getElementById('userId').value;
@@ -93,4 +95,10 @@ function saveUserForm(e) {
   .catch(function() {
     showToast('Erro ao salvar', 'error');
   });
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.loadUserForm = loadUserForm;
+  globalThis.navigateUsersHandler = navigateUsersHandler;
+  globalThis.saveUserForm = saveUserForm;
 }

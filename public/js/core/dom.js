@@ -1,6 +1,20 @@
 let _toastTimer = null;
 
-function showToast(message, type = "success") {
+export function showModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('hidden');
+  el.classList.add('flex');
+}
+
+export function hideModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('hidden');
+  el.classList.remove('flex');
+}
+
+export function showToast(message, type = "success") {
   const toast = document.getElementById("toast");
 
   const toastMessage = document.getElementById("toastMessage");
@@ -46,14 +60,14 @@ function showToast(message, type = "success") {
   }
 }
 
-function updateToastProgress(percent, label) {
+export function updateToastProgress(percent, label) {
   const bar = document.getElementById("toastProgressBar");
   const labelEl = document.getElementById("toastProgressLabel");
   if (bar) bar.style.width = Math.min(100, Math.max(0, percent)) + "%";
   if (labelEl && label) labelEl.textContent = label;
 }
 
-function dismissToast() {
+export function dismissToast() {
   if (_toastTimer) {
     clearTimeout(_toastTimer);
     _toastTimer = null;
@@ -68,7 +82,7 @@ function dismissToast() {
   if (labelEl) labelEl.textContent = "";
 }
 
-function confirmAction(title, message, buttonText, variant) {
+export function confirmAction(title, message, buttonText, variant) {
   return new Promise((resolve) => {
     const titleEl = document.getElementById("modalConfirmTitle");
     const msgEl = document.getElementById("modalConfirmMessage");
@@ -99,7 +113,7 @@ function confirmAction(title, message, buttonText, variant) {
   });
 }
 
-function confirmDelete(title, message, itemName) {
+export function confirmDelete(title, message, itemName) {
   return new Promise((resolve) => {
     var titleEl = document.getElementById('deleteConfirmTitle');
     var msgEl = document.getElementById('deleteConfirmMessage');
@@ -123,4 +137,14 @@ function confirmDelete(title, message, itemName) {
       resolve(false);
     };
   });
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.showModal = showModal;
+  globalThis.hideModal = hideModal;
+  globalThis.showToast = showToast;
+  globalThis.updateToastProgress = updateToastProgress;
+  globalThis.dismissToast = dismissToast;
+  globalThis.confirmAction = confirmAction;
+  globalThis.confirmDelete = confirmDelete;
 }

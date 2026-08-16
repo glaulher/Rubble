@@ -1,4 +1,9 @@
-function createAutocomplete({ inputSelector, dropdownSelector, dataSource, filterFn, onSelect, formatItem, onBlur, onInput, scrollToValue }) {
+import { PV_STATUSES } from './constants.js';
+import { updateItemUnit } from './form-utils.js';
+import { calculateItemTotal } from './form-item-row.js';
+import { getPvLocalOptions, getPvOsOptions, filterEquipamentos, generateCicloOptions } from './form-utils.js';
+
+export function createAutocomplete({ inputSelector, dropdownSelector, dataSource, filterFn, onSelect, formatItem, onBlur, onInput, scrollToValue }) {
   const input = document.querySelector(inputSelector);
   const dropdown = document.querySelector(dropdownSelector);
   if (!input || !dropdown) return;
@@ -136,7 +141,7 @@ function createAutocomplete({ inputSelector, dropdownSelector, dataSource, filte
   }
 }
 
-function setupLpuDescriptionAutocomplete(index) {
+export function setupLpuDescriptionAutocomplete(index) {
   const row = document.querySelector(`.item-row[data-item-index="${index}"]`);
   if (!row) return;
 
@@ -276,7 +281,7 @@ function setupLpuDescriptionAutocomplete(index) {
   });
 }
 
-function setupStatusAutocomplete(index) {
+export function setupStatusAutocomplete(index) {
   const row = document.querySelector(`.item-row[data-item-index="${index}"]`);
   if (!row) return;
 
@@ -385,21 +390,21 @@ function setupStatusAutocomplete(index) {
   });
 }
 
-function setupLocalAutocomplete() {
+export function setupLocalAutocomplete() {
   createAutocomplete({
     inputSelector: '#local',
     dropdownSelector: '.local-dropdown',
-    dataSource: () => pvLocalOptions,
+    dataSource: () => getPvLocalOptions(),
     onSelect: () => filterEquipamentos(),
     onInput: () => filterEquipamentos()
   });
 }
 
-function setupOsAutocomplete() {
+export function setupOsAutocomplete() {
   createAutocomplete({
     inputSelector: '#os',
     dropdownSelector: '.os-dropdown',
-    dataSource: () => pvOsOptions,
+    dataSource: () => getPvOsOptions(),
     filterFn: (items, q) => {
       if (!q) return [...items];
       const lower = q.toLowerCase();
@@ -413,7 +418,7 @@ function setupOsAutocomplete() {
   });
 }
 
-function setupCicloAutocomplete() {
+export function setupCicloAutocomplete() {
   var now = new Date();
   var currentCycle = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
   createAutocomplete({
@@ -444,4 +449,13 @@ function setupCicloAutocomplete() {
       hide();
     }
   });
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.createAutocomplete = createAutocomplete;
+  globalThis.setupLpuDescriptionAutocomplete = setupLpuDescriptionAutocomplete;
+  globalThis.setupStatusAutocomplete = setupStatusAutocomplete;
+  globalThis.setupLocalAutocomplete = setupLocalAutocomplete;
+  globalThis.setupOsAutocomplete = setupOsAutocomplete;
+  globalThis.setupCicloAutocomplete = setupCicloAutocomplete;
 }

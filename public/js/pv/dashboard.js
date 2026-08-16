@@ -1,4 +1,7 @@
-function pvBarGradient(ctx, chartArea) {
+import { isDarkMode } from '/public/js/core/utils.js';
+import { generateReport } from '/public/js/utils/report.js';
+
+export function pvBarGradient(ctx, chartArea) {
   if (!chartArea) return '#0ea5e9';
   const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
   gradient.addColorStop(0, '#17275c');
@@ -8,7 +11,7 @@ function pvBarGradient(ctx, chartArea) {
   return gradient;
 }
 
-function pvHbarGradient(ctx, chartArea) {
+export function pvHbarGradient(ctx, chartArea) {
   if (!chartArea) return '#0ea5e9';
   const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
   gradient.addColorStop(0, '#c026d3');
@@ -18,7 +21,7 @@ function pvHbarGradient(ctx, chartArea) {
   return gradient;
 }
 
-function pvChartColors() {
+export function pvChartColors() {
   const dark = isDarkMode();
   return {
     grid: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
@@ -31,14 +34,14 @@ function pvChartColors() {
 let pvCharts = [];
 let pvMiniCharts = [];
 
-function destroyPvCharts() {
+export function destroyPvCharts() {
   pvCharts.forEach((c) => c.destroy());
   pvCharts = [];
   pvMiniCharts.forEach((c) => c.destroy());
   pvMiniCharts = [];
 }
 
-function pvFormatCurrency(value) {
+export function pvFormatCurrency(value) {
   const num = Number(value) || 0;
   const fixed = num.toFixed(2);
   const parts = fixed.split('.');
@@ -46,7 +49,7 @@ function pvFormatCurrency(value) {
   return parts[0] + ',' + parts[1];
 }
 
-function pvToTitleCase(str) {
+export function pvToTitleCase(str) {
   if (!str) return '';
   const abbreviations = ['TR', 'BTU', 'HP', 'R-134A', 'R-22', 'R-410A', 'R-32', 'AC', 'DC', 'HZ', 'KW', 'KVA', 'KV', 'V', 'A'];
   return str.replace(/\w+/g, (word) => {
@@ -56,7 +59,7 @@ function pvToTitleCase(str) {
   });
 }
 
-function getPvFilters() {
+export function getPvFilters() {
   return {
     period_start: document.getElementById('filterPeriodStart')?.value || '',
     period_end: document.getElementById('filterPeriodEnd')?.value || '',
@@ -65,7 +68,7 @@ function getPvFilters() {
   };
 }
 
-async function initPvDashboard() {
+export async function initPvDashboard() {
   destroyPvCharts();
 
   document.querySelector('[data-action="generate-report"]')
@@ -106,7 +109,7 @@ async function initPvDashboard() {
   }
 }
 
-function setupFilterListeners() {
+export function setupFilterListeners() {
   ['filterPeriodStart', 'filterPeriodEnd', 'filterLocation'].forEach((id) => {
     const el = document.getElementById(id);
     if (el && !el.dataset.listenerAttached) {
@@ -116,7 +119,7 @@ function setupFilterListeners() {
   });
 }
 
-function renderPvStatusCards(data) {
+export function renderPvStatusCards(data) {
   const breakdown = data.statusBreakdown || [];
   const totalValue = data.statusTotalValue || 1;
 
@@ -169,7 +172,7 @@ function renderPvStatusCards(data) {
   });
 }
 
-function renderMiniBar(canvasId, currentValue, totalValue, color) {
+export function renderMiniBar(canvasId, currentValue, totalValue, color) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
 
@@ -204,7 +207,7 @@ function renderMiniBar(canvasId, currentValue, totalValue, color) {
   pvMiniCharts.push(chart);
 }
 
-function renderPvFinancialChart(data) {
+export function renderPvFinancialChart(data) {
   const ctx = document.getElementById('pvFinancialChart');
   if (!ctx || !data || data.length === 0) return;
 
@@ -292,7 +295,7 @@ function renderPvFinancialChart(data) {
   pvCharts.push(chart);
 }
 
-function renderPvParetoChart(data) {
+export function renderPvParetoChart(data) {
   const ctx = document.getElementById('pvParetoChart');
   if (!ctx || !data || data.length === 0) return;
 
@@ -390,12 +393,12 @@ function renderPvParetoChart(data) {
   pvCharts.push(chart);
 }
 
-function pvTruncate(str, max) {
+export function pvTruncate(str, max) {
   if (!str) return '';
   return str.length > max ? str.substring(0, max) + '...' : str;
 }
 
-function renderPvHorizontalChart(ctxId, data, getLabel, getValue, xTitle, getQuantity) {
+export function renderPvHorizontalChart(ctxId, data, getLabel, getValue, xTitle, getQuantity) {
   const ctx = document.getElementById(ctxId);
   if (!ctx || !data || data.length === 0) return;
 
@@ -470,4 +473,22 @@ function renderPvHorizontalChart(ctxId, data, getLabel, getValue, xTitle, getQua
   });
 
   pvCharts.push(chart);
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.pvBarGradient = pvBarGradient;
+  globalThis.pvHbarGradient = pvHbarGradient;
+  globalThis.pvChartColors = pvChartColors;
+  globalThis.destroyPvCharts = destroyPvCharts;
+  globalThis.pvFormatCurrency = pvFormatCurrency;
+  globalThis.pvToTitleCase = pvToTitleCase;
+  globalThis.getPvFilters = getPvFilters;
+  globalThis.initPvDashboard = initPvDashboard;
+  globalThis.setupFilterListeners = setupFilterListeners;
+  globalThis.renderPvStatusCards = renderPvStatusCards;
+  globalThis.renderMiniBar = renderMiniBar;
+  globalThis.renderPvFinancialChart = renderPvFinancialChart;
+  globalThis.renderPvParetoChart = renderPvParetoChart;
+  globalThis.pvTruncate = pvTruncate;
+  globalThis.renderPvHorizontalChart = renderPvHorizontalChart;
 }

@@ -1,4 +1,9 @@
-function updateItemUnit(row, unidade) {
+import { getQuantityAttrs, LPU_OPTIONS_ALL, LPU_OPTIONS_CHILLER, LPU_OPTIONS_CLIMA, PV_STATUSES, PV_STATUS_COLORS, setCurrentLpuOptions, getCurrentLpuOptions } from './constants.js';
+import { escapeHtml } from '/public/js/core/utils.js';
+import { showToast, updateToastProgress, dismissToast } from '/public/js/core/dom.js';
+import { uploadFile } from '/public/js/utils/upload.js';
+
+export function updateItemUnit(row, unidade) {
   if (!row) return;
   row.dataset.unit = unidade || '';
   const qtyInput = row.querySelector('.item-quantidade');
@@ -11,13 +16,13 @@ function updateItemUnit(row, unidade) {
   }
 }
 
-function getLpuOptionsForLocal(local) {
+export function getLpuOptionsForLocal(local) {
   if (!local || local === '' || local.toLowerCase() === 'fornecimento')
     return 'all';
   return 'check';
 }
 
-async function resolveLpuMode(local) {
+export async function resolveLpuMode(local) {
   const mode = getLpuOptionsForLocal(local);
   if (mode === 'all') return LPU_OPTIONS_ALL;
   if (mode === 'check') {
@@ -27,13 +32,13 @@ async function resolveLpuMode(local) {
   return LPU_OPTIONS_ALL;
 }
 
-function getLpuOptions(mode) {
+export function getLpuOptions(mode) {
   if (mode === 'all') return LPU_OPTIONS_ALL;
   if (mode === 'chiller') return LPU_OPTIONS_CHILLER;
   return LPU_OPTIONS_CLIMA;
 }
 
-function updateSelectOptions(select, options, selectedValue) {
+export function updateSelectOptions(select, options, selectedValue) {
   select.innerHTML = '<option value="">Selecione...</option>';
   options.forEach(([v, t]) => {
     const opt = document.createElement('option');
@@ -44,19 +49,19 @@ function updateSelectOptions(select, options, selectedValue) {
   });
 }
 
-function getStatusBadge(status) {
+export function getStatusBadge(status) {
   const color = PV_STATUS_COLORS[status] || 'bg-slate-100 text-slate-700';
   return `<span class="inline-block ${color} px-3 py-1 rounded-full text-sm font-semibold">${escapeHtml(status)}</span>`;
 }
 
-function formatDate(dateStr) {
+export function formatDate(dateStr) {
   if (!dateStr) return '-';
   const parts = dateStr.split('-');
   if (parts.length !== 3) return dateStr;
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
-function updatePvCounter(total, totalValor) {
+export function updatePvCounter(total, totalValor) {
   const counter = document.getElementById('pvCounter');
   const valueEl = document.getElementById('pvTotalValue');
   if (counter) counter.textContent = total || 0;
@@ -69,7 +74,7 @@ function updatePvCounter(total, totalValor) {
   }
 }
 
-function generateCicloOptions(referenceYear) {
+export function generateCicloOptions(referenceYear) {
   const currentYear = referenceYear || new Date().getFullYear();
   const startYear = currentYear - 5;
   const endYear = currentYear + 5;
@@ -82,7 +87,7 @@ function generateCicloOptions(referenceYear) {
   return opts;
 }
 
-function populateStatusSelect(selectId, selected) {
+export function populateStatusSelect(selectId, selected) {
   const select = document.getElementById(selectId);
   if (!select) return;
 
@@ -100,7 +105,15 @@ function populateStatusSelect(selectId, selected) {
 let pvLocalOptions = [];
 let pvOsOptions = [];
 
-async function loadLocals() {
+export function getPvLocalOptions() {
+  return pvLocalOptions;
+}
+
+export function getPvOsOptions() {
+  return pvOsOptions;
+}
+
+export async function loadLocals() {
   try {
     const response = await fetch('/app/api/index.php?route=locals');
     const result = await response.json();
@@ -113,7 +126,7 @@ async function loadLocals() {
   }
 }
 
-async function loadOsList() {
+export async function loadOsList() {
   try {
     const response = await fetch(
       '/app/api/index.php?route=pv&action=search-os&q='
@@ -134,7 +147,7 @@ async function loadOsList() {
   }
 }
 
-async function loadEquipamentos(local) {
+export async function loadEquipamentos(local) {
   const select = document.getElementById('equipamentoId');
   if (!select) return;
 
@@ -172,7 +185,7 @@ async function loadEquipamentos(local) {
   }
 }
 
-async function checkChiller(local) {
+export async function checkChiller(local) {
   try {
     const response = await fetch(
       `/app/api/index.php?route=equipment&action=check-chiller&local=${encodeURIComponent(local)}`
@@ -185,21 +198,21 @@ async function checkChiller(local) {
   }
 }
 
-async function filterEquipamentos() {
+export async function filterEquipamentos() {
   const local = document.getElementById('local').value.trim();
   await loadEquipamentos(local || null);
   await updateAllItemLpuOptions(local);
 }
 
-async function updateAllItemLpuOptions(local) {
-  currentLpuOptions = await resolveLpuMode(local);
+export async function updateAllItemLpuOptions(local) {
+  setCurrentLpuOptions(await resolveLpuMode(local));
   document.querySelectorAll('.item-row').forEach((row) => {
     const select = row.querySelector('.item-lpu-origem');
-    updateSelectOptions(select, currentLpuOptions, select.value);
+    updateSelectOptions(select, getCurrentLpuOptions(), select.value);
   });
 }
 
-async function updateHeaderTotal() {
+export async function updateHeaderTotal() {
   const search = pvSearch || '';
   const status = pvStatusFilter || '';
   const cycle = pvCycleFilter || '';
@@ -214,7 +227,7 @@ async function updateHeaderTotal() {
   }
 }
 
-async function uploadReportFile(index) {
+export async function uploadReportFile(index) {
   await uploadFile({
     accept: '.pdf',
     uploadType: 'laudo',
@@ -240,7 +253,7 @@ async function uploadReportFile(index) {
   });
 }
 
-async function uploadOrcamentoFile(index) {
+export async function uploadOrcamentoFile(index) {
   await uploadFile({
     accept: '.pdf',
     uploadType: 'orcamento',
@@ -264,5 +277,37 @@ async function uploadOrcamentoFile(index) {
     onError(msg) {
       showToast(msg, 'error');
     },
+  });
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.updateItemUnit = updateItemUnit;
+  globalThis.getLpuOptionsForLocal = getLpuOptionsForLocal;
+  globalThis.resolveLpuMode = resolveLpuMode;
+  globalThis.getLpuOptions = getLpuOptions;
+  globalThis.updateSelectOptions = updateSelectOptions;
+  globalThis.getStatusBadge = getStatusBadge;
+  globalThis.formatDate = formatDate;
+  globalThis.updatePvCounter = updatePvCounter;
+  globalThis.generateCicloOptions = generateCicloOptions;
+  globalThis.populateStatusSelect = populateStatusSelect;
+  globalThis.loadLocals = loadLocals;
+  globalThis.loadOsList = loadOsList;
+  globalThis.loadEquipamentos = loadEquipamentos;
+  globalThis.checkChiller = checkChiller;
+  globalThis.filterEquipamentos = filterEquipamentos;
+  globalThis.updateAllItemLpuOptions = updateAllItemLpuOptions;
+  globalThis.updateHeaderTotal = updateHeaderTotal;
+  globalThis.uploadReportFile = uploadReportFile;
+  globalThis.uploadOrcamentoFile = uploadOrcamentoFile;
+  Object.defineProperty(globalThis, 'pvLocalOptions', {
+    get: function () { return pvLocalOptions; },
+    set: function (v) { pvLocalOptions = v; },
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'pvOsOptions', {
+    get: function () { return pvOsOptions; },
+    set: function (v) { pvOsOptions = v; },
+    configurable: true,
   });
 }

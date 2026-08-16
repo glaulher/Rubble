@@ -1,4 +1,4 @@
-(function() {
+export function initTheme() {
   var toggle = document.getElementById('themeToggle');
   var sunIcon = document.getElementById('themeIconSun');
   var moonIcon = document.getElementById('themeIconMoon');
@@ -20,4 +20,6 @@
       updateIcons();
     });
   }
-})();
+}
+
+initTheme();

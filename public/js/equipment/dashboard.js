@@ -1,4 +1,7 @@
-function barGradient(ctx, chartArea) {
+import { isDarkMode } from '/public/js/core/utils.js';
+import { generateReport } from '/public/js/utils/report.js';
+
+export function barGradient(ctx, chartArea) {
   if (!chartArea) return '#0ea5e9';
   const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
   gradient.addColorStop(0, '#c026d3');
@@ -8,7 +11,7 @@ function barGradient(ctx, chartArea) {
   return gradient;
 }
 
-function hbarGradient(ctx, chartArea) {
+export function hbarGradient(ctx, chartArea) {
   if (!chartArea) return '#0ea5e9';
   const gradient = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
   gradient.addColorStop(0, '#17275c');
@@ -18,7 +21,7 @@ function hbarGradient(ctx, chartArea) {
   return gradient;
 }
 
-function chartColors() {
+export function chartColors() {
   const dark = isDarkMode();
   return {
     grid: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
@@ -30,12 +33,12 @@ function chartColors() {
 
 let dashboardCharts = [];
 
-function destroyCharts() {
+export function destroyCharts() {
   dashboardCharts.forEach((c) => c.destroy());
   dashboardCharts = [];
 }
 
-async function initEquipamentDashboard() {
+export async function initEquipamentDashboard() {
   destroyCharts();
 
   document.querySelector('[data-action="generate-report"]')
@@ -59,7 +62,7 @@ async function initEquipamentDashboard() {
   }
 }
 
-function renderStatusCards(data) {
+export function renderStatusCards(data) {
   const total = data.totalTickets || 1;
   const counts = data.statusCounts || {};
 
@@ -79,7 +82,7 @@ function renderStatusCards(data) {
   });
 }
 
-function renderParetoChart(data) {
+export function renderParetoChart(data) {
   const ctx = document.getElementById('paretoChart');
   if (!ctx || !data || data.length === 0) return;
 
@@ -175,7 +178,7 @@ function renderParetoChart(data) {
   dashboardCharts.push(chart);
 }
 
-function renderHorizontalBarChart(ctxId, data, getLabel, getValue, xTitle, tooltipFormatter) {
+export function renderHorizontalBarChart(ctxId, data, getLabel, getValue, xTitle, tooltipFormatter) {
   const ctx = document.getElementById(ctxId);
   if (!ctx || !data || data.length === 0) return;
 
@@ -228,7 +231,7 @@ function renderHorizontalBarChart(ctxId, data, getLabel, getValue, xTitle, toolt
   dashboardCharts.push(chart);
 }
 
-function renderMachinesChart(data) {
+export function renderMachinesChart(data) {
   renderHorizontalBarChart(
     'machinesChart', data,
     (d) => `${d.equipamento} - ${d.local}`,
@@ -242,7 +245,7 @@ function renderMachinesChart(data) {
   );
 }
 
-function renderTechniciansChart(data) {
+export function renderTechniciansChart(data) {
   renderHorizontalBarChart(
     'techniciansChart', data,
     (d) => d.equipe,
@@ -252,7 +255,7 @@ function renderTechniciansChart(data) {
   );
 }
 
-function renderResolutionByMachine(data) {
+export function renderResolutionByMachine(data) {
   renderHorizontalBarChart(
     'resolutionMachineChart', data,
     (d) => `${d.equipamento} - ${d.local}`,
@@ -262,7 +265,7 @@ function renderResolutionByMachine(data) {
   );
 }
 
-function renderResolutionByTechnician(data) {
+export function renderResolutionByTechnician(data) {
   renderHorizontalBarChart(
     'resolutionTechnicianChart', data,
     (d) => d.equipe,
@@ -272,7 +275,7 @@ function renderResolutionByTechnician(data) {
   );
 }
 
-function renderResolutionByMonth(data) {
+export function renderResolutionByMonth(data) {
   const ctx = document.getElementById('resolutionMonthChart');
   if (!ctx || !data || data.length === 0) return;
 
@@ -326,4 +329,20 @@ function renderResolutionByMonth(data) {
   });
 
   dashboardCharts.push(chart);
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.barGradient = barGradient;
+  globalThis.hbarGradient = hbarGradient;
+  globalThis.chartColors = chartColors;
+  globalThis.destroyCharts = destroyCharts;
+  globalThis.initEquipamentDashboard = initEquipamentDashboard;
+  globalThis.renderStatusCards = renderStatusCards;
+  globalThis.renderParetoChart = renderParetoChart;
+  globalThis.renderHorizontalBarChart = renderHorizontalBarChart;
+  globalThis.renderMachinesChart = renderMachinesChart;
+  globalThis.renderTechniciansChart = renderTechniciansChart;
+  globalThis.renderResolutionByMachine = renderResolutionByMachine;
+  globalThis.renderResolutionByTechnician = renderResolutionByTechnician;
+  globalThis.renderResolutionByMonth = renderResolutionByMonth;
 }

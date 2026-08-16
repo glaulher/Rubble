@@ -1,6 +1,10 @@
+import { showToast, confirmDelete } from '/public/js/core/dom.js';
+import { escapeHtml } from '/public/js/core/utils.js';
+import { iconButtonHtml } from '/public/js/components/button.js';
+
 let prices = [];
 
-async function loadPrices() {
+export async function loadPrices() {
   try {
     const response = await fetch('/app/api/index.php?route=equipment-prices');
     const result = await response.json();
@@ -14,7 +18,7 @@ async function loadPrices() {
   }
 }
 
-function renderPrices() {
+export function renderPrices() {
   const tbody = document.getElementById('priceTableBody');
   const counter = document.getElementById('priceCounter');
   const empty = document.getElementById('priceEmpty');
@@ -64,11 +68,11 @@ function renderPrices() {
   `).join('');
 }
 
-function editPrice(id) {
+export function editPrice(id) {
   window.location.hash = '#/equipment-prices-form?id=' + id;
 }
 
-async function confirmDeletePrice(id) {
+export async function confirmDeletePrice(id) {
   const price = prices.find(p => p.id === id);
   if (!price) return;
 
@@ -76,7 +80,7 @@ async function confirmDeletePrice(id) {
   if (confirmed) deletePrice(id);
 }
 
-async function deletePrice(id) {
+export async function deletePrice(id) {
   try {
     const response = await fetch(`/app/api/index.php?route=equipment-prices&id=${id}`, {
       method: 'DELETE'
@@ -94,7 +98,7 @@ async function deletePrice(id) {
   }
 }
 
-function initPriceList() {
+export function initPriceList() {
   loadPrices();
 
   document.querySelector('[data-action="navigate-price-form"]')
@@ -116,4 +120,19 @@ function initPriceList() {
   }
 }
 
-function navigatePriceFormHandler() { window.location.hash = '#/equipment-prices-form'; }
+export function navigatePriceFormHandler() { window.location.hash = '#/equipment-prices-form'; }
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.loadPrices = loadPrices;
+  globalThis.renderPrices = renderPrices;
+  globalThis.editPrice = editPrice;
+  globalThis.confirmDeletePrice = confirmDeletePrice;
+  globalThis.deletePrice = deletePrice;
+  globalThis.initPriceList = initPriceList;
+  globalThis.navigatePriceFormHandler = navigatePriceFormHandler;
+  Object.defineProperty(globalThis, 'prices', {
+    get: function () { return prices; },
+    set: function (v) { prices = v; },
+    configurable: true,
+  });
+}

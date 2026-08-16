@@ -1,3 +1,5 @@
+import { escapeHtml } from './utils.js';
+
 const AUTH_TOKEN_KEY = 'rubble_token';
 const AUTH_USER_KEY = 'rubble_user';
 var TURNSTILE_SITE_KEY = '';
@@ -35,11 +37,11 @@ function isApiUrl(url) {
   };
 })();
 
-function getToken() {
+export function getToken() {
   return sessionStorage.getItem(AUTH_TOKEN_KEY);
 }
 
-function setToken(token) {
+export function setToken(token) {
   if (token) {
     sessionStorage.setItem(AUTH_TOKEN_KEY, token);
   } else {
@@ -47,7 +49,7 @@ function setToken(token) {
   }
 }
 
-function setUser(user) {
+export function setUser(user) {
   if (user) {
     sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
   } else {
@@ -55,7 +57,7 @@ function setUser(user) {
   }
 }
 
-function getUser() {
+export function getUser() {
   const raw = sessionStorage.getItem(AUTH_USER_KEY);
   if (!raw) return null;
   try {
@@ -65,7 +67,7 @@ function getUser() {
   }
 }
 
-function isAuthenticated() {
+export function isAuthenticated() {
   const token = getToken();
   if (!token) return false;
   const payload = parseJwtPayload(token);
@@ -77,7 +79,7 @@ function isAuthenticated() {
   return true;
 }
 
-function parseJwtPayload(token) {
+export function parseJwtPayload(token) {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -87,17 +89,17 @@ function parseJwtPayload(token) {
   }
 }
 
-function storeAuth(token, user) {
+export function storeAuth(token, user) {
   sessionStorage.setItem(AUTH_TOKEN_KEY, token);
   sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
 }
 
-function clearAuth() {
+export function clearAuth() {
   sessionStorage.removeItem(AUTH_TOKEN_KEY);
   sessionStorage.removeItem(AUTH_USER_KEY);
 }
 
-async function login(username, password, turnstileToken) {
+export async function login(username, password, turnstileToken) {
   var body = { username: username, password: password };
   if (turnstileToken) {
     body.turnstile_token = turnstileToken;
@@ -118,7 +120,7 @@ async function login(username, password, turnstileToken) {
   return result.data.user;
 }
 
-function logout() {
+export function logout() {
   stopActiveCountPolling();
   clearAuth();
 
@@ -131,7 +133,7 @@ function logout() {
   window.location.hash = '#/login';
 }
 
-function apiFetch(url, options = {}) {
+export function apiFetch(url, options = {}) {
   const token = getToken();
   const headers = options.headers || {};
 
@@ -142,7 +144,7 @@ function apiFetch(url, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
-function authGuard() {
+export function authGuard() {
   const hash = window.location.hash;
   const publicRoutes = ['#/login'];
 
@@ -159,7 +161,7 @@ function authGuard() {
   return true;
 }
 
-function applyRoleVisibility() {
+export function applyRoleVisibility() {
   const user = getUser();
   if (!user) return;
 
@@ -177,7 +179,7 @@ function applyRoleVisibility() {
   });
 }
 
-function toggleSidebar(visible) {
+export function toggleSidebar(visible) {
   const sidebar = document.getElementById('sidebar');
   const app = document.getElementById('app');
   if (sidebar) {
@@ -188,7 +190,7 @@ function toggleSidebar(visible) {
   }
 }
 
-function loadTurnstile() {
+export function loadTurnstile() {
   if (!TURNSTILE_SITE_KEY || typeof turnstile !== 'undefined') return;
   var s = document.createElement('script');
   s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
@@ -197,7 +199,7 @@ function loadTurnstile() {
   document.head.appendChild(s);
 }
 
-function initTurnstileWidget() {
+export function initTurnstileWidget() {
   if (!TURNSTILE_SITE_KEY || typeof turnstile === 'undefined') return;
   var container = document.getElementById('turnstile-widget');
   if (!container || container.dataset.turnstileRendered) return;
@@ -208,7 +210,7 @@ function initTurnstileWidget() {
   container.dataset.turnstileRendered = '1';
 }
 
-function destroyTurnstile() {
+export function destroyTurnstile() {
   if (typeof turnstile !== 'undefined' && turnstileWidgetId !== null) {
     try {
       turnstile.remove(turnstileWidgetId);
@@ -219,12 +221,12 @@ function destroyTurnstile() {
   }
 }
 
-function getTurnstileToken() {
+export function getTurnstileToken() {
   if (!TURNSTILE_SITE_KEY || turnstileWidgetId === null) return '';
   return turnstile.getResponse(turnstileWidgetId);
 }
 
-async function fetchSiteKey() {
+export async function fetchSiteKey() {
   try {
     var r = await fetch('/app/api/index.php?route=config');
     var d = await r.json();
@@ -234,7 +236,7 @@ async function fetchSiteKey() {
   }
 }
 
-async function fetchActiveCount() {
+export async function fetchActiveCount() {
   try {
     var r = await apiFetch('/app/api/index.php?route=auth&action=active-count');
     var d = await r.json();
@@ -249,20 +251,20 @@ async function fetchActiveCount() {
   }
 }
 
-function startActiveCountPolling() {
+export function startActiveCountPolling() {
   stopActiveCountPolling();
   fetchActiveCount();
   _activeCountInterval = setInterval(fetchActiveCount, 60000);
 }
 
-function stopActiveCountPolling() {
+export function stopActiveCountPolling() {
   if (_activeCountInterval) {
     clearInterval(_activeCountInterval);
     _activeCountInterval = null;
   }
 }
 
-function initLogin() {
+export function initLogin() {
   const form = document.getElementById('loginForm');
   if (!form) return;
 
@@ -348,7 +350,7 @@ function initLogin() {
   });
 }
 
-function updateUserDisplay() {
+export function updateUserDisplay() {
   const user = getUser();
   const displayEl = document.getElementById('userDisplay');
   const isLoginPage = window.location.hash === '#/login';

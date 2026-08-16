@@ -1,4 +1,8 @@
-async function generatePvCSV() {
+import { showToast } from '/public/js/core/dom.js';
+import { downloadCSV } from '/public/js/utils/csv.js';
+import { sanitizeCSV } from '/public/js/core/utils.js';
+
+export async function generatePvCSV() {
   try {
     let url = `/app/api/index.php?route=pv&action=export-csv&search=${encodeURIComponent(pvSearch)}`;
     if (pvStatusFilter) url += `&status=${encodeURIComponent(pvStatusFilter)}`;
@@ -88,4 +92,8 @@ async function generatePvCSV() {
     console.error(err);
     showToast('Erro ao gerar relat\u00f3rio', 'error');
   }
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.generatePvCSV = generatePvCSV;
 }

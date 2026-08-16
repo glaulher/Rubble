@@ -1,4 +1,6 @@
-async function loadHomeForm() {
+import { showToast } from '/public/js/core/dom.js';
+
+export async function loadHomeForm() {
   const form = document.getElementById('ticketForm');
 
   if (!form) return;

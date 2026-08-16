@@ -41,6 +41,7 @@ function modalTemplateHtml() {
 function evalComponent() {
   var code = readFileSync(resolve(__dirname, '../public/js/components/plan-modal.js'), 'utf-8');
   if (code.charCodeAt(0) === 0xFEFF) code = code.slice(1);
+  code = code.replace(/^import .+$/gm, '').replace(/^export /gm, '');
   (0, eval)(code);
 }
 

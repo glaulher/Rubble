@@ -59,10 +59,13 @@ globalThis.escapeHtml = function (str) {
     .replace(/'/g, '&#039;');
 };
 
-// Load auth.js functions
+// Load auth.js functions (strip ES import/export lines for eval-based loading)
 const fs = require('fs');
 const path = require('path');
-const authCode = fs.readFileSync(path.resolve(__dirname, '../public/js/auth.js'), 'utf-8');
+const authCode = fs
+  .readFileSync(path.resolve(__dirname, '../public/js/core/auth.js'), 'utf-8')
+  .replace(/^import .+$/gm, '')
+  .replace(/^export /gm, '');
 eval(authCode);
 
 describe('auth.js', () => {

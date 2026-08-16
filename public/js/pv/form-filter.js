@@ -1,4 +1,7 @@
-function toggleFilterButton(index) {
+import { showToast, confirmAction, showModal, hideModal } from '/public/js/core/dom.js';
+import { getFilterResultHtml } from './form-item-row.js';
+
+export function toggleFilterButton(index) {
   const row = document.querySelector(`.item-row[data-item-index="${index}"]`);
   if (!row) return;
   const checkbox = row.querySelector('.item-filter-checkbox');
@@ -12,7 +15,7 @@ function toggleFilterButton(index) {
 
 let currentFilterIndex = null;
 
-function openFilterModal(index) {
+export function openFilterModal(index) {
   currentFilterIndex = index;
   const row = document.querySelector(`.item-row[data-item-index="${index}"]`);
   if (!row) return;
@@ -32,12 +35,12 @@ function openFilterModal(index) {
   showModal('filterModal');
 }
 
-function closeFilterModal() {
+export function closeFilterModal() {
   currentFilterIndex = null;
   hideModal('filterModal');
 }
 
-function calculateFilter() {
+export function calculateFilter() {
   const tamanhoRaw = document.getElementById('filterTamanho').value.trim();
   const qtdPecas =
     parseInt(document.getElementById('filterQuantidadePecas').value) || 0;
@@ -88,7 +91,7 @@ function calculateFilter() {
   elCobrar.textContent = qtdCobrar;
 }
 
-function saveFilterData() {
+export function saveFilterData() {
   if (currentFilterIndex === null) return;
   const row = document.querySelector(
     `.item-row[data-item-index="${currentFilterIndex}"]`
@@ -143,7 +146,7 @@ function saveFilterData() {
   showToast('Filtro calculado e salvo no item', 'success');
 }
 
-async function removeFilterData(index) {
+export async function removeFilterData(index) {
   const confirmed = await confirmAction(
     'Remover o c\u00e1lculo de filtro deste item?'
   );
@@ -166,4 +169,18 @@ async function removeFilterData(index) {
   btn.classList.add('hidden');
 
   showToast('Filtro removido do item', 'success');
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.toggleFilterButton = toggleFilterButton;
+  globalThis.openFilterModal = openFilterModal;
+  globalThis.closeFilterModal = closeFilterModal;
+  globalThis.calculateFilter = calculateFilter;
+  globalThis.saveFilterData = saveFilterData;
+  globalThis.removeFilterData = removeFilterData;
+  Object.defineProperty(globalThis, 'currentFilterIndex', {
+    get: function () { return currentFilterIndex; },
+    set: function (v) { currentFilterIndex = v; },
+    configurable: true,
+  });
 }

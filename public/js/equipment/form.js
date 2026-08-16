@@ -1,4 +1,6 @@
-async function loadEquipmentForm() {
+import { showToast } from '/public/js/core/dom.js';
+
+export async function loadEquipmentForm() {
   const form = document.getElementById('equipmentForm');
   if (!form) return;
 
@@ -59,7 +61,7 @@ async function loadEquipmentForm() {
   form.addEventListener('submit', saveEquipmentForm);
 }
 
-function saveEquipmentForm(e) {
+export function saveEquipmentForm(e) {
   e.preventDefault();
 
   const id = document.getElementById('equipmentId').value;
@@ -116,4 +118,9 @@ function saveEquipmentForm(e) {
   .catch(function() {
     showToast('Erro ao salvar', 'error');
   });
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.loadEquipmentForm = loadEquipmentForm;
+  globalThis.saveEquipmentForm = saveEquipmentForm;
 }

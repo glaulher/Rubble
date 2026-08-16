@@ -1,7 +1,9 @@
+import { showToast } from '/public/js/core/dom.js';
+
 let currentPrice = null;
 let isEditMode = false;
 
-async function loadPriceForm() {
+export async function loadPriceForm() {
   const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
   const id = params.get('id');
 
@@ -29,7 +31,7 @@ async function loadPriceForm() {
   }
 }
 
-async function fetchPrice(id) {
+export async function fetchPrice(id) {
   try {
     const response = await fetch(`/app/api/index.php?route=equipment-prices&id=${id}`);
     const result = await response.json();
@@ -40,7 +42,7 @@ async function fetchPrice(id) {
   }
 }
 
-async function savePrice(e) {
+export async function savePrice(e) {
   e.preventDefault();
 
   const id = document.getElementById('priceId').value;
@@ -87,7 +89,7 @@ async function savePrice(e) {
   }
 }
 
-function initPriceForm() {
+export function initPriceForm() {
   loadPriceForm();
 
   var form = document.getElementById('priceForm');
@@ -95,4 +97,21 @@ function initPriceForm() {
     form.removeEventListener('submit', savePrice);
     form.addEventListener('submit', savePrice);
   }
+}
+
+if (typeof globalThis !== 'undefined') {
+  globalThis.loadPriceForm = loadPriceForm;
+  globalThis.fetchPrice = fetchPrice;
+  globalThis.savePrice = savePrice;
+  globalThis.initPriceForm = initPriceForm;
+  Object.defineProperty(globalThis, 'currentPrice', {
+    get: function () { return currentPrice; },
+    set: function (v) { currentPrice = v; },
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'isEditMode', {
+    get: function () { return isEditMode; },
+    set: function (v) { isEditMode = v; },
+    configurable: true,
+  });
 }

@@ -1,4 +1,9 @@
 import { createInfiniteScroll } from '/public/js/components/infinite-scroll.js';
+import { showToast } from '/public/js/core/dom.js';
+import { confirmDelete } from '/public/js/core/dom.js';
+import { downloadCSV } from '/public/js/utils/csv.js';
+import { sanitizeCSV } from '/public/js/core/utils.js';
+import { render, syncHomeCards } from './home-ui.js';
 
 globalThis.currentSearch = '';
 globalThis.totalEquipment = 0;
@@ -8,7 +13,7 @@ globalThis._homeScroll = null;
 
 var limit = 20;
 
-function setupHomeScroll() {
+export function setupHomeScroll() {
   globalThis._homeScroll = createInfiniteScroll({
     sentinelId: 'sentinel',
     limit: limit,
@@ -47,7 +52,7 @@ function setupHomeScroll() {
 
 globalThis.setupHomeScroll = setupHomeScroll;
 
-async function deleteTicket(id, button, osNumber) {
+export async function deleteTicket(id, button, osNumber) {
   const numericId = Number(id);
 
   var itemName = osNumber;
@@ -174,7 +179,7 @@ function parseRows(lines, headerIdx, rawHeaders, columnMap) {
   return result;
 }
 
-async function importOS() {
+export async function importOS() {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.csv';
@@ -247,7 +252,7 @@ globalThis.importOS = importOS;
 
 const CSV_CHUNK = 500;
 
-async function generateCSVReport() {
+export async function generateCSVReport() {
   try {
     var allEquipment = [];
     var total;
