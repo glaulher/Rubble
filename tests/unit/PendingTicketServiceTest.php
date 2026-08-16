@@ -326,6 +326,66 @@ class PendingTicketServiceTest extends TestCase
         $service->updatePendingField(10, 'data_prevista_conclusao', '  ');
     }
 
+    public function testUpdatePendingFieldAcceptsPvEnviadaDate(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updatePendingField')
+            ->with(10, 'data_pv_enviada', '2026-08-15')
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $this->assertTrue($service->updatePendingField(10, 'data_pv_enviada', '2026-08-15'));
+    }
+
+    public function testUpdatePendingFieldAcceptsPvAprovadaDate(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updatePendingField')
+            ->with(10, 'data_pv_aprovada', '2026-08-16')
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $this->assertTrue($service->updatePendingField(10, 'data_pv_aprovada', '2026-08-16'));
+    }
+
+    public function testUpdatePendingFieldConvertsEmptyPvDateToNull(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->exactly(2))
+            ->method('updatePendingField')
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $this->assertTrue($service->updatePendingField(10, 'data_pv_enviada', '  '));
+        $this->assertTrue($service->updatePendingField(10, 'data_pv_aprovada', null));
+    }
+
+    public function testSortByPvDatesAllowed(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('listPendingBySite')->willReturn([]);
+        $repo->method('countPending')->willReturn(0);
+
+        $calls = [];
+        $repo->method('listPendingBySite')
+            ->willReturnCallback(function (...$args) use (&$calls) {
+                $calls[] = $args;
+                return [];
+            });
+
+        $service = $this->createService($repo);
+
+        $service->listPendingBySite(20, 0, '', '', 'r.data_pv_enviada', 'DESC');
+        $service->listPendingBySite(20, 0, '', '', 'r.data_pv_aprovada', 'DESC');
+
+        $this->assertSame('r.data_pv_enviada', $calls[0][4]);
+        $this->assertSame('DESC', $calls[0][5]);
+        $this->assertSame('r.data_pv_aprovada', $calls[1][4]);
+        $this->assertSame('DESC', $calls[1][5]);
+    }
+
     public function testListPendingBySitePassesMultiStatusArray(): void
     {
         $repo = $this->createMockRepo();

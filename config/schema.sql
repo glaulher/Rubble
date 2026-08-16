@@ -242,6 +242,8 @@ CREATE TABLE `registros` (
   `data_planejada` date DEFAULT NULL,
   `data_real_inicio` date DEFAULT NULL,
   `data_prevista_conclusao` date DEFAULT NULL,
+  `data_pv_enviada` date DEFAULT NULL,
+  `data_pv_aprovada` date DEFAULT NULL,
   `equipamento_id` int(11) DEFAULT NULL,
   `notificacao_enviada` tinyint(1) DEFAULT 0,
   `origin` enum('ticket','planning') NOT NULL DEFAULT 'ticket',

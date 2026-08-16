@@ -21,6 +21,8 @@ class TicketRepository extends BaseRepository
         'r.data_planejada' => 'r.data_planejada',
         'r.data_real_inicio' => 'r.data_real_inicio',
         'r.data_prevista_conclusao' => 'r.data_prevista_conclusao',
+        'r.data_pv_enviada' => 'r.data_pv_enviada',
+        'r.data_pv_aprovada' => 'r.data_pv_aprovada',
         'r.data_concluido' => 'r.data_concluido',
         'r.equipe' => 'r.equipe',
         'r.material' => 'r.material',
@@ -35,6 +37,8 @@ class TicketRepository extends BaseRepository
         'data_planejada' => 'data_planejada',
         'data_real_inicio' => 'data_real_inicio',
         'data_prevista_conclusao' => 'data_prevista_conclusao',
+        'data_pv_enviada' => 'data_pv_enviada',
+        'data_pv_aprovada' => 'data_pv_aprovada',
         'data_concluido' => 'data_concluido',
         'equipe' => 'equipe',
         'material' => 'material',
@@ -316,9 +320,9 @@ class TicketRepository extends BaseRepository
 
         if ($search !== '') {
             $likeSearch = '%' . $search . '%';
-            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.step LIKE ? OR r.responsavel LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
-            $params = array_merge($params, array_fill(0, 17, $likeSearch));
-            $types .= str_repeat('s', 17);
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.step LIKE ? OR r.responsavel LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_pv_enviada LIKE ? OR r.data_pv_aprovada LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
+            $params = array_merge($params, array_fill(0, 19, $likeSearch));
+            $types .= str_repeat('s', 19);
         }
 
         if ($os !== '') {
@@ -391,9 +395,9 @@ class TicketRepository extends BaseRepository
 
         if ($search !== '') {
             $likeSearch = '%' . $search . '%';
-            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.step LIKE ? OR r.responsavel LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
-            $params = array_merge($params, array_fill(0, 17, $likeSearch));
-            $types .= str_repeat('s', 17);
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.step LIKE ? OR r.responsavel LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_pv_enviada LIKE ? OR r.data_pv_aprovada LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
+            $params = array_merge($params, array_fill(0, 19, $likeSearch));
+            $types .= str_repeat('s', 19);
         }
 
         if ($os !== '') {

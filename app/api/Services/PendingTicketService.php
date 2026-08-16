@@ -19,14 +19,14 @@ class PendingTicketService
     public const ALLOWED_SORT = [
         'e.local', 'e.localidade', 'e.equipamento', 'r.id', 'r.os', 'r.tipo',
         'r.status', 'r.step', 'r.responsavel', 'r.prioridade', 'r.data', 'r.data_planejada', 'r.data_real_inicio',
-        'r.data_prevista_conclusao', 'r.data_concluido', 'r.equipe', 'r.material',
+        'r.data_prevista_conclusao', 'r.data_pv_enviada', 'r.data_pv_aprovada', 'r.data_concluido', 'r.equipe', 'r.material',
     ];
 
     public const ALLOWED_DIRS = ['ASC', 'DESC'];
 
     public const ALLOWED_EDITABLE_FIELDS = [
         'status', 'step', 'responsavel', 'prioridade', 'data', 'data_planejada', 'data_real_inicio',
-        'data_prevista_conclusao', 'data_concluido', 'equipe', 'material', 'obs',
+        'data_prevista_conclusao', 'data_pv_enviada', 'data_pv_aprovada', 'data_concluido', 'equipe', 'material', 'obs',
     ];
 
     public function __construct(?TicketRepository $repository = null)

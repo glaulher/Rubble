@@ -13,9 +13,10 @@ var _pendingItemsById = {};
 var _pendingStepOptions = [];
 var _pendingResponsavelOptions = [];
 
-const PENDING_COLUMNS = 17;
+const PENDING_COLUMNS = 19;
 const CSR_COLUMNS = [
   'SITE', 'OS', 'EQUIPAMENTO', 'LOCALIDADE', 'CATEGORIA', 'STATUS', 'STEP', 'RESPONSAVEL', 'PRIORIDADE',
+  'DATA_ABERTURA', 'DATA_PV_ENVIADA', 'DATA_PV_APROVADA',
   'DATA_PROGRAMADA', 'DATA_REAL_INICIO', 'DATA_PREVISTA_CONCLUSAO',
   'DATA_CONCLUSAO', 'TECNICO', 'MATERIAL', 'OBSERVACAO',
 ];
@@ -34,6 +35,8 @@ const PENDING_COLUMNS_DEF = [
   { key: 'responsavel', label: 'Responsável' },
   { key: 'prioridade', label: 'Prioridade' },
   { key: 'data', label: 'Data Abertura' },
+  { key: 'data_pv_enviada', label: 'Data PV Enviada' },
+  { key: 'data_pv_aprovada', label: 'Data PV Aprovada' },
   { key: 'data_planejada', label: 'Data Programada' },
   { key: 'data_real_inicio', label: 'Data Real Início' },
   { key: 'data_prevista_conclusao', label: 'Data Prevista Conclusão' },
@@ -51,6 +54,8 @@ const PENDING_EDITABLE_TYPES = {
   responsavel: 'managed',
   prioridade: 'select',
   data: 'date',
+  data_pv_enviada: 'date',
+  data_pv_aprovada: 'date',
   data_planejada: 'date',
   data_real_inicio: 'date',
   data_prevista_conclusao: 'date',
@@ -599,6 +604,8 @@ function renderPendingTable(list, append) {
       + pendingEditableCellHtml('responsavel', item.responsavel)
       + pendingEditableCellHtml('prioridade', item.prioridade)
       + pendingEditableCellHtml('data', item.data)
+      + pendingEditableCellHtml('data_pv_enviada', item.data_pv_enviada)
+      + pendingEditableCellHtml('data_pv_aprovada', item.data_pv_aprovada)
       + pendingEditableCellHtml('data_planejada', item.data_planejada)
       + pendingEditableCellHtml('data_real_inicio', item.data_real_inicio)
       + pendingEditableCellHtml('data_prevista_conclusao', item.data_prevista_conclusao)
@@ -787,6 +794,8 @@ function buildPendingCsvRow(item) {
     sanitizeCSV(item.responsavel || ''),
     sanitizeCSV(item.prioridade || ''),
     formatDate(item.data),
+    formatDate(item.data_pv_enviada),
+    formatDate(item.data_pv_aprovada),
     formatDate(item.data_planejada),
     formatDate(item.data_real_inicio),
     formatDate(item.data_prevista_conclusao),
