@@ -11,12 +11,16 @@ class CacheTest extends TestCase
     {
         parent::setUp();
         Cache::delete('test_key');
+        Cache::delete('pending_tickets:abc123');
+        Cache::delete('other_prefix:xyz');
     }
 
     protected function tearDown(): void
     {
         parent::tearDown();
         Cache::delete('test_key');
+        Cache::delete('pending_tickets:abc123');
+        Cache::delete('other_prefix:xyz');
     }
 
     public function testSetAndGet(): void
@@ -64,5 +68,35 @@ class CacheTest extends TestCase
         Cache::set('test_key', 'second', 10);
         $result = Cache::get('test_key');
         $this->assertEquals('second', $result);
+    }
+
+    public function testTrackedKeyWithTrailingColon(): void
+    {
+        $this->assertEquals('_tracked:pending_tickets', Cache::trackedKey('pending_tickets:'));
+    }
+
+    public function testTrackedKeyWithoutColon(): void
+    {
+        $this->assertEquals('_tracked:pending_tickets', Cache::trackedKey('pending_tickets'));
+    }
+
+    public function testTrackedKeyMirrorsSetPrefix(): void
+    {
+        $this->assertEquals('_tracked:pending_tickets', Cache::trackedKey('pending_tickets:abc123'));
+    }
+
+    public function testDeleteByPrefixRemovesMatchingKeys(): void
+    {
+        Cache::set('pending_tickets:abc123', 'value', 10);
+        Cache::deleteByPrefix('pending_tickets:');
+        $this->assertNull(Cache::get('pending_tickets:abc123'));
+    }
+
+    public function testDeleteByPrefixKeepsOtherPrefixes(): void
+    {
+        Cache::set('pending_tickets:abc123', 'value', 10);
+        Cache::set('other_prefix:xyz', 'value', 10);
+        Cache::deleteByPrefix('pending_tickets:');
+        $this->assertEquals('value', Cache::get('other_prefix:xyz'));
     }
 }

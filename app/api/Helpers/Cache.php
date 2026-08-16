@@ -31,9 +31,7 @@ class Cache
     {
         if (self::isApcuAvailable()) {
             apcu_store($key, $value, $ttl);
-            $colonPos = strpos($key, ':');
-            $prefix = $colonPos !== false ? substr($key, 0, $colonPos) : $key;
-            $trackedKey = '_tracked:' . $prefix;
+            $trackedKey = self::trackedKey($key);
             $tracked = apcu_fetch($trackedKey);
             if (!is_array($tracked)) {
                 $tracked = [];
@@ -77,8 +75,7 @@ class Cache
     public static function deleteByPrefix(string $prefix): void
     {
         if (self::isApcuAvailable()) {
-            $normPrefix = rtrim($prefix, '_');
-            $trackedKey = '_tracked:' . $normPrefix;
+            $trackedKey = self::trackedKey($prefix);
             $tracked = apcu_fetch($trackedKey);
             if (is_array($tracked)) {
                 foreach ($tracked as $k) {
@@ -101,6 +98,13 @@ class Cache
     public static function buildKey(string $prefix, array $params): string
     {
         return $prefix . ':' . md5(serialize($params));
+    }
+
+    public static function trackedKey(string $key): string
+    {
+        $colonPos = strpos($key, ':');
+        $prefix = $colonPos !== false ? substr($key, 0, $colonPos) : $key;
+        return '_tracked:' . $prefix;
     }
 
     private static function fileGet(string $key): mixed
