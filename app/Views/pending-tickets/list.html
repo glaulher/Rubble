@@ -108,22 +108,24 @@
         <div id="pendingScrollContainer" class="max-h-[70vh] overflow-y-auto">
           <table id="pendingTable" class="w-full">
           <thead class="sticky top-0 z-10">
-            <tr class="bg-slate-800 text-slate-100 text-left">
-              <th class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap">Ações</th>
-              <th data-sort="e.local" data-col="local" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Site <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="r.os" data-col="os" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">OS <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="e.equipamento" data-col="equipamento" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Equipamento <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="e.localidade" data-col="localidade" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Localidade <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="r.tipo" data-col="tipo" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Categoria <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="r.status" data-col="status" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Status <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="r.prioridade" data-col="prioridade" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Prioridade <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="r.data" data-col="data" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data Abertura <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="r.data_planejada" data-col="data_planejada" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data Programada <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="r.data_real_inicio" data-col="data_real_inicio" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data Real Início <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="r.data_prevista_conclusao" data-col="data_prevista_conclusao" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data Prevista Conclusão <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="r.data_concluido" data-col="data_concluido" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data Conclusão <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="r.equipe" data-col="equipe" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Técnico <span class="sort-icon text-slate-400"></span></th>
-              <th data-sort="r.material" data-col="material" class="px-3 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Material <span class="sort-icon text-slate-400"></span></th>
+            <tr class="bg-slate-50 border-b border-slate-200 text-left text-slate-600">
+              <th class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap">Ações</th>
+              <th data-sort="e.local" data-col="local" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Site <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.os" data-col="os" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">OS <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="e.equipamento" data-col="equipamento" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Equipamento <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="e.localidade" data-col="localidade" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Localidade <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.tipo" data-col="tipo" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Categoria <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.status" data-col="status" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Status <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.step" data-col="step" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Step <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.responsavel" data-col="responsavel" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Responsável <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.prioridade" data-col="prioridade" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Prioridade <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.data" data-col="data" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data Abertura <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.data_planejada" data-col="data_planejada" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data Programada <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.data_real_inicio" data-col="data_real_inicio" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data Real Início <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.data_prevista_conclusao" data-col="data_prevista_conclusao" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data Prevista Conclusão <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.data_concluido" data-col="data_concluido" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data Conclusão <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.equipe" data-col="equipe" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Técnico <span class="sort-icon text-slate-400"></span></th>
+              <th data-sort="r.material" data-col="material" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Material <span class="sort-icon text-slate-400"></span></th>
             </tr>
           </thead>
           <tbody id="pendingTableBody"></tbody>

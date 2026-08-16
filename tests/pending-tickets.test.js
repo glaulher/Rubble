@@ -32,7 +32,7 @@ var pendingSortDir = 'ASC';
 var pendingLoading = false;
 var pendingAllLoaded = false;
 
-const PENDING_COLUMNS = 14;
+const PENDING_COLUMNS = 17;
 
 function resetPendingState(search, status) {
   pendingSearch = search || '';
@@ -103,7 +103,8 @@ function renderPendingTable(list, append) {
     html += '<tr class="pending-row border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" '
       + 'data-id="' + item.id + '" data-expandable="true">'
       + '<td class="px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200">'
-      + '<span class="expand-icon text-slate-400 mr-2">&#9654;</span>'
+      + '<span class="expand-icon text-slate-400 mr-2">&#9654;</span></td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200">'
       + escapeHtml(item.local) + '</td>'
       + '<td class="px-3 py-2.5 text-sm font-medium text-slate-800 dark:text-slate-200">'
       + escapeHtml(item.os || '') + '</td>'
@@ -115,6 +116,8 @@ function renderPendingTable(list, append) {
       + '<td class="px-3 py-2.5 text-sm">'
       + '<span class="status-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeClass(item.status) + '">'
       + escapeHtml(item.status) + '</span></td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.step || '-') + '</td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.responsavel || '-') + '</td>'
       + '<td class="px-3 py-2.5 text-sm">'
       + '<span class="priority-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getPriorityBadgeClass(item.prioridade) + '">'
       + escapeHtml(item.prioridade || '-') + '</span></td>'
@@ -194,6 +197,8 @@ function buildPendingCsvRow(item) {
     sanitizeCSV(item.equipamento || ''),
     sanitizeCSV(item.tipo || ''),
     sanitizeCSV(item.status || ''),
+    sanitizeCSV(item.step || ''),
+    sanitizeCSV(item.responsavel || ''),
     sanitizeCSV(item.prioridade || ''),
     formatDate(item.data),
     formatDate(item.data_planejada),
@@ -408,21 +413,22 @@ describe("renderPendingTable", () => {
     renderPendingTable([mockData[0]]);
 
     const cells = document.querySelector('tr.pending-row').querySelectorAll('td');
-    // index 6 = data abertura, 7 = programada, 8 = real inicio, 9 = prevista conclusao, 10 = conclusao
-    expect(cells[6].textContent.trim()).toBe('15/07/2026');
-    expect(cells[7].textContent.trim()).toBe('20/07/2026');
-    expect(cells[8].textContent.trim()).toBe('22/07/2026');
-    expect(cells[9].textContent.trim()).toBe('25/07/2026');
-    expect(cells[10].textContent.trim()).toBe('-');
+    // index 9 = data abertura, 10 = programada, 11 = real inicio, 12 = prevista conclusao, 13 = conclusao
+    expect(cells[9].textContent.trim()).toBe('15/07/2026');
+    expect(cells[10].textContent.trim()).toBe('20/07/2026');
+    expect(cells[11].textContent.trim()).toBe('22/07/2026');
+    expect(cells[12].textContent.trim()).toBe('25/07/2026');
+    expect(cells[13].textContent.trim()).toBe('-');
   });
+
 
   it("shows technician, material and localidade columns", () => {
     renderPendingTable([mockData[0]]);
 
     const cells = document.querySelector('tr.pending-row').querySelectorAll('td');
-    expect(cells[11].textContent.trim()).toBe('João');
-    expect(cells[12].textContent.trim()).toBe('Filtro AR');
-    expect(cells[13].textContent.trim()).toBe('Container 1');
+    expect(cells[14].textContent.trim()).toBe('João');
+    expect(cells[15].textContent.trim()).toBe('Filtro AR');
+    expect(cells[16].textContent.trim()).toBe('Container 1');
   });
 
   it("shows empty state when no data", () => {
@@ -577,27 +583,30 @@ describe("getPriorityBadgeClass", () => {
 });
 
 describe("buildPendingCsvRow", () => {
-  it("builds a 15-cell row including the observacao", () => {
+  it("builds a 17-cell row including step and responsavel", () => {
     const row = buildPendingCsvRow({
       id: 1, local: 'BMA', os: 'OS123', equipamento: 'WM 01', tipo: 'corretiva',
-      status: 'pendente', prioridade: '3', data: '2026-07-15', data_planejada: '2026-07-20',
+      status: 'pendente', step: 'Compra Claro', responsavel: 'Claro', prioridade: '3', data: '2026-07-15',
+      data_planejada: '2026-07-20',
       data_real_inicio: null, data_prevista_conclusao: null, data_concluido: null,
       equipe: 'João', material: 'Filtro AR', localidade: 'Container 1',
       obs: 'Trocar filtro na próxima visita',
     });
 
-    expect(row.length).toBe(15);
+    expect(row.length).toBe(17);
     expect(row[0]).toBe('BMA');
     expect(row[1]).toBe('OS123');
     expect(row[4]).toBe('pendente');
-    expect(row[5]).toBe('3');
-    expect(row[6]).toBe('15/07/2026');
-    expect(row[7]).toBe('20/07/2026');
-    expect(row[8]).toBe('-');
-    expect(row[9]).toBe('-');
+    expect(row[5]).toBe('Compra Claro');
+    expect(row[6]).toBe('Claro');
+    expect(row[7]).toBe('3');
+    expect(row[8]).toBe('15/07/2026');
+    expect(row[9]).toBe('20/07/2026');
     expect(row[10]).toBe('-');
-    expect(row[11]).toBe('João');
-    expect(row[14]).toBe('Trocar filtro na próxima visita');
+    expect(row[11]).toBe('-');
+    expect(row[12]).toBe('-');
+    expect(row[13]).toBe('João');
+    expect(row[16]).toBe('Trocar filtro na próxima visita');
   });
 
   it("quotes fields containing semicolons", () => {

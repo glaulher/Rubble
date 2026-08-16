@@ -235,6 +235,8 @@ CREATE TABLE `registros` (
   `obs` mediumtext DEFAULT NULL,
   `material` varchar(50) DEFAULT NULL,
   `status` varchar(50) DEFAULT NULL,
+  `step` varchar(100) DEFAULT NULL,
+  `responsavel` varchar(100) DEFAULT NULL,
   `prioridade` varchar(20) DEFAULT NULL,
   `data_concluido` date DEFAULT NULL,
   `data_planejada` date DEFAULT NULL,
@@ -251,6 +253,19 @@ CREATE TABLE `registros` (
 
 -- FK constraint added via migration 036:
 -- ALTER TABLE registros ADD CONSTRAINT fk_registros_equipamento FOREIGN KEY (equipamento_id) REFERENCES equipamentos(id);
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `os_field_options`
+--
+
+CREATE TABLE `os_field_options` (
+  `id` int(11) NOT NULL,
+  `campo` enum('responsavel','step') NOT NULL,
+  `valor` varchar(100) NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 

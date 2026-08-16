@@ -10,11 +10,13 @@ var pendingSortDir = 'ASC';
 var pendingLoading = false;
 var pendingAllLoaded = false;
 var _pendingItemsById = {};
+var _pendingStepOptions = [];
+var _pendingResponsavelOptions = [];
 
-const PENDING_COLUMNS = 15;
+const PENDING_COLUMNS = 17;
 const CSR_COLUMNS = [
-  'SITE', 'OS', 'EQUIPAMENTO', 'LOCALIDADE', 'CATEGORIA', 'STATUS', 'PRIORIDADE',
-  'DATA_ABERTURA', 'DATA_PROGRAMADA', 'DATA_REAL_INICIO', 'DATA_PREVISTA_CONCLUSAO',
+  'SITE', 'OS', 'EQUIPAMENTO', 'LOCALIDADE', 'CATEGORIA', 'STATUS', 'STEP', 'RESPONSAVEL', 'PRIORIDADE',
+  'DATA_PROGRAMADA', 'DATA_REAL_INICIO', 'DATA_PREVISTA_CONCLUSAO',
   'DATA_CONCLUSAO', 'TECNICO', 'MATERIAL', 'OBSERVACAO',
 ];
 
@@ -28,6 +30,8 @@ const PENDING_COLUMNS_DEF = [
   { key: 'localidade', label: 'Localidade' },
   { key: 'tipo', label: 'Categoria' },
   { key: 'status', label: 'Status' },
+  { key: 'step', label: 'Step' },
+  { key: 'responsavel', label: 'Responsável' },
   { key: 'prioridade', label: 'Prioridade' },
   { key: 'data', label: 'Data Abertura' },
   { key: 'data_planejada', label: 'Data Programada' },
@@ -43,6 +47,8 @@ var pendingColTodosChecked = true;
 
 const PENDING_EDITABLE_TYPES = {
   status: 'select',
+  step: 'managed',
+  responsavel: 'managed',
   prioridade: 'select',
   data: 'date',
   data_planejada: 'date',
@@ -105,7 +111,214 @@ function pendingBadgeClassFor(field, value) {
   if (field === 'status') return 'status-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getStatusBadgeClass(value);
   if (field === 'tipo') return 'category-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getCategoryBadgeClass(value);
   if (field === 'prioridade') return 'priority-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getPriorityBadgeClass(value);
+  if (field === 'step') return 'px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700';
+  if (field === 'responsavel') return 'px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-700';
   return '';
+}
+
+async function loadPendingFieldOptions(field) {
+  try {
+    var resp = await apiFetch('/app/api/index.php?route=pending-tickets&action=options&field=' + field);
+    var result = await resp.json();
+    if (result && result.success && Array.isArray(result.data)) {
+      if (field === 'step') _pendingStepOptions = result.data;
+      else if (field === 'responsavel') _pendingResponsavelOptions = result.data;
+    }
+  } catch (e) {
+    console.error('Erro ao carregar opções de ' + field, e);
+  }
+}
+
+function enterPendingManagedEdit(td, field) {
+  if (td.querySelector('.managed-dropdown')) return;
+  var valueEl = td.querySelector('.pending-value');
+  var raw = valueEl ? valueEl.getAttribute('data-raw') : '';
+  td.setAttribute('data-prev-raw', raw);
+
+  var options = field === 'step' ? _pendingStepOptions : _pendingResponsavelOptions;
+  var html = '<div class="managed-dropdown relative" style="min-width:180px">';
+  html += '<div class="bg-white border border-slate-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">';
+
+  for (var i = 0; i < options.length; i++) {
+    var opt = options[i];
+    var selected = String(raw).toLowerCase() === String(opt.valor).toLowerCase();
+    var bgClass = selected ? 'bg-blue-50' : 'hover:bg-slate-50';
+    html += '<div class="flex items-center justify-between px-3 py-2 cursor-pointer ' + bgClass + '" data-option-value="' + escapeHtml(opt.valor) + '">';
+    html += '<span class="text-sm text-slate-700">' + escapeHtml(opt.valor) + '</span>';
+    if (opt.in_use) {
+      html += '<span class="text-xs text-slate-400 italic">em uso</span>';
+    } else {
+      html += '<button type="button" class="managed-delete text-slate-400 hover:text-red-500 ml-2" data-option-id="' + opt.id + '" title="Excluir" aria-label="Excluir opção">';
+      html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      html += '</button>';
+    }
+    html += '</div>';
+  }
+
+  html += '<div class="border-t border-slate-200">';
+  html += '<div class="flex items-center gap-1 px-3 py-2 hover:bg-slate-50 cursor-pointer managed-add-row">';
+  html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-500"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
+  html += '<span class="text-sm text-slate-500">Adicionar item</span>';
+  html += '</div>';
+  html += '<div class="managed-add-input hidden flex items-center gap-1 px-3 py-2">';
+  html += '<input type="text" class="flex-1 px-2 py-1 text-sm border border-slate-300 rounded" placeholder="Novo valor" maxlength="100">';
+  html += '<button type="button" class="managed-add-confirm px-1.5 py-1 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-800"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></button>';
+  html += '<button type="button" class="managed-add-cancel px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-900"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+  html += '</div>';
+  html += '<div class="border-t border-slate-200 flex items-center justify-end gap-1 px-3 py-2">';
+  html += '<button type="button" class="managed-confirm px-1.5 py-1 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-800" title="Confirmar" aria-label="Confirmar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></button>';
+  html += '<button type="button" class="managed-cancel-edit px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+  html += '</div>';
+  html += '</div>';
+
+  html += '</div></div>';
+
+  td.innerHTML = html;
+
+  var dropdown = td.querySelector('.managed-dropdown');
+
+  dropdown.addEventListener('click', function (e) {
+    var optionRow = e.target.closest('[data-option-value]');
+    if (optionRow && !e.target.closest('.managed-delete')) {
+      var val = optionRow.getAttribute('data-option-value');
+      savePendingManagedOption(td, field, val);
+      return;
+    }
+
+    var delBtn = e.target.closest('.managed-delete');
+    if (delBtn) {
+      e.stopPropagation();
+      var optId = parseInt(delBtn.getAttribute('data-option-id'), 10);
+      deletePendingManagedOption(field, optId);
+      return;
+    }
+
+    var addRow = e.target.closest('.managed-add-row');
+    if (addRow) {
+      addRow.classList.add('hidden');
+      var inputRow = td.querySelector('.managed-add-input');
+      if (inputRow) {
+        inputRow.classList.remove('hidden');
+        inputRow.querySelector('input').focus();
+      }
+      return;
+    }
+
+    var confirmBtn = e.target.closest('.managed-add-confirm');
+    if (confirmBtn) {
+      var input = td.querySelector('.managed-add-input input');
+      if (input && input.value.trim() !== '') {
+        addPendingManagedOption(td, field, input.value.trim());
+      }
+      return;
+    }
+
+    var cancelBtn = e.target.closest('.managed-add-cancel');
+    if (cancelBtn) {
+      var addRowEl = td.querySelector('.managed-add-row');
+      var inputRowEl = td.querySelector('.managed-add-input');
+      if (addRowEl) addRowEl.classList.remove('hidden');
+      if (inputRowEl) {
+        inputRowEl.classList.add('hidden');
+        inputRowEl.querySelector('input').value = '';
+      }
+      return;
+    }
+
+    var confirmEditBtn = e.target.closest('.managed-confirm');
+    if (confirmEditBtn) {
+      cancelPendingEdit(td);
+      return;
+    }
+
+    var cancelEditBtn = e.target.closest('.managed-cancel-edit');
+    if (cancelEditBtn) {
+      cancelPendingEdit(td);
+      return;
+    }
+  });
+
+  dropdown.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      var input = td.querySelector('.managed-add-input input');
+      if (input && document.activeElement === input && input.value.trim() !== '') {
+        e.preventDefault();
+        addPendingManagedOption(td, field, input.value.trim());
+      }
+    } else if (e.key === 'Escape') {
+      cancelPendingEdit(td);
+    }
+  });
+}
+
+async function savePendingManagedOption(td, field, value) {
+  var tr = td.closest('tr.pending-row');
+  var id = tr ? tr.getAttribute('data-id') : null;
+  if (!id) return;
+
+  try {
+    var resp = await apiFetch('/app/api/index.php?route=pending-tickets', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: parseInt(id, 10), field: field, value: value }),
+    });
+    var result = await resp.json();
+    if (!result.success) {
+      showToast(result.message || 'Erro ao salvar campo', 'error');
+      return;
+    }
+    refreshPendingCell(td, field, value);
+    showToast('Campo atualizado', 'success');
+  } catch (e) {
+    console.error('Erro ao salvar campo', e);
+    showToast('Erro ao salvar campo', 'error');
+  }
+}
+
+async function deletePendingManagedOption(field, id) {
+  var confirmed = await confirmAction('Excluir opção', 'Tem certeza que deseja excluir esta opção?');
+  if (!confirmed) return;
+
+  try {
+    var resp = await apiFetch('/app/api/index.php?route=pending-tickets', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete-option', field: field, id: id }),
+    });
+    var result = await resp.json();
+    if (!result.success) {
+      showToast(result.message || 'Erro ao excluir opção', 'error');
+      return;
+    }
+    await loadPendingFieldOptions(field);
+    var td = document.querySelector('td[data-field="' + field + '"].managed-active');
+    if (td) enterPendingManagedEdit(td, field);
+    showToast('Opção excluída', 'success');
+  } catch (e) {
+    console.error('Erro ao excluir opção', e);
+    showToast('Erro ao excluir opção', 'error');
+  }
+}
+
+async function addPendingManagedOption(td, field, value) {
+  try {
+    var resp = await apiFetch('/app/api/index.php?route=pending-tickets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add-option', field: field, value: value }),
+    });
+    var result = await resp.json();
+    if (!result.success) {
+      showToast(result.message || 'Erro ao adicionar opção', 'error');
+      return;
+    }
+    await loadPendingFieldOptions(field);
+    enterPendingManagedEdit(td, field);
+    showToast('Opção adicionada', 'success');
+  } catch (e) {
+    console.error('Erro ao adicionar opção', e);
+    showToast('Erro ao adicionar opção', 'error');
+  }
 }
 
 function pendingEditBtn(field) {
@@ -117,7 +330,7 @@ function pendingEditBtn(field) {
 function buildPendingSelect(options, selected, capitalize) {
   var html = '<select class="pending-edit-input pending-select px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800">';
   if (selected === '') {
-    html += '<option value="">-</option>';
+    html += '<option value="">Selecionar</option>';
   }
   for (var i = 0; i < options.length; i++) {
     var opt = options[i];
@@ -143,7 +356,15 @@ function pendingEditableCellHtml(field, value) {
 }
 
 function enterPendingEdit(td, field) {
-  if (td.querySelector('.pending-edit-input')) return;
+  if (td.querySelector('.pending-edit-input') || td.querySelector('.managed-dropdown')) return;
+  var type = PENDING_EDITABLE_TYPES[field] || 'text';
+
+  if (type === 'managed') {
+    td.classList.add('managed-active');
+    enterPendingManagedEdit(td, field);
+    return;
+  }
+
   var valueEl = td.querySelector('.pending-value');
   var raw = valueEl ? valueEl.getAttribute('data-raw') : '';
   td.setAttribute('data-prev-raw', raw);
@@ -181,6 +402,7 @@ function refreshPendingCell(td, field, value) {
 function cancelPendingEdit(td) {
   var field = td.getAttribute('data-field');
   var prev = td.getAttribute('data-prev-raw') || '';
+  td.classList.remove('managed-active');
   refreshPendingCell(td, field, prev);
 }
 
@@ -373,6 +595,8 @@ function renderPendingTable(list, append) {
       + '<span class="category-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getCategoryBadgeClass(item.tipo) + '">'
       + escapeHtml(item.tipo || '-') + '</span></td>'
       + pendingEditableCellHtml('status', item.status)
+      + pendingEditableCellHtml('step', item.step)
+      + pendingEditableCellHtml('responsavel', item.responsavel)
       + pendingEditableCellHtml('prioridade', item.prioridade)
       + pendingEditableCellHtml('data', item.data)
       + pendingEditableCellHtml('data_planejada', item.data_planejada)
@@ -559,6 +783,8 @@ function buildPendingCsvRow(item) {
     sanitizeCSV(item.localidade || ''),
     sanitizeCSV(item.tipo || ''),
     sanitizeCSV(item.status || ''),
+    sanitizeCSV(item.step || ''),
+    sanitizeCSV(item.responsavel || ''),
     sanitizeCSV(item.prioridade || ''),
     formatDate(item.data),
     formatDate(item.data_planejada),
@@ -781,6 +1007,11 @@ function initPendingTickets() {
   pendingHiddenColumns = new Set();
   pendingColTodosChecked = true;
   _pendingItemsById = {};
+  _pendingStepOptions = [];
+  _pendingResponsavelOptions = [];
+
+  loadPendingFieldOptions('step');
+  loadPendingFieldOptions('responsavel');
 
   var searchInput = document.getElementById('pendingSearchInput');
   if (searchInput) {
@@ -905,6 +1136,22 @@ function initPendingTickets() {
 
   setupPendingSort();
   initPendingColumnSelect();
+
+  if (!document._pendingManagedGlobalListener) {
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.managed-dropdown') && !e.target.closest('button.pending-edit[data-field="step"]') && !e.target.closest('button.pending-edit[data-field="responsavel"]')) {
+        var activeDropdowns = document.querySelectorAll('td.managed-active');
+        for (var i = 0; i < activeDropdowns.length; i++) {
+          var td = activeDropdowns[i];
+          var field = td.getAttribute('data-field');
+          var prev = td.getAttribute('data-prev-raw') || '';
+          td.classList.remove('managed-active');
+          refreshPendingCell(td, field, prev);
+        }
+      }
+    });
+    document._pendingManagedGlobalListener = true;
+  }
 
   _pendingScroll = createInfiniteScroll({
     fetchFn: function (params, opts) {

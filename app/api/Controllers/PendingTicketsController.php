@@ -84,4 +84,61 @@ class PendingTicketsController
             Response::serverError($e);
         }
     }
+
+    public function listOptions(): void
+    {
+        try {
+            $field = $_GET['field'] ?? '';
+            $options = $this->service->listOptions($field);
+            Response::json(['success' => true, 'data' => $options]);
+        } catch (\InvalidArgumentException $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    public function addOption(): void
+    {
+        try {
+            $data = Request::body();
+            $field = $data['field'] ?? '';
+            $value = $data['value'] ?? '';
+            $this->service->addOption($field, $value);
+
+            Cache::deleteByPrefix('pending_tickets:');
+            Cache::deleteByPrefix('os_dashboard:');
+
+            Response::success('Opção adicionada com sucesso');
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    public function deleteOption(): void
+    {
+        try {
+            $data = Request::body();
+            $field = $data['field'] ?? '';
+            $id = $data['id'] ?? null;
+
+            if ($id === null || !is_numeric($id)) {
+                Response::error('Campo id obrigatório', 400);
+                return;
+            }
+
+            $this->service->deleteOption($field, (int) $id);
+
+            Cache::deleteByPrefix('pending_tickets:');
+            Cache::deleteByPrefix('os_dashboard:');
+
+            Response::success('Opção excluída com sucesso');
+        } catch (\InvalidArgumentException $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
 }

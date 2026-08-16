@@ -11,7 +11,8 @@ use App\Api\Controllers\{
     TicketController, DashboardController, PvDashboardController, OsDashboardController,
     PvController, UserController, ScmController, PreventiveCycleController,
     UploadController, EmailController, ExportController, PdfAuditController,
-    PlannedActivityController, PreventivaController, FilterExchangeController
+    PlannedActivityController, PreventivaController, FilterExchangeController,
+    PendingTicketsController
 };
 Env::load(__DIR__ . '/../../.env');
 
@@ -306,10 +307,36 @@ $router->addRoute('planned-activities', 'DELETE', function () use ($auth) {
 
 // Pending Tickets (Gestão de OS)
 $router->addRoute('pending-tickets', 'GET', function () {
-    (new \App\Api\Controllers\PendingTicketsController())->listAll();
+    $ctrl = new PendingTicketsController();
+    $action = $_GET['action'] ?? '';
+    if ($action === 'options') {
+        $ctrl->listOptions();
+    } else {
+        $ctrl->listAll();
+    }
+});
+$router->addRoute('pending-tickets', 'POST', function () {
+    $ctrl = new PendingTicketsController();
+    $body = Request::body();
+    $action = $body['action'] ?? $_GET['action'] ?? '';
+    if ($action === 'add-option') {
+        $ctrl->addOption();
+    } else {
+        Response::error('Ação não encontrada', 404);
+    }
+});
+$router->addRoute('pending-tickets', 'DELETE', function () {
+    $ctrl = new PendingTicketsController();
+    $body = Request::body();
+    $action = $body['action'] ?? $_GET['action'] ?? '';
+    if ($action === 'delete-option') {
+        $ctrl->deleteOption();
+    } else {
+        Response::error('Ação não encontrada', 404);
+    }
 });
 $router->addRoute('pending-tickets', 'PATCH', function () {
-    (new \App\Api\Controllers\PendingTicketsController())->updateField();
+    (new PendingTicketsController())->updateField();
 });
 
 // Troca de Filtros

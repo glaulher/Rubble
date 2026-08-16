@@ -14,6 +14,8 @@ class TicketRepository extends BaseRepository
         'r.os' => 'r.os',
         'r.tipo' => 'r.tipo',
         'r.status' => 'r.status',
+        'r.step' => 'r.step',
+        'r.responsavel' => 'r.responsavel',
         'r.prioridade' => 'r.prioridade',
         'r.data' => 'r.data',
         'r.data_planejada' => 'r.data_planejada',
@@ -26,6 +28,8 @@ class TicketRepository extends BaseRepository
 
     private const ALLOWED_EDITABLE_FIELDS = [
         'status' => 'status',
+        'step' => 'step',
+        'responsavel' => 'responsavel',
         'prioridade' => 'prioridade',
         'data' => 'data',
         'data_planejada' => 'data_planejada',
@@ -312,9 +316,9 @@ class TicketRepository extends BaseRepository
 
         if ($search !== '') {
             $likeSearch = '%' . $search . '%';
-            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
-            $params = array_merge($params, array_fill(0, 15, $likeSearch));
-            $types .= str_repeat('s', 15);
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.step LIKE ? OR r.responsavel LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
+            $params = array_merge($params, array_fill(0, 17, $likeSearch));
+            $types .= str_repeat('s', 17);
         }
 
         if ($os !== '') {
@@ -387,9 +391,9 @@ class TicketRepository extends BaseRepository
 
         if ($search !== '') {
             $likeSearch = '%' . $search . '%';
-            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
-            $params = array_merge($params, array_fill(0, 15, $likeSearch));
-            $types .= str_repeat('s', 15);
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.step LIKE ? OR r.responsavel LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
+            $params = array_merge($params, array_fill(0, 17, $likeSearch));
+            $types .= str_repeat('s', 17);
         }
 
         if ($os !== '') {
@@ -473,5 +477,51 @@ class TicketRepository extends BaseRepository
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $id);
         return $stmt->execute();
+    }
+
+    public function listFieldOptions(string $field): array
+    {
+        $sql = "SELECT id, valor FROM os_field_options WHERE campo = ? ORDER BY valor ASC";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('s', $field);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $options = [];
+        while ($row = $result->fetch_assoc()) {
+            $row['id'] = (int) $row['id'];
+            $row['in_use'] = $this->fieldOptionInUse($field, $row['valor']);
+            $options[] = $row;
+        }
+
+        return $options;
+    }
+
+    public function addFieldOption(string $field, string $value): bool
+    {
+        $sql = "INSERT IGNORE INTO os_field_options (campo, valor) VALUES (?, ?)";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('ss', $field, $value);
+        $stmt->execute();
+        return $stmt->affected_rows > 0;
+    }
+
+    public function deleteFieldOption(int $id): bool
+    {
+        $sql = "DELETE FROM os_field_options WHERE id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $id);
+        return $stmt->execute();
+    }
+
+    public function fieldOptionInUse(string $field, string $value): bool
+    {
+        $sql = "SELECT COUNT(*) AS cnt FROM registros WHERE {$field} = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('s', $value);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return (int) ($row['cnt'] ?? 0) > 0;
     }
 }

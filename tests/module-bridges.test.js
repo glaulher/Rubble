@@ -449,7 +449,7 @@ describe("pending-tickets/list.js bridge", function () {
     }
   });
 
-  it("includes prioridade in the CSV row after status", function () {
+  it("includes prioridade in the CSV row after step and responsavel", function () {
     var prevEscapeHtml = globalThis.escapeHtml;
     var prevFormatDate = globalThis.formatDate;
     try {
@@ -463,6 +463,8 @@ describe("pending-tickets/list.js bridge", function () {
         localidade: 'C1',
         tipo: 'corretiva',
         status: 'pendente',
+        step: 'Compra Claro',
+        responsavel: 'Claro',
         prioridade: '3',
         data: '2026-07-15',
         data_planejada: null,
@@ -474,10 +476,13 @@ describe("pending-tickets/list.js bridge", function () {
         obs: 'Cliente sem acesso no horário',
       });
 
-      expect(row.length).toBe(15);
+      expect(row.length).toBe(17);
+      expect(row[4]).toBe('corretiva');
       expect(row[5]).toBe('pendente');
-      expect(row[6]).toBe('3');
-      expect(row[14]).toBe('Cliente sem acesso no horário');
+      expect(row[6]).toBe('Compra Claro');
+      expect(row[7]).toBe('Claro');
+      expect(row[8]).toBe('3');
+      expect(row[16]).toBe('Cliente sem acesso no horário');
     } finally {
       if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
       else globalThis.escapeHtml = prevEscapeHtml;
@@ -712,7 +717,7 @@ describe("pending-tickets/list.js bridge", function () {
     }
   });
 
-  it("prepends an actions cell to each pending row (15 columns)", function () {
+  it("prepends an actions cell to each pending row (17 columns)", function () {
     document.body.innerHTML =
       '<table id="pendingTable">' +
       '<thead><tr><th data-col="local">Site</th></tr></thead>' +
@@ -757,7 +762,7 @@ describe("pending-tickets/list.js bridge", function () {
 
       var row = document.querySelector('#pendingTableBody tr.pending-row');
       var cells = row.querySelectorAll('td');
-      expect(cells.length).toBe(15);
+      expect(cells.length).toBe(17);
       expect(cells[0].querySelector('button[data-action="plan"]')).not.toBe(null);
     } finally {
       if (prevGetUser === undefined) delete globalThis.getUser;

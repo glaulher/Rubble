@@ -18,14 +18,14 @@ class PendingTicketService
 
     public const ALLOWED_SORT = [
         'e.local', 'e.localidade', 'e.equipamento', 'r.id', 'r.os', 'r.tipo',
-        'r.status', 'r.prioridade', 'r.data', 'r.data_planejada', 'r.data_real_inicio',
+        'r.status', 'r.step', 'r.responsavel', 'r.prioridade', 'r.data', 'r.data_planejada', 'r.data_real_inicio',
         'r.data_prevista_conclusao', 'r.data_concluido', 'r.equipe', 'r.material',
     ];
 
     public const ALLOWED_DIRS = ['ASC', 'DESC'];
 
     public const ALLOWED_EDITABLE_FIELDS = [
-        'status', 'prioridade', 'data', 'data_planejada', 'data_real_inicio',
+        'status', 'step', 'responsavel', 'prioridade', 'data', 'data_planejada', 'data_real_inicio',
         'data_prevista_conclusao', 'data_concluido', 'equipe', 'material', 'obs',
     ];
 
@@ -130,6 +130,45 @@ class PendingTicketService
             $value = null;
         }
 
+        if (in_array($field, ['step', 'responsavel'], true) && $value !== null) {
+            $value = mb_strimwidth($value, 0, 100, 'UTF-8');
+        }
+
         return $this->repository->updatePendingField($id, $field, $value);
+    }
+
+    public function listOptions(string $field): array
+    {
+        if (!in_array($field, ['responsavel', 'step'], true)) {
+            throw new \InvalidArgumentException('Campo inválido: ' . $field);
+        }
+        return $this->repository->listFieldOptions($field);
+    }
+
+    public function addOption(string $field, string $value): void
+    {
+        if (!in_array($field, ['responsavel', 'step'], true)) {
+            throw new \InvalidArgumentException('Campo inválido: ' . $field);
+        }
+        $value = trim($value);
+        if ($value === '') {
+            throw new \InvalidArgumentException('Valor é obrigatório');
+        }
+        $value = mb_strimwidth($value, 0, 100, 'UTF-8');
+        $this->repository->addFieldOption($field, $value);
+    }
+
+    public function deleteOption(string $field, int $id): void
+    {
+        if (!in_array($field, ['responsavel', 'step'], true)) {
+            throw new \InvalidArgumentException('Campo inválido: ' . $field);
+        }
+        $options = $this->repository->listFieldOptions($field);
+        foreach ($options as $opt) {
+            if ($opt['id'] === $id && $opt['in_use']) {
+                throw new \InvalidArgumentException('Não é possível excluir: valor em uso por registros');
+            }
+        }
+        $this->repository->deleteFieldOption($id);
     }
 }
