@@ -22,6 +22,19 @@ export function formatPvDisplay(pvEntry) {
   return osNum ? `PV${pvNum} - OS${osNum}` : `PV${pvNum}`;
 }
 
+export function buildCardSubtitleHtml(e) {
+  const localityLine = `${escapeHtml(titleCase(e.localidade ?? ''))} ${e.icon ?? ''}`.trim();
+  const tagLine = e.tag_infratel
+    ? `<p class="text-slate-500 text-xs font-medium">${escapeHtml(e.tag_infratel)}</p>`
+    : '';
+  return `
+    <div class="flex flex-col card-subtitle">
+      <p class="text-slate-600 text-sm font-medium flex items-center gap-1">${localityLine}</p>
+      ${tagLine}
+    </div>
+  `;
+}
+
 export function buildEquipmentCardHtml(e, canEdit) {
   return `
     <div class="card-item bg-white rounded-2xl shadow-sm hover:shadow-xl transition border border-slate-200" data-equip-id="${e.id}">
@@ -40,9 +53,7 @@ export function buildEquipmentCardHtml(e, canEdit) {
 
               <span class="text-slate-400">-</span>
 
-              <p class="text-slate-600 text-sm font-medium flex items-center gap-1">
-                ${escapeHtml(titleCase(e.localidade ?? ''))}${e.tag_infratel ? ' - ' + escapeHtml(e.tag_infratel) : ''} ${e.icon ?? ''}
-              </p>
+              ${buildCardSubtitleHtml(e)}
 
             </div>
 
@@ -287,6 +298,17 @@ function buildPvSectionHtml(e) {
 }
 
 function updateCardInPlace(card, e, canEdit) {
+  var h3 = card.querySelector('h3');
+  if (h3) {
+    h3.className =
+      'text-xl font-light tracking-[0.05em] px-3 py-1 rounded-lg ' + (e.color || '');
+  }
+
+  var subtitle = card.querySelector('.card-subtitle');
+  if (subtitle) {
+    subtitle.outerHTML = buildCardSubtitleHtml(e);
+  }
+
   var badgesContainer = card.querySelector('.mt-2.flex-wrap');
   if (!badgesContainer) return;
 
