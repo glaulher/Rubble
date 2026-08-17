@@ -25,7 +25,7 @@ export function formatPvDisplay(pvEntry) {
 export function buildCardSubtitleHtml(e) {
   const localityLine = `${escapeHtml(titleCase(e.localidade ?? ''))} ${e.icon ?? ''}`.trim();
   const tagLine = e.tag_infratel
-    ? `<p class="text-slate-500 text-xs font-medium">${escapeHtml(e.tag_infratel)}</p>`
+    ? `<p class="text-slate-500 text-[10px] font-medium">${escapeHtml(e.tag_infratel)}</p>`
     : '';
   return `
     <div class="flex flex-col card-subtitle">
