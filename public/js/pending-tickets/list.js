@@ -293,6 +293,9 @@ export async function savePendingManagedOption(td, field, value) {
       return;
     }
     refreshPendingCell(td, field, value);
+    if (field === 'step' || field === 'responsavel') {
+      await loadPendingFieldOptions(field);
+    }
     showToast('Campo atualizado', 'success');
   } catch (e) {
     console.error('Erro ao salvar campo', e);

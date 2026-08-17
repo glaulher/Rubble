@@ -14,7 +14,7 @@ var mockInfiniteScroll = `
   function debounce(fn, delay) { var t; return function () { clearTimeout(t); t = setTimeout(fn, delay); }; }
 `;
 
-var stepOptions = [
+var stepOptionsData = [
   { id: 1, valor: 'Filtro AR', in_use: true },
   { id: 2, valor: 'Retirada', in_use: false },
 ];
@@ -27,9 +27,12 @@ function loadPendingModule() {
     apiCalls.push({ url, opts });
     var method = (opts && opts.method) || 'GET';
     if (method === 'PATCH') {
+      var body = JSON.parse(opts.body || '{}');
+      var target = stepOptionsData.find(function (o) { return o.valor.toLowerCase() === String(body.value).toLowerCase(); });
+      if (target) target.in_use = true;
       return Promise.resolve({ json: function () { return Promise.resolve({ success: true, message: 'ok' }); } });
     }
-    return Promise.resolve({ json: function () { return Promise.resolve({ success: true, data: stepOptions }); } });
+    return Promise.resolve({ json: function () { return Promise.resolve({ success: true, data: stepOptionsData.map(function (o) { return { id: o.id, valor: o.valor, in_use: o.in_use }; }) }); } });
   };
   globalThis.getUser = function () { return { role: 'admin' }; };
   globalThis.escapeHtml = function (v) {
@@ -65,6 +68,8 @@ function buildTd(field, raw, active) {
 
 beforeEach(function () {
   apiCalls = [];
+  stepOptionsData[0].in_use = true;
+  stepOptionsData[1].in_use = false;
   document.body.innerHTML = '';
   delete globalThis.enterPendingManagedEdit;
   delete globalThis.loadPendingFieldOptions;
@@ -146,5 +151,46 @@ describe('pending managed dropdown', function () {
 
     expect(apiCalls.filter(function (c) { return (c.opts && c.opts.method) === 'PATCH'; }).length).toBe(0);
     expect(td.textContent).toContain('Filtro AR');
+  });
+
+  test('saving an existing option refreshes options so it shows "em uso"', async function () {
+    loadPendingModule();
+    await globalThis.loadPendingFieldOptions('step');
+    var td = buildTd('step', 'Filtro AR', false);
+    globalThis.enterPendingManagedEdit(td, 'step');
+
+    td.querySelector('[data-option-value="Retirada"]').dispatchEvent(new Event('click', { bubbles: true }));
+    td.querySelector('.managed-confirm').dispatchEvent(new Event('click', { bubbles: true }));
+
+    await new Promise(function (resolve) { setTimeout(resolve, 0); });
+
+    var td2 = buildTd('step', 'Filtro AR', false);
+    globalThis.enterPendingManagedEdit(td2, 'step');
+    var optionRow = td2.querySelector('[data-option-value="Retirada"]');
+
+    expect(optionRow.textContent).toContain('em uso');
+    expect(optionRow.querySelector('.managed-delete')).toBe(null);
+  });
+
+  test('removing the value from cells refreshes options so it shows delete X', async function () {
+    loadPendingModule();
+    stepOptionsData[1].in_use = true;
+    await globalThis.loadPendingFieldOptions('step');
+
+    var td = buildTd('step', 'Retirada', false);
+    globalThis.enterPendingManagedEdit(td, 'step');
+
+    stepOptionsData[1].in_use = false;
+    td.querySelector('[data-option-value="Filtro AR"]').dispatchEvent(new Event('click', { bubbles: true }));
+    td.querySelector('.managed-confirm').dispatchEvent(new Event('click', { bubbles: true }));
+
+    await new Promise(function (resolve) { setTimeout(resolve, 0); });
+
+    var td2 = buildTd('step', 'Retirada', false);
+    globalThis.enterPendingManagedEdit(td2, 'step');
+    var optionRow = td2.querySelector('[data-option-value="Retirada"]');
+
+    expect(optionRow.querySelector('.managed-delete')).not.toBe(null);
+    expect(optionRow.textContent).not.toContain('em uso');
   });
 });
