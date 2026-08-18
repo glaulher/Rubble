@@ -188,6 +188,15 @@ function buildPendingQuery() {
   return q;
 }
 
+function clearPendingDateRange() {
+  pendingDateFrom = '';
+  pendingDateTo = '';
+  var fromInput = document.getElementById('pendingDateFrom');
+  if (fromInput) fromInput.value = '';
+  var toInput = document.getElementById('pendingDateTo');
+  if (toInput) toInput.value = '';
+}
+
 function buildPendingStatusSelect(selected) {
   const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up', 'concluído'];
   let html = '<select class="pending-edit-input pending-status px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">';
@@ -345,6 +354,49 @@ describe("buildPendingQuery", () => {
     expect(q).not.toContain('date_column=');
     expect(q).not.toContain('date_from=');
     expect(q).not.toContain('date_to=');
+  });
+});
+
+describe("clearPendingDateRange", () => {
+  it("clears date range state so the query omits date filters", () => {
+    pendingSearch = '';
+    pendingStatusFilter = new Set();
+    pendingStatusTodosChecked = true;
+    pendingOsFilter = '';
+    pendingSortBy = 'e.local';
+    pendingSortDir = 'ASC';
+    pendingDateColumn = 'data';
+    pendingDateFrom = '2026-08-01';
+    pendingDateTo = '2026-08-31';
+
+    clearPendingDateRange();
+
+    expect(pendingDateFrom).toBe('');
+    expect(pendingDateTo).toBe('');
+    const q = buildPendingQuery();
+    expect(q).toContain('date_column=data');
+    expect(q).not.toContain('date_from=');
+    expect(q).not.toContain('date_to=');
+  });
+
+  it("clears the visible date inputs when they exist", () => {
+    const fromInput = document.createElement('input');
+    const toInput = document.createElement('input');
+    fromInput.id = 'pendingDateFrom';
+    toInput.id = 'pendingDateTo';
+    document.body.appendChild(fromInput);
+    document.body.appendChild(toInput);
+    fromInput.value = '2026-08-01';
+    toInput.value = '2026-08-31';
+    pendingDateFrom = '2026-08-01';
+    pendingDateTo = '2026-08-31';
+
+    clearPendingDateRange();
+
+    expect(fromInput.value).toBe('');
+    expect(toInput.value).toBe('');
+    document.body.removeChild(fromInput);
+    document.body.removeChild(toInput);
   });
 });
 

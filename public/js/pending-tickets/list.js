@@ -919,6 +919,15 @@ export function buildPendingQuery() {
   return q;
 }
 
+export function clearPendingDateRange() {
+  pendingDateFrom = '';
+  pendingDateTo = '';
+  var fromInput = document.getElementById('pendingDateFrom');
+  if (fromInput) fromInput.value = '';
+  var toInput = document.getElementById('pendingDateTo');
+  if (toInput) toInput.value = '';
+}
+
 export function _pendingReset() {
   pendingLoading = false;
   pendingAllLoaded = false;
@@ -1093,6 +1102,9 @@ export function initPendingTickets() {
     dateColumnSelect.value = pendingDateColumn;
     dateColumnSelect.addEventListener('change', function () {
       pendingDateColumn = this.value;
+      if (pendingDateColumn) {
+        clearPendingDateRange();
+      }
       _pendingReset();
     });
   }
