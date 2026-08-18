@@ -285,6 +285,19 @@ class TicketRepository extends BaseRepository
         return $rows;
     }
 
+    public function findEmergenciaOsRows(): array
+    {
+        $sql = "SELECT os FROM registros WHERE os LIKE 'EMERGENCIAL%'";
+        $stmt = $this->safePrepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $rows = [];
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        return $rows;
+    }
+
     public function listPendingBySite(
         int $limit,
         int $offset = 0,

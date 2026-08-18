@@ -1,5 +1,16 @@
 import { showToast } from '/public/js/core/dom.js';
 
+export async function generateEmergenciaOs() {
+  const resp = await fetch(
+    '/app/api/index.php?route=tickets&action=next-emergencia-os'
+  );
+  const result = await resp.json();
+  if (!result.success || !result.data || !result.data.os) {
+    throw new Error(result.message || 'Falha ao gerar OS emergencial');
+  }
+  return result.data.os;
+}
+
 export async function loadHomeForm() {
   const form = document.getElementById('ticketForm');
 
@@ -62,6 +73,13 @@ export async function loadHomeForm() {
         const r = result.data;
 
         document.querySelector('[name="os"]').value = r.os || '';
+
+        if (r.os && r.os.startsWith('EMERGENCIAL')) {
+          const emergenciaCheckbox = document.getElementById('emergenciaCheckbox');
+          const osInput = document.querySelector('[name="os"]');
+          if (emergenciaCheckbox) emergenciaCheckbox.checked = true;
+          if (osInput) osInput.disabled = true;
+        }
 
         document.querySelector('[name="data"]').value = r.data || '';
 
@@ -134,6 +152,33 @@ export async function loadHomeForm() {
     statusSelect.addEventListener('change', function () {
       toggleCompletionDate(this.value);
       togglePlannedDate(this.value);
+    });
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | EMERGENCIA CHECKBOX
+  |--------------------------------------------------------------------------
+  */
+  const emergenciaCheckbox = document.getElementById('emergenciaCheckbox');
+  const osInput = document.querySelector('[name="os"]');
+  if (emergenciaCheckbox && osInput) {
+    emergenciaCheckbox.addEventListener('change', async function () {
+      if (this.checked) {
+        osInput.disabled = true;
+        try {
+          osInput.value = await generateEmergenciaOs();
+        } catch (error) {
+          console.error(error);
+          this.checked = false;
+          osInput.disabled = false;
+          osInput.value = '';
+          showToast('Erro ao gerar OS emergencial', 'error');
+        }
+      } else {
+        osInput.disabled = false;
+        osInput.value = '';
+      }
     });
   }
 

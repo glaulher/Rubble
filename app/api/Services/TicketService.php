@@ -467,6 +467,22 @@ class TicketService
         ];
     }
 
+    public function nextEmergenciaOs(): string
+    {
+        $max = 0;
+        foreach ($this->ticketRepository->findEmergenciaOsRows() as $row) {
+            $os = (string) ($row['os'] ?? '');
+            if (!preg_match('/^EMERGENCIAL(\d+)$/', $os, $m)) {
+                continue;
+            }
+            $num = (int) $m[1];
+            if ($num > $max) {
+                $max = $num;
+            }
+        }
+        return 'EMERGENCIAL' . str_pad((string) ($max + 1), 2, '0', STR_PAD_LEFT);
+    }
+
     private function buildStatusOrderSql(array $priority): string
     {
         $parts = [];

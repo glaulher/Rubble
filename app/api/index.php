@@ -48,7 +48,9 @@ $router->addRoute('equipment', 'GET', function () use ($auth) {
 // Tickets
 $router->addRoute('tickets', 'GET', function () use ($auth) {
     $controller = new TicketController();
-    if (isset($_GET['id'])) {
+    if (isset($_GET['action']) && $_GET['action'] === 'next-emergencia-os') {
+        $controller->nextEmergenciaOs();
+    } elseif (isset($_GET['id'])) {
         $controller->getById();
     } else {
         $controller->listByItem();

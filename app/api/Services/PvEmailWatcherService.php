@@ -190,13 +190,60 @@ class PvEmailWatcherService
             return '';
         }
 
-        $parts = @imap_mime_header_decode($raw);
-        if ($parts === false || $parts === []) {
+        $decoded = $this->decodeEncodedWords($raw);
+        return $decoded !== '' ? $decoded : $raw;
+    }
+
+    private function decodeEncodedWords(string $raw): string
+    {
+        if (function_exists('imap_mime_header_decode')) {
+            $parts = @imap_mime_header_decode($raw);
+            if ($parts !== false && $parts !== []) {
+                $decoded = trim((string) array_reduce($parts, static fn ($carry, $part) => $carry . $part->text, ''));
+                if ($decoded !== '') {
+                    return $decoded;
+                }
+            }
             return $raw;
         }
 
-        $decoded = trim((string) array_reduce($parts, static fn ($carry, $part) => $carry . $part->text, ''));
-        return $decoded !== '' ? $decoded : $raw;
+        if (!preg_match_all('/=\?[^?]+\?[QB]\?[^?]*\?=/i', $raw, $matches, PREG_OFFSET_CAPTURE)) {
+            return $raw;
+        }
+
+        $decoded = '';
+        $cursor = 0;
+        foreach ($matches[0] as [$token, $offset]) {
+            $decoded .= substr($raw, $cursor, $offset - $cursor);
+            $decoded .= $this->decodeSingleEncodedWord($token);
+            $cursor = $offset + strlen($token);
+        }
+        $decoded .= substr($raw, $cursor);
+        return trim($decoded);
+    }
+
+    private function decodeSingleEncodedWord(string $token): string
+    {
+        if (!preg_match('/^=\?([^?]+)\?([QB])\?([^?]*)\?=$/i', $token, $m)) {
+            return $token;
+        }
+
+        $text = strtoupper($m[2]) === 'Q'
+            ? $this->decodeQuotedPrintableWord($m[3])
+            : (string) base64_decode($m[3], true);
+
+        $charset = strtolower($m[1]);
+        if ($charset !== '' && !in_array($charset, ['utf-8', 'us-ascii'], true) && function_exists('mb_convert_encoding')) {
+            $text = mb_convert_encoding($text, 'UTF-8', $charset);
+        }
+
+        return $text;
+    }
+
+    private function decodeQuotedPrintableWord(string $payload): string
+    {
+        $text = str_replace('_', ' ', $payload);
+        return (string) preg_replace_callback('/=([0-9A-Fa-f]{2})/', static fn ($h) => chr(hexdec($h[1])), $text);
     }
 
     private function extractPvNumber(string $subject): ?string

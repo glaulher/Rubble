@@ -1176,4 +1176,67 @@ class TicketServiceTest extends TestCase
         $this->assertNotNull($savedData);
         $this->assertSame('INFRATEL1', $savedData['os']);
     }
+
+    // --- nextEmergenciaOs ---
+
+    public function testNextEmergenciaOsStartsAt01WhenEmpty(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $ticketRepo->method('findEmergenciaOsRows')->willReturn([]);
+
+        $service = new TicketService($ticketRepo, $this->createMockEquipmentRepo());
+
+        $this->assertSame('EMERGENCIAL01', $service->nextEmergenciaOs());
+    }
+
+    public function testNextEmergenciaOsIncrementsSequentially(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $ticketRepo->method('findEmergenciaOsRows')->willReturn([
+            ['os' => 'EMERGENCIAL01'],
+            ['os' => 'EMERGENCIAL02'],
+        ]);
+
+        $service = new TicketService($ticketRepo, $this->createMockEquipmentRepo());
+
+        $this->assertSame('EMERGENCIAL03', $service->nextEmergenciaOs());
+    }
+
+    public function testNextEmergenciaOsBeyond99KeepsNaturalNumber(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $ticketRepo->method('findEmergenciaOsRows')->willReturn([
+            ['os' => 'EMERGENCIAL99'],
+        ]);
+
+        $service = new TicketService($ticketRepo, $this->createMockEquipmentRepo());
+
+        $this->assertSame('EMERGENCIAL100', $service->nextEmergenciaOs());
+    }
+
+    public function testNextEmergenciaOsIgnoresOtherOsFormats(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $ticketRepo->method('findEmergenciaOsRows')->willReturn([
+            ['os' => 'INFRATEL1'],
+            ['os' => '4674717'],
+            ['os' => 'EMERGENCIAL07'],
+        ]);
+
+        $service = new TicketService($ticketRepo, $this->createMockEquipmentRepo());
+
+        $this->assertSame('EMERGENCIAL08', $service->nextEmergenciaOs());
+    }
+
+    public function testNextEmergenciaOsPadsLeadingZero(): void
+    {
+        $ticketRepo = $this->createMockRepo();
+        $ticketRepo->method('findEmergenciaOsRows')->willReturn([
+            ['os' => 'EMERGENCIAL9'],
+        ]);
+
+        $service = new TicketService($ticketRepo, $this->createMockEquipmentRepo());
+
+        $this->assertSame('EMERGENCIAL10', $service->nextEmergenciaOs());
+    }
 }

@@ -156,6 +156,27 @@ class TicketController
 
     /*
     |--------------------------------------------------------------------------
+    | NEXT EMERGENCIA OS
+    |--------------------------------------------------------------------------
+    */
+
+    public function nextEmergenciaOs(): void
+    {
+        try {
+
+            Response::success(
+                'Próxima OS emergencial',
+                ['os' => $this->service->nextEmergenciaOs()]
+            );
+
+        } catch (\Throwable $e) {
+
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | GET BY ID
     |--------------------------------------------------------------------------
     */
