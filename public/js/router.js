@@ -20,7 +20,7 @@ import { initFilters } from '/public/js/filter-exchanges/list.js';
 import { initPdfAudit } from '/public/js/pdf-audit/audit.js';
 import { initEquipamentDashboard } from '/public/js/equipment/dashboard.js';
 
-const VIEW_VERSION = 34;
+const VIEW_VERSION = 35;
 
 async function loadPage(url) {
   try {

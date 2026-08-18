@@ -79,7 +79,7 @@ class PendingTicketServiceTest extends TestCase
 
         $repo->expects($this->once())
             ->method('listPendingBySite')
-            ->with(20, 0, '', [], 'e.local', 'ASC', 'OS123', 'Fornecimento');
+            ->with(20, 0, '', [], 'e.local', 'ASC', 'OS123', 'Fornecimento', '', '', '');
 
         $service = $this->createService($repo);
         $service->listPendingBySite(20, 0, '', '', 'e.local', 'ASC', 'OS123');
@@ -93,7 +93,7 @@ class PendingTicketServiceTest extends TestCase
 
         $repo->expects($this->once())
             ->method('listPendingBySite')
-            ->with(20, 0, '', [], 'e.local', 'ASC', '', 'Fornecimento');
+            ->with(20, 0, '', [], 'e.local', 'ASC', '', 'Fornecimento', '', '', '');
 
         $service = $this->createService($repo);
         $service->listPendingBySite(20, 0, '', '');
@@ -104,7 +104,7 @@ class PendingTicketServiceTest extends TestCase
         $repo = $this->createMockRepo();
         $repo->expects($this->once())
             ->method('countPending')
-            ->with('', [], 'OS123', 'Fornecimento')
+            ->with('', [], 'OS123', 'Fornecimento', '', '', '')
             ->willReturn(2);
 
         $service = $this->createService($repo);
@@ -116,7 +116,7 @@ class PendingTicketServiceTest extends TestCase
         $repo = $this->createMockRepo();
         $repo->expects($this->once())
             ->method('countPending')
-            ->with('', [], '', 'Fornecimento')
+            ->with('', [], '', 'Fornecimento', '', '', '')
             ->willReturn(4);
 
         $service = $this->createService($repo);
@@ -128,7 +128,7 @@ class PendingTicketServiceTest extends TestCase
         $repo = $this->createMockRepo();
         $repo->expects($this->once())
             ->method('countPending')
-            ->with('', [], '', 'Fornecimento')
+            ->with('', [], '', 'Fornecimento', '', '', '')
             ->willReturn(5);
 
         $service = $this->createService($repo);
@@ -140,7 +140,7 @@ class PendingTicketServiceTest extends TestCase
         $repo = $this->createMockRepo();
         $repo->expects($this->once())
             ->method('countPending')
-            ->with('BMA', ['pendente'], '', 'Fornecimento')
+            ->with('BMA', ['pendente'], '', 'Fornecimento', '', '', '')
             ->willReturn(3);
 
         $service = $this->createService($repo);
@@ -166,7 +166,7 @@ class PendingTicketServiceTest extends TestCase
 
         $repo->expects($this->once())
             ->method('listPendingBySite')
-            ->with(20, $this->anything(), $expectedTruncated, [], 'e.local', 'ASC', '', 'Fornecimento');
+            ->with(20, $this->anything(), $expectedTruncated, [], 'e.local', 'ASC', '', 'Fornecimento', '', '', '');
 
         $service = $this->createService($repo);
         $service->listPendingBySite(20, 0, $longSearch, '');
@@ -180,7 +180,7 @@ class PendingTicketServiceTest extends TestCase
 
         $repo->expects($this->once())
             ->method('listPendingBySite')
-            ->with(20, 0, '', [], 'r.data', 'DESC', '', 'Fornecimento');
+            ->with(20, 0, '', [], 'r.data', 'DESC', '', 'Fornecimento', '', '', '');
 
         $service = $this->createService($repo);
         $service->listPendingBySite(20, 0, '', '', 'r.data', 'desc');
@@ -194,7 +194,7 @@ class PendingTicketServiceTest extends TestCase
 
         $repo->expects($this->once())
             ->method('listPendingBySite')
-            ->with(20, 40, '', [], 'e.local', 'ASC', '', 'Fornecimento');
+            ->with(20, 40, '', [], 'e.local', 'ASC', '', 'Fornecimento', '', '', '');
 
         $service = $this->createService($repo);
         $service->listPendingBySite(20, 40, '', '');
@@ -208,7 +208,7 @@ class PendingTicketServiceTest extends TestCase
 
         $repo->expects($this->once())
             ->method('listPendingBySite')
-            ->with(20, 0, '', [], 'e.local', 'ASC', '', 'Fornecimento');
+            ->with(20, 0, '', [], 'e.local', 'ASC', '', 'Fornecimento', '', '', '');
 
         $service = $this->createService($repo);
         $service->listPendingBySite(20, 0, '', '', 'r.id; DROP TABLE registros', 'ASC');
@@ -394,7 +394,7 @@ class PendingTicketServiceTest extends TestCase
 
         $repo->expects($this->once())
             ->method('listPendingBySite')
-            ->with(20, 0, '', ['pendente', 'concluído'], 'e.local', 'ASC', '', 'Fornecimento');
+            ->with(20, 0, '', ['pendente', 'concluído'], 'e.local', 'ASC', '', 'Fornecimento', '', '', '');
 
         $service = $this->createService($repo);
         $service->listPendingBySite(20, 0, '', 'pendente,concluído');
@@ -405,7 +405,7 @@ class PendingTicketServiceTest extends TestCase
         $repo = $this->createMockRepo();
         $repo->expects($this->once())
             ->method('countPending')
-            ->with('', ['pendente', 'concluído'], '', 'Fornecimento')
+            ->with('', ['pendente', 'concluído'], '', 'Fornecimento', '', '', '')
             ->willReturn(2);
 
         $service = $this->createService($repo);
@@ -420,7 +420,7 @@ class PendingTicketServiceTest extends TestCase
 
         $repo->expects($this->once())
             ->method('listPendingBySite')
-            ->with(20, 0, '', ['concluído'], 'e.local', 'ASC', '', 'Fornecimento');
+            ->with(20, 0, '', ['concluído'], 'e.local', 'ASC', '', 'Fornecimento', '', '', '');
 
         $service = $this->createService($repo);
         $service->listPendingBySite(20, 0, '', 'CONCLUÍDO');
@@ -440,7 +440,7 @@ class PendingTicketServiceTest extends TestCase
         $repo = $this->createMockRepo();
         $repo->expects($this->once())
             ->method('countPending')
-            ->with('', ['concluído'], '', 'Fornecimento')
+            ->with('', ['concluído'], '', 'Fornecimento', '', '', '')
             ->willReturn(4);
 
         $service = $this->createService($repo);
@@ -479,5 +479,59 @@ class PendingTicketServiceTest extends TestCase
 
         $service = $this->createService($repo);
         $this->assertSame(0, $service->countPending('', '__none__'));
+    }
+
+    public function testListPendingBySitePassesDateFilters(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('listPendingBySite')->willReturn([]);
+        $repo->method('countPending')->willReturn(0);
+
+        $repo->expects($this->once())
+            ->method('listPendingBySite')
+            ->with(20, 0, '', [], 'e.local', 'ASC', '', 'Fornecimento', 'data', '2026-08-01', '2026-08-31');
+
+        $service = $this->createService($repo);
+        $service->listPendingBySite(20, 0, '', '', 'e.local', 'ASC', '', 'data', '2026-08-01', '2026-08-31');
+    }
+
+    public function testListPendingBySiteIgnoresInvalidDateColumn(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('listPendingBySite')->willReturn([]);
+        $repo->method('countPending')->willReturn(0);
+
+        $repo->expects($this->once())
+            ->method('listPendingBySite')
+            ->with(20, 0, '', [], 'e.local', 'ASC', '', 'Fornecimento', '', '2026-08-01', '2026-08-31');
+
+        $service = $this->createService($repo);
+        $service->listPendingBySite(20, 0, '', '', 'e.local', 'ASC', '', 'data; DROP TABLE registros', '2026-08-01', '2026-08-31');
+    }
+
+    public function testListPendingBySiteTruncatesDateValues(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('listPendingBySite')->willReturn([]);
+        $repo->method('countPending')->willReturn(0);
+
+        $repo->expects($this->once())
+            ->method('listPendingBySite')
+            ->with(20, 0, '', [], 'e.local', 'ASC', '', 'Fornecimento', 'data', '2026-08-01', '2026-08-31');
+
+        $service = $this->createService($repo);
+        $service->listPendingBySite(20, 0, '', '', 'e.local', 'ASC', '', 'data', str_repeat('2026-08-01-EXTRA', 5), '2026-08-31');
+    }
+
+    public function testCountPendingPassesDateFilters(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('countPending')
+            ->with('', [], '', 'Fornecimento', 'data_pv_enviada', '2026-08-01', '2026-08-31')
+            ->willReturn(3);
+
+        $service = $this->createService($repo);
+        $this->assertSame(3, $service->countPending('', '', '', 'data_pv_enviada', '2026-08-01', '2026-08-31'));
     }
 }

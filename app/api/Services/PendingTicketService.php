@@ -22,6 +22,11 @@ class PendingTicketService
         'r.data_prevista_conclusao', 'r.data_pv_enviada', 'r.data_pv_aprovada', 'r.data_concluido', 'r.equipe', 'r.material',
     ];
 
+    public const ALLOWED_DATE_COLUMNS = [
+        'data', 'data_pv_enviada', 'data_pv_aprovada', 'data_planejada',
+        'data_real_inicio', 'data_prevista_conclusao', 'data_concluido',
+    ];
+
     public const ALLOWED_DIRS = ['ASC', 'DESC'];
 
     public const ALLOWED_EDITABLE_FIELDS = [
@@ -66,7 +71,10 @@ class PendingTicketService
         string $status = '',
         string $sortBy = 'e.local',
         string $sortDir = 'ASC',
-        string $os = ''
+        string $os = '',
+        string $dateColumn = '',
+        string $dateFrom = '',
+        string $dateTo = ''
     ): array {
         $statuses = $this->parseStatuses($status);
 
@@ -80,8 +88,12 @@ class PendingTicketService
         $search = mb_strimwidth($search, 0, 200);
         $os = mb_strimwidth($os, 0, 200);
 
-        $items = $this->repository->listPendingBySite($limit, max(0, $offset), $search, $statuses, $sortBy, $sortDir, $os, self::EXCLUDED_LOCATION);
-        $total = $this->repository->countPending($search, $statuses, $os, self::EXCLUDED_LOCATION);
+        $dateColumn = in_array($dateColumn, self::ALLOWED_DATE_COLUMNS, true) ? $dateColumn : '';
+        $dateFrom = mb_strimwidth(trim($dateFrom), 0, 10);
+        $dateTo = mb_strimwidth(trim($dateTo), 0, 10);
+
+        $items = $this->repository->listPendingBySite($limit, max(0, $offset), $search, $statuses, $sortBy, $sortDir, $os, self::EXCLUDED_LOCATION, $dateColumn, $dateFrom, $dateTo);
+        $total = $this->repository->countPending($search, $statuses, $os, self::EXCLUDED_LOCATION, $dateColumn, $dateFrom, $dateTo);
 
         return [
             'items' => $items,
@@ -89,7 +101,7 @@ class PendingTicketService
         ];
     }
 
-    public function countPending(string $search, string $status, string $os = ''): int
+    public function countPending(string $search, string $status, string $os = '', string $dateColumn = '', string $dateFrom = '', string $dateTo = ''): int
     {
         $statuses = $this->parseStatuses($status);
 
@@ -97,7 +109,11 @@ class PendingTicketService
             return 0;
         }
 
-        return $this->repository->countPending($search, $statuses, $os, self::EXCLUDED_LOCATION);
+        $dateColumn = in_array($dateColumn, self::ALLOWED_DATE_COLUMNS, true) ? $dateColumn : '';
+        $dateFrom = mb_strimwidth(trim($dateFrom), 0, 10);
+        $dateTo = mb_strimwidth(trim($dateTo), 0, 10);
+
+        return $this->repository->countPending($search, $statuses, $os, self::EXCLUDED_LOCATION, $dateColumn, $dateFrom, $dateTo);
     }
 
     public function updatePendingField(int $id, string $field, mixed $value): bool

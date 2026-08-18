@@ -16,6 +16,9 @@ var pendingSortBy = 'e.local';
 var pendingSortDir = 'ASC';
 var pendingLoading = false;
 var pendingAllLoaded = false;
+var pendingDateColumn = '';
+var pendingDateFrom = '';
+var pendingDateTo = '';
 var _pendingItemsById = {};
 var _pendingStepOptions = [];
 var _pendingResponsavelOptions = [];
@@ -900,6 +903,11 @@ export function buildPendingQuery() {
     + '&os=' + encodeURIComponent(pendingOsFilter)
     + '&sort_by=' + encodeURIComponent(pendingSortBy)
     + '&sort_dir=' + encodeURIComponent(pendingSortDir);
+  if (pendingDateColumn) {
+    q += '&date_column=' + encodeURIComponent(pendingDateColumn);
+    if (pendingDateFrom) q += '&date_from=' + encodeURIComponent(pendingDateFrom);
+    if (pendingDateTo) q += '&date_to=' + encodeURIComponent(pendingDateTo);
+  }
   if (pendingStatusTodosChecked) {
     return q;
   }
@@ -1036,6 +1044,9 @@ export function initPendingTickets() {
   pendingOsFilter = '';
   pendingSortBy = 'e.local';
   pendingSortDir = 'ASC';
+  pendingDateColumn = '';
+  pendingDateFrom = '';
+  pendingDateTo = '';
   pendingLoading = false;
   pendingAllLoaded = false;
   pendingHiddenColumns = new Set();
@@ -1074,6 +1085,33 @@ export function initPendingTickets() {
     });
     osInput.addEventListener('input', function () {
       pendingDebouncedOsFilter(this.value);
+    });
+  }
+
+  var dateColumnSelect = document.getElementById('pendingDateColumn');
+  if (dateColumnSelect) {
+    dateColumnSelect.value = pendingDateColumn;
+    dateColumnSelect.addEventListener('change', function () {
+      pendingDateColumn = this.value;
+      _pendingReset();
+    });
+  }
+
+  var dateFromInput = document.getElementById('pendingDateFrom');
+  if (dateFromInput) {
+    dateFromInput.value = pendingDateFrom;
+    dateFromInput.addEventListener('change', function () {
+      pendingDateFrom = this.value;
+      _pendingReset();
+    });
+  }
+
+  var dateToInput = document.getElementById('pendingDateTo');
+  if (dateToInput) {
+    dateToInput.value = pendingDateTo;
+    dateToInput.addEventListener('change', function () {
+      pendingDateTo = this.value;
+      _pendingReset();
     });
   }
 

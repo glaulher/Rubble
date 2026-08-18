@@ -63,6 +63,38 @@
 
   <!-- Status filter (multi-select) -->
   <div class="px-6 py-3 flex flex-wrap gap-4 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 mt-4">
+    <div class="flex flex-col shrink-0">
+      <label for="pendingDateColumn" class="text-xs text-slate-500 mb-1">Coluna de data</label>
+      <select
+        id="pendingDateColumn"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-44"
+      >
+        <option value="">Coluna de data</option>
+        <option value="data">Data Abertura</option>
+        <option value="data_pv_enviada">Data PV Enviada</option>
+        <option value="data_pv_aprovada">Data PV Aprovada</option>
+        <option value="data_planejada">Data Programada</option>
+        <option value="data_real_inicio">Data Real Início</option>
+        <option value="data_prevista_conclusao">Data Prevista Conclusão</option>
+        <option value="data_concluido">Data Conclusão</option>
+      </select>
+    </div>
+    <div class="flex flex-col shrink-0">
+      <label for="pendingDateFrom" class="text-xs text-slate-500 mb-1">Data Início</label>
+      <input
+        type="date"
+        id="pendingDateFrom"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36"
+      />
+    </div>
+    <div class="flex flex-col shrink-0">
+      <label for="pendingDateTo" class="text-xs text-slate-500 mb-1">Data Fim</label>
+      <input
+        type="date"
+        id="pendingDateTo"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36"
+      />
+    </div>
     <div class="flex flex-col relative shrink-0" id="pendingStatusContainer">
       <label for="pendingStatusBtn" class="text-xs text-slate-500 mb-1">Status</label>
       <button

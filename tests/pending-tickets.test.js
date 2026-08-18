@@ -31,6 +31,9 @@ var pendingSortBy = 'e.local';
 var pendingSortDir = 'ASC';
 var pendingLoading = false;
 var pendingAllLoaded = false;
+var pendingDateColumn = '';
+var pendingDateFrom = '';
+var pendingDateTo = '';
 
 const PENDING_COLUMNS = 19;
 
@@ -169,6 +172,11 @@ function buildPendingQuery() {
     + '&os=' + encodeURIComponent(pendingOsFilter)
     + '&sort_by=' + encodeURIComponent(pendingSortBy)
     + '&sort_dir=' + encodeURIComponent(pendingSortDir);
+  if (pendingDateColumn) {
+    q += '&date_column=' + encodeURIComponent(pendingDateColumn);
+    if (pendingDateFrom) q += '&date_from=' + encodeURIComponent(pendingDateFrom);
+    if (pendingDateTo) q += '&date_to=' + encodeURIComponent(pendingDateTo);
+  }
   if (pendingStatusTodosChecked) {
     return q;
   }
@@ -289,6 +297,54 @@ describe("buildPendingQuery", () => {
     pendingSortBy = 'e.local';
     pendingSortDir = 'ASC';
     expect(buildPendingQuery()).toContain('status=__none__');
+  });
+
+  it("includes date filters when a date column is chosen", () => {
+    pendingSearch = '';
+    pendingStatusFilter = new Set();
+    pendingStatusTodosChecked = true;
+    pendingOsFilter = '';
+    pendingSortBy = 'e.local';
+    pendingSortDir = 'ASC';
+    pendingDateColumn = 'data_pv_enviada';
+    pendingDateFrom = '2026-08-01';
+    pendingDateTo = '2026-08-31';
+    const q = buildPendingQuery();
+    expect(q).toContain('date_column=data_pv_enviada');
+    expect(q).toContain('date_from=2026-08-01');
+    expect(q).toContain('date_to=2026-08-31');
+  });
+
+  it("omits date_from/date_to when empty even with a date column", () => {
+    pendingSearch = '';
+    pendingStatusFilter = new Set();
+    pendingStatusTodosChecked = true;
+    pendingOsFilter = '';
+    pendingSortBy = 'e.local';
+    pendingSortDir = 'ASC';
+    pendingDateColumn = 'data';
+    pendingDateFrom = '';
+    pendingDateTo = '';
+    const q = buildPendingQuery();
+    expect(q).toContain('date_column=data');
+    expect(q).not.toContain('date_from=');
+    expect(q).not.toContain('date_to=');
+  });
+
+  it("omits date filters when no date column is chosen", () => {
+    pendingSearch = '';
+    pendingStatusFilter = new Set();
+    pendingStatusTodosChecked = true;
+    pendingOsFilter = '';
+    pendingSortBy = 'e.local';
+    pendingSortDir = 'ASC';
+    pendingDateColumn = '';
+    pendingDateFrom = '2026-08-01';
+    pendingDateTo = '2026-08-31';
+    const q = buildPendingQuery();
+    expect(q).not.toContain('date_column=');
+    expect(q).not.toContain('date_from=');
+    expect(q).not.toContain('date_to=');
   });
 });
 

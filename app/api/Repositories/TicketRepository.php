@@ -28,6 +28,16 @@ class TicketRepository extends BaseRepository
         'r.material' => 'r.material',
     ];
 
+    private const ALLOWED_DATE_COLUMNS = [
+        'data' => 'r.data',
+        'data_pv_enviada' => 'r.data_pv_enviada',
+        'data_pv_aprovada' => 'r.data_pv_aprovada',
+        'data_planejada' => 'r.data_planejada',
+        'data_real_inicio' => 'r.data_real_inicio',
+        'data_prevista_conclusao' => 'r.data_prevista_conclusao',
+        'data_concluido' => 'r.data_concluido',
+    ];
+
     private const ALLOWED_EDITABLE_FIELDS = [
         'status' => 'status',
         'step' => 'step',
@@ -306,7 +316,10 @@ class TicketRepository extends BaseRepository
         string $sortBy = 'e.local',
         string $sortDir = 'ASC',
         string $os = '',
-        string $excludedLocation = ''
+        string $excludedLocation = '',
+        string $dateColumn = '',
+        string $dateFrom = '',
+        string $dateTo = ''
     ): array {
         $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up', 'concluido', 'concluído'];
 
@@ -350,6 +363,20 @@ class TicketRepository extends BaseRepository
             $types .= 's';
         }
 
+        $dateCol = self::ALLOWED_DATE_COLUMNS[$dateColumn] ?? null;
+        if ($dateCol !== null) {
+            if ($dateFrom !== '') {
+                $where .= " AND {$dateCol} >= ?";
+                $params[] = $dateFrom;
+                $types .= 's';
+            }
+            if ($dateTo !== '') {
+                $where .= " AND {$dateCol} <= ?";
+                $params[] = $dateTo;
+                $types .= 's';
+            }
+        }
+
         $allowedSort = self::ALLOWED_SORT;
         $sortBy = $allowedSort[$sortBy] ?? 'e.local';
         $sortDir = strtoupper($sortDir) === 'DESC' ? 'DESC' : 'ASC';
@@ -381,7 +408,7 @@ class TicketRepository extends BaseRepository
         return $records;
     }
 
-    public function countPending(string $search, array $statuses = [], string $os = '', string $excludedLocation = ''): int
+    public function countPending(string $search, array $statuses = [], string $os = '', string $excludedLocation = '', string $dateColumn = '', string $dateFrom = '', string $dateTo = ''): int
     {
         $statusList = ['pendente', 'planejado', 'em andamento', 'projeto clean up', 'concluido', 'concluído'];
 
@@ -423,6 +450,20 @@ class TicketRepository extends BaseRepository
             $where .= ' AND e.local != ?';
             $params[] = $excludedLocation;
             $types .= 's';
+        }
+
+        $dateCol = self::ALLOWED_DATE_COLUMNS[$dateColumn] ?? null;
+        if ($dateCol !== null) {
+            if ($dateFrom !== '') {
+                $where .= " AND {$dateCol} >= ?";
+                $params[] = $dateFrom;
+                $types .= 's';
+            }
+            if ($dateTo !== '') {
+                $where .= " AND {$dateCol} <= ?";
+                $params[] = $dateTo;
+                $types .= 's';
+            }
         }
 
         $sql = "
