@@ -1,4 +1,6 @@
 import { showToast } from '/public/js/core/dom.js';
+import { createAutocomplete } from '/public/js/pv/form-autocomplete.js';
+import { loadLocals, getPvLocalOptions } from '/public/js/pv/form-utils.js';
 
 export async function generateEmergenciaOs() {
   const resp = await fetch(
@@ -9,6 +11,39 @@ export async function generateEmergenciaOs() {
     throw new Error(result.message || 'Falha ao gerar OS emergencial');
   }
   return result.data.os;
+}
+
+export async function loadGestaoEquipamentos(local) {
+  const select = document.getElementById('equipamentoId');
+  if (!select) return;
+
+  try {
+    let url = '/app/api/index.php?route=equipment&limit=9999&offset=0';
+    if (local) {
+      url += `&local=${encodeURIComponent(local)}`;
+    }
+
+    const response = await fetch(url);
+    const result = await response.json();
+    const items = result.data || [];
+
+    select.innerHTML = '<option value="">Selecione...</option>';
+
+    items.forEach((e) => {
+      const opt = document.createElement('option');
+      opt.value = e.id;
+      const parts = [];
+      if (e.capacidade != null) parts.push(`${e.capacidade} TR`);
+      if (e.localidade) parts.push(e.localidade);
+      opt.textContent =
+        parts.length > 0
+          ? `${e.equipamento} — ${parts.join(' - ')}`
+          : e.equipamento;
+      select.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Erro ao carregar equipamentos:', err);
+  }
 }
 
 export async function loadHomeForm() {
@@ -51,6 +86,52 @@ export async function loadHomeForm() {
   if (equipmentField && equipmentId) {
     equipmentField.value = equipmentId;
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | ORIGEM GESTÃO DE OS
+  |--------------------------------------------------------------------------
+  */
+  const fromGestao = params.get('source') === 'gestao';
+
+  const gestaoFields = document.getElementById('gestaoEquipFields');
+
+  if (fromGestao && gestaoFields) {
+    gestaoFields.classList.remove('hidden');
+
+    const voltarLink = document.getElementById('voltarLink');
+    if (voltarLink) {
+      voltarLink.setAttribute('href', '#/pending-tickets');
+    }
+
+    await loadLocals();
+
+    createAutocomplete({
+      inputSelector: '#local',
+      dropdownSelector: '.local-dropdown',
+      dataSource: () => getPvLocalOptions(),
+      onSelect: () => {
+        const local = document.getElementById('local').value.trim();
+        loadGestaoEquipamentos(local || null);
+      },
+      onInput: () => {
+        const local = document.getElementById('local').value.trim();
+        loadGestaoEquipamentos(local || null);
+      }
+    });
+  }
+
+  const equipamentoSelect = document.getElementById('equipamentoId');
+  if (equipamentoSelect) {
+    equipamentoSelect.addEventListener('change', function () {
+      const hiddenEquipment = document.getElementById('equipmentId');
+      if (hiddenEquipment) {
+        hiddenEquipment.value = this.value;
+      }
+    });
+  }
+
+  const redirectAfterSave = fromGestao ? '#/pending-tickets' : '#/';
 
   /*
   |--------------------------------------------------------------------------
@@ -291,7 +372,7 @@ export async function loadHomeForm() {
       showToast(result.message, 'success');
 
       setTimeout(() => {
-        window.location.hash = '#/';
+        window.location.hash = redirectAfterSave;
       }, 800);
     } catch (error) {
       console.error(error);

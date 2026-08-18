@@ -2,11 +2,16 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { evalModule } from "./helpers/eval-module.js";
 
 var HELPERS =
-  '\nfunction showToast() {}\n';
+  '\nfunction showToast() {}\n' +
+  '\nfunction createAutocomplete() { globalThis._createAutocompleteCalls += 1; }\n' +
+  'function loadLocals() { return Promise.resolve([]); }\n' +
+  'function getPvLocalOptions() { return []; }\n';
 
 function loadFormModule() {
   delete globalThis.generateEmergenciaOs;
   delete globalThis.loadHomeForm;
+  delete globalThis.loadGestaoEquipamentos;
+  globalThis._createAutocompleteCalls = 0;
   evalModule('../public/js/home/form.js', HELPERS);
 }
 
@@ -15,6 +20,13 @@ function makeFormDom() {
     '<form id="ticketForm">' +
     '<input type="hidden" id="ticketId">' +
     '<input type="hidden" id="equipmentId" name="equipamento_id" value="">' +
+    '<div id="gestaoEquipFields" class="hidden">' +
+    '<div class="autocomplete-wrap relative">' +
+    '<input type="text" id="local">' +
+    '<div class="local-dropdown hidden"></div>' +
+    '</div>' +
+    '<select id="equipamentoId"><option value="">Selecione...</option></select>' +
+    '</div>' +
     '<input type="text" name="os" id="osNumero">' +
     '<input type="checkbox" id="emergenciaCheckbox">' +
     '<input type="date" name="data">' +
@@ -24,6 +36,7 @@ function makeFormDom() {
     '<input type="date" name="data_planejada">' +
     '<select name="material"></select>' +
     '<textarea name="obs"></textarea>' +
+    '<a href="#/" id="voltarLink">Voltar</a>' +
     '<button type="submit"></button>' +
     '</form>';
 }
@@ -33,6 +46,11 @@ beforeEach(function () {
   globalThis.fetch = async function () {
     return { json: async function () { return { success: true, data: { os: 'EMERGENCIAL01' } }; } };
   };
+  try {
+    window.location.hash = '';
+  } catch (e) {
+    globalThis.location = { hash: '' };
+  }
 });
 
 // --- generateEmergenciaOs ---
@@ -101,5 +119,45 @@ describe("loadHomeForm emergencia checkbox", function () {
     await new Promise(function (r) { setTimeout(r, 0); });
     expect(osInput.disabled).toBe(false);
     expect(osInput.value).toBe('');
+  });
+});
+
+// --- loadHomeForm: gestao de OS origin ---
+
+describe("loadHomeForm from Gestão de OS", function () {
+  beforeEach(function () {
+    makeFormDom();
+    loadFormModule();
+  });
+
+  it("shows the site/equipment fields and wires autocomplete when source=gestao", async function () {
+    window.location.hash = '#/form?source=gestao';
+    await globalThis.loadHomeForm();
+    var fields = document.getElementById('gestaoEquipFields');
+    expect(fields.classList.contains('hidden')).toBe(false);
+    expect(globalThis._createAutocompleteCalls).toBe(1);
+    expect(document.getElementById('voltarLink').getAttribute('href')).toBe('#/pending-tickets');
+  });
+
+  it("keeps the site/equipment fields hidden without source=gestao", async function () {
+    window.location.hash = '#/form?id=5';
+    await globalThis.loadHomeForm();
+    var fields = document.getElementById('gestaoEquipFields');
+    expect(fields.classList.contains('hidden')).toBe(true);
+    expect(globalThis._createAutocompleteCalls).toBe(0);
+    expect(document.getElementById('voltarLink').getAttribute('href')).toBe('#/');
+  });
+
+  it("syncs the hidden equipmentId when an equipment is selected", async function () {
+    window.location.hash = '#/form?source=gestao';
+    await globalThis.loadHomeForm();
+    var select = document.getElementById('equipamentoId');
+    var option = document.createElement('option');
+    option.value = '99';
+    option.textContent = 'WM 02 — 10 TR - Container 1';
+    select.appendChild(option);
+    select.value = '99';
+    select.dispatchEvent(new Event('change'));
+    expect(document.getElementById('equipmentId').value).toBe('99');
   });
 });

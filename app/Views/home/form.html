@@ -25,6 +25,36 @@
             <!-- EQUIPAMENTO -->
             <input type="hidden" id="equipmentId" name="equipamento_id">
 
+            <!-- SITE + EQUIPAMENTO (apenas origem Gestão de OS) -->
+            <div id="gestaoEquipFields" class="hidden">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    <div>
+                        <label for="local" class="block text-sm font-medium text-slate-700 mb-2">
+                            Site *
+                        </label>
+                        <div class="autocomplete-wrap relative">
+                            <input type="text" id="local" autocomplete="off"
+                                class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <div class="local-dropdown autocomplete-dropdown absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto hidden"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="equipamentoId" class="block text-sm font-medium text-slate-700 mb-2">
+                            Equipamento *
+                        </label>
+                        <select id="equipamentoId"
+                            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+
+                </div>
+
+            </div>
+
             <!-- GRID -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -188,7 +218,7 @@
 
                 </button>
 
-                <a href="#/"
+                <a href="#/" id="voltarLink"
                     class="flex-1 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 font-semibold py-3 rounded-xl transition duration-200 text-center">
 
                     Voltar
