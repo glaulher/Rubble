@@ -24,12 +24,7 @@ class AuthController
                 return;
             }
 
-            if (Env::get('APP_DEBUG', 'false') === 'true') {
-                $rawIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
-            } else {
-                $rawIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-            }
-            $ip = trim(explode(',', $rawIp)[0]);
+            $ip = RateLimiter::getClientIp();
 
             if (RateLimiter::isLimited($ip, 'auth:login', 5, 300)) {
                 Response::error('Muitas tentativas. Tente novamente em 5 minutos.', 429);
