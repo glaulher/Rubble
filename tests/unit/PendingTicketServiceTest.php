@@ -534,4 +534,18 @@ class PendingTicketServiceTest extends TestCase
         $service = $this->createService($repo);
         $this->assertSame(3, $service->countPending('', '', '', 'data_pv_enviada', '2026-08-01', '2026-08-31'));
     }
+
+    public function testListPendingBySiteAcceptsPvStatusSort(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('listPendingBySite')->willReturn([]);
+        $repo->method('countPending')->willReturn(0);
+
+        $repo->expects($this->once())
+            ->method('listPendingBySite')
+            ->with(20, 0, '', [], 'pv_status', 'DESC', '', 'Fornecimento', '', '', '');
+
+        $service = $this->createService($repo);
+        $service->listPendingBySite(20, 0, '', '', 'pv_status', 'DESC');
+    }
 }

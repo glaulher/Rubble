@@ -20,6 +20,7 @@ class PendingTicketService
         'e.local', 'e.localidade', 'e.equipamento', 'r.id', 'r.os', 'r.tipo',
         'r.status', 'r.step', 'r.responsavel', 'r.prioridade', 'r.data', 'r.data_planejada', 'r.data_real_inicio',
         'r.data_prevista_conclusao', 'r.data_pv_enviada', 'r.data_pv_aprovada', 'r.data_concluido', 'r.equipe', 'r.material',
+        'pv_status',
     ];
 
     public const ALLOWED_DATE_COLUMNS = [

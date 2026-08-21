@@ -26,6 +26,7 @@ class TicketRepository extends BaseRepository
         'r.data_concluido' => 'r.data_concluido',
         'r.equipe' => 'r.equipe',
         'r.material' => 'r.material',
+        'pv_status' => 'pv_status',
     ];
 
     private const ALLOWED_DATE_COLUMNS = [
@@ -346,9 +347,9 @@ class TicketRepository extends BaseRepository
 
         if ($search !== '') {
             $likeSearch = '%' . $search . '%';
-            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.step LIKE ? OR r.responsavel LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_pv_enviada LIKE ? OR r.data_pv_aprovada LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
-            $params = array_merge($params, array_fill(0, 19, $likeSearch));
-            $types .= str_repeat('s', 19);
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.step LIKE ? OR r.responsavel LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_pv_enviada LIKE ? OR r.data_pv_aprovada LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ? OR COALESCE(pv_stat.pv_status, \'Sem PV\') LIKE ?)';
+            $params = array_merge($params, array_fill(0, 20, $likeSearch));
+            $types .= str_repeat('s', 20);
         }
 
         if ($os !== '') {
@@ -387,9 +388,31 @@ class TicketRepository extends BaseRepository
         $types .= 'i';
 
         $sql = "
-            SELECT r.*, e.local, e.equipamento, e.localidade
+            SELECT r.*, e.local, e.equipamento, e.localidade,
+                COALESCE(pv_stat.pv_status, 'Sem PV') AS pv_status
             FROM registros r
             JOIN equipamentos e ON e.id = r.equipamento_id
+            LEFT JOIN (
+                SELECT po.registro_id,
+                    SUBSTRING_INDEX(
+                        GROUP_CONCAT(pi.status ORDER BY CASE pi.status
+                            WHEN 'SCM negado' THEN 1
+                            WHEN 'Aguardando envio' THEN 2
+                            WHEN 'Aprovado serv.' THEN 3
+                            WHEN 'E-mail de lib. aquisição/serviço' THEN 4
+                            WHEN 'Aprovado aquisição/serviço' THEN 5
+                            WHEN 'E-mail de aprov. serv. realizado' THEN 6
+                            WHEN 'SCM enviado' THEN 7
+                            WHEN 'SCM aprovado' THEN 8
+                            WHEN 'Cancelado' THEN 9
+                            ELSE 99
+                        END),
+                        ',', 1
+                    ) AS pv_status
+                FROM pv_os po
+                JOIN pv_item pi ON pi.pv_id = po.pv_id
+                GROUP BY po.registro_id
+            ) pv_stat ON pv_stat.registro_id = r.id
             WHERE {$where}
             ORDER BY {$sortBy} {$sortDir}, r.id DESC
             LIMIT ? OFFSET ?
@@ -435,9 +458,9 @@ class TicketRepository extends BaseRepository
 
         if ($search !== '') {
             $likeSearch = '%' . $search . '%';
-            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.step LIKE ? OR r.responsavel LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_pv_enviada LIKE ? OR r.data_pv_aprovada LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ?)';
-            $params = array_merge($params, array_fill(0, 19, $likeSearch));
-            $types .= str_repeat('s', 19);
+            $where .= ' AND (e.local LIKE ? OR e.equipamento LIKE ? OR e.localidade LIKE ? OR r.os LIKE ? OR r.tipo LIKE ? OR r.status LIKE ? OR r.step LIKE ? OR r.responsavel LIKE ? OR r.prioridade LIKE ? OR r.data LIKE ? OR r.data_pv_enviada LIKE ? OR r.data_pv_aprovada LIKE ? OR r.data_planejada LIKE ? OR r.data_real_inicio LIKE ? OR r.data_prevista_conclusao LIKE ? OR r.data_concluido LIKE ? OR r.equipe LIKE ? OR r.material LIKE ? OR r.obs LIKE ? OR COALESCE(pv_stat.pv_status, \'Sem PV\') LIKE ?)';
+            $params = array_merge($params, array_fill(0, 20, $likeSearch));
+            $types .= str_repeat('s', 20);
         }
 
         if ($os !== '') {
@@ -470,6 +493,27 @@ class TicketRepository extends BaseRepository
             SELECT COUNT(*) AS total
             FROM registros r
             JOIN equipamentos e ON e.id = r.equipamento_id
+            LEFT JOIN (
+                SELECT po.registro_id,
+                    SUBSTRING_INDEX(
+                        GROUP_CONCAT(pi.status ORDER BY CASE pi.status
+                            WHEN 'SCM negado' THEN 1
+                            WHEN 'Aguardando envio' THEN 2
+                            WHEN 'Aprovado serv.' THEN 3
+                            WHEN 'E-mail de lib. aquisição/serviço' THEN 4
+                            WHEN 'Aprovado aquisição/serviço' THEN 5
+                            WHEN 'E-mail de aprov. serv. realizado' THEN 6
+                            WHEN 'SCM enviado' THEN 7
+                            WHEN 'SCM aprovado' THEN 8
+                            WHEN 'Cancelado' THEN 9
+                            ELSE 99
+                        END),
+                        ',', 1
+                    ) AS pv_status
+                FROM pv_os po
+                JOIN pv_item pi ON pi.pv_id = po.pv_id
+                GROUP BY po.registro_id
+            ) pv_stat ON pv_stat.registro_id = r.id
             WHERE {$where}
         ";
 

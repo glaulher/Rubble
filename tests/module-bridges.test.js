@@ -471,13 +471,14 @@ describe("pending-tickets/list.js bridge", function () {
         obs: 'Cliente sem acesso no horário',
       });
 
-      expect(row.length).toBe(19);
+      expect(row.length).toBe(20);
       expect(row[4]).toBe('corretiva');
       expect(row[5]).toBe('pendente');
       expect(row[6]).toBe('Compra Claro');
       expect(row[7]).toBe('Claro');
       expect(row[8]).toBe('3');
-      expect(row[18]).toBe('Cliente sem acesso no horário');
+      expect(row[18]).toBe('Sem PV');
+      expect(row[19]).toBe('Cliente sem acesso no horário');
     } finally {
       if (prevEscapeHtml === undefined) delete globalThis.escapeHtml;
       else globalThis.escapeHtml = prevEscapeHtml;
@@ -759,7 +760,7 @@ describe("pending-tickets/list.js bridge", function () {
 
       var row = document.querySelector('#pendingTableBody tr.pending-row');
       var cells = row.querySelectorAll('td');
-      expect(cells.length).toBe(19);
+      expect(cells.length).toBe(20);
       expect(cells[0].querySelector('button[data-action="plan"]')).not.toBe(null);
     } finally {
       if (prevGetUser === undefined) delete globalThis.getUser;

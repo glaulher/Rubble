@@ -46,6 +46,17 @@ function loadPendingModule() {
   globalThis.downloadCSV = function () {};
   globalThis.PlanModal = { open: function () {} };
   globalThis.formatDate = function (d) { return String(d || ''); };
+  globalThis.PV_STATUS_COLORS = {
+    'Aguardando envio': 'bg-amber-100 text-amber-700',
+    'Aprovado serv.': 'bg-emerald-100 text-emerald-700',
+    'E-mail de lib. aquisição/serviço': 'bg-indigo-100 text-indigo-700',
+    'Aprovado aquisição/serviço': 'bg-green-100 text-green-700',
+    'E-mail de aprov. serv. realizado': 'bg-teal-100 text-teal-700',
+    'SCM aprovado': 'bg-cyan-100 text-cyan-700',
+    'SCM negado': 'bg-red-100 text-red-700',
+    'SCM enviado': 'bg-purple-100 text-purple-700',
+    'Cancelado': 'bg-gray-100 text-gray-700',
+  };
 
   evalModule('../public/js/pending-tickets/list.js', '');
 }

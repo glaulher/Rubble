@@ -6,6 +6,7 @@ import { iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
 import { PlanModal } from '/public/js/components/plan-modal.js';
 import { formatDate } from '/public/js/pv/form-utils.js';
+import { PV_STATUS_COLORS } from '/public/js/pv/constants.js';
 
 var _pendingScroll = null;
 var pendingSearch = '';
@@ -23,12 +24,12 @@ var _pendingItemsById = {};
 var _pendingStepOptions = [];
 var _pendingResponsavelOptions = [];
 
-const PENDING_COLUMNS = 19;
+const PENDING_COLUMNS = 20;
 const CSR_COLUMNS = [
   'SITE', 'OS', 'EQUIPAMENTO', 'LOCALIDADE', 'CATEGORIA', 'STATUS', 'STEP', 'RESPONSAVEL', 'PRIORIDADE',
   'DATA_ABERTURA', 'DATA_PV_ENVIADA', 'DATA_PV_APROVADA',
   'DATA_PROGRAMADA', 'DATA_REAL_INICIO', 'DATA_PREVISTA_CONCLUSAO',
-  'DATA_CONCLUSAO', 'TECNICO', 'MATERIAL', 'OBSERVACAO',
+  'DATA_CONCLUSAO', 'TECNICO', 'MATERIAL', 'STATUS_DA_PV', 'OBSERVACAO',
 ];
 
 const PENDING_STATUS_OPTIONS = ['pendente', 'planejado', 'em andamento', 'projeto clean up', 'concluído'];
@@ -53,6 +54,7 @@ const PENDING_COLUMNS_DEF = [
   { key: 'data_concluido', label: 'Data Conclusão' },
   { key: 'equipe', label: 'Técnico' },
   { key: 'material', label: 'Material' },
+  { key: 'pv_status', label: 'Status da PV' },
 ];
 
 var pendingHiddenColumns = new Set();
@@ -110,6 +112,16 @@ export function getPriorityBadgeClass(priority) {
   if (p === '3') return 'bg-blue-100 text-blue-700';
   if (p === '4') return 'bg-purple-100 text-purple-700';
   return 'bg-slate-100 text-slate-700';
+}
+
+export function getPvStatusBadgeClass(status) {
+  if (!status || status === 'Sem PV') {
+    return 'bg-slate-100 text-slate-700';
+  }
+  var colors = (typeof PV_STATUS_COLORS !== 'undefined' && PV_STATUS_COLORS)
+    || (typeof globalThis !== 'undefined' && globalThis.PV_STATUS_COLORS)
+    || {};
+  return colors[status] || 'bg-slate-100 text-slate-700';
 }
 
 export function pendingValueRaw(value) {
@@ -609,6 +621,8 @@ export function renderPendingTable(list, append) {
   for (var i = 0; i < list.length; i++) {
     var item = list[i];
     _pendingItemsById[item.id] = item;
+    var pvStatus = item.pv_status || 'Sem PV';
+    var pvBadgeClass = getPvStatusBadgeClass(pvStatus);
 
     html += '<tr class="pending-row border-b border-slate-200 hover:bg-slate-50 cursor-pointer"'
       + ' data-id="' + item.id + '" data-expandable="true">'
@@ -640,6 +654,10 @@ export function renderPendingTable(list, append) {
       + pendingEditableCellHtml('data_concluido', item.data_concluido)
       + pendingEditableCellHtml('equipe', item.equipe)
       + pendingEditableCellHtml('material', item.material)
+      + '<td class="px-3 py-2.5 text-sm' + (pendingHiddenColumns.has('pv_status') ? ' hidden' : '') + '" data-col="pv_status">'
+      + '<span class="pv-status-badge px-2 py-0.5 rounded-full text-xs font-medium ' + pvBadgeClass + '">'
+      + escapeHtml(pvStatus)
+      + '</span></td>'
       + '</tr>';
 
     html += '<tr class="pending-details hidden" data-detail-for="' + item.id + '">'
@@ -830,6 +848,7 @@ export function buildPendingCsvRow(item) {
     formatDate(item.data_concluido),
     sanitizeCSV(item.equipe || ''),
     sanitizeCSV(item.material || ''),
+    sanitizeCSV(item.pv_status || 'Sem PV'),
     sanitizeCSV(item.obs || ''),
   ];
 }

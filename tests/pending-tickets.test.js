@@ -35,7 +35,7 @@ var pendingDateColumn = '';
 var pendingDateFrom = '';
 var pendingDateTo = '';
 
-const PENDING_COLUMNS = 19;
+const PENDING_COLUMNS = 20;
 
 function resetPendingState(search, status) {
   pendingSearch = search || '';
@@ -80,6 +80,25 @@ function getPriorityBadgeClass(priority) {
   return 'bg-slate-100 text-slate-700';
 }
 
+const PV_STATUS_COLORS = {
+  'Aguardando envio': 'bg-amber-100 text-amber-700',
+  'Aprovado serv.': 'bg-emerald-100 text-emerald-700',
+  'E-mail de lib. aquisição/serviço': 'bg-indigo-100 text-indigo-700',
+  'Aprovado aquisição/serviço': 'bg-green-100 text-green-700',
+  'E-mail de aprov. serv. realizado': 'bg-teal-100 text-teal-700',
+  'SCM aprovado': 'bg-cyan-100 text-cyan-700',
+  'SCM negado': 'bg-red-100 text-red-700',
+  'SCM enviado': 'bg-purple-100 text-purple-700',
+  'Cancelado': 'bg-gray-100 text-gray-700',
+};
+
+function getPvStatusBadgeClass(status) {
+  if (!status || status === 'Sem PV') {
+    return 'bg-slate-100 text-slate-700';
+  }
+  return PV_STATUS_COLORS[status] || 'bg-slate-100 text-slate-700';
+}
+
 function renderPendingTable(list, append) {
   append = append || false;
   const tbody = document.getElementById('pendingTableBody');
@@ -102,6 +121,7 @@ function renderPendingTable(list, append) {
 
   for (var i = 0; i < list.length; i++) {
     var item = list[i];
+    var pvStatus = item.pv_status || 'Sem PV';
 
     html += '<tr class="pending-row border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" '
       + 'data-id="' + item.id + '" data-expandable="true">'
@@ -113,6 +133,7 @@ function renderPendingTable(list, append) {
       + escapeHtml(item.os || '') + '</td>'
       + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">'
       + escapeHtml(item.equipamento || '') + '</td>'
+      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.localidade || '-') + '</td>'
       + '<td class="px-3 py-2.5 text-sm">'
       + '<span class="category-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getCategoryBadgeClass(item.tipo) + '">'
       + escapeHtml(item.tipo || '-') + '</span></td>'
@@ -133,7 +154,9 @@ function renderPendingTable(list, append) {
       + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(formatDate(item.data_concluido)) + '</td>'
       + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.equipe || '-') + '</td>'
       + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.material || '-') + '</td>'
-      + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-400">' + escapeHtml(item.localidade || '-') + '</td>'
+      + '<td class="px-3 py-2.5 text-sm">'
+      + '<span class="pv-status-badge px-2 py-0.5 rounded-full text-xs font-medium ' + getPvStatusBadgeClass(pvStatus) + '">'
+      + escapeHtml(pvStatus) + '</span></td>'
       + '</tr>';
 
     html += '<tr class="pending-details hidden" data-detail-for="' + item.id + '">'
@@ -214,6 +237,7 @@ function buildPendingCsvRow(item) {
     sanitizeCSV(item.local),
     sanitizeCSV(item.os || ''),
     sanitizeCSV(item.equipamento || ''),
+    sanitizeCSV(item.localidade || ''),
     sanitizeCSV(item.tipo || ''),
     sanitizeCSV(item.status || ''),
     sanitizeCSV(item.step || ''),
@@ -228,7 +252,7 @@ function buildPendingCsvRow(item) {
     formatDate(item.data_concluido),
     sanitizeCSV(item.equipe || ''),
     sanitizeCSV(item.material || ''),
-    sanitizeCSV(item.localidade || ''),
+    sanitizeCSV(item.pv_status || 'Sem PV'),
     sanitizeCSV(item.obs || ''),
   ];
 }
@@ -525,31 +549,32 @@ describe("renderPendingTable", () => {
     renderPendingTable([mockData[0]]);
 
     const cells = document.querySelector('tr.pending-row').querySelectorAll('td');
-    // index 9 = data abertura, 10 = PV enviada, 11 = PV aprovada, 12 = programada, 13 = real inicio, 14 = prevista conclusao, 15 = conclusao
-    expect(cells[9].textContent.trim()).toBe('15/07/2026');
-    expect(cells[10].textContent.trim()).toBe('16/07/2026');
-    expect(cells[11].textContent.trim()).toBe('17/07/2026');
-    expect(cells[12].textContent.trim()).toBe('20/07/2026');
-    expect(cells[13].textContent.trim()).toBe('22/07/2026');
-    expect(cells[14].textContent.trim()).toBe('25/07/2026');
-    expect(cells[15].textContent.trim()).toBe('-');
+    // index 10 = data abertura, 11 = PV enviada, 12 = PV aprovada, 13 = programada, 14 = real inicio, 15 = prevista conclusao, 16 = conclusao
+    expect(cells[10].textContent.trim()).toBe('15/07/2026');
+    expect(cells[11].textContent.trim()).toBe('16/07/2026');
+    expect(cells[12].textContent.trim()).toBe('17/07/2026');
+    expect(cells[13].textContent.trim()).toBe('20/07/2026');
+    expect(cells[14].textContent.trim()).toBe('22/07/2026');
+    expect(cells[15].textContent.trim()).toBe('25/07/2026');
+    expect(cells[16].textContent.trim()).toBe('-');
   });
 
   it("renders PV date columns as empty when null", () => {
     renderPendingTable([mockData[2]]);
 
     const cells = document.querySelector('tr.pending-row').querySelectorAll('td');
-    expect(cells[10].textContent.trim()).toBe('-');
     expect(cells[11].textContent.trim()).toBe('-');
+    expect(cells[12].textContent.trim()).toBe('-');
   });
 
-  it("shows technician, material and localidade columns", () => {
+  it("shows technician, material, localidade and pv_status columns", () => {
     renderPendingTable([mockData[0]]);
 
     const cells = document.querySelector('tr.pending-row').querySelectorAll('td');
-    expect(cells[16].textContent.trim()).toBe('João');
-    expect(cells[17].textContent.trim()).toBe('Filtro AR');
-    expect(cells[18].textContent.trim()).toBe('Container 1');
+    expect(cells[4].textContent.trim()).toBe('Container 1');
+    expect(cells[17].textContent.trim()).toBe('João');
+    expect(cells[18].textContent.trim()).toBe('Filtro AR');
+    expect(cells[19].textContent.trim()).toBe('Sem PV');
   });
 
   it("shows empty state when no data", () => {
@@ -703,33 +728,67 @@ describe("getPriorityBadgeClass", () => {
   });
 });
 
+describe("getPvStatusBadgeClass", () => {
+  it("returns amber for Aguardando envio", () => {
+    expect(getPvStatusBadgeClass('Aguardando envio')).toContain('bg-amber-100');
+  });
+
+  it("returns emerald for Aprovado serv.", () => {
+    expect(getPvStatusBadgeClass('Aprovado serv.')).toContain('bg-emerald-100');
+  });
+
+  it("returns cyan for SCM aprovado", () => {
+    expect(getPvStatusBadgeClass('SCM aprovado')).toContain('bg-cyan-100');
+  });
+
+  it("returns red for SCM negado", () => {
+    expect(getPvStatusBadgeClass('SCM negado')).toContain('bg-red-100');
+  });
+
+  it("returns slate for Sem PV or missing", () => {
+    expect(getPvStatusBadgeClass('Sem PV')).toBe('bg-slate-100 text-slate-700');
+    expect(getPvStatusBadgeClass('')).toBe('bg-slate-100 text-slate-700');
+    expect(getPvStatusBadgeClass(null)).toBe('bg-slate-100 text-slate-700');
+  });
+});
+
 describe("buildPendingCsvRow", () => {
-  it("builds a 19-cell row including step and responsavel", () => {
+  it("builds a 20-cell row including step, responsavel, and pv_status", () => {
     const row = buildPendingCsvRow({
-      id: 1, local: 'BMA', os: 'OS123', equipamento: 'WM 01', tipo: 'corretiva',
+      id: 1, local: 'BMA', os: 'OS123', equipamento: 'WM 01', localidade: 'Container 1', tipo: 'corretiva',
       status: 'pendente', step: 'Compra Claro', responsavel: 'Claro', prioridade: '3', data: '2026-07-15',
       data_pv_enviada: '2026-07-16', data_pv_aprovada: '2026-07-17', data_planejada: '2026-07-20',
       data_real_inicio: null, data_prevista_conclusao: null, data_concluido: null,
-      equipe: 'João', material: 'Filtro AR', localidade: 'Container 1',
+      equipe: 'João', material: 'Filtro AR', pv_status: 'Aprovado serv.',
       obs: 'Trocar filtro na próxima visita',
     });
 
-    expect(row.length).toBe(19);
+    expect(row.length).toBe(20);
     expect(row[0]).toBe('BMA');
     expect(row[1]).toBe('OS123');
-    expect(row[4]).toBe('pendente');
-    expect(row[5]).toBe('Compra Claro');
-    expect(row[6]).toBe('Claro');
-    expect(row[7]).toBe('3');
-    expect(row[8]).toBe('15/07/2026');
-    expect(row[9]).toBe('16/07/2026');
-    expect(row[10]).toBe('17/07/2026');
-    expect(row[11]).toBe('20/07/2026');
-    expect(row[12]).toBe('-');
+    expect(row[2]).toBe('WM 01');
+    expect(row[3]).toBe('Container 1');
+    expect(row[4]).toBe('corretiva');
+    expect(row[5]).toBe('pendente');
+    expect(row[6]).toBe('Compra Claro');
+    expect(row[7]).toBe('Claro');
+    expect(row[8]).toBe('3');
+    expect(row[9]).toBe('15/07/2026');
+    expect(row[10]).toBe('16/07/2026');
+    expect(row[11]).toBe('17/07/2026');
+    expect(row[12]).toBe('20/07/2026');
     expect(row[13]).toBe('-');
     expect(row[14]).toBe('-');
-    expect(row[15]).toBe('João');
-    expect(row[18]).toBe('Trocar filtro na próxima visita');
+    expect(row[15]).toBe('-');
+    expect(row[16]).toBe('João');
+    expect(row[17]).toBe('Filtro AR');
+    expect(row[18]).toBe('Aprovado serv.');
+    expect(row[19]).toBe('Trocar filtro na próxima visita');
+  });
+
+  it("defaults to 'Sem PV' when pv_status is missing or empty", () => {
+    const row = buildPendingCsvRow({ local: 'BMA', status: 'pendente' });
+    expect(row[18]).toBe('Sem PV');
   });
 
   it("quotes fields containing semicolons", () => {
