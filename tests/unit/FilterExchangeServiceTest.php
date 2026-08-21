@@ -88,17 +88,20 @@ class FilterExchangeServiceTest extends TestCase
     {
         $repo = $this->createMockRepo();
         $repo->method('listAll')->willReturn([
-            ['id' => 1, 'local' => 'RSDDTC', 'equipamento' => 'WM', 'data_troca' => '2026-07-15', 'data_proxima_troca' => '2026-11-15'],
+            ['id' => 1, 'local' => 'RSDDTC', 'equipamento' => 'WM', 'qtd' => 4, 'data_troca' => '2026-07-15', 'data_proxima_troca' => '2026-11-15'],
         ]);
         $repo->method('count')->willReturn(1);
+        $repo->method('sumQtd')->willReturn(4);
 
         $service = $this->createService($repo);
         $result = $service->listAll(20, 0, '', '', 'f.local', 'ASC');
 
         $this->assertArrayHasKey('items', $result);
         $this->assertArrayHasKey('total', $result);
+        $this->assertArrayHasKey('total_qtd', $result);
         $this->assertCount(1, $result['items']);
         $this->assertSame(1, $result['total']);
+        $this->assertSame(4, $result['total_qtd']);
     }
 
     public function testListAllThrowsOnInvalidStatus(): void

@@ -95,6 +95,7 @@ class FilterExchangeService
 
         $items = $this->repository->listAll($limit, max(0, $offset), $search, $status, $sortBy, $sortDir);
         $total = $this->repository->count($search, $status);
+        $totalQtd = $this->repository->sumQtd($search, $status);
 
         foreach ($items as &$item) {
             $item['status'] = $this->computeStatus($item['data_proxima_troca'] ?? null);
@@ -104,6 +105,7 @@ class FilterExchangeService
         return [
             'items' => $items,
             'total' => $total,
+            'total_qtd' => $totalQtd,
         ];
     }
 

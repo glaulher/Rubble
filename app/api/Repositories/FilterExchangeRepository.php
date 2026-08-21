@@ -61,6 +61,26 @@ class FilterExchangeRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
+    public function sumQtd(string $search = '', string $status = ''): int
+    {
+        [$where, $types, $params] = $this->buildFilterClause($search, $status);
+
+        $sql = "SELECT COALESCE(SUM(f.qtd), 0) AS total_qtd
+                FROM filtro_trocas f
+                WHERE {$where}";
+
+        $stmt = $this->safePrepare($sql);
+        if ($types) {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+
+        return (int) ($row['total_qtd'] ?? 0);
+    }
+
     public function getById(int $id): ?array
     {
         $sql = "SELECT f.id, f.local, f.equipamento, f.uf, f.regiao, f.tamanho, f.qtd, f.os,

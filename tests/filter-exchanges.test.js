@@ -5,7 +5,23 @@ import { resolve } from "path";
 var mockInfiniteScroll = `
   function createInfiniteScroll(opts) {
     return {
-      init: function () { if (opts.fetchFn) opts.fetchFn({ limit: 20, offset: 0, data: [] }, {}); return this; },
+      init: function () {
+        var self = this;
+        if (opts.fetchFn) {
+          var p = opts.fetchFn({ limit: 20, offset: 0, data: [] }, {});
+          if (p && typeof p.then === 'function') {
+            p.then(function (result) {
+              if (result && result.data && opts.renderFullFn) {
+                opts.renderFullFn(result.data, result.total || 0);
+              }
+              if (opts.afterLoadFn) {
+                opts.afterLoadFn({ page: 0, total: result ? result.total : 0, data: result ? result.data : [], allLoaded: false, isPolling: false });
+              }
+            });
+          }
+        }
+        return this;
+      },
       destroy: function () {},
       reset: function () { return this; },
       load: function () {},
@@ -584,5 +600,34 @@ describe("filter-exchanges admin permissions", function () {
     await globalThis.deleteFilterRow(1);
 
     expect(captured.length).toBe(0);
+  });
+
+  it("shows total_qtd sum in the badge instead of row count", async function () {
+    document.body.innerHTML = feTableMarkup();
+    globalThis.apiFetch = function () {
+      return Promise.resolve({
+        json: function () {
+          return {
+            success: true,
+            data: {
+              items: [
+                { id: 1, local: 'A', equipamento: 'X', tamanho: '510', qtd: 4, os: null, data_troca: null, data_proxima_troca: null, status: 'pendente' },
+                { id: 2, local: 'B', equipamento: 'Y', tamanho: '850', qtd: 7, os: null, data_troca: null, data_proxima_troca: null, status: 'pendente' },
+              ],
+              total: 2,
+              total_qtd: 11,
+            },
+          };
+        },
+      });
+    };
+    feEval();
+
+    globalThis.initFilterExchanges();
+
+    await new Promise(function (r) { setTimeout(r, 20); });
+
+    var badge = document.getElementById('filterBadge');
+    expect(badge.textContent).toBe('11');
   });
 });

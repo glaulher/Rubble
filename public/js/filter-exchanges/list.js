@@ -12,6 +12,7 @@ var filterSortBy = 'f.local';
 var filterSortDir = 'ASC';
 var filterLoading = false;
 var filterAllLoaded = false;
+var _filterTotalQtd = 0;
 
 var FILTER_COLUMNS_DEF = [
   { key: 'local', label: 'Local' },
@@ -291,9 +292,9 @@ export async function deleteFilterRow(id) {
   }
 }
 
-export function updateFilterBadge(total) {
+export function updateFilterBadge() {
   var badge = document.getElementById('filterBadge');
-  if (badge) badge.textContent = total || 0;
+  if (badge) badge.textContent = _filterTotalQtd || 0;
 }
 
 export function applyFilterColumnVisibility() {
@@ -549,6 +550,7 @@ export function initFilterExchanges() {
   filterSortDir = 'ASC';
   filterLoading = false;
   filterAllLoaded = false;
+  _filterTotalQtd = 0;
   filterHiddenColumns = new Set();
   filterColTodosChecked = true;
 
@@ -649,6 +651,7 @@ export function initFilterExchanges() {
         .then(function (r) { return r.json(); })
         .then(function (result) {
           if (!result || !result.data) return { data: [], total: 0 };
+          _filterTotalQtd = result.data.total_qtd || 0;
           return { data: result.data.items || [], total: result.data.total || 0 };
         });
     },
@@ -657,11 +660,11 @@ export function initFilterExchanges() {
     },
     renderFullFn: function (items, total) {
       renderFilterTable(items, false);
-      updateFilterBadge(total);
+      updateFilterBadge();
     },
     afterLoadFn: function (state) {
       if (!state.isPolling) {
-        updateFilterBadge(state.total);
+        updateFilterBadge();
       }
     },
     getFilterHash: function () {
