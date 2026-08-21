@@ -353,4 +353,45 @@ class FilterExchangeServiceTest extends TestCase
         $service = $this->createService($repo);
         $this->assertTrue($service->delete(7));
     }
+
+    public function testDeleteAllowedForAdmin(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('delete')
+            ->with(7)
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $user = (object) ['role' => 'admin'];
+        $this->assertTrue($service->delete(7, $user));
+    }
+
+    public function testDeleteRejectedForCoordenador(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->never())->method('delete');
+
+        $service = $this->createService($repo);
+        $user = (object) ['role' => 'coordenador'];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Apenas administradores');
+
+        $service->delete(7, $user);
+    }
+
+    public function testDeleteRejectedForSupervisor(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->never())->method('delete');
+
+        $service = $this->createService($repo);
+        $user = (object) ['role' => 'supervisor'];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Apenas administradores');
+
+        $service->delete(7, $user);
+    }
 }

@@ -38,13 +38,14 @@ class FilterExchangeControllerTest extends TestCase
         \App\Api\Helpers\Response::$exitEnabled = false;
         $_GET['id'] = '7';
 
+        $user = (object) ['role' => 'admin'];
         $service = $this->createMock(FilterExchangeService::class);
         $service->expects($this->once())
             ->method('delete')
-            ->with(7)
+            ->with(7, $user)
             ->willReturn(true);
 
-        $ctrl = new FilterExchangeController($service, (object) ['role' => 'admin']);
+        $ctrl = new FilterExchangeController($service, $user);
 
         ob_start();
         $ctrl->delete();

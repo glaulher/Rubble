@@ -175,8 +175,15 @@ class FilterExchangeService
         return $this->repository->updateField($id, $field, $value);
     }
 
-    public function delete(int $id): bool
+    public function delete(int $id, ?object $user = null): bool
     {
+        if ($user !== null) {
+            $role = $user->role ?? '';
+            if ($role !== 'admin') {
+                throw new \InvalidArgumentException('Apenas administradores podem excluir registros de filtro');
+            }
+        }
+
         return $this->repository->delete($id);
     }
 

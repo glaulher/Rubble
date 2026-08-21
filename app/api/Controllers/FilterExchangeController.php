@@ -126,7 +126,7 @@ class FilterExchangeController
                 return;
             }
 
-            $this->service->delete($id);
+            $this->service->delete($id, $this->currentUser);
 
             Cache::deleteByPrefix('filter_exchanges:');
 
