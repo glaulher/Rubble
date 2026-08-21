@@ -271,4 +271,83 @@ class FilterExchangeServiceTest extends TestCase
         $service = $this->createService($repo, $ticketService, $equipmentRepo);
         $this->assertTrue($service->updateField(1, 'os', 'OS123'));
     }
+
+    public function testUpdateFieldTamanhoAllowedForAdmin(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updateField')
+            ->with(1, 'tamanho', '510X390X25mm')
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $user = (object) ['role' => 'admin'];
+        $this->assertTrue($service->updateField(1, 'tamanho', '510X390X25mm', $user));
+    }
+
+    public function testUpdateFieldQtdAllowedForAdmin(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('updateField')
+            ->with(1, 'qtd', 4)
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $user = (object) ['role' => 'admin'];
+        $this->assertTrue($service->updateField(1, 'qtd', 4, $user));
+    }
+
+    public function testUpdateFieldTamanhoRejectedForCoordenador(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->never())->method('updateField');
+
+        $service = $this->createService($repo);
+        $user = (object) ['role' => 'coordenador'];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Apenas administradores');
+
+        $service->updateField(1, 'tamanho', '510X390X25mm', $user);
+    }
+
+    public function testUpdateFieldQtdRejectedForSupervisor(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->never())->method('updateField');
+
+        $service = $this->createService($repo);
+        $user = (object) ['role' => 'supervisor'];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Apenas administradores');
+
+        $service->updateField(1, 'qtd', 4, $user);
+    }
+
+    public function testUpdateFieldTamanhoRejectedWithoutUser(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->never())->method('updateField');
+
+        $service = $this->createService($repo);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Apenas administradores');
+
+        $service->updateField(1, 'tamanho', '510X390X25mm', null);
+    }
+
+    public function testDeleteDelegatesToRepository(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('delete')
+            ->with(7)
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $this->assertTrue($service->delete(7));
+    }
 }

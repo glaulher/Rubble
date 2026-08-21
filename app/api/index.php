@@ -348,8 +348,11 @@ $router->addRoute('filter-exchanges', 'GET', function () {
 $router->addRoute('filter-exchanges', 'POST', function () {
     (new FilterExchangeController())->create();
 });
-$router->addRoute('filter-exchanges', 'PATCH', function () {
-    (new FilterExchangeController())->updateField();
+$router->addRoute('filter-exchanges', 'PATCH', function () use ($auth) {
+    (new FilterExchangeController(null, $auth->getUser()))->updateField();
+});
+$router->addRoute('filter-exchanges', 'DELETE', function () use ($auth) {
+    (new FilterExchangeController(null, $auth->getUser()))->delete();
 });
 
 // Preventiva

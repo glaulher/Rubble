@@ -114,6 +114,7 @@ describe("filter-exchanges/list.js bridge", function () {
 
   it("wraps the value and edit pencil in an inline-flex cell for editable columns", function () {
     document.body.innerHTML = feTableMarkup();
+    globalThis.getUser = function () { return { role: 'admin' }; };
     (0, eval)(mockInfiniteScroll);
     (0, eval)(feModuleCode() + FE_HELPERS);
 
@@ -149,6 +150,8 @@ describe("filter-exchanges/list.js bridge", function () {
     var nextCell = document.querySelector('#filterTableBody td[data-col="data_proxima_troca"]');
     expect(nextCell.querySelector('button.filter-edit')).toBe(null);
     expect(nextCell.querySelector(':scope > span.inline-flex')).toBe(null);
+
+    delete globalThis.getUser;
   });
 
   it("does not render an edit pencil for the status column", function () {
@@ -461,5 +464,125 @@ describe("filter-exchanges/list.js bridge", function () {
 
     expect(document.querySelector('th[data-col="os"]').classList.contains('hidden')).toBe(true);
     expect(document.getElementById('filterColLabel').textContent).toBe('1 oculta(s)');
+  });
+});
+
+describe("filter-exchanges admin permissions", function () {
+  var feRow = function () {
+    return {
+      id: 1,
+      local: 'RSDDTC',
+      equipamento: 'WM',
+      tamanho: '510X390X25mm',
+      qtd: 4,
+      os: 'OS1',
+      data_troca: '2026-07-15',
+      data_proxima_troca: '2026-11-15',
+      status: 'planejado',
+    };
+  };
+
+  function feEval() {
+    (0, eval)(mockInfiniteScroll);
+    (0, eval)(feModuleCode() + FE_HELPERS);
+  }
+
+  it("renders no edit pencil on tamanho/qtd for non-admin users", function () {
+    document.body.innerHTML = feTableMarkup();
+    delete globalThis.getUser;
+    feEval();
+
+    globalThis.renderFilterTable([feRow()], false);
+
+    var tamanhoCell = document.querySelector('#filterTableBody td[data-col="tamanho"]');
+    expect(tamanhoCell.querySelector('button.filter-edit')).toBe(null);
+    expect(tamanhoCell.querySelector('.filter-value').textContent.trim()).toBe('510X390X25mm');
+
+    var qtdCell = document.querySelector('#filterTableBody td[data-col="qtd"]');
+    expect(qtdCell.querySelector('button.filter-edit')).toBe(null);
+
+    var osCell = document.querySelector('#filterTableBody td[data-col="os"]');
+    expect(osCell.querySelector('button.filter-edit')).not.toBe(null);
+
+    var trocaCell = document.querySelector('#filterTableBody td[data-col="data_troca"]');
+    expect(trocaCell.querySelector('button.filter-edit')).not.toBe(null);
+  });
+
+  it("renders no actions column for non-admin users", function () {
+    document.body.innerHTML = feTableMarkup();
+    delete globalThis.getUser;
+    feEval();
+
+    globalThis.renderFilterTable([feRow()], false);
+
+    var tr = document.querySelector('#filterTableBody tr.filter-row');
+    expect(tr.querySelector('td[data-col="actions"]')).toBe(null);
+    expect(tr.querySelector('button.filter-delete')).toBe(null);
+  });
+
+  it("renders edit pencils on tamanho/qtd and a delete button for admin users", function () {
+    document.body.innerHTML = feTableMarkup();
+    globalThis.getUser = function () { return { role: 'admin' }; };
+    feEval();
+
+    globalThis.renderFilterTable([feRow()], false);
+
+    var tamanhoCell = document.querySelector('#filterTableBody td[data-col="tamanho"]');
+    expect(tamanhoCell.querySelector('button.filter-edit')).not.toBe(null);
+
+    var qtdCell = document.querySelector('#filterTableBody td[data-col="qtd"]');
+    expect(qtdCell.querySelector('button.filter-edit')).not.toBe(null);
+
+    var actionsCell = document.querySelector('#filterTableBody td[data-col="actions"]');
+    expect(actionsCell).not.toBe(null);
+    expect(actionsCell.closest('tr').getAttribute('data-id')).toBe('1');
+    expect(actionsCell.querySelector('button.filter-delete')).not.toBe(null);
+
+    delete globalThis.getUser;
+  });
+
+  it("deletes the row via apiFetch DELETE after confirmation", async function () {
+    document.body.innerHTML = feTableMarkup();
+    var captured = [];
+    var toasts = [];
+    globalThis.apiFetch = function (url, opts) {
+      captured.push({ url: url, opts: opts });
+      return Promise.resolve({
+        json: function () { return { success: true }; },
+      });
+    };
+    globalThis.confirmDelete = function () { return Promise.resolve(true); };
+    globalThis.showToast = function (msg, type) { toasts.push({ msg: msg, type: type }); };
+    delete globalThis.getUser;
+    feEval();
+
+    globalThis.renderFilterTable([feRow()], false);
+    await globalThis.deleteFilterRow(1);
+
+    expect(captured.length).toBe(1);
+    expect(captured[0].url).toContain('route=filter-exchanges');
+    expect(captured[0].url).toContain('id=1');
+    expect(captured[0].opts.method).toBe('DELETE');
+    expect(toasts.some(function (t) { return t.type === 'success'; })).toBe(true);
+  });
+
+  it("does not call the api when the delete is cancelled", async function () {
+    document.body.innerHTML = feTableMarkup();
+    var captured = [];
+    globalThis.apiFetch = function (url, opts) {
+      captured.push({ url: url, opts: opts });
+      return Promise.resolve({
+        json: function () { return { success: true }; },
+      });
+    };
+    globalThis.confirmDelete = function () { return Promise.resolve(false); };
+    globalThis.showToast = function () {};
+    delete globalThis.getUser;
+    feEval();
+
+    globalThis.renderFilterTable([feRow()], false);
+    await globalThis.deleteFilterRow(1);
+
+    expect(captured.length).toBe(0);
   });
 });

@@ -120,4 +120,25 @@ class AuthServiceTest extends TestCase
         $result = AuthService::requireRole($user, 'unknown-route', 'GET', null);
         $this->assertTrue($result);
     }
+
+    public function testRequireRoleAdminAllowsFilterExchangesDelete(): void
+    {
+        $user = (object)['role' => 'admin'];
+        $result = AuthService::requireRole($user, 'filter-exchanges', 'DELETE', null);
+        $this->assertTrue($result);
+    }
+
+    public function testRequireRoleCoordenadorDeniesFilterExchangesDelete(): void
+    {
+        $user = (object)['role' => 'coordenador'];
+        $result = AuthService::requireRole($user, 'filter-exchanges', 'DELETE', null);
+        $this->assertFalse($result);
+    }
+
+    public function testRequireRoleSupervisorDeniesFilterExchangesDelete(): void
+    {
+        $user = (object)['role' => 'supervisor'];
+        $result = AuthService::requireRole($user, 'filter-exchanges', 'DELETE', null);
+        $this->assertFalse($result);
+    }
 }

@@ -1,7 +1,7 @@
 import { createInfiniteScroll, debounce } from '/public/js/components/infinite-scroll.js';
-import { apiFetch } from '/public/js/core/auth.js';
+import { apiFetch, getUser } from '/public/js/core/auth.js';
 import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
-import { showToast, showModal, hideModal } from '/public/js/core/dom.js';
+import { showToast, showModal, hideModal, confirmDelete } from '/public/js/core/dom.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
 import { formatDate } from '/public/js/pv/form-utils.js';
 
@@ -26,6 +26,8 @@ var FILTER_COLUMNS_DEF = [
 
 var FILTER_EDITABLE_COLS = ['tamanho', 'qtd', 'os', 'data_troca'];
 
+var FILTER_ADMIN_ONLY_COLS = ['tamanho', 'qtd'];
+
 var FILTER_CSR_HEADER = [
   'LOCAL', 'EQUIPAMENTO', 'TAMANHO', 'QTD', 'OS', 'TROCA', 'PROXIMA_TROCA', 'STATUS',
 ];
@@ -48,6 +50,20 @@ export function getFilterStatusBadgeClass(status) {
 
 export function filterValueRaw(value) {
   return value === null || value === undefined ? '' : value;
+}
+
+export function feIsAdmin() {
+  if (typeof getUser === 'function') {
+    var u = getUser();
+    return !!(u && u.role === 'admin');
+  }
+  return false;
+}
+
+export function filterDeleteBtn() {
+  return '<button type="button" class="filter-delete bg-red-100 hover:bg-red-200 text-red-500 p-1.5 rounded-lg transition" title="Excluir" aria-label="Excluir">'
+    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+    + '</button>';
 }
 
 export function formatFilterDate(value) {
@@ -81,7 +97,12 @@ export function buildFilterCellHtml(field, value) {
       + '</td>';
   }
 
-  if (FILTER_EDITABLE_COLS.indexOf(field) !== -1) {
+  var canEdit = FILTER_EDITABLE_COLS.indexOf(field) !== -1;
+  if (canEdit && FILTER_ADMIN_ONLY_COLS.indexOf(field) !== -1 && !feIsAdmin()) {
+    canEdit = false;
+  }
+
+  if (canEdit) {
     return '<td class="px-3 py-2.5 text-sm text-slate-600' + hidden + '" data-col="' + field + '">'
       + '<span class="inline-flex items-center gap-1">'
       + '<span class="filter-value" data-raw="' + escapeHtml(raw) + '">' + escapeHtml(display) + '</span>'
@@ -127,6 +148,9 @@ export function renderFilterTable(list, append) {
       + buildFilterCellHtml('data_troca', item.data_troca)
       + buildFilterCellHtml('data_proxima_troca', item.data_proxima_troca)
       + buildFilterCellHtml('status', item.status)
+      + (feIsAdmin()
+        ? '<td class="px-3 py-2.5 text-sm text-center" data-col="actions">' + filterDeleteBtn() + '</td>'
+        : '')
       + '</tr>';
   }
 
@@ -150,7 +174,12 @@ export function refreshFilterCell(cell, field, value) {
     return;
   }
 
-  if (FILTER_EDITABLE_COLS.indexOf(field) !== -1) {
+  var canEdit = FILTER_EDITABLE_COLS.indexOf(field) !== -1;
+  if (canEdit && FILTER_ADMIN_ONLY_COLS.indexOf(field) !== -1 && !feIsAdmin()) {
+    canEdit = false;
+  }
+
+  if (canEdit) {
     cell.innerHTML = '<span class="inline-flex items-center gap-1">'
       + '<span class="filter-value" data-raw="' + escapeHtml(raw) + '">' + escapeHtml(display) + '</span>'
       + filterEditBtn(field)
@@ -232,6 +261,33 @@ export async function saveFilterField(cell) {
   } catch (e) {
     console.error('Erro ao salvar campo', e);
     if (typeof showToast === 'function') showToast('Erro ao salvar campo', 'error');
+  }
+}
+
+export async function deleteFilterRow(id) {
+  var tr = document.querySelector('#filterTableBody tr.filter-row[data-id="' + String(parseInt(id, 10)) + '"]');
+  var label = 'filtro #' + id;
+  if (tr) {
+    var localEl = tr.querySelector('td[data-col="local"] .filter-value');
+    var eqEl = tr.querySelector('td[data-col="equipamento"] .filter-value');
+    var localTxt = localEl ? localEl.textContent : '';
+    var eqTxt = eqEl ? eqEl.textContent : '';
+    if (localTxt || eqTxt) label = (localTxt + ' - ' + eqTxt).replace(/ - -$/, '');
+  }
+  var confirmed = await confirmDelete('Excluir Filtro', 'Tem certeza que deseja excluir o filtro de', label);
+  if (!confirmed) return;
+  try {
+    var resp = await apiFetch('/app/api/index.php?route=filter-exchanges&id=' + encodeURIComponent(id), { method: 'DELETE' });
+    var result = await resp.json();
+    if (!result.success) {
+      if (typeof showToast === 'function') showToast(result.message || 'Erro ao excluir filtro', 'error');
+      return;
+    }
+    if (typeof showToast === 'function') showToast('Filtro excluído', 'success');
+    _filterReset();
+  } catch (err) {
+    console.error('Erro ao excluir filtro', err);
+    if (typeof showToast === 'function') showToast('Erro ao excluir filtro', 'error');
   }
 }
 
@@ -544,6 +600,12 @@ export function initFilterExchanges() {
   var tbody = document.getElementById('filterTableBody');
   if (tbody) {
     tbody.addEventListener('click', function (e) {
+      var delBtn = e.target.closest('button.filter-delete');
+      if (delBtn) {
+        var drow = delBtn.closest('tr.filter-row');
+        if (drow) deleteFilterRow(drow.getAttribute('data-id'));
+        return;
+      }
       var editBtn = e.target.closest('button.filter-edit');
       if (editBtn) {
         var cell = editBtn.closest('td');

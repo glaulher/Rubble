@@ -10,10 +10,12 @@ use App\Api\Services\FilterExchangeService;
 class FilterExchangeController
 {
     private FilterExchangeService $service;
+    private ?object $currentUser;
 
-    public function __construct(?FilterExchangeService $service = null)
+    public function __construct(?FilterExchangeService $service = null, ?object $currentUser = null)
     {
         $this->service = $service ?? new FilterExchangeService();
+        $this->currentUser = $currentUser;
     }
 
     public function listAll(): void
@@ -95,7 +97,7 @@ class FilterExchangeController
                 return;
             }
 
-            $this->service->updateField((int) $id, $field, $value);
+            $this->service->updateField((int) $id, $field, $value, $this->currentUser);
 
             $data = [];
             if ($field === 'data_troca') {
@@ -107,6 +109,28 @@ class FilterExchangeController
             Cache::deleteByPrefix('equipment_list:');
 
             Response::success('Campo atualizado com sucesso', $data);
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    public function delete(): void
+    {
+        try {
+            $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+            if ($id <= 0) {
+                Response::error('Campo id obrigatório', 400);
+                return;
+            }
+
+            $this->service->delete($id);
+
+            Cache::deleteByPrefix('filter_exchanges:');
+
+            Response::success('Filtro excluído com sucesso');
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {

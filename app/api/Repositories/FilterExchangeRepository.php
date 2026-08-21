@@ -120,6 +120,17 @@ class FilterExchangeRepository extends BaseRepository
         return $result;
     }
 
+    public function delete(int $id): bool
+    {
+        $sql = "DELETE FROM filtro_trocas WHERE id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $id);
+        $result = $stmt->execute();
+        $stmt->close();
+
+        return $result;
+    }
+
     private function buildFilterClause(string $search, string $status): array
     {
         $conditions = [];

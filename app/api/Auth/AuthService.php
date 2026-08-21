@@ -138,6 +138,9 @@ class AuthService
             if ($method === 'DELETE' && $route === 'scm') {
                 return $role === 'admin';
             }
+            if ($method === 'DELETE' && $route === 'filter-exchanges') {
+                return $role === 'admin';
+            }
             if ($method === 'DELETE' && $route === 'planned-activities') {
                 return $role === 'admin' || $role === 'coordenador';
             }

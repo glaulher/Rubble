@@ -25,6 +25,8 @@ class FilterExchangeService
         'data_troca', 'data_proxima_troca',
     ];
 
+    private const ADMIN_ONLY_FIELDS = ['tamanho', 'qtd'];
+
     public function __construct(
         ?FilterExchangeRepository $repository = null,
         ?TicketService $ticketService = null,
@@ -136,10 +138,17 @@ class FilterExchangeService
         ]);
     }
 
-    public function updateField(int $id, string $field, $value): bool
+    public function updateField(int $id, string $field, $value, ?object $user = null): bool
     {
         if (!in_array($field, self::ALLOWED_EDITABLE_FIELDS, true)) {
             throw new \InvalidArgumentException('Campo inválido: ' . $field);
+        }
+
+        if (in_array($field, self::ADMIN_ONLY_FIELDS, true)) {
+            $role = $user->role ?? '';
+            if ($role !== 'admin') {
+                throw new \InvalidArgumentException('Apenas administradores podem editar tamanho e quantidade');
+            }
         }
 
         if ($field === 'data_troca') {
@@ -162,6 +171,11 @@ class FilterExchangeService
         }
 
         return $this->repository->updateField($id, $field, $value);
+    }
+
+    public function delete(int $id): bool
+    {
+        return $this->repository->delete($id);
     }
 
     private function ensureOsTickets(int $id, string $os): void
