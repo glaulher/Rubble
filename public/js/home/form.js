@@ -17,17 +17,22 @@ export async function loadGestaoEquipamentos(local) {
   const select = document.getElementById('equipamentoId');
   if (!select) return;
 
+  select.innerHTML = '<option value="">Selecione...</option>';
+
+  if (!local) {
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = 'Selecione o local primeiro...';
+    select.appendChild(emptyOpt);
+    return;
+  }
+
   try {
-    let url = '/app/api/index.php?route=equipment&limit=9999&offset=0';
-    if (local) {
-      url += `&local=${encodeURIComponent(local)}`;
-    }
+    const url = `/app/api/index.php?route=equipment&limit=9999&offset=0&local=${encodeURIComponent(local)}`;
 
     const response = await fetch(url);
     const result = await response.json();
     const items = result.data || [];
-
-    select.innerHTML = '<option value="">Selecione...</option>';
 
     items.forEach((e) => {
       const opt = document.createElement('option');
@@ -304,7 +309,10 @@ export async function loadHomeForm() {
     */
 
     if (!data.equipamento_id) {
-      showToast('Equipamento não encontrado', 'error');
+      showToast(
+        fromGestao ? 'Selecione o local e o equipamento' : 'Equipamento não encontrado',
+        'error'
+      );
 
       return;
     }

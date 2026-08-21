@@ -122,6 +122,48 @@ describe("loadHomeForm emergencia checkbox", function () {
   });
 });
 
+// --- loadGestaoEquipamentos ---
+
+describe("loadGestaoEquipamentos", function () {
+  beforeEach(function () {
+    loadFormModule();
+  });
+
+  it("skips the fetch and shows a placeholder when local is empty", async function () {
+    var fetched = null;
+    globalThis.fetch = async function (url) {
+      fetched = url;
+      return { json: async function () { return { success: true, data: [] }; } };
+    };
+    document.body.innerHTML =
+      '<select id="equipamentoId"><option value="">Selecione...</option></select>';
+
+    await globalThis.loadGestaoEquipamentos('');
+
+    expect(fetched).toBe(null);
+    var select = document.getElementById('equipamentoId');
+    expect(select.textContent).toContain('Selecione o local primeiro...');
+    expect(select.children.length).toBe(2);
+  });
+
+  it("fetches equipment filtered by local when local is provided", async function () {
+    var fetched = null;
+    globalThis.fetch = async function (url) {
+      fetched = url;
+      return { json: async function () { return { success: true, data: [{ id: 7, equipamento: 'WM 02', capacidade: '10', localidade: 'Container 1' }] }; } };
+    };
+    document.body.innerHTML =
+      '<select id="equipamentoId"><option value="">Selecione...</option></select>';
+
+    await globalThis.loadGestaoEquipamentos('BMA');
+
+    expect(fetched).toContain('route=equipment');
+    expect(fetched).toContain('local=' + encodeURIComponent('BMA'));
+    var select = document.getElementById('equipamentoId');
+    expect(select.textContent).toContain('WM 02 — 10 TR - Container 1');
+  });
+});
+
 // --- loadHomeForm: gestao de OS origin ---
 
 describe("loadHomeForm from Gestão de OS", function () {
