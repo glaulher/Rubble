@@ -158,15 +158,17 @@ class PvEmailWatcherService
             $bodyText = $this->fetchBodyText($mbox, $uid);
             $isApproved = preg_match($this->getBodySearchPattern(), $bodyText) === 1;
 
+            error_log("PvEmailWatcher DEBUG: uid=$uid pv=$pvNumber subject='" . substr($subject, 0, 120) . "' bodyLen=" . strlen($bodyText) . " approved=" . ($isApproved ? 'YES' : 'NO'));
+
             if ($isApproved) {
                 $pv = $this->repository->getByNumberPv($pvNumber);
                 if ($pv !== null) {
                     $this->repository->updateItemsStatusByPvId($pv->id, self::APPROVED_TARGET_STATUS);
                     $result['approved']++;
                 }
+                $this->markProcessed($uid, $pvNumber, $mailboxKey);
             }
 
-            $this->markProcessed($uid, $pvNumber, $mailboxKey);
             $result['checked']++;
 
         } catch (\Throwable $e) {
@@ -260,6 +262,7 @@ class PvEmailWatcherService
         if (!$structure) return '';
 
         $text = '';
+        $hasPlain = false;
 
         if (isset($structure->parts) && count($structure->parts) > 0) {
             for ($i = 1; $i <= count($structure->parts); $i++) {
@@ -267,15 +270,33 @@ class PvEmailWatcherService
                 $part = $structure->parts[$partIdx];
                 $subtype = strtolower($part->subtype ?? '');
 
-                if (in_array($subtype, ['plain', 'html'], true)) {
+                if ($subtype === 'plain') {
                     $body = @imap_fetchbody($mbox, $uid, $i, FT_UID);
                     if ($body !== false) {
-                        $text .= $this->decodeBody($body, $part->encoding ?? 0) . "\n";
+                        $decoded = $this->decodeBody($body, $part->encoding ?? 0);
+                        $text .= $decoded . "\n";
+                        if (trim($decoded) !== '') $hasPlain = true;
                     }
                 }
 
                 if ($this->hasSubparts($part)) {
                     $text .= $this->fetchSubparts($mbox, $uid, $i, $part);
+                }
+            }
+
+            if (!$hasPlain && trim($text) === '') {
+                for ($i = 1; $i <= count($structure->parts); $i++) {
+                    $partIdx = $i - 1;
+                    $part = $structure->parts[$partIdx];
+                    $subtype = strtolower($part->subtype ?? '');
+
+                    if ($subtype === 'html') {
+                        $body = @imap_fetchbody($mbox, $uid, $i, FT_UID);
+                        if ($body !== false) {
+                            $decoded = $this->decodeBody($body, $part->encoding ?? 0);
+                            $text .= strip_tags(html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8')) . "\n";
+                        }
+                    }
                 }
             }
         } else {
