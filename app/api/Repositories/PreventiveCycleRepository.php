@@ -59,6 +59,7 @@ class PreventiveCycleRepository extends BaseRepository
                     e.localidade,
                     e.local_scm,
                     e.mercado,
+                    e.tag_infratel,
                     {$valorCaseSql} AS valor,
                     pci.id AS item_id,
                     pci.observacao,

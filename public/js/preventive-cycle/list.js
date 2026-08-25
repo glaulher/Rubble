@@ -283,6 +283,9 @@ export function _cycleRenderCards(items, append) {
       html += '<input type="checkbox" class="cycle-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" data-equip-id="' + item.equipamento_id + '"' + (checked ? ' checked' : '') + '>';
       html += '<div class="flex-1 flex items-center gap-2 flex-wrap">';
       html += '<span class="text-lg font-light tracking-[0.05em] px-3 py-1 rounded-lg bg-slate-100 text-slate-800">' + _cycleEscape(item.equipamento || '') + '</span>';
+      if (item.tag_infratel) {
+        html += '<span class="text-[10px] font-medium text-slate-500">' + _cycleEscape(item.tag_infratel) + '</span>';
+      }
       if (item.localidade) {
         html += '<span class="text-sm text-slate-500 ml-2">' + _cycleEscape(item.localidade) + '</span>';
       }
@@ -574,7 +577,7 @@ export function _cycleExportCsv() {
         return;
       }
 
-      var header = 'LOCAL;LOCAL SCM;LOCALIDADE;EQUIPAMENTO;CAPACIDADE (TR);VALOR (R$);MARCADO;OBSERVACAO;SCM';
+      var header = 'LOCAL;LOCAL SCM;LOCALIDADE;EQUIPAMENTO;TAG INFRATEL;CAPACIDADE (TR);VALOR (R$);MARCADO;OBSERVACAO;SCM';
 
       downloadCSV(
         'preventiva_' + ciclo + '.csv',
@@ -587,6 +590,7 @@ export function _cycleExportCsv() {
               sanitizeCSV(item.local_scm || ''),
               sanitizeCSV(item.localidade || ''),
               sanitizeCSV(item.equipamento || ''),
+              sanitizeCSV(item.tag_infratel || ''),
               item.capacidade ? parseFloat(item.capacidade) + ' TR' : '',
               valor > 0 ? valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
               item.checked ? 'Sim' : 'N\u00e3o',
