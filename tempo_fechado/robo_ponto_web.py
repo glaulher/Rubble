@@ -104,10 +104,10 @@ try:
 except Exception:
     pass
 
-# v8.21.69 - fix all fetch template literals prefix /tempo-fechado
-APP_VERSION = "v8.21.69"
+# v8.21.70 - colunas Adm e Sobreaviso em Horas Extras Simplificadas
+APP_VERSION = "v8.21.70"
 APP_RELEASE_NAME = "Horas Extras Simplificadas"
-APP_FULL_NAME = "Tempo Fechado v8.21.69 - Horas Extras Simplificadas"
+APP_FULL_NAME = "Tempo Fechado v8.21.70 - Horas Extras Simplificadas"
 APP_STARTED_AT = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 APP_BASE_DIR = str(Path(__file__).resolve().parent)
 
@@ -3159,6 +3159,7 @@ def api_salvar_anotacao_operacional_v82150():
         "guia": _limpar_texto_anotacao_v82150(payload.get("guia"), 80),
         "nome_gestor": _limpar_texto_anotacao_v82150(payload.get("nome_gestor"), 120),
         "adm_responsavel": _limpar_texto_anotacao_v82150(payload.get("adm_responsavel"), 120),
+        "sobreaviso": _limpar_texto_anotacao_v82150(payload.get("sobreaviso"), 20),
         "observacao": _limpar_texto_anotacao_v82150(payload.get("observacao"), 600),
         "atualizado_em": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "atualizado_por": str(session.get("usuario") or session.get("nome") or ""),
@@ -3166,7 +3167,7 @@ def api_salvar_anotacao_operacional_v82150():
 
     with ANOTACOES_OPERACIONAIS_LOCK:
         dados = _carregar_anotacoes_operacionais_v82150()
-        if registro["nome_gestor"] or registro["adm_responsavel"] or registro["observacao"]:
+        if registro["nome_gestor"] or registro["adm_responsavel"] or registro["sobreaviso"] or registro["observacao"]:
             dados[chave] = registro
         else:
             dados.pop(chave, None)

@@ -430,6 +430,7 @@ function salvarAnotacaoOperacional(guia, chaveCodificada, campo, valor) {
           guia,
           nome_gestor: registro.nome_gestor || "",
           adm_responsavel: registro.adm_responsavel || "",
+          sobreaviso: registro.sobreaviso || "",
           observacao: registro.observacao || "",
         }),
       });
@@ -5117,7 +5118,7 @@ function renderResultadoCleanupOperacional(json) {
   `;
 }
 
-// v8.21.67 - visão enxuta para tratamento e justificativa das horas extras.
+// v8.21.70 - visão enxuta com Gestor Mediato, Adm, Sobreaviso e Justificativa.
 function setCabecalhoHoraExtraSimplificadaV82167() {
   const thead = document.querySelector("#tabelaConsolidado thead tr");
   if (!thead) return;
@@ -5128,6 +5129,8 @@ function setCabecalhoHoraExtraSimplificadaV82167() {
     <th>Sa&iacute;da</th>
     <th>Total de H.E.</th>
     <th>Gestor Mediato</th>
+    <th>Adm</th>
+    <th>Sobreaviso</th>
     <th>Justificativa</th>
   `;
 }
@@ -5160,8 +5163,17 @@ function renderCamposHoraExtraSimplificadaV82167(r) {
     .join("|")
     .slice(0, 260);
   const chaveAttr = escapeHtml(encodeURIComponent(chave));
+  const valSobreaviso = valorAnotacaoOperacional(chave, "sobreaviso");
   return `
     <td class="op-note-cell"><input class="op-note-input" value="${escapeHtml(valorAnotacaoOperacional(chave, "nome_gestor"))}" placeholder="Gestor Mediato" onchange="salvarAnotacaoOperacional('${guia}','${chaveAttr}','nome_gestor',this.value)"></td>
+    <td class="op-note-cell"><input class="op-note-input" value="${escapeHtml(valorAnotacaoOperacional(chave, "adm_responsavel"))}" placeholder="Adm" onchange="salvarAnotacaoOperacional('${guia}','${chaveAttr}','adm_responsavel',this.value)"></td>
+    <td class="op-note-cell">
+      <select class="op-note-select" onchange="salvarAnotacaoOperacional('${guia}','${chaveAttr}','sobreaviso',this.value)">
+        <option value="" ${!valSobreaviso ? "selected" : ""}>-</option>
+        <option value="Sim" ${valSobreaviso === "Sim" ? "selected" : ""}>Sim</option>
+        <option value="Não" ${valSobreaviso === "Não" || valSobreaviso === "Nao" ? "selected" : ""}>Não</option>
+      </select>
+    </td>
     <td class="op-note-cell"><textarea class="op-note-textarea" placeholder="Justificativa" onchange="salvarAnotacaoOperacional('${guia}','${chaveAttr}','observacao',this.value)">${escapeHtml(valorAnotacaoOperacional(chave, "observacao"))}</textarea></td>
   `;
 }
@@ -7619,7 +7631,7 @@ async function carregarCentralOperacaoV8190() {
 }
 
 // v8.21.9 - Verificacao da versao realmente ativa no navegador/backend.
-const VERSAO_ESPERADA_BADGE = "v8.21.69";
+const VERSAO_ESPERADA_BADGE = "v8.21.70";
 let versaoAtivaV8215 = null;
 
 function formatarVersaoAtivaV8215(info) {
