@@ -374,9 +374,6 @@ export function updateUserDisplay() {
         '<span class="text-white font-medium">' +
         escapeHtml(user.nome) +
         '</span>' +
-        '<span class="text-xs text-slate-400 ml-2">(' +
-        escapeHtml(roleLabels[user.role] || user.role) +
-        ')</span>' +
         (user.role === 'admin' ? '<span id="activeUserCount" class="text-xs text-emerald-400 ml-2">\u25CF ...</span>' : '') +
         '<button id="logoutBtn" class="ml-4 text-sm text-red-400 hover:text-red-300 transition">Sair</button>';
 

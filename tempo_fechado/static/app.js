@@ -2252,7 +2252,7 @@ async function carregarUsuarioAtual() {
     }
     const json = await resp.json();
     window.USUARIO_ATUAL = json;
-    badge.textContent = `${json.nome || json.usuario} · ${json.perfil_rotulo || json.perfil || ""}`;
+    badge.textContent = json.nome || json.usuario || "Usuário";
     const perfil = String(json.perfil || "consulta").toLowerCase();
     ["admin", "supervisor", "operador", "consulta"].forEach(p => {
       document.body.classList.toggle(`perfil-${p}`, perfil === p);
