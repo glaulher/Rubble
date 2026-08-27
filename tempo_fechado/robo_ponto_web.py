@@ -10519,6 +10519,11 @@ def api_processamento_manual_robo_abrir_entrada_v81740():
     try:
         entrada.mkdir(parents=True, exist_ok=True)
         caminho = str(entrada.resolve())
+        # Modo servidor/Docker headless: não há xdg-open/DISPLAY (TF-01)
+        if not sys.platform.startswith("win") and sys.platform != "darwin":
+            import shutil as _shutil
+            if _shutil.which("xdg-open") is None or not _os.environ.get("DISPLAY"):
+                return jsonify({"ok": True, "erro": "", "mensagem": "No servidor use Upload de PDFs — Explorer não disponível.", "entrada": caminho, "modo": "servidor"})
         if sys.platform.startswith("win"):
             try:
                 os.startfile(caminho)
@@ -10945,6 +10950,10 @@ def api_servidor_assistido_abrir_pasta_central_v82142():
     try:
         base.mkdir(parents=True, exist_ok=True)
         caminho = str(base.resolve())
+        if not sys.platform.startswith("win") and sys.platform != "darwin":
+            import shutil as _shutil
+            if _shutil.which("xdg-open") is None or not _os.environ.get("DISPLAY"):
+                return jsonify({"ok": True, "erro": "", "mensagem": "No servidor use Upload de PDFs — Explorer não disponível.", "ponto_pdfs_base": caminho, "modo": "servidor"})
         if sys.platform.startswith("win"):
             try:
                 os.startfile(caminho)

@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY tempo_fechado/ /app/
 
 ENV TEMPO_FECHADO_MODO_SERVIDOR=1 \
+    TEMPO_FECHADO_PONTO_PDFS_DIR=/app/ponto_pdfs \
     TEMPO_FECHADO_HOST=0.0.0.0 \
     TEMPO_FECHADO_PORT=5050 \
     PYTHONUNBUFFERED=1
