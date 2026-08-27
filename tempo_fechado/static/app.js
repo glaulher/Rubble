@@ -274,7 +274,7 @@ async function obterOpcoesFiltros(cc = "", force = false) {
   const resp = await fetch(url);
 
   if (resp.status === 401) {
-    window.location.href = "/login";
+    window.location.href = "/tempo-fechado/login";
     return { ccs: [], nomes: [], turnos: [] };
   }
 
@@ -374,7 +374,7 @@ function chaveAnotacaoOperacional(guia, r) {
 
 async function carregarAnotacoesOperacionais(force = false) {
   if (!force && anotacoesOperacionaisPromise) return anotacoesOperacionaisPromise;
-  anotacoesOperacionaisPromise = fetch("/api/anotacoes-operacionais")
+  anotacoesOperacionaisPromise = fetch("/tempo-fechado/api/anotacoes-operacionais")
     .then(resp => resp.json())
     .then(json => {
       anotacoesOperacionaisCache = json.anotacoes || {};
@@ -422,7 +422,7 @@ function salvarAnotacaoOperacional(guia, chaveCodificada, campo, valor) {
   const timer = setTimeout(async () => {
     const registro = anotacoesOperacionaisCache[chave] || {};
     try {
-      await fetch("/api/anotacoes-operacionais", {
+      await fetch("/tempo-fechado/api/anotacoes-operacionais", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1996,7 +1996,7 @@ async function salvarDataInicialBancoHoras2() {
   try {
     if (btn) { btn.disabled = true; btn.textContent = 'Atualizando...'; }
     if (status) status.textContent = dataInicio ? 'Salvando data inicial...' : 'Limpando data inicial para considerar todo o período...';
-    const resp = await fetch('/api/banco-horas-2/config', {
+    const resp = await fetch('/tempo-fechado/api/banco-horas-2/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ativo: true, data_inicio: dataInicio })
@@ -2044,7 +2044,7 @@ async function salvarBancoHoras2() {
   try {
     if (btn) { btn.disabled = true; btn.textContent = 'Atualizando...'; }
     if (status) status.textContent = 'Salvando regra do colaborador e recalculando cache...';
-    const resp = await fetch('/api/banco-horas-2/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const resp = await fetch('/tempo-fechado/api/banco-horas-2/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     let json = {};
     try { json = await resp.json(); } catch (parseErr) { json = { ok: false, erro: 'Resposta inválida do servidor.' }; }
     if (!resp.ok || !json.ok) {
@@ -2220,7 +2220,7 @@ async function carregarOpcoesInconsistencias() {
   const valorAtual = select.value;
 
   try {
-    const resp = await fetch("/api/inconsistencias-opcoes");
+    const resp = await fetch("/tempo-fechado/api/inconsistencias-opcoes");
     const json = await resp.json();
 
     select.innerHTML = '<option value="">Todas as inconsistências</option>';
@@ -2245,9 +2245,9 @@ async function carregarUsuarioAtual() {
   if (!badge) return;
 
   try {
-    const resp = await fetch("/api/usuario-atual");
+    const resp = await fetch("/tempo-fechado/api/usuario-atual");
     if (resp.status === 401) {
-      window.location.href = "/login";
+      window.location.href = "/tempo-fechado/login";
       return;
     }
     const json = await resp.json();
@@ -2346,7 +2346,7 @@ async function buscarNomesPorCC(cc) {
   const resp = await fetch(`/api/nomes-por-cc${query}`);
 
   if (resp.status === 401) {
-    window.location.href = "/login";
+    window.location.href = "/tempo-fechado/login";
     return [];
   }
 
@@ -2453,7 +2453,7 @@ async function importarExcelRobo() {
   if (status) status.textContent = "Importando Excel do Robô em modo rápido...";
 
   try {
-    const resp = await fetch("/api/importar-excel-robo", { method: "POST" });
+    const resp = await fetch("/tempo-fechado/api/importar-excel-robo", { method: "POST" });
     const json = await resp.json();
 
     if (!resp.ok || json.erro || json.ok === false) {
@@ -2558,7 +2558,7 @@ async function carregarDiagnosticoViolacoesJornadaSeVazio(totalLinhas) {
   if (totalLinhas && totalLinhas > 0) return;
 
   try {
-    const resp = await fetch("/api/debug-violacoes-jornada");
+    const resp = await fetch("/tempo-fechado/api/debug-violacoes-jornada");
     const diag = await resp.json();
 
     if (!diag.erro) {
@@ -3044,7 +3044,7 @@ async function carregarOpcoesExtratoBancoHoras() {
   try {
     const resp = await fetch(`/api/opcoes-extrato-banco-horas?${p.toString()}`);
     if (resp.status === 401) {
-      window.location.href = "/login";
+      window.location.href = "/tempo-fechado/login";
       return;
     }
     const json = await resp.json();
@@ -3990,7 +3990,7 @@ async function enviarAlertasJornadaAgora() {
   const status = qs("statusCarga");
   if (status) status.textContent = "Verificando e enviando alertas de jornada...";
   try {
-    const resp = await fetch("/api/notificacoes-jornada/enviar-agora", {
+    const resp = await fetch("/tempo-fechado/api/notificacoes-jornada/enviar-agora", {
       method: "POST",
       headers: { "Accept": "application/json" }
     });
@@ -4126,7 +4126,7 @@ async function carregarAlertasAutomaticos() {
 
     // v8.21.2: as notificações deixam de bloquear a abertura da Central.
     // A tela principal aparece primeiro; o status de canais chega em segundo plano.
-    fetch("/api/notificacoes-jornada/status")
+    fetch("/tempo-fechado/api/notificacoes-jornada/status")
       .then(r => r.json())
       .then(jsonNotif => {
         if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
@@ -4830,7 +4830,7 @@ function zerarKpis() {
 
 async function carregarStatusBaseInicial() {
   try {
-    const resp = await fetch("/api/status-base");
+    const resp = await fetch("/tempo-fechado/api/status-base");
     const json = await resp.json();
     if (!json.base_ativa) {
       if (qs("statusCarga")) qs("statusCarga").textContent = json.mensagem;
@@ -4885,7 +4885,7 @@ async function fetchJsonSeguro(url, options = {}) {
   } catch (e) {
     const limpo = (texto || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 300);
     if (resp.status === 401 || limpo.toLowerCase().includes("login")) {
-      window.location.href = "/login";
+      window.location.href = "/tempo-fechado/login";
       throw new Error("Sessão expirada. Faça login novamente.");
     }
     throw new Error(`Servidor devolveu HTML em vez de JSON (${resp.status}). ${limpo || texto.slice(0, 180)}`);
@@ -5000,7 +5000,7 @@ async function liberarTravaProcessamentoV82140() {
   }
   if (!confirm("Liberar a trava operacional? Use somente se tiver certeza de que nao ha processamento em execucao.")) return;
   try {
-    const json = await fetchJsonSeguro("/api/processamento/trava/liberar", {
+    const json = await fetchJsonSeguro("/tempo-fechado/api/processamento/trava/liberar", {
       method: "POST",
       headers: { "Accept": "application/json" },
       credentials: "same-origin",
@@ -5020,7 +5020,7 @@ async function consultarStatusProcessamentoIntegrado() {
     // v8.11.2: status do job pode ser erro, mas a consulta do status não deve quebrar a tela.
     // Antes usávamos fetchJsonSeguro(), que tratava job.ok=false como falha de requisição
     // e escondia justamente o log técnico necessário para diagnóstico.
-    const resp = await fetch("/api/processamento-integrado/status");
+    const resp = await fetch("/tempo-fechado/api/processamento-integrado/status");
     const job = await resp.json();
     if (!resp.ok || job.erro) throw new Error(job.erro || job.mensagem || `HTTP ${resp.status}`);
     renderProcessamentoStatus(job);
@@ -5056,7 +5056,7 @@ async function iniciarProcessamentoIntegrado() {
     timeout_segundos: 3600,
   };
   try {
-    const json = await fetchJsonSeguro("/api/processamento-integrado/iniciar", {
+    const json = await fetchJsonSeguro("/tempo-fechado/api/processamento-integrado/iniciar", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       credentials: "same-origin",
@@ -5238,7 +5238,7 @@ async function executarFechamentoPeriodoV82166() {
   if (!ok) return;
   try {
     if (qs("statusCarga")) qs("statusCarga").textContent = "Arquivando fechamento do período...";
-    const json = await fetchJsonSeguro("/api/processamento/fechamento-periodo", {
+    const json = await fetchJsonSeguro("/tempo-fechado/api/processamento/fechamento-periodo", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       credentials: "same-origin",
@@ -5288,7 +5288,7 @@ async function executarCleanupOperacional() {
 
   try {
     if (qs("statusCarga")) qs("statusCarga").textContent = "Executando Cleanup Operacional...";
-    const json = await fetchJsonSeguro("/api/cleanup-operacional", {
+    const json = await fetchJsonSeguro("/tempo-fechado/api/cleanup-operacional", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       credentials: "same-origin",
@@ -5335,7 +5335,7 @@ async function carregarPainelCicloOperacional() {
   const alvo = qs("cicloOperacionalBox");
   if (alvo) alvo.innerHTML = `<div class="exec-empty">Atualizando ciclo operacional...</div>`;
   try {
-    const json = await fetchJsonSeguro("/api/ciclo-operacional");
+    const json = await fetchJsonSeguro("/tempo-fechado/api/ciclo-operacional");
     renderPainelCicloOperacional(json);
   } catch (e) {
     if (alvo) alvo.innerHTML = `<div class="exec-empty erro">Falha ao carregar ciclo: ${escapeHtml(e.message)}</div>`;
@@ -5370,7 +5370,7 @@ async function executarPrevalidacaoProcessamento(mostrarStatus = true) {
   const alvo = qs("prevalidacaoBox");
   if (mostrarStatus && alvo) alvo.innerHTML = `<div class="exec-empty">Executando pre-validacao...</div>`;
   try {
-    const json = await fetchJsonSeguro("/api/processamento/prevalidacao");
+    const json = await fetchJsonSeguro("/tempo-fechado/api/processamento/prevalidacao");
     renderPrevalidacaoProcessamento(json);
     return json;
   } catch (e) {
@@ -5396,7 +5396,7 @@ async function carregarHistoricoProcessamento() {
   const alvo = qs("historicoProcessamentoBox");
   if (alvo) alvo.innerHTML = `<div class="exec-empty">Carregando historico...</div>`;
   try {
-    const json = await fetchJsonSeguro("/api/processamento/historico?limite=20");
+    const json = await fetchJsonSeguro("/tempo-fechado/api/processamento/historico?limite=20");
     renderHistoricoProcessamento(json);
   } catch (e) {
     if (alvo) alvo.innerHTML = `<div class="exec-empty erro">Falha ao carregar historico: ${escapeHtml(e.message)}</div>`;
@@ -5412,7 +5412,7 @@ async function executarNovaRodadaOperacional() {
   if (!confirm(comCleanup ? "Iniciar Nova Rodada com Cleanup previo e coleta?" : "Iniciar Nova Rodada sem Cleanup previo?")) return;
   try {
     if (qs("statusCarga")) qs("statusCarga").textContent = "Iniciando Nova Rodada...";
-    const json = await fetchJsonSeguro("/api/processamento/nova-rodada", {
+    const json = await fetchJsonSeguro("/tempo-fechado/api/processamento/nova-rodada", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       credentials: "same-origin",
@@ -5559,8 +5559,8 @@ async function carregarAuditoriaMultiusuario() {
   const tokenEsperado = navegacaoToken;
   try {
     const [jsonUsuarios, jsonAuditoria] = await Promise.all([
-      fetchJsonSeguro("/api/usuarios"),
-      fetchJsonSeguro("/api/auditoria"),
+      fetchJsonSeguro("/tempo-fechado/api/usuarios"),
+      fetchJsonSeguro("/tempo-fechado/api/auditoria"),
     ]);
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
 
@@ -5669,7 +5669,7 @@ function renderResultadoConfigRobo(json) {
 
 async function testarConfiguracaoRobo() {
   try {
-    const json = await fetchJsonSeguro("/api/configuracoes-robo/testar", {
+    const json = await fetchJsonSeguro("/tempo-fechado/api/configuracoes-robo/testar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payloadConfiguracaoRobo()),
@@ -5683,7 +5683,7 @@ async function testarConfiguracaoRobo() {
 
 async function salvarConfiguracaoRobo() {
   try {
-    const json = await fetchJsonSeguro("/api/configuracoes-robo", {
+    const json = await fetchJsonSeguro("/tempo-fechado/api/configuracoes-robo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payloadConfiguracaoRobo()),
@@ -5699,7 +5699,7 @@ async function atualizarHistoricoPdfsBancoHoras() {
   const alvo = qs("cfgRoboResultado");
   if (alvo) alvo.innerHTML = "Atualizando histórico de PDFs. Essa etapa pode demorar, mas não será executada na importação rápida do Excel...";
   try {
-    const json = await fetchJsonSeguro("/api/pdfs-banco-horas/atualizar-historico", { method: "POST" });
+    const json = await fetchJsonSeguro("/tempo-fechado/api/pdfs-banco-horas/atualizar-historico", { method: "POST" });
     if (alvo) alvo.innerHTML = `
       <strong>Histórico de PDFs atualizado</strong><br>
       PDFs encontrados: ${escapeHtml(String(json.pdfs_encontrados ?? 0))}<br>
@@ -5751,7 +5751,7 @@ async function corrigirBancoHorasPelosPdfs() {
   }
 
   try {
-    let json = await fetchJsonSeguro("/api/banco-horas/corrigir-pelos-pdfs", {
+    let json = await fetchJsonSeguro("/tempo-fechado/api/banco-horas/corrigir-pelos-pdfs", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       credentials: "same-origin",
@@ -5766,7 +5766,7 @@ async function corrigirBancoHorasPelosPdfs() {
       let finalizado = false;
       for (let i = 1; i <= 60; i++) {
         await new Promise(resolve => setTimeout(resolve, 2500));
-        const st = await fetchJsonSeguro("/api/banco-horas/corrigir-pelos-pdfs/status", {
+        const st = await fetchJsonSeguro("/tempo-fechado/api/banco-horas/corrigir-pelos-pdfs/status", {
           method: "GET",
           headers: { "Accept": "application/json" },
           credentials: "same-origin",
@@ -5833,8 +5833,8 @@ async function carregarConfiguracaoRoboDedicada() {
   const painel = qs("dashboardExecutivoPremium");
   try {
     const [jsonConfigRobo, jsonCachePdfs] = await Promise.all([
-      fetchJsonSeguro("/api/configuracoes-robo"),
-      fetchJsonSeguro("/api/pdfs-banco-horas/cache"),
+      fetchJsonSeguro("/tempo-fechado/api/configuracoes-robo"),
+      fetchJsonSeguro("/tempo-fechado/api/pdfs-banco-horas/cache"),
     ]);
     const cfgRobo = jsonConfigRobo.config || {};
     const cachePdfs = jsonCachePdfs || {};
@@ -5899,7 +5899,7 @@ async function salvarUsuarioAdmin() {
   };
   if (!payload.usuario || !payload.nome) { alert("Informe usuário e nome."); return; }
   try {
-    const json = await fetchJsonSeguro("/api/usuarios", {
+    const json = await fetchJsonSeguro("/tempo-fechado/api/usuarios", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify(payload),
@@ -5946,7 +5946,7 @@ async function alterarMinhaSenha() {
   const confirma = qs("minhaNovaSenha2").value;
   if (!novaSenha || novaSenha !== confirma) { alert("A confirmação da nova senha não confere."); return; }
   try {
-    const json = await fetchJsonSeguro("/api/minha-senha", {
+    const json = await fetchJsonSeguro("/tempo-fechado/api/minha-senha", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({senha_atual: senhaAtual, nova_senha: novaSenha}),
@@ -5966,7 +5966,7 @@ function abrirTrocaSenhaRapida() {
   const confirma = prompt("Confirme a nova senha:");
   if (confirma === null) return;
   if (novaSenha !== confirma) { alert("A confirmação da nova senha não confere."); return; }
-  fetch("/api/minha-senha", {
+  fetch("/tempo-fechado/api/minha-senha", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({senha_atual: senhaAtual, nova_senha: novaSenha}),
@@ -6110,7 +6110,7 @@ async function abrirConfigNotificacoesJornada() {
     return;
   }
   try {
-    const resp = await fetch("/api/notificacoes-jornada/config");
+    const resp = await fetch("/tempo-fechado/api/notificacoes-jornada/config");
     const json = await resp.json();
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
     const c = json.config || {};
@@ -6142,7 +6142,7 @@ Arquivo: ${c._arquivo_config || ""}
       ENVIAR_AO_IMPORTAR_EXCEL: enviarAoImportar,
     };
 
-    const save = await fetch("/api/notificacoes-jornada/config", {
+    const save = await fetch("/tempo-fechado/api/notificacoes-jornada/config", {
       method: "POST",
       headers: {"Content-Type": "application/json", "Accept": "application/json"},
       body: JSON.stringify(payload)
@@ -6163,7 +6163,7 @@ async function abrirConfigEmailRoboV81727() {
     return;
   }
   try {
-    const resp = await fetch("/api/config-email-robo");
+    const resp = await fetch("/tempo-fechado/api/config-email-robo");
     const json = await resp.json();
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
     const c = json.config || {};
@@ -6185,7 +6185,7 @@ async function abrirConfigEmailRoboV81727() {
       cco_email: cco,
       assunto_email_base: assunto
     };
-    const save = await fetch("/api/config-email-robo", {
+    const save = await fetch("/tempo-fechado/api/config-email-robo", {
       method: "POST",
       headers: {"Content-Type": "application/json", "Accept": "application/json"},
       body: JSON.stringify(payload)
@@ -6299,7 +6299,7 @@ async function abrirAdminConfiguracoesRoboV81728() {
     if (qs("tituloPagina")) qs("tituloPagina").textContent = "Administração do Robô";
     if (qs("subtituloPagina")) qs("subtituloPagina").textContent = "";
     if (qs("statusCarga")) qs("statusCarga").textContent = "Carregando configurações do robô...";
-    const resp = await fetch("/api/admin/config-robo-painel");
+    const resp = await fetch("/tempo-fechado/api/admin/config-robo-painel");
     const json = await resp.json();
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
     renderAdminConfiguracoesRoboV81728(json.painel || {});
@@ -6328,7 +6328,7 @@ async function salvarAdminConfiguracoesRoboV81728() {
     }
   };
   try {
-    const resp = await fetch("/api/admin/config-robo-painel", {
+    const resp = await fetch("/tempo-fechado/api/admin/config-robo-painel", {
       method: "POST",
       headers: {"Content-Type": "application/json", "Accept": "application/json"},
       body: JSON.stringify(payload)
@@ -6362,7 +6362,7 @@ async function abrirProcessamentoManualRoboV81737() {
     if (qs("tituloPagina")) qs("tituloPagina").textContent = "Processamento Manual";
     if (qs("subtituloPagina")) qs("subtituloPagina").textContent = "";
     if (qs("statusCarga")) qs("statusCarga").textContent = "Carregando módulo manual...";
-    const resp = await fetch("/api/processamento-manual-robo/status");
+    const resp = await fetch("/tempo-fechado/api/processamento-manual-robo/status");
     const json = await resp.json();
     if (!requisicaoAindaValida("processamento_manual_robo", tokenEsperado)) return;
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
@@ -6399,7 +6399,7 @@ async function uploadPdfsRoboManualV82138() {
   arquivos.forEach(arquivo => form.append("pdfs", arquivo));
   try {
     if (status) status.textContent = "Enviando PDFs...";
-    const resp = await fetch("/api/processamento-manual-robo/upload-pdfs", { method: "POST", body: form });
+    const resp = await fetch("/tempo-fechado/api/processamento-manual-robo/upload-pdfs", { method: "POST", body: form });
     const json = await resp.json().catch(() => ({}));
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
     const ignorados = json.qtd_ignorados ? ` Ignorados: ${json.qtd_ignorados}.` : "";
@@ -6413,7 +6413,7 @@ async function uploadPdfsRoboManualV82138() {
 }
 async function abrirPastaEntradaRoboV81740() {
   try {
-    const resp = await fetch("/api/processamento-manual-robo/abrir-entrada", {method: "POST"});
+    const resp = await fetch("/tempo-fechado/api/processamento-manual-robo/abrir-entrada", {method: "POST"});
     const json = await resp.json().catch(() => ({}));
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
     if (json.mensagem) {
@@ -6431,7 +6431,7 @@ async function executarRoboManualV81737() {
   if (!confirm("Executar o robô sobre os PDFs da entrada e importar automaticamente o Excel padrão?")) return;
   try {
     if (qs("statusCarga")) qs("statusCarga").textContent = "Executando robô manual e importando Excel...";
-    const resp = await fetch("/api/processamento-manual-robo/executar", {method: "POST"});
+    const resp = await fetch("/tempo-fechado/api/processamento-manual-robo/executar", {method: "POST"});
     const json = await resp.json();
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
     const imp = json.importacao || {};
@@ -6442,7 +6442,7 @@ async function executarRoboManualV81737() {
 async function importarExcelRoboManualV81737() {
   if (!usuarioPodeV82143("processar")) { alert("Acesso negado. Esta acao exige perfil Supervisor ou Administrador."); return; }
   try {
-    const resp = await fetch("/api/processamento-manual-robo/importar-excel", {method: "POST"});
+    const resp = await fetch("/tempo-fechado/api/processamento-manual-robo/importar-excel", {method: "POST"});
     const json = await resp.json();
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
     const imp = json.importacao || {};
@@ -6452,7 +6452,7 @@ async function importarExcelRoboManualV81737() {
 }
 async function verLogRoboManualV81737() {
   try {
-    const resp = await fetch("/api/processamento-manual-robo/log");
+    const resp = await fetch("/tempo-fechado/api/processamento-manual-robo/log");
     const json = await resp.json();
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
     const alvo = qs("dashboardExecutivoPremium") || qs("conteudoPrincipal") || document.body;
@@ -6626,7 +6626,7 @@ function dadosFormularioImplantacaoV8210() {
 async function salvarNotebookImplantacaoV8210(ev) {
   ev.preventDefault();
   try {
-    const resp = await fetch("/api/painel-implantacao/notebooks", {
+    const resp = await fetch("/tempo-fechado/api/painel-implantacao/notebooks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dadosFormularioImplantacaoV8210())
@@ -6726,7 +6726,7 @@ async function carregarPainelImplantacaoV8210() {
   if (qs("statusCarga")) qs("statusCarga").textContent = "Carregando Painel de Implantação...";
   const { controller, timer } = criarControllerNavegacao(12000);
   try {
-    const resp = await fetch("/api/painel-implantacao", { signal: controller.signal });
+    const resp = await fetch("/tempo-fechado/api/painel-implantacao", { signal: controller.signal });
     const json = await resp.json();
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
@@ -6849,7 +6849,7 @@ async function carregarDiagnosticoInstalacaoV82128() {
   const painel = qs("dashboardExecutivoPremium");
   if (painel) painel.innerHTML = `<div class="admin-panel"><h3>Verificando instalação...</h3></div>`;
   try {
-    const resp = await fetch("/api/diagnostico-pos-instalacao");
+    const resp = await fetch("/tempo-fechado/api/diagnostico-pos-instalacao");
     const json = await resp.json();
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
@@ -7021,7 +7021,7 @@ function renderServidorAssistidoV82142(info) {
 
 async function carregarServidorAssistidoV82142() {
   try {
-    const json = await fetchJsonSeguro("/api/servidor-assistido");
+    const json = await fetchJsonSeguro("/tempo-fechado/api/servidor-assistido");
     renderServidorAssistidoV82142(json);
     if (qs("statusCarga")) qs("statusCarga").textContent = json.modo_servidor ? "Servidor central monitorado." : "Modo local monitorado.";
     return json;
@@ -7035,7 +7035,7 @@ async function carregarServidorAssistidoV82142() {
 
 async function validarEstruturaServidorV82142() {
   try {
-    const json = await fetchJsonSeguro("/api/servidor-assistido/validar-estrutura", { method: "POST", credentials: "same-origin" });
+    const json = await fetchJsonSeguro("/tempo-fechado/api/servidor-assistido/validar-estrutura", { method: "POST", credentials: "same-origin" });
     renderServidorAssistidoV82142(json);
     alert(json.mensagem || "Estrutura validada.");
   } catch (e) {
@@ -7072,7 +7072,7 @@ async function reiniciarComoServidorV82156() {
   if (!ok) return;
   try {
     if (qs("statusCarga")) qs("statusCarga").textContent = "Reiniciando como servidor...";
-    const json = await fetchJsonSeguro("/api/servidor-assistido/reiniciar-servidor", { method: "POST", credentials: "same-origin" });
+    const json = await fetchJsonSeguro("/tempo-fechado/api/servidor-assistido/reiniciar-servidor", { method: "POST", credentials: "same-origin" });
     const local = json.url_local || "http://127.0.0.1:5050";
     const rede = json.url_rede || "";
     if (json.ja_ativo) {
@@ -7102,7 +7102,7 @@ async function reiniciarComoLocalV82165() {
   if (!ok) return;
   try {
     if (qs("statusCarga")) qs("statusCarga").textContent = "Reiniciando em modo local...";
-    const json = await fetchJsonSeguro("/api/servidor-assistido/reiniciar-local", { method: "POST", credentials: "same-origin" });
+    const json = await fetchJsonSeguro("/tempo-fechado/api/servidor-assistido/reiniciar-local", { method: "POST", credentials: "same-origin" });
     const local = json.url_local || "http://127.0.0.1:5050";
     if (json.ja_ativo) {
       alert(json.mensagem || "O modo local ja esta ativo.");
@@ -7121,7 +7121,7 @@ async function reiniciarComoLocalV82165() {
 
 async function abrirPastaCentralServidorV82142() {
   try {
-    const json = await fetchJsonSeguro("/api/servidor-assistido/abrir-pasta-central", { method: "POST", credentials: "same-origin" });
+    const json = await fetchJsonSeguro("/tempo-fechado/api/servidor-assistido/abrir-pasta-central", { method: "POST", credentials: "same-origin" });
     alert((json.mensagem || "Pasta central aberta.") + "\n\n" + (json.ponto_pdfs_base || ""));
   } catch (e) {
     alert("Falha ao abrir pasta central: " + e.message);
@@ -7316,7 +7316,7 @@ function renderGovernancaServidorV82144(info) {
 
 async function carregarGovernancaServidorV82144() {
   try {
-    const json = await fetchJsonSeguro("/api/governanca-servidor");
+    const json = await fetchJsonSeguro("/tempo-fechado/api/governanca-servidor");
     renderGovernancaServidorV82144(json);
     if (qs("statusCarga")) qs("statusCarga").textContent = `Governança atualizada em ${json.gerado_em || "-"}.`;
     return json;
@@ -7597,7 +7597,7 @@ async function carregarCentralOperacaoV8190() {
   if (qs("statusCarga")) qs("statusCarga").textContent = "Carregando Central de Operação...";
   const { controller, timer } = criarControllerNavegacao(12000);
   try {
-    const resp = await fetch("/api/central-operacao?limite=30", { signal: controller.signal });
+    const resp = await fetch("/tempo-fechado/api/central-operacao?limite=30", { signal: controller.signal });
     const json = await resp.json();
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
     if (!resp.ok || json.ok === false) {
@@ -7636,7 +7636,7 @@ async function carregarVersaoAtivaV8215() {
   const badge = qs("versaoAtivaBadge");
   try {
     if (badge) badge.textContent = "Verificando...";
-    const resp = await fetch("/api/versao", { cache: "no-store" });
+    const resp = await fetch("/tempo-fechado/api/versao", { cache: "no-store" });
     const json = await resp.json();
     versaoAtivaV8215 = json;
     if (badge) {
