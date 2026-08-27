@@ -218,7 +218,12 @@ def criar_ou_atualizar_usuario(db_path: Path, usuario: str, nome: str, perfil: s
             return True, "Usuário atualizado com sucesso."
 
         if not senha:
-            return False, "Informe uma senha inicial para novo usuário."
+            # SSO Rubble — auto-provisão sem senha digitada (gera hash descartável)
+            if _os.environ.get("TEMPO_FECHADO_JWT_SECRET") or _os.environ.get("JWT_SECRET") or _os.environ.get("TEMPO_FECHADO_SECRET_KEY"):
+                import secrets as _secrets
+                senha = _secrets.token_hex(16)
+            else:
+                return False, "Informe uma senha inicial para novo usuário."
         conn.execute(
             """
             INSERT INTO usuarios
