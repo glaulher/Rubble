@@ -6437,6 +6437,8 @@ async function executarRoboManualV81737() {
     const imp = json.importacao || {};
     alert((json.mensagem || "Robô executado.") + "\\n\\nExcel: " + (json.excel || "") + "\\n\\nImportação: " + (imp.mensagem || ""));
     abrirProcessamentoManualRoboV81737();
+    try { if (typeof carregarOpcoesFiltros === "function") carregarOpcoesFiltros(true); } catch (_) {}
+    try { if (typeof atualizarDadosGuiaAtual === "function") atualizarDadosGuiaAtual(); } catch (_) {}
   } catch (e) { alert("Erro ao executar robô manual: " + e.message); verLogRoboManualV81737(); }
 }
 async function importarExcelRoboManualV81737() {
