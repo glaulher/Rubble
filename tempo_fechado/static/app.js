@@ -270,7 +270,7 @@ async function obterOpcoesFiltros(cc = "", force = false) {
     p.set("refresh", "1");
     p.set("_", String(Date.now()));
   }
-  const url = `/api/opcoes-filtros${p.toString() ? "?" + p.toString() : ""}`;
+  const url = `/tempo-fechado/api/opcoes-filtros${p.toString() ? "?" + p.toString() : ""}`;
   const resp = await fetch(url);
 
   if (resp.status === 401) {
@@ -1111,7 +1111,7 @@ async function carregarConsolidado() {
   let resp;
   let json;
   try {
-    resp = await fetch(`/api/consolidado?${queryConsolidado}`, { signal: controller.signal });
+    resp = await fetch(`/tempo-fechado/api/consolidado?${queryConsolidado}`, { signal: controller.signal });
     json = await resp.json();
   } catch (e) {
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
@@ -1275,7 +1275,7 @@ async function carregarInterJornada() {
   setCabecalhoInterJornada();
 
   try {
-    const resp = await fetch(`/api/inter-jornada?${paramsConsolidado()}`);
+    const resp = await fetch(`/tempo-fechado/api/inter-jornada?${paramsConsolidado()}`);
     const json = await resp.json();
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
 
@@ -1638,7 +1638,7 @@ async function carregarPontoEmAberto() {
   qs("tituloTabela").textContent = "Sem Marcação";
   qs("statusCarga").textContent = "Carregando registros sem marcação...";
 
-  const resp = await fetch(`/api/ponto-em-aberto?${paramsConsolidado()}`);
+  const resp = await fetch(`/tempo-fechado/api/ponto-em-aberto?${paramsConsolidado()}`);
   const json = await resp.json();
 
   if (json.erro) {
@@ -1733,7 +1733,7 @@ async function carregarPontoAberto() {
   qs("tituloTabela").textContent = "Ponto Aberto";
   qs("statusCarga").textContent = "Carregando registros com marcações ímpares...";
 
-  const resp = await fetch(`/api/ponto-aberto?${paramsConsolidado()}`);
+  const resp = await fetch(`/tempo-fechado/api/ponto-aberto?${paramsConsolidado()}`);
   const json = await resp.json();
 
   if (json.erro) {
@@ -1941,7 +1941,7 @@ async function renderizarPainelBancoHoras2() {
   painel.innerHTML = ``;
   painel.classList.add("hidden");
   try {
-    const resp = await fetch(`/api/banco-horas-2/config?${params.toString()}`);
+    const resp = await fetch(`/tempo-fechado/api/banco-horas-2/config?${params.toString()}`);
     const json = await resp.json();
 
     // Se o usuario trocou de guia enquanto a chamada estava em andamento,
@@ -2128,7 +2128,7 @@ async function carregarDashboard() {
   const { controller, timer } = criarControllerNavegacao(TIMEOUT_CONSULTA_ESPELHO_MS);
   let json;
   try {
-    const resp = await fetch(`/api/dashboard-banco-he?${paramsDashboard()}`, { signal: controller.signal });
+    const resp = await fetch(`/tempo-fechado/api/dashboard-banco-he?${paramsDashboard()}`, { signal: controller.signal });
     json = await resp.json();
   } catch (e) {
     clearTimeout(avisoConsultaBancoHorasTimer);
@@ -2343,7 +2343,7 @@ async function buscarOpcoesPorCC(cc) {
 }
 async function buscarNomesPorCC(cc) {
   const query = cc ? `?cc=${encodeURIComponent(cc)}` : "";
-  const resp = await fetch(`/api/nomes-por-cc${query}`);
+  const resp = await fetch(`/tempo-fechado/api/nomes-por-cc${query}`);
 
   if (resp.status === 401) {
     window.location.href = "/tempo-fechado/login";
@@ -2591,7 +2591,7 @@ async function carregarViolacoesJornada() {
   setCabecalhoViolacoesJornada();
 
   try {
-    const resp = await fetch(`/api/violacoes-jornada?${paramsConsolidado()}`);
+    const resp = await fetch(`/tempo-fechado/api/violacoes-jornada?${paramsConsolidado()}`);
     const json = await resp.json();
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
 
@@ -2875,7 +2875,7 @@ async function carregarCatalogoPdfsBancoHoras() {
     if (nomeSelecionado) p.set("nome", nomeSelecionado);
     if (dataBase) p.set("data", dataBase);
     if (matriculaBase) p.set("matricula", matriculaBase);
-    const resp = await fetch(`/api/catalogo-pdfs-banco-horas?${p.toString()}`);
+    const resp = await fetch(`/tempo-fechado/api/catalogo-pdfs-banco-horas?${p.toString()}`);
     const json = await resp.json();
     if (!resp.ok || !json.ok) {
       alvo.innerHTML = `<p class="erro">${escapeHtml(json.erro || `Erro HTTP ${resp.status}`)}</p>`;
@@ -2948,7 +2948,7 @@ async function carregarDiagnosticoBancoHoras() {
   try {
     const p = new URLSearchParams();
     p.set("nome", nomeSelecionado);
-    const resp = await fetch(`/api/diagnostico-banco-horas?${p.toString()}`);
+    const resp = await fetch(`/tempo-fechado/api/diagnostico-banco-horas?${p.toString()}`);
     const json = await resp.json();
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
     if (!resp.ok || !json.ok) {
@@ -3042,7 +3042,7 @@ async function carregarOpcoesExtratoBancoHoras() {
   }
 
   try {
-    const resp = await fetch(`/api/opcoes-extrato-banco-horas?${p.toString()}`);
+    const resp = await fetch(`/tempo-fechado/api/opcoes-extrato-banco-horas?${p.toString()}`);
     if (resp.status === 401) {
       window.location.href = "/tempo-fechado/login";
       return;
@@ -3137,7 +3137,7 @@ async function carregarExtratoBancoHoras() {
       try { controllerExtratoBancoHoras.abort(); } catch (e) {}
     }
     controllerExtratoBancoHoras = new AbortController();
-    const resp = await fetch(`/api/extrato-banco-horas?${p.toString()}`, { signal: controllerExtratoBancoHoras.signal });
+    const resp = await fetch(`/tempo-fechado/api/extrato-banco-horas?${p.toString()}`, { signal: controllerExtratoBancoHoras.signal });
     const json = await resp.json();
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
 
@@ -3260,7 +3260,7 @@ async function carregarAuditoriaPremium() {
   if (qs("statusCarga")) qs("statusCarga").textContent = "Carregando auditoria...";
   const { controller, timer } = criarControllerNavegacao(12000);
   try {
-    const resp = await fetch(`/api/auditoria-premium?${paramsAuditoriaPremium().toString()}`, { signal: controller.signal });
+    const resp = await fetch(`/tempo-fechado/api/auditoria-premium?${paramsAuditoriaPremium().toString()}`, { signal: controller.signal });
     const json = await resp.json();
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
     renderAuditoriaPremium(json);
@@ -3809,7 +3809,7 @@ async function carregarDashboardExecutivo() {
   const { controller, timer: timeoutDashboard } = criarControllerNavegacao(12000);
 
   try {
-    const resp = await fetch(`/api/dashboard-executivo?${p.toString()}`, { signal: controller.signal });
+    const resp = await fetch(`/tempo-fechado/api/dashboard-executivo?${p.toString()}`, { signal: controller.signal });
     const json = await resp.json();
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
 
@@ -4098,7 +4098,7 @@ async function carregarAlertasAutomaticos() {
   if (qs("turno") && qs("turno").value) p.set("turno", qs("turno").value);
 
   try {
-    const resp = await fetch(`/api/alertas-automaticos?${p.toString()}`);
+    const resp = await fetch(`/tempo-fechado/api/alertas-automaticos?${p.toString()}`);
     const json = await resp.json();
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
     json.notificacoes_jornada = { email_ativo: false, whatsapp_ativo: false, enviar_ao_importar_excel: false };
@@ -5913,7 +5913,7 @@ async function salvarUsuarioAdmin() {
 
 async function alternarStatusUsuarioAdmin(usuario, ativo) {
   try {
-    await fetchJsonSeguro(`/api/usuarios/${encodeURIComponent(usuario)}/status`, {
+    await fetchJsonSeguro(`/tempo-fechado/api/usuarios/${encodeURIComponent(usuario)}/status`, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ativo}),
@@ -5930,7 +5930,7 @@ async function excluirUsuarioAdmin(usuario) {
   const confirmado = confirm(`Excluir definitivamente o usuario "${usuario}"?\n\nEsta acao remove o cadastro e nao pode ser desfeita.`);
   if (!confirmado) return;
   try {
-    const json = await fetchJsonSeguro(`/api/usuarios/${encodeURIComponent(usuario)}`, {
+    const json = await fetchJsonSeguro(`/tempo-fechado/api/usuarios/${encodeURIComponent(usuario)}`, {
       method: "DELETE",
     });
     alert(json.mensagem || "Usuario excluido com sucesso.");
@@ -6062,7 +6062,7 @@ async function carregarScoreOperacional(){
   if(qs("data") && qs("data").value) p.set("data", qs("data").value);
   const { controller, timer } = criarControllerNavegacao(12000);
   try{
-    const resp = await fetch(`/api/score-operacional?${p.toString()}`, { signal: controller.signal });
+    const resp = await fetch(`/tempo-fechado/api/score-operacional?${p.toString()}`, { signal: controller.signal });
     const json = await resp.json();
     if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
     if(!resp.ok || json.erro){
@@ -6644,7 +6644,7 @@ async function salvarNotebookImplantacaoV8210(ev) {
 async function excluirNotebookImplantacaoV8210(id) {
   if (!confirm("Remover este notebook do Painel de Implantação?")) return;
   try {
-    const resp = await fetch(`/api/painel-implantacao/notebooks/${encodeURIComponent(id)}`, { method: "DELETE" });
+    const resp = await fetch(`/tempo-fechado/api/painel-implantacao/notebooks/${encodeURIComponent(id)}`, { method: "DELETE" });
     const json = await resp.json();
     if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
     carregarPainelImplantacaoV8210();
@@ -7619,7 +7619,7 @@ async function carregarCentralOperacaoV8190() {
 }
 
 // v8.21.9 - Verificacao da versao realmente ativa no navegador/backend.
-const VERSAO_ESPERADA_BADGE = "v8.21.67";
+const VERSAO_ESPERADA_BADGE = "v8.21.69";
 let versaoAtivaV8215 = null;
 
 function formatarVersaoAtivaV8215(info) {

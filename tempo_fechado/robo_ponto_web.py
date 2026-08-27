@@ -104,10 +104,10 @@ try:
 except Exception:
     pass
 
-# v8.21.68 - fix fetch prefix + auto-reload após Executar robô
-APP_VERSION = "v8.21.68"
+# v8.21.69 - fix all fetch template literals prefix /tempo-fechado
+APP_VERSION = "v8.21.69"
 APP_RELEASE_NAME = "Horas Extras Simplificadas"
-APP_FULL_NAME = "Tempo Fechado v8.21.68 - Horas Extras Simplificadas"
+APP_FULL_NAME = "Tempo Fechado v8.21.69 - Horas Extras Simplificadas"
 APP_STARTED_AT = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 APP_BASE_DIR = str(Path(__file__).resolve().parent)
 
@@ -10447,7 +10447,7 @@ def api_diagnostico_pos_instalacao_v82128():
     excel_padrao, resultado_robo = _excel_gerado_por_resultado_v82127(_excel_robo_padrao_v81737())
     itens = []
 
-    versao_ok = APP_VERSION == "v8.21.67"
+    versao_ok = APP_VERSION.startswith("v8.21.")
     itens.append(_diag_item_v82128("Sistema instalado", versao_ok, "Pacote operacional carregado.", "Fechar instâncias antigas se o status não for o esperado."))
     modo_operacao = "Servidor Central" if _modo_servidor_ativo_v82139() else "Local"
     itens.append(_diag_item_v82128("Modo de operação", True, f"{modo_operacao} | ponto_pdfs={base}", "Use --server e --data-dir para ativar o modo servidor central.", "ok"))
