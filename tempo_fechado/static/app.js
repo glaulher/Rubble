@@ -5118,12 +5118,13 @@ function renderResultadoCleanupOperacional(json) {
   `;
 }
 
-// v8.21.70 - visão enxuta com Gestor Mediato, Adm, Sobreaviso e Justificativa.
+// v8.21.71 - visão enxuta com Data, Dia, Colaborador, Horários, H.E., Gestor Mediato, Adm, Sobreaviso e Justificativa.
 function setCabecalhoHoraExtraSimplificadaV82167() {
   const thead = document.querySelector("#tabelaConsolidado thead tr");
   if (!thead) return;
   thead.innerHTML = `
     <th>Data</th>
+    <th>Dia</th>
     <th>Colaborador</th>
     <th>Entrada</th>
     <th>Sa&iacute;da</th>
@@ -5133,6 +5134,46 @@ function setCabecalhoHoraExtraSimplificadaV82167() {
     <th>Sobreaviso</th>
     <th>Justificativa</th>
   `;
+}
+
+function diaSemanaAbreviadoHoraExtraSimplificadaV82171(r) {
+  const diaBruto = String(r?.dia ?? "").trim().toLowerCase();
+  if (diaBruto) {
+    if (diaBruto.startsWith("dom")) return "Dom";
+    if (diaBruto.startsWith("seg")) return "Seg";
+    if (diaBruto.startsWith("ter")) return "Ter";
+    if (diaBruto.startsWith("qua")) return "Qua";
+    if (diaBruto.startsWith("qui")) return "Qui";
+    if (diaBruto.startsWith("sex")) return "Sex";
+    if (diaBruto.startsWith("sáb") || diaBruto.startsWith("sab")) return "Sáb";
+  }
+
+  const dataStr = String(r?.data || r?.data_referencia || "").trim();
+  if (dataStr) {
+    let ano, mes, diaNum;
+    if (dataStr.includes("/")) {
+      const p = dataStr.split("/");
+      if (p.length === 3) {
+        diaNum = parseInt(p[0], 10);
+        mes = parseInt(p[1], 10) - 1;
+        ano = parseInt(p[2], 10);
+      }
+    } else if (dataStr.includes("-")) {
+      const p = dataStr.split("-");
+      if (p.length === 3) {
+        ano = parseInt(p[0], 10);
+        mes = parseInt(p[1], 10) - 1;
+        diaNum = parseInt(p[2], 10);
+      }
+    }
+    if (ano && !isNaN(mes) && diaNum) {
+      const dt = new Date(ano, mes, diaNum);
+      const dias = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+      return dias[dt.getDay()] || "-";
+    }
+  }
+
+  return "-";
 }
 
 function valorMarcacaoHoraExtraSimplificadaV82167(valor) {
@@ -5184,6 +5225,7 @@ function renderHoraExtraSimplificadaV82167(rows) {
   const renderLinha = (r) => `
     <tr>
       <td>${escapeHtml(r.data ?? "")}</td>
+      <td>${escapeHtml(diaSemanaAbreviadoHoraExtraSimplificadaV82171(r))}</td>
       <td><strong>${escapeHtml(r.nome ?? "")}</strong></td>
       <td>${escapeHtml(primeiraEntradaHoraExtraSimplificadaV82167(r))}</td>
       <td>${escapeHtml(ultimaSaidaHoraExtraSimplificadaV82167(r))}</td>
@@ -7631,7 +7673,7 @@ async function carregarCentralOperacaoV8190() {
 }
 
 // v8.21.9 - Verificacao da versao realmente ativa no navegador/backend.
-const VERSAO_ESPERADA_BADGE = "v8.21.70";
+const VERSAO_ESPERADA_BADGE = "v8.21.71";
 let versaoAtivaV8215 = null;
 
 function formatarVersaoAtivaV8215(info) {

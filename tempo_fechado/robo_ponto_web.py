@@ -104,10 +104,10 @@ try:
 except Exception:
     pass
 
-# v8.21.70 - colunas Adm e Sobreaviso em Horas Extras Simplificadas
-APP_VERSION = "v8.21.70"
+# v8.21.71 - coluna Dia (abreviado 3 letras) em Horas Extras Simplificadas
+APP_VERSION = "v8.21.71"
 APP_RELEASE_NAME = "Horas Extras Simplificadas"
-APP_FULL_NAME = "Tempo Fechado v8.21.70 - Horas Extras Simplificadas"
+APP_FULL_NAME = "Tempo Fechado v8.21.71 - Horas Extras Simplificadas"
 APP_STARTED_AT = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 APP_BASE_DIR = str(Path(__file__).resolve().parent)
 
