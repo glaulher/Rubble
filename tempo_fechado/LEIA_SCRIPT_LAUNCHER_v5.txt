@@ -1,0 +1,28 @@
+
+# v8.17.21 - Correções
+
+## Script_Launcher_v5_filtrado.py no executável
+
+Antes de gerar o EXE, coloque o arquivo:
+
+Script_Launcher_v5_filtrado.py
+
+na mesma pasta de:
+
+TempoFechado.spec
+robo_ponto_web.py
+TempoFechado_Launcher.py
+
+A especificação v8.17.21 inclui esse arquivo no pacote PyInstaller. No modo onedir ele ficará disponível dentro da estrutura interna do executável.
+
+## Configuração de e-mails/notificações
+
+A configuração deixa de depender de edição manual de arquivo Python no diretório instalado.
+
+Agora o sistema salva em:
+
+C:\Users\<usuario>\ponto_pdfs\config\alertas_notificacao_config.json
+
+Na Central de Alertas, use o botão:
+
+Configurar notificações

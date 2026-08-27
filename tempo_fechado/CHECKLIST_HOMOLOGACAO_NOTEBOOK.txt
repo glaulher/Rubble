@@ -1,0 +1,77 @@
+Tempo Fechado v8.20.1 - Checklist de Homologacao por Notebook
+
+Notebook / Usuario: _______________________________
+Data: ____/____/________
+Responsavel: _______________________________
+
+1. Instalacao
+[ ] Instalador Setup_TempoFechado_v8_20_1.exe executado com sucesso.
+[ ] Atalho do Tempo Fechado criado.
+[ ] Sistema abriu no navegador.
+[ ] Versao identificada como v8.20.1 - Atualizacao Segura.
+
+2. Login e permissoes
+[ ] Login realizado com sucesso.
+[ ] Usuario correto acessa as guias esperadas.
+[ ] Administrador consegue acessar Administracao.
+
+3. Pastas locais
+[ ] Pasta ponto_pdfs foi criada no perfil do usuario.
+[ ] Pasta entrada existe.
+[ ] Pasta saida existe.
+[ ] Pasta processados existe.
+[ ] Pasta erro existe.
+[ ] Pasta config existe.
+
+4. Administracao do Robo
+[ ] Caminho do Excel do Robo configurado.
+[ ] Pasta dos PDFs configurada.
+[ ] Script Launcher localizado.
+[ ] Politica de captura Outlook revisada: somente nao lidos ou incluir lidos recentes.
+[ ] Configuracoes salvas sem erro.
+
+5. Outlook
+[ ] Outlook instalado e acessivel no notebook.
+[ ] Remetente monitorado configurado.
+[ ] Assunto/filtro revisado.
+[ ] Teste de captura executado, quando aplicavel.
+
+6. Processamento
+[ ] Guia Processamento carrega corretamente.
+[ ] Guia Processamento Manual carrega corretamente.
+[ ] Botao Abrir entrada funciona.
+[ ] Importacao manual do Excel funciona, quando houver arquivo.
+
+7. Funcionalidades principais
+[ ] Espelho de Ponto carrega dados.
+[ ] Banco de Horas aparece corretamente.
+[ ] Saldo inicial automatico/manual aparece no Banco de Horas.
+[ ] Dashboard Executivo carrega.
+[ ] Auditoria carrega.
+[ ] Score Operacional carrega.
+
+8. Central de Operacao
+[ ] Central de Operacao carrega.
+[ ] Saude do Robo mostra diagnostico.
+[ ] Alertas Operacionais aparecem quando houver pendencias.
+[ ] Log Amigavel exibe eventos recentes.
+
+9. Topbar por guia
+[ ] Botoes Minha Senha, Sair, Importar Excel do Robo e Baixar Excel aparecem em Administracao.
+[ ] Botoes aparecem em Espelho de Ponto.
+[ ] Botoes ficam ocultos nas demais guias.
+
+10. Resultado final
+[ ] Notebook homologado.
+[ ] Pendencias registradas abaixo.
+
+Pendencias / Observacoes:
+____________________________________________________
+____________________________________________________
+____________________________________________________
+
+
+Nota v8.20.1 - Atualizacao Segura
+----------------------------------
+Para notebooks ja instalados, use tambem README_ATUALIZACAO_SEGURA.txt e CHECKLIST_ATUALIZACAO_SEGURA.txt.
+A abertura do aplicativo cria backup defensivo em %USERPROFILE%\ponto_pdfs\backup_atualizacao.

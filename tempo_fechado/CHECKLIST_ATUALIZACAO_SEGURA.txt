@@ -1,0 +1,50 @@
+Tempo Fechado v8.20.1 - Checklist de Atualizacao Segura
+
+Notebook: ______________________________
+Usuario Windows: _______________________
+Responsavel: ___________________________
+Data: ____/____/________
+
+Antes da atualizacao
+--------------------
+[ ] Tempo Fechado fechado.
+[ ] Nenhum processamento em andamento.
+[ ] Usuario sabe onde fica a pasta ponto_pdfs.
+[ ] Versao anterior anotada.
+
+Instalacao
+----------
+[ ] Instalador Setup_TempoFechado_v8_20_1.exe executado com sucesso.
+[ ] Atalho abre o Tempo Fechado.
+[ ] Versao identificada como v8.20.1 - Atualizacao Segura.
+
+Backup defensivo
+----------------
+[ ] Pasta ponto_pdfs/backup_atualizacao existe.
+[ ] Backup do dia foi criado.
+[ ] MANIFESTO_ATUALIZACAO_SEGURA.json existe.
+[ ] Configuracoes locais foram preservadas.
+
+Validacao funcional
+-------------------
+[ ] Login funciona.
+[ ] Espelho de Ponto carrega.
+[ ] Banco de Horas mostra saldo inicial Automatico/Manual.
+[ ] Administracao do Robo preservou caminhos e configuracoes.
+[ ] Outlook preservou remetente, assunto e politica lidos/nao lidos.
+[ ] Processamento Manual abre pasta de entrada.
+[ ] Central de Operacao carrega.
+[ ] Saude do Robo carrega.
+[ ] Alertas Inteligentes carregam.
+[ ] Log Amigavel carrega.
+
+Resultado
+---------
+[ ] Atualizacao homologada.
+[ ] Atualizacao com pendencias.
+
+Pendencias / observacoes
+------------------------
+____________________________________________________________
+____________________________________________________________
+____________________________________________________________

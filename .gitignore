@@ -1,4 +1,11 @@
 .env
+tempo_fechado/data/
+tempo_fechado/ponto_pdfs/
+tempo_fechado/*.db
+tempo_fechado/*.log
+tempo_fechado/configuracoes_robo.json
+tempo_fechado/alertas_notificacao_config.py
+tempo_fechado/usuarios_config.py
 OS/
 LAUDO/
 *.sql

@@ -79,6 +79,22 @@ export function initSidebar() {
     });
   }
 
+  // Tempo Fechado link (nova aba com SSO via JWT Rubble)
+  const tfLink = document.getElementById('tempoFechadoLink');
+  if (tfLink) {
+    tfLink.addEventListener('click', async function (e) {
+      e.preventDefault();
+      try {
+        const mod = await import('../tempo-fechado/link.js');
+        mod.openTempoFechado();
+      } catch (_) {
+        const tok = sessionStorage.getItem('rubble_token');
+        if (!tok) { window.location.hash = '#/login'; return; }
+        window.open('/tempo-fechado/sso?token=' + encodeURIComponent(tok), '_blank', 'noopener');
+      }
+    });
+  }
+
   // Fechar submenus ao clicar fora
   document.addEventListener('click', function (e) {
     const dashContainer = document.getElementById('dashboardMenuContainer');

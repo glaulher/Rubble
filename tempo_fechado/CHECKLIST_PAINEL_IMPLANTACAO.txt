@@ -1,0 +1,29 @@
+CHECKLIST - Painel de Implantacao v8.21.0
+
+Para cada notebook da empresa:
+
+[ ] Instalar ou atualizar o Tempo Fechado.
+[ ] Abrir o sistema pelo atalho.
+[ ] Entrar com usuario administrador.
+[ ] Acessar Painel de Implantacao.
+[ ] Clicar em Usar notebook local.
+[ ] Conferir nome da maquina, usuario e perfil.
+[ ] Informar responsavel e setor.
+[ ] Marcar Instalador aplicado.
+[ ] Testar login.
+[ ] Configurar Outlook, remetente e politica de captura.
+[ ] Validar pastas de entrada, saida, processados e erro.
+[ ] Conferir Banco de Horas.
+[ ] Conferir Central de Operacao.
+[ ] Executar teste de Processamento Manual ou Integrado.
+[ ] Conferir backup seguro.
+[ ] Alterar status para Homologado quando tudo estiver OK.
+[ ] Registrar observacoes ou pendencias quando houver.
+
+Estados sugeridos:
+- Pendente: notebook ainda nao iniciado.
+- Em configuracao: instalado, mas ainda em ajuste.
+- Homologado: pronto para uso.
+- Atencao: funciona, mas tem pendencia.
+- Erro: bloqueio operacional.
+- Desativado: maquina fora da implantacao.
