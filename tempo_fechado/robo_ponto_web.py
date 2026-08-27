@@ -2713,13 +2713,14 @@ def validar_jwt_usuario(token):
 
 # ── SSO Rubble → Tempo Fechado (JWT unificado via JWT_SECRET compartilhado) ──
 # Não toca regra de negócio; só borda de autenticação.
+# Opção B: todos os perfis permitidos do Rubble (admin/coordenador/administrativo) viram admin no TF
 RUBBLE_ROLE_TO_TF_PERFIL = {
     "admin": "admin",
-    "supervisor": "supervisor",
-    "coordenador": "supervisor",
-    "administrativo": "consulta",
+    "supervisor": "admin",
+    "coordenador": "admin",
+    "administrativo": "admin",
     "cliente": "consulta",
-    "operador": "operador",
+    "operador": "admin",
     "consulta": "consulta",
 }
 
