@@ -63,27 +63,26 @@ export function renderTreemap(treemap) {
     var val = item.value || 1;
     var ratio = maxVal > 0 ? (val / maxVal) : 0.5;
 
-    // Escala dinâmica proporcional baseada no número de máquinas
-    var flexGrow = Math.max(1, Math.round(val));
-    var flexBasis = '14%';
-    var minHeight = '90px';
-    var minWidth = '130px';
-    var titleSize = 'text-sm font-semibold';
+    // Escala suave e equilibrada (sem esticar excessivamente sites com muitas máquinas)
+    var flexGrow = 1;
+    var flexBasis = '140px';
+    var minHeight = '88px';
+    var titleSize = 'text-xs font-bold';
 
-    if (val >= 16 || ratio >= 0.65) {
-      flexBasis = '28%';
-      minHeight = '140px';
-      minWidth = '210px';
-      titleSize = 'text-base font-bold';
-    } else if (val >= 7 || ratio >= 0.35) {
-      flexBasis = '20%';
-      minHeight = '115px';
-      minWidth = '170px';
+    if (val >= 16 || ratio >= 0.6) {
+      flexGrow = 3;
+      flexBasis = '240px';
+      minHeight = '108px';
       titleSize = 'text-sm font-bold';
+    } else if (val >= 7 || ratio >= 0.3) {
+      flexGrow = 2;
+      flexBasis = '190px';
+      minHeight = '98px';
+      titleSize = 'text-xs font-bold';
     } else if (val <= 2) {
-      flexBasis = '11%';
-      minHeight = '80px';
-      minWidth = '115px';
+      flexGrow = 1;
+      flexBasis = '130px';
+      minHeight = '85px';
       titleSize = 'text-xs font-semibold';
     }
 
@@ -91,10 +90,10 @@ export function renderTreemap(treemap) {
     var restam = item.restam !== undefined ? item.restam : 0;
     var pctText = item.pct !== undefined ? item.pct : 0;
 
-    html += '<div class="rounded-xl p-3 text-white flex flex-col justify-between shadow-sm transition-all hover:scale-[1.01]" style="background:' + (item.color || '#EF4444') + '; flex: ' + flexGrow + ' 1 ' + flexBasis + '; min-width:' + minWidth + '; min-height:' + minHeight + ';">';
-    html += '  <div class="flex items-start justify-between gap-1">';
+    html += '<div class="rounded-xl p-3 text-white flex flex-col justify-between shadow-sm transition-all hover:brightness-105" style="background:' + (item.color || '#EF4444') + '; flex: ' + flexGrow + ' 1 ' + flexBasis + '; max-width: 320px; min-height:' + minHeight + ';">';
+    html += '  <div class="flex items-start justify-between gap-1.5">';
     html += '    <span class="' + titleSize + ' truncate" title="' + escapeHtml(item.site) + '">' + escapeHtml(item.site) + '</span>';
-    html += '    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/25 shrink-0">' + (item.machine_count > 0 ? item.machine_count + ' máq.' : item.total + ' ativ.') + '</span>';
+    html += '    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/20 shrink-0">' + (item.machine_count > 0 ? item.machine_count + ' máq.' : item.total + ' ativ.') + '</span>';
     html += '  </div>';
     html += '  <div class="mt-1 space-y-0.5">';
     html += '    <div class="text-xs opacity-95 font-medium">' + escapeHtml(qtdText) + ' (' + pctText + '%) — faltam ' + restam + '</div>';
@@ -451,10 +450,19 @@ export function exportPreventivaDashboardPdf() {
       var qtdText = it.machine_count > 0 ? it.qtd_sum + '/' + it.machine_count : String(it.qtd_sum);
       var pctText = it.pct !== undefined ? it.pct : 0;
       var restamText = it.restam !== undefined ? it.restam : 0;
-      var flexGrow = Math.max(1, Math.round(val));
-      var flexBasis = (val >= 16 || ratio >= 0.65) ? '28%' : ((val >= 7 || ratio >= 0.35) ? '20%' : ((val <= 2) ? '11%' : '14%'));
-      var minHeight = (val >= 16 || ratio >= 0.65) ? '120px' : ((val >= 7 || ratio >= 0.35) ? '95px' : ((val <= 2) ? '70px' : '85px'));
-      treemapHtml += '<div class="treemap-card" style="background:' + bg + '; flex:' + flexGrow + ' 1 ' + flexBasis + '; min-height:' + minHeight + ';">';
+      var flexGrow = 1;
+      var flexBasis = '130px';
+      var minHeight = '80px';
+      if (val >= 16 || ratio >= 0.6) {
+        flexGrow = 3;
+        flexBasis = '220px';
+        minHeight = '95px';
+      } else if (val >= 7 || ratio >= 0.3) {
+        flexGrow = 2;
+        flexBasis = '175px';
+        minHeight = '88px';
+      }
+      treemapHtml += '<div class="treemap-card" style="background:' + bg + '; flex:' + flexGrow + ' 1 ' + flexBasis + '; max-width:280px; min-height:' + minHeight + ';">';
       treemapHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">';
       treemapHtml += '<span class="treemap-title" style="font-size:' + (val >= 16 ? '13px' : (val <= 2 ? '11px' : '12px')) + ';">' + escapeHtml(it.site) + '</span>';
       treemapHtml += '<span style="font-size:9px; font-weight:bold; background:rgba(0,0,0,0.25); padding:1px 4px; border-radius:3px;">' + (it.machine_count > 0 ? it.machine_count + ' máq.' : it.total + ' ativ.') + '</span>';
