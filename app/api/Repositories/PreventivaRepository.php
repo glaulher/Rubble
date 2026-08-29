@@ -103,13 +103,13 @@ class PreventivaRepository extends BaseRepository
     public function sumQtdForGroup(int $groupId, ?int $excludeId = null): int
     {
         if ($excludeId !== null) {
-            $sql = "SELECT COALESCE(SUM(qtd_executada),0) AS total FROM atividades_preventivas WHERE sla_group_id = ? AND id != ? AND qtd_executada IS NOT NULL";
+            $sql = "SELECT COALESCE(SUM(qtd_executada),0) AS total FROM atividades_preventivas WHERE (sla_group_id = ? OR id = ?) AND id != ? AND qtd_executada IS NOT NULL";
             $stmt = $this->safePrepare($sql);
-            $stmt->bind_param('ii', $groupId, $excludeId);
+            $stmt->bind_param('iii', $groupId, $groupId, $excludeId);
         } else {
-            $sql = "SELECT COALESCE(SUM(qtd_executada),0) AS total FROM atividades_preventivas WHERE sla_group_id = ? AND qtd_executada IS NOT NULL";
+            $sql = "SELECT COALESCE(SUM(qtd_executada),0) AS total FROM atividades_preventivas WHERE (sla_group_id = ? OR id = ?) AND qtd_executada IS NOT NULL";
             $stmt = $this->safePrepare($sql);
-            $stmt->bind_param('i', $groupId);
+            $stmt->bind_param('ii', $groupId, $groupId);
         }
         $stmt->execute();
         $result = $stmt->get_result();
@@ -149,7 +149,8 @@ class PreventivaRepository extends BaseRepository
                    (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count,
                    ap.sort_order,
                    COALESCE((SELECT e.mercado FROM equipamentos e WHERE e.local = ap.site LIMIT 1), '') AS mercado,
-                   ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number, ap.sla_group_id,
+                   ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number,
+                   CASE WHEN ap.sla_days > 0 THEN COALESCE(ap.sla_group_id, ap.id) ELSE ap.sla_group_id END AS sla_group_id,
                    COALESCE((SELECT GROUP_CONCAT(se.justification SEPARATOR ' | ') FROM sla_extensions se WHERE se.preventiva_id = ap.id), '') AS sla_extensions
             FROM atividades_preventivas ap
             WHERE ap.id = ?

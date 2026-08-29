@@ -544,6 +544,13 @@ export async function initOsDashboard() {
   var searchInput = document.getElementById('osDashboardSearchInput');
   if (searchInput && !searchInput._bound) {
     searchInput._bound = true;
+    searchInput.addEventListener('click', function () {
+      if (this.value !== '') {
+        this.value = '';
+        _osDashboardSearch = '';
+        renderOsDashboardFiltered();
+      }
+    });
     searchInput.addEventListener('input', function () {
       clearTimeout(_osDashboardSearchDebounce);
       var val = searchInput.value.trim();

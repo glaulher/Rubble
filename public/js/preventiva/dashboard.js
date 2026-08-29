@@ -99,11 +99,44 @@ export function buildPreventivaQuery() {
   return parts.join('&');
 }
 
+export function getMeasurementCycleRange(offset, refDate) {
+  var now = refDate ? new Date(refDate) : new Date();
+  var y = now.getFullYear();
+  var m = now.getMonth();
+  var d = now.getDate();
+
+  var baseMonth = d >= 16 ? m : m - 1;
+  baseMonth += (offset || 0);
+
+  var startDate = new Date(y, baseMonth, 16);
+  var endDate = new Date(y, baseMonth + 1, 15);
+
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  var formatYmd = function (dt) {
+    return dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate());
+  };
+
+  return {
+    from: formatYmd(startDate),
+    to: formatYmd(endDate)
+  };
+}
+
+var _preventivaCycleOffset = 0;
+
 export async function initPreventivaDashboard() {
-  _preventivaDateFrom = '';
-  _preventivaDateTo = '';
   _preventivaStatusFilter = '';
   _preventivaSearch = '';
+  _preventivaCycleOffset = 0;
+
+  var currentRange = getMeasurementCycleRange(0);
+  _preventivaDateFrom = currentRange.from;
+  _preventivaDateTo = currentRange.to;
+
+  var dateFrom = document.getElementById('preventivaDateFrom');
+  var dateTo = document.getElementById('preventivaDateTo');
+  if (dateFrom) dateFrom.value = currentRange.from;
+  if (dateTo) dateTo.value = currentRange.to;
 
   var loading = document.getElementById('preventivaDashboardLoading');
   if (loading) loading.classList.remove('hidden');
@@ -114,8 +147,6 @@ export async function initPreventivaDashboard() {
     pdfBtn._bound = true;
   }
 
-  var dateFrom = document.getElementById('preventivaDateFrom');
-  var dateTo = document.getElementById('preventivaDateTo');
   var statusSel = document.getElementById('preventivaStatusFilter');
   var searchTop = document.getElementById('preventivaDashboardSearchInput');
   var searchFilter = document.getElementById('preventivaSearchFilter');
@@ -127,19 +158,97 @@ export async function initPreventivaDashboard() {
   if (dateFrom && !dateFrom._bound) {
     dateFrom._bound = true;
     dateFrom.addEventListener('change', function () { _preventivaDateFrom = dateFrom.value; reload(); });
+    dateFrom.addEventListener('click', function () {
+      if (this.value !== '') {
+        this.value = '';
+        _preventivaDateFrom = '';
+        reload();
+      }
+    });
   }
   if (dateTo && !dateTo._bound) {
     dateTo._bound = true;
     dateTo.addEventListener('change', function () { _preventivaDateTo = dateTo.value; reload(); });
+    dateTo.addEventListener('click', function () {
+      if (this.value !== '') {
+        this.value = '';
+        _preventivaDateTo = '';
+        reload();
+      }
+    });
   }
   if (statusSel && !statusSel._bound) {
     statusSel._bound = true;
     statusSel.addEventListener('change', function () { _preventivaStatusFilter = statusSel.value; reload(); });
   }
+
+  var btnPrev = document.getElementById('btnPrevPrevCycle');
+  if (btnPrev && !btnPrev._bound) {
+    btnPrev._bound = true;
+    btnPrev.addEventListener('click', function () {
+      _preventivaCycleOffset--;
+      var r = getMeasurementCycleRange(_preventivaCycleOffset);
+      if (dateFrom) dateFrom.value = r.from;
+      if (dateTo) dateTo.value = r.to;
+      _preventivaDateFrom = r.from;
+      _preventivaDateTo = r.to;
+      reload();
+    });
+  }
+
+  var btnCurrent = document.getElementById('btnPrevCurrentCycle');
+  if (btnCurrent && !btnCurrent._bound) {
+    btnCurrent._bound = true;
+    btnCurrent.addEventListener('click', function () {
+      _preventivaCycleOffset = 0;
+      var r = getMeasurementCycleRange(0);
+      if (dateFrom) dateFrom.value = r.from;
+      if (dateTo) dateTo.value = r.to;
+      _preventivaDateFrom = r.from;
+      _preventivaDateTo = r.to;
+      reload();
+    });
+  }
+
+  var btnNext = document.getElementById('btnPrevNextCycle');
+  if (btnNext && !btnNext._bound) {
+    btnNext._bound = true;
+    btnNext.addEventListener('click', function () {
+      _preventivaCycleOffset++;
+      var r = getMeasurementCycleRange(_preventivaCycleOffset);
+      if (dateFrom) dateFrom.value = r.from;
+      if (dateTo) dateTo.value = r.to;
+      _preventivaDateFrom = r.from;
+      _preventivaDateTo = r.to;
+      reload();
+    });
+  }
+
+  var btnClear = document.getElementById('btnPrevClearDates');
+  if (btnClear && !btnClear._bound) {
+    btnClear._bound = true;
+    btnClear.addEventListener('click', function () {
+      _preventivaCycleOffset = 0;
+      if (dateFrom) dateFrom.value = '';
+      if (dateTo) dateTo.value = '';
+      _preventivaDateFrom = '';
+      _preventivaDateTo = '';
+      reload();
+    });
+  }
   var debounce;
   function bindSearch(el) {
     if (!el || el._bound) return;
     el._bound = true;
+    el.addEventListener('click', function () {
+      if (this.value !== '') {
+        this.value = '';
+        _preventivaSearch = '';
+        if (searchTop && searchTop !== this) searchTop.value = '';
+        if (searchFilter && searchFilter !== this) searchFilter.value = '';
+        reload();
+      }
+    });
     el.addEventListener('input', function () {
       clearTimeout(debounce);
       var val = el.value.trim();
@@ -177,50 +286,205 @@ async function fetchData() {
   }
 }
 
+export function escapeXml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+export function truncateLabel(label, max) {
+  return label && label.length > max ? label.substring(0, max - 1) + '\u2026' : (label || '');
+}
+
+export function formatDateBr(dateStr) {
+  if (!dateStr) return '-';
+  var parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  return parts[2] + '/' + parts[1] + '/' + parts[0];
+}
+
+export function preventivaBarChartSvg(items) {
+  if (!items || items.length === 0) {
+    return '<p style="color:#94a3b8;font-style:italic;padding:12px;">Sem dados.</p>';
+  }
+  var maxV = 1;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].value > maxV) maxV = items[i].value;
+  }
+  var barH = 30, gap = 8, labelW = 140, valW = 40;
+  var W = 820;
+  var H = items.length * (barH + gap) + 8;
+  var barW = W - labelW - valW - 16;
+  var bars = '';
+  for (var j = 0; j < items.length; j++) {
+    var item = items[j];
+    var y = j * (barH + gap) + 4;
+    var w = (item.value / maxV) * barW;
+    var inside = w > 40;
+    var tx = inside ? labelW + w - 8 : labelW + w + 6;
+    var lbl = escapeXml(truncateLabel(item.label, 24));
+    bars += '<text x="' + (labelW - 8) + '" y="' + (y + barH / 2 + 4) + '" font-size="11" fill="#475569" text-anchor="end" font-family="Inter,sans-serif">' + lbl + '</text>';
+    bars += '<rect x="' + labelW + '" y="' + y + '" width="' + barW + '" height="' + barH + '" rx="6" fill="#F1F5F9"/>';
+    bars += '<rect x="' + labelW + '" y="' + y + '" width="' + Math.max(w, 2).toFixed(1) + '" height="' + barH + '" rx="6" fill="' + item.color + '"/>';
+    bars += '<text x="' + tx.toFixed(1) + '" y="' + (y + barH / 2 + 4) + '" font-size="11" font-weight="700" fill="' + (inside ? '#fff' : '#475569') + '" text-anchor="' + (inside ? 'end' : 'start') + '" font-family="Inter,sans-serif">' + item.value + (item.pct !== undefined ? ' (' + item.pct + '%)' : '') + '</text>';
+  }
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;" xmlns="http://www.w3.org/2000/svg">' + bars + '</svg>';
+}
+
 export function exportPreventivaDashboardPdf() {
   if (!_preventivaDashboardData) {
     showToast('Dados não carregados', 'error');
     return;
   }
   var d = _preventivaDashboardData;
+
+  // Filtros ativos para o cabeçalho
+  var filterParts = [];
+  if (_preventivaDateFrom && _preventivaDateTo) {
+    filterParts.push('Período: ' + formatDateBr(_preventivaDateFrom) + ' a ' + formatDateBr(_preventivaDateTo));
+  } else if (_preventivaDateFrom) {
+    filterParts.push('A partir de: ' + formatDateBr(_preventivaDateFrom));
+  } else if (_preventivaDateTo) {
+    filterParts.push('Até: ' + formatDateBr(_preventivaDateTo));
+  }
+  if (_preventivaStatusFilter) {
+    filterParts.push('Status: ' + _preventivaStatusFilter);
+  }
+  if (_preventivaSearch) {
+    filterParts.push('Busca: "' + _preventivaSearch + '"');
+  }
+  var filterNote = filterParts.length > 0
+    ? '<p class="sub" style="margin-top:4px;">' + escapeHtml(filterParts.join(' | ')) + '</p>'
+    : '';
+
+  // KPI Cards
+  var kpiCards = [
+    { label: 'Total de Atividades', value: d.total || 0, color: '#2563EB', dot: '#2563EB' },
+    { label: 'Concluídas', value: d.completed || 0, color: '#059669', dot: '#059669' },
+    { label: 'Em Andamento', value: d.inProgress || 0, color: '#D97706', dot: '#D97706' },
+    { label: 'Pendentes / Planejadas', value: d.pending || 0, color: '#DC2626', dot: '#DC2626' },
+  ];
+  var kpiHtml = '<div class="section"><div class="kpi-grid">';
+  for (var ki = 0; ki < kpiCards.length; ki++) {
+    var kpi = kpiCards[ki];
+    kpiHtml += '<div class="kpi-card">';
+    kpiHtml += '<div class="kpi-dot" style="background:' + kpi.dot + '"></div>';
+    kpiHtml += '<p class="kpi-label">' + escapeHtml(kpi.label) + '</p>';
+    kpiHtml += '<p class="kpi-value" style="color:' + kpi.color + ';">' + kpi.value + '</p>';
+    kpiHtml += '</div>';
+  }
+  kpiHtml += '</div></div>';
+
+  // Status Breakdown SVG Bar Chart
+  var statusItems = [];
+  var total = d.total || 0;
+  for (var sk in d.statusBreakdown) {
+    if (d.statusBreakdown.hasOwnProperty(sk)) {
+      var cnt = d.statusBreakdown[sk];
+      var pct = total > 0 ? Math.round((cnt / total) * 100) : 0;
+      var colorKey = sk.toLowerCase().trim();
+      var c = STATUS_COLORS_PREV[colorKey] || '#94A3B8';
+      statusItems.push({ label: sk, value: cnt, pct: pct, color: c });
+    }
+  }
+  var statusHtml = '<div class="section"><div class="section-title">Preventivas por Status</div>' + preventivaBarChartSvg(statusItems) + '</div>';
+
+  // Treemap Grid
   var treemapHtml = '';
   if (d.treemap && d.treemap.length > 0) {
-    treemapHtml = '<div class="treemap">';
-    for (var i = 0; i < d.treemap.length; i++) {
-      var it = d.treemap[i];
-      treemapHtml += '<div class="treemap-cell" style="background:' + (it.color || '#EF4444') + '">';
-      treemapHtml += '<strong>' + escapeHtml(it.site) + '</strong>';
-      treemapHtml += '<span>' + it.qtd_sum + '/' + it.machine_count + ' (' + it.pct + '%) — faltam ' + it.restam + '</span>';
+    treemapHtml = '<div class="section">';
+    treemapHtml += '<div class="section-title"><span>Treemap por Site — Total máquinas e preventivadas</span>';
+    treemapHtml += '<div class="legend">';
+    treemapHtml += '<span class="legend-item"><span class="legend-dot" style="background:#10B981;"></span> Concluído</span>';
+    treemapHtml += '<span class="legend-item"><span class="legend-dot" style="background:#F59E0B;"></span> Em Andamento</span>';
+    treemapHtml += '<span class="legend-item"><span class="legend-dot" style="background:#EF4444;"></span> Pendente</span>';
+    treemapHtml += '</div></div>';
+    treemapHtml += '<div class="treemap-grid">';
+    for (var ti = 0; ti < d.treemap.length; ti++) {
+      var it = d.treemap[ti];
+      var bg = it.color || '#EF4444';
+      var qtdText = it.machine_count > 0 ? it.qtd_sum + '/' + it.machine_count : String(it.qtd_sum);
+      var pctText = it.pct !== undefined ? it.pct : 0;
+      var restamText = it.restam !== undefined ? it.restam : 0;
+      treemapHtml += '<div class="treemap-card" style="background:' + bg + '">';
+      treemapHtml += '<span class="treemap-title">' + escapeHtml(it.site) + '</span>';
+      treemapHtml += '<span class="treemap-sub">' + escapeHtml(qtdText) + ' (' + pctText + '%) — faltam ' + restamText + '</span>';
+      treemapHtml += '<span class="treemap-count">' + it.total + ' atividade(s)</span>';
       treemapHtml += '</div>';
     }
-    treemapHtml += '</div>';
-  } else {
-    treemapHtml = '<p style="color:#94a3b8;">Sem dados</p>';
+    treemapHtml += '</div></div>';
   }
 
-  var statusItems = '';
-  for (var k in d.statusBreakdown) {
-    if (d.statusBreakdown.hasOwnProperty(k)) {
-      statusItems += '<div class="row"><span>' + escapeHtml(k) + '</span><strong>' + d.statusBreakdown[k] + '</strong></div>';
+  // Tabela de Atividades (Detalhamento)
+  var tableHtml = '';
+  if (d.allRows && d.allRows.length > 0) {
+    tableHtml = '<div class="section"><div class="section-title">Detalhamento de Atividades</div>';
+    tableHtml += '<table class="data-table">';
+    tableHtml += '<thead><tr><th>Site</th><th>Data Planejada</th><th>Ticket</th><th>Status</th><th>Equipe</th><th>Qtd</th><th>Observações</th></tr></thead><tbody>';
+    for (var ri = 0; ri < d.allRows.length; ri++) {
+      var row = d.allRows[ri];
+      tableHtml += '<tr>';
+      tableHtml += '<td><strong>' + escapeHtml(row.site || '-') + '</strong></td>';
+      tableHtml += '<td>' + formatDateBr(row.data_planejada) + '</td>';
+      tableHtml += '<td>' + escapeHtml(row.ticket || '-') + '</td>';
+      tableHtml += '<td>' + escapeHtml(row.status || '-') + '</td>';
+      tableHtml += '<td>' + escapeHtml(row.equipe || '-') + '</td>';
+      tableHtml += '<td>' + (row.qtd_executada !== null && row.qtd_executada !== '' ? row.qtd_executada : '-') + '</td>';
+      tableHtml += '<td>' + escapeHtml(truncateLabel(row.obs, 60)) + '</td>';
+      tableHtml += '</tr>';
     }
+    tableHtml += '</tbody></table></div>';
   }
 
-  var q = buildPreventivaQuery();
-  var filterNote = q ? '<p style="font-size:11px;color:#64748b;">Filtros: ' + escapeHtml(q) + '</p>' : '';
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Dashboard Preventiva</title>';
-  html += '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,Arial,sans-serif;padding:32px}';
-  html += '.header{border-bottom:3px solid #1E3A5F;padding-bottom:16px;margin-bottom:28px}.header h1{font-size:24px;color:#1E3A5F}';
-  html += '.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}.kpi-card{border:1px solid #E2E8F0;border-radius:10px;padding:14px}';
-  html += '.treemap{display:flex;flex-wrap:wrap;gap:8px}.treemap-cell{flex:1 1 140px;min-height:90px;border-radius:10px;padding:12px;color:#fff;display:flex;flex-direction:column;justify-content:space-between}';
-  html += '.section{margin-bottom:28px}';
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Dashboard de Preventiva</title>';
+  html += '<style>';
+  html += '*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}';
+  html += "body{font-family:'Inter','Segoe UI',Arial,sans-serif;padding:32px;color:#1a1a1a;background:#fff}";
+  html += '.header{border-bottom:3px solid #1E3A5F;padding-bottom:16px;margin-bottom:28px}';
+  html += '.header h1{font-size:24px;color:#1E3A5F;font-weight:800}';
+  html += '.header .sub{font-size:12px;color:#64748b;margin-top:6px}';
+  html += '.section{margin-bottom:28px;page-break-inside:avoid}';
+  html += '.section-title{font-size:15px;font-weight:700;color:#1E3A5F;margin-bottom:14px;padding-bottom:6px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between}';
+  html += '.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}';
+  html += '.kpi-card{border:1px solid #E2E8F0;border-radius:10px;padding:14px;position:relative;min-height:84px}';
+  html += '.kpi-label{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em}';
+  html += '.kpi-value{font-size:26px;font-weight:800;margin-top:5px}';
+  html += '.kpi-dot{position:absolute;top:15px;right:14px;width:11px;height:11px;border-radius:50%}';
+  html += '.treemap-grid{display:flex;flex-wrap:wrap;gap:8px}';
+  html += '.treemap-card{flex:1 1 140px;min-height:85px;border-radius:10px;padding:10px 12px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}';
+  html += '.treemap-title{font-size:13px;font-weight:700}';
+  html += '.treemap-sub{font-size:10px;opacity:0.95;font-weight:500}';
+  html += '.treemap-count{font-size:9px;opacity:0.8}';
+  html += '.legend{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:normal;color:#64748b}';
+  html += '.legend-item{display:flex;align-items:center;gap:4px}';
+  html += '.legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block}';
+  html += '.data-table{width:100%;border-collapse:collapse;font-size:10px;margin-top:8px}';
+  html += '.data-table th{background:#1E3A5F;color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.04em}';
+  html += '.data-table td{padding:6px 10px;border-bottom:1px solid #E2E8F0}';
+  html += '.data-table tbody tr:nth-child(even){background:#F8FAFC}';
+  html += '@page{margin:1.5cm}';
+  html += '@media print{body{padding:0}.section{page-break-inside:avoid}}';
+  html += '@media print and (orientation:portrait){.kpi-grid{grid-template-columns:repeat(2,1fr)}}';
   html += '</style></head><body>';
-  html += '<div class="header"><h1>Dashboard de Preventiva</h1><p style="font-size:12px;color:#64748b;">' + new Date().toLocaleDateString('pt-BR') + '</p>' + filterNote + '</div>';
-  html += '<div class="kpi-grid"><div class="kpi-card"><p>Total</p><h2>' + d.total + '</h2></div><div class="kpi-card"><p>Concluídas</p><h2 style="color:#059669">' + d.completed + '</h2></div><div class="kpi-card"><p>Em Andamento</p><h2 style="color:#D97706">' + d.inProgress + '</h2></div><div class="kpi-card"><p>Pendentes</p><h2 style="color:#DC2626">' + d.pending + '</h2></div></div>';
-  html += '<div class="section"><h3>Status</h3>' + statusItems + '</div>';
-  html += '<div class="section"><h3>Treemap por Site</h3>' + treemapHtml + '</div>';
-  html += '<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>';
-  var w = window.open('', '_blank', 'width=900,height=700');
-  if (!w) { showToast('Bloqueador de pop-up', 'error'); return; }
-  w.document.write(html);
-  w.document.close();
+  html += '<div class="header">';
+  html += '<h1>Dashboard de Preventiva</h1>';
+  html += '<p class="sub">Indicadores consolidados — ' + new Date().toLocaleDateString('pt-BR') + '</p>';
+  html += filterNote;
+  html += '</div>';
+  html += kpiHtml;
+  html += statusHtml;
+  html += treemapHtml;
+  html += tableHtml;
+  html += '<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>';
+  html += '</body></html>';
+
+  var printWindow = window.open('', '_blank', 'width=900,height=700');
+  if (!printWindow) {
+    showToast('Bloqueador de pop-up ativo. Desative para gerar o PDF.', 'error');
+    return;
+  }
+  printWindow.document.write(html);
+  printWindow.document.close();
 }

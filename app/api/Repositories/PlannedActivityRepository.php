@@ -71,7 +71,8 @@ class PlannedActivityRepository extends BaseRepository
                        (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count,
                        ap.sort_order,
                        COALESCE((SELECT e.mercado FROM equipamentos e WHERE e.local = ap.site LIMIT 1), '') AS mercado,
-                       ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number, ap.sla_group_id,
+                       ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number,
+                       CASE WHEN ap.sla_days > 0 THEN COALESCE(ap.sla_group_id, ap.id) ELSE ap.sla_group_id END AS sla_group_id,
                        COALESCE((SELECT GROUP_CONCAT(se.justification SEPARATOR ' | ') FROM sla_extensions se WHERE se.preventiva_id = ap.id), '') AS sla_extensions
                 FROM atividades_preventivas ap
                 WHERE {$pw}
@@ -330,8 +331,10 @@ class PlannedActivityRepository extends BaseRepository
     public function createPreventivaSlaCard(int $originalId, string $targetDate, int $slaDayNumber): int
     {
         $sql = "
-            INSERT INTO atividades_preventivas (site, ticket, data_planejada, equipe, status, obs, sla_days, sla_include_saturday, sla_include_sunday, sla_day_number)
-            SELECT site, ticket, ?, equipe, 'Planejado', obs, sla_days, sla_include_saturday, sla_include_sunday, ?
+            INSERT INTO atividades_preventivas (site, ticket, data_planejada, equipe, status, obs,
+                sla_days, sla_include_saturday, sla_include_sunday, sla_day_number, sla_group_id)
+            SELECT site, ticket, ?, equipe, 'Planejado', obs,
+                   sla_days, sla_include_saturday, sla_include_sunday, ?, COALESCE(sla_group_id, id)
             FROM atividades_preventivas
             WHERE id = ?
         ";
@@ -374,9 +377,20 @@ class PlannedActivityRepository extends BaseRepository
         return $row ?: null;
     }
 
+    public function getLastPreventivaDate(int $groupId): string
+    {
+        $sql = "SELECT data_planejada FROM atividades_preventivas WHERE sla_group_id = ? OR id = ? ORDER BY sla_day_number DESC, data_planejada DESC LIMIT 1";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('ii', $groupId, $groupId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row['data_planejada'] ?? date('Y-m-d');
+    }
+
     public function updatePreventivaSlaFields(int $id, int $slaDays, int $includeSat, int $includeSun): void
     {
-        $sql = "UPDATE atividades_preventivas SET sla_days = ?, sla_include_saturday = ?, sla_include_sunday = ? WHERE id = ?";
+        $sql = "UPDATE atividades_preventivas SET sla_days = ?, sla_include_saturday = ?, sla_include_sunday = ?, sla_group_id = COALESCE(sla_group_id, id) WHERE id = ?";
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('iiii', $slaDays, $includeSat, $includeSun, $id);
         $stmt->execute();
@@ -646,7 +660,7 @@ class PlannedActivityRepository extends BaseRepository
     {
         $table = $tipo === 'preventiva' ? 'atividades_preventivas' : 'registros';
         if ($tipo === 'preventiva') {
-            $sql = "UPDATE {$table} SET sla_days = ?, sla_include_saturday = ?, sla_include_sunday = ? WHERE id = ?";
+            $sql = "UPDATE {$table} SET sla_days = ?, sla_include_saturday = ?, sla_include_sunday = ?, sla_group_id = COALESCE(sla_group_id, id) WHERE id = ?";
         } else {
             $sql = "UPDATE {$table} SET sla_days = ?, sla_include_saturday = ?, sla_include_sunday = ? WHERE id = ?";
         }
@@ -658,12 +672,14 @@ class PlannedActivityRepository extends BaseRepository
     public function getMaxSlaDayNumber(int $parentId, string $tipo): int
     {
         if ($tipo === 'preventiva') {
-            $sql = "SELECT COALESCE(MAX(sla_day_number), 0) AS max FROM atividades_preventivas WHERE id = ?";
+            $sql = "SELECT COALESCE(MAX(sla_day_number), 0) AS max FROM atividades_preventivas WHERE sla_group_id = ? OR id = ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('ii', $parentId, $parentId);
         } else {
             $sql = "SELECT COALESCE(MAX(sla_day_number), 0) AS max FROM planejamento_datas WHERE registro_id = ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('i', $parentId);
         }
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('i', $parentId);
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();

@@ -63,4 +63,58 @@ class PreventivaServiceTest extends TestCase
     {
         $this->assertTrue(method_exists(PreventivaService::class, 'delete'));
     }
+
+    public function testEnrichItemCalculatesSlaProgressWithGroupId(): void
+    {
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventivaRepository::class);
+        $mockRepo->method('getById')->willReturn([
+            'id' => 10,
+            'site' => 'RJOPIA',
+            'status' => 'Planejado',
+            'obs' => '',
+            'sla_days' => 3,
+            'sla_group_id' => 10,
+        ]);
+        $mockRepo->method('countMachinesForSite')->with('RJOPIA')->willReturn(8);
+        $mockRepo->method('sumQtdForGroup')->with(10)->willReturn(3);
+        $mockRepo->method('getPreventivaItemById')->with(10)->willReturn([
+            'id' => 10,
+            'local' => 'RJOPIA',
+            'status' => 'Em Andamento',
+            'qtd_executada' => 1,
+            'sla_days' => 3,
+            'sla_group_id' => 10,
+            'machine_count' => 8,
+        ]);
+
+        $service = new PreventivaService($mockRepo);
+        $result = $service->updateStatus(10, 'Em Andamento', 'iniciando', ['nome' => 'Admin', 'role' => 'admin'], null, 1);
+
+        $this->assertSame(3, $result['item']['sla_feito']);
+        $this->assertSame(5, $result['item']['sla_restam']);
+        $this->assertSame(38, $result['item']['sla_pct']);
+    }
+
+    public function testUpdateStatusEnforcesSlaGroupTotalAgainstSiteMachines(): void
+    {
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventivaRepository::class);
+        $mockRepo->method('getById')->willReturn([
+            'id' => 11,
+            'site' => 'RJOPIA',
+            'status' => 'Planejado',
+            'obs' => '',
+            'sla_days' => 3,
+            'sla_group_id' => 10,
+        ]);
+        $mockRepo->method('countMachinesForSite')->with('RJOPIA')->willReturn(8);
+        // Outros cards já somam 7 máquinas
+        $mockRepo->method('sumQtdForGroup')->with(10, 11)->willReturn(7);
+
+        $service = new PreventivaService($mockRepo);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Total do SLA (9) excede 8 máquinas do site. Restam 1.');
+
+        $service->updateStatus(11, 'Em Andamento', '', ['nome' => 'Admin', 'role' => 'admin'], null, 2);
+    }
 }

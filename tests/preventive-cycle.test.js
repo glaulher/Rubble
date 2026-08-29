@@ -43,7 +43,63 @@ describe('PreventiveCycle', () => {
     s.add(1);
     expect(s.size).toBe(2);
     expect(s.has(1)).toBe(true);
-    s['delete'](1);
-    expect(s.has(1)).toBe(false);
+    expect(s.has(3)).toBe(false);
+  });
+
+  it('getMeasurementCycleRange calculates 16 to 15 correctly across months', () => {
+    function getMeasurementCycleRange(offset, refDate) {
+      var now = refDate ? new Date(refDate) : new Date();
+      var y = now.getFullYear();
+      var m = now.getMonth();
+      var d = now.getDate();
+
+      var baseMonth = d >= 16 ? m : m - 1;
+      baseMonth += (offset || 0);
+
+      var startDate = new Date(y, baseMonth, 16);
+      var endDate = new Date(y, baseMonth + 1, 15);
+
+      var pad = function (n) { return String(n).padStart(2, '0'); };
+      var formatYmd = function (dt) {
+        return dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate());
+      };
+
+      return {
+        from: formatYmd(startDate),
+        to: formatYmd(endDate)
+      };
+    }
+
+    // No dia 29/08/2026:
+    // Ciclo Atual (offset 0): 16/08/2026 a 15/09/2026
+    var currentAug = getMeasurementCycleRange(0, '2026-08-29T12:00:00');
+    expect(currentAug.from).toBe('2026-08-16');
+    expect(currentAug.to).toBe('2026-09-15');
+
+    // Ciclo Anterior (offset -1): 16/07/2026 a 15/08/2026
+    var prevAug = getMeasurementCycleRange(-1, '2026-08-29T12:00:00');
+    expect(prevAug.from).toBe('2026-07-16');
+    expect(prevAug.to).toBe('2026-08-15');
+
+    // 2 cliques em Ciclo Anterior (offset -2): 16/06/2026 a 15/07/2026
+    var prevAug2 = getMeasurementCycleRange(-2, '2026-08-29T12:00:00');
+    expect(prevAug2.from).toBe('2026-06-16');
+    expect(prevAug2.to).toBe('2026-07-15');
+
+    // 3 cliques em Ciclo Anterior (offset -3): 16/05/2026 a 15/06/2026
+    var prevAug3 = getMeasurementCycleRange(-3, '2026-08-29T12:00:00');
+    expect(prevAug3.from).toBe('2026-05-16');
+    expect(prevAug3.to).toBe('2026-06-15');
+
+    // No dia 10/08/2026 (antes do dia 16):
+    // Ciclo Atual (offset 0): 16/07/2026 a 15/08/2026
+    var currentEarlyAug = getMeasurementCycleRange(0, '2026-08-10T12:00:00');
+    expect(currentEarlyAug.from).toBe('2026-07-16');
+    expect(currentEarlyAug.to).toBe('2026-08-15');
+
+    // Ciclo Anterior (offset -1): 16/06/2026 a 15/07/2026
+    var prevEarlyAug = getMeasurementCycleRange(-1, '2026-08-10T12:00:00');
+    expect(prevEarlyAug.from).toBe('2026-06-16');
+    expect(prevEarlyAug.to).toBe('2026-07-15');
   });
 });

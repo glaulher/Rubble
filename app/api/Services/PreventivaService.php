@@ -27,12 +27,12 @@ class PreventivaService
         if (!$item || empty($item['sla_days'])) {
             return $item;
         }
-        $groupId = $item['sla_group_id'] ?? $item['id'];
-        if ($groupId === null) {
+        $groupId = !empty($item['sla_group_id']) ? (int) $item['sla_group_id'] : (int) ($item['id'] ?? 0);
+        if ($groupId <= 0) {
             return $item;
         }
         try {
-            $sum = $this->repository->sumQtdForGroup((int) $groupId);
+            $sum = $this->repository->sumQtdForGroup($groupId);
         } catch (\Throwable $e) {
             $sum = 0;
         }
@@ -178,12 +178,9 @@ class PreventivaService
                 throw new \RuntimeException("Quantidade não pode exceder {$machineCount} máquinas do site.");
             }
             // Validação acumulada do SLA (não estourar total do site)
-            $groupId = $record['sla_group_id'] ?? null;
-            if ($groupId === null && !empty($record['sla_days'])) {
-                $groupId = $record['id'];
-            }
-            if ($groupId !== null && $machineCount > 0) {
-                $sumOthers = $this->repository->sumQtdForGroup((int) $groupId, $id);
+            $groupId = !empty($record['sla_group_id']) ? (int) $record['sla_group_id'] : (int) $record['id'];
+            if ($groupId > 0 && $machineCount > 0) {
+                $sumOthers = $this->repository->sumQtdForGroup($groupId, $id);
                 $total = $sumOthers + $qtdExecutada;
                 if ($total > $machineCount) {
                     $restam = $machineCount - $sumOthers;
@@ -239,12 +236,9 @@ class PreventivaService
         if ($machineCount > 0 && $qtdExecutada > $machineCount) {
             throw new \RuntimeException("Quantidade não pode exceder {$machineCount} máquinas do site.");
         }
-        $groupId = $record['sla_group_id'] ?? null;
-        if ($groupId === null && !empty($record['sla_days'])) {
-            $groupId = $record['id'];
-        }
-        if ($groupId !== null && $machineCount > 0) {
-            $sumOthers = $this->repository->sumQtdForGroup((int) $groupId, $id);
+        $groupId = !empty($record['sla_group_id']) ? (int) $record['sla_group_id'] : (int) $record['id'];
+        if ($groupId > 0 && $machineCount > 0) {
+            $sumOthers = $this->repository->sumQtdForGroup($groupId, $id);
             $total = $sumOthers + $qtdExecutada;
             if ($total > $machineCount) {
                 $restam = $machineCount - $sumOthers;

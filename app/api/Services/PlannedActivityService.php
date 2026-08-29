@@ -25,6 +25,29 @@ class PlannedActivityService
         $this->preventivaRepository = $preventivaRepository ?? new PreventivaRepository();
     }
 
+    private function enrichItem(?array $item): ?array
+    {
+        if (!$item) {
+            return null;
+        }
+        if (($item['tipo'] ?? '') === 'preventiva' && !empty($item['sla_days'])) {
+            $groupId = !empty($item['sla_group_id']) ? (int) $item['sla_group_id'] : (int) $item['id'];
+            $sum = 0;
+            try {
+                $sum = $this->preventivaRepository->sumQtdForGroup($groupId);
+            } catch (\Throwable $e) {
+                $sum = 0;
+            }
+            $machineCount = (int) ($item['machine_count'] ?? 0);
+            $restam = $machineCount > 0 ? max(0, $machineCount - $sum) : 0;
+            $pct = $machineCount > 0 ? (int) round(($sum / $machineCount) * 100) : 0;
+            $item['sla_feito'] = $sum;
+            $item['sla_restam'] = $restam;
+            $item['sla_pct'] = $pct;
+        }
+        return $item;
+    }
+
     public function listAll(int $limit, int $offset, string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null): array
     {
         $items = $this->repository->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status);
@@ -32,25 +55,7 @@ class PlannedActivityService
 
         // Enriquecer preventivas com progresso do SLA (regra de negócio no Service)
         foreach ($items as &$it) {
-            if (($it['tipo'] ?? '') === 'preventiva' && !empty($it['sla_days'])) {
-                $groupId = $it['sla_group_id'] ?? null;
-                if ($groupId === null) {
-                    $groupId = $it['id'];
-                }
-                $groupId = (int) $groupId;
-                $sum = 0;
-                try {
-                    $sum = $this->preventivaRepository->sumQtdForGroup($groupId);
-                } catch (\Throwable $e) {
-                    $sum = 0;
-                }
-                $machineCount = (int) ($it['machine_count'] ?? 0);
-                $restam = $machineCount > 0 ? max(0, $machineCount - $sum) : 0;
-                $pct = $machineCount > 0 ? (int) round(($sum / $machineCount) * 100) : 0;
-                $it['sla_feito'] = $sum;
-                $it['sla_restam'] = $restam;
-                $it['sla_pct'] = $pct;
-            }
+            $it = $this->enrichItem($it);
         }
         unset($it);
 
@@ -62,7 +67,7 @@ class PlannedActivityService
 
     public function getItem(int $id, string $tipo, ?string $dataPlanejada = null): ?array
     {
-        return $this->repository->getItemById($id, $tipo, $dataPlanejada);
+        return $this->enrichItem($this->repository->getItemById($id, $tipo, $dataPlanejada));
     }
 
     public function planActivity(array $data, array $currentUser): array
@@ -250,8 +255,13 @@ class PlannedActivityService
             }
             $includeSat = (bool) $parent['sla_include_saturday'];
             $includeSun = (bool) $parent['sla_include_sunday'];
-            $slaDays = (int) ($parent['sla_days'] ?? 0);
-            $lastDate = $parent['data_planejada'];
+            $groupId = !empty($parent['sla_group_id']) ? (int) $parent['sla_group_id'] : $id;
+            $slaDays = $this->repository->getMaxSlaDayNumber($groupId, 'preventiva');
+            if ($slaDays <= 0) {
+                $slaDays = (int) ($parent['sla_days'] ?? 0);
+            }
+            $lastDate = $this->repository->getLastPreventivaDate($groupId);
+            $targetParentId = $groupId;
         } else {
             $parent = $this->repository->getById($id);
             if (!$parent) {
@@ -261,12 +271,13 @@ class PlannedActivityService
             $includeSun = (bool) ($parent->sla_include_sunday ?? false);
             $slaDays = (int) ($parent->sla_days ?? 0);
             $lastDate = $this->repository->getLastPlannedDate($id);
+            $targetParentId = $id;
         }
 
         $slaDates = $this->generateSlaDatesForExtension($lastDate, $slaDays, $includeSat, $includeSun, $extraDays);
 
-        $this->repository->addSlaExtension($id, $tipo, $extraDays, $justification);
-        $this->createSlaCards($id, $slaDates, $tipo, $id);
+        $this->repository->addSlaExtension($targetParentId, $tipo, $extraDays, $justification);
+        $this->createSlaCards($targetParentId, $slaDates, $tipo, $targetParentId);
 
         return ['action' => 'extended', 'extra_days' => $extraDays, 'cards_created' => count($slaDates)];
     }

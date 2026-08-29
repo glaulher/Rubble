@@ -86,6 +86,8 @@ class PreventivaDashboardService
             $allRows[] = $row;
         }
 
+        $isFiltered = ($dateFrom !== null && $dateFrom !== '') || ($dateTo !== null && $dateTo !== '');
+
         // Treemap: um retângulo por site
         $treemap = [];
         foreach ($siteMap as $site => $info) {
@@ -93,15 +95,33 @@ class PreventivaDashboardService
             if ($value <= 0) {
                 $value = 1;
             }
-            // Cor pelo status majoritário ou concluído > em andamento > resto
-            $color = '#EF4444';
-            if ($info['completed'] > 0 && $info['completed'] === $info['total']) {
-                $color = '#10B981';
-            } elseif ($info['inProgress'] > 0) {
-                $color = '#F59E0B';
-            } elseif ($info['completed'] > 0) {
-                // parcialmente concluído ainda amarelo?
-                $color = '#F59E0B';
+
+            if ($isFiltered) {
+                // Com filtro de período:
+                // Verde se 100% das máquinas do site foram preventivadas no período OU todas as atividades do período concluídas
+                $isAllCompleted = false;
+                if ($info['machine_count'] > 0 && $info['qtd_sum'] >= $info['machine_count']) {
+                    $isAllCompleted = true;
+                } elseif ($info['completed'] > 0 && $info['completed'] === $info['total']) {
+                    $isAllCompleted = true;
+                }
+
+                $color = '#EF4444';
+                if ($isAllCompleted) {
+                    $color = '#10B981';
+                } elseif ($info['inProgress'] > 0 || $info['completed'] > 0 || $info['qtd_sum'] > 0) {
+                    $color = '#F59E0B';
+                }
+            } else {
+                // Consolidado Geral (sem filtro de período):
+                // Só fica verde se em TODOS os períodos todas as atividades foram concluídas (sem pendências em nenhum período)
+                if ($info['completed'] > 0 && $info['pending'] === 0 && $info['inProgress'] === 0) {
+                    $color = '#10B981'; // Verde: todos os períodos 100% concluídos
+                } elseif ($info['completed'] > 0 || $info['inProgress'] > 0 || $info['qtd_sum'] > 0) {
+                    $color = '#F59E0B'; // Amarelo: parcialmente concluído / algum período ficou pendente
+                } else {
+                    $color = '#EF4444'; // Vermelho: nunca nada executado
+                }
             }
             // Se todos pendentes => vermelho já
             $treemap[] = [

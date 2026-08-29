@@ -477,35 +477,7 @@ export function saveQtdInlineEdit(input, span, btn) {
     if (result && result.success) {
       if (result.data && result.data.item) {
         _applyPlannedCardUpdate(result.data.item);
-        // Atualizar progresso SLA de todos os cards do mesmo grupo (regra só no Service, aqui só reflete)
-        var newItem = result.data.item;
-        var gid = newItem.sla_group_id || newItem.id;
-        if (gid && newItem.sla_feito !== undefined) {
-          var selector = '.planned-card[data-sla-group-id="' + gid + '"]';
-          // fallback para grupo null: usar id original como grupo
-          var groupCards = document.querySelectorAll(selector);
-          if (groupCards.length === 0 && newItem.sla_days) {
-            // tenta pelo id do grupo original
-            selector = '.planned-card[data-id="' + gid + '"]';
-            groupCards = document.querySelectorAll(selector);
-          }
-          groupCards.forEach(function (c) {
-            if (c.getAttribute('data-id') === String(newItem.id)) return; // já atualizado via _apply
-            c.setAttribute('data-sla-feito', newItem.sla_feito);
-            c.setAttribute('data-sla-restam', newItem.sla_restam);
-            var bar = c.querySelector('.sla-progress-bar');
-            var txt = c.querySelector('.sla-progress-text');
-            if (bar) bar.style.width = (newItem.sla_pct || 0) + '%';
-            if (txt) {
-              var totalM2 = parseInt(c.getAttribute('data-machine-count') || '0', 10) || parseInt(newItem.machine_count || '0', 10) || 0;
-              var feito = newItem.sla_feito;
-              var restam = newItem.sla_restam;
-              var pct = newItem.sla_pct;
-              var t = totalM2 ? feito + ' de ' + totalM2 + ' (' + pct + '%) — faltam ' + restam : feito + ' preventivadas';
-              txt.textContent = 'Progresso SLA: ' + t;
-            }
-          });
-        }
+        _updateGroupSlaProgress(result.data.item);
       } else {
         var totalM = machineCount > 0 ? ' de ' + machineCount : '';
         span.textContent = num + totalM + ' máquinas preventivadas';
@@ -519,6 +491,32 @@ export function saveQtdInlineEdit(input, span, btn) {
   .catch(function () {
     showToast('Erro ao atualizar quantidade.', 'error');
     finishQtdEdit(input, span, btn);
+  });
+}
+
+export function _updateGroupSlaProgress(newItem) {
+  if (!newItem || newItem.sla_feito === undefined) return;
+  var gid = newItem.sla_group_id || newItem.id;
+  if (!gid) return;
+  var selector = '.planned-card[data-sla-group-id="' + gid + '"], .planned-card[data-id="' + gid + '"]';
+  document.querySelectorAll(selector).forEach(function (c) {
+    if (c.getAttribute('data-id') === String(newItem.id)) return;
+    c.setAttribute('data-sla-feito', newItem.sla_feito);
+    c.setAttribute('data-sla-restam', newItem.sla_restam);
+    var bar = c.querySelector('.sla-progress-bar');
+    var txt = c.querySelector('.sla-progress-text');
+    var totalM2 = parseInt(c.getAttribute('data-machine-count') || '0', 10) || parseInt(newItem.machine_count || '0', 10) || 0;
+    var feito = parseInt(newItem.sla_feito, 10) || 0;
+    var restam = newItem.sla_restam !== undefined ? parseInt(newItem.sla_restam, 10) : (totalM2 ? Math.max(0, totalM2 - feito) : 0);
+    var pct = newItem.sla_pct !== undefined ? parseInt(newItem.sla_pct, 10) : (totalM2 ? Math.round(feito / totalM2 * 100) : 0);
+    if (bar) {
+      bar.style.width = pct + '%';
+      bar.className = 'h-2 rounded-full sla-progress-bar ' + (feito >= totalM2 && totalM2 > 0 ? 'bg-emerald-500' : (feito > 0 ? 'bg-amber-500' : 'bg-slate-300'));
+    }
+    if (txt) {
+      var t = totalM2 ? feito + ' de ' + totalM2 + ' (' + pct + '%) — faltam ' + restam : feito + ' preventivadas';
+      txt.textContent = 'Progresso SLA: ' + t;
+    }
   });
 }
 
@@ -2147,22 +2145,7 @@ export function submitStatusPreventiva() {
         var data = result.data;
         if (data && data.item) {
           _applyPlannedCardUpdate(data.item);
-          var newItem = data.item;
-          if (newItem.sla_group_id && newItem.sla_feito !== undefined) {
-            document.querySelectorAll('.planned-card[data-sla-group-id="' + newItem.sla_group_id + '"]').forEach(function (c) {
-              if (c.getAttribute('data-id') === String(newItem.id)) return;
-              c.setAttribute('data-sla-feito', newItem.sla_feito);
-              c.setAttribute('data-sla-restam', newItem.sla_restam);
-              var bar = c.querySelector('.sla-progress-bar');
-              var txt = c.querySelector('.sla-progress-text');
-              if (bar) bar.style.width = (newItem.sla_pct || 0) + '%';
-              if (txt) {
-                var totalM2 = parseInt(c.getAttribute('data-machine-count') || '0', 10) || parseInt(newItem.machine_count || '0', 10) || 0;
-                var t = totalM2 ? newItem.sla_feito + ' de ' + totalM2 + ' (' + newItem.sla_pct + '%) — faltam ' + newItem.sla_restam : newItem.sla_feito + ' preventivadas';
-                txt.textContent = 'Progresso SLA: ' + t;
-              }
-            });
-          }
+          _updateGroupSlaProgress(data.item);
         } else if (data && data.status) {
           var card = document.querySelector('.planned-card[data-id="' + data.id + '"]');
           if (card) {
