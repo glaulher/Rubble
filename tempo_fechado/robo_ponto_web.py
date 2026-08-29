@@ -2716,7 +2716,6 @@ def validar_jwt_usuario(token):
 # Opção B: todos os perfis permitidos do Rubble (admin/coordenador/administrativo) viram admin no TF
 RUBBLE_ROLE_TO_TF_PERFIL = {
     "admin": "admin",
-    "supervisor": "admin",
     "coordenador": "admin",
     "administrativo": "admin",
     "cliente": "consulta",
