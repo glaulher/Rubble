@@ -256,15 +256,74 @@ def configurar_logger() -> logging.Logger:
 LOGGER = configurar_logger()
 
 
+def _processo_esta_ativo(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        if os.name == "nt":
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            STILL_ACTIVE = 259
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            if not handle:
+                return False
+            exit_code = ctypes.c_ulong()
+            kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+            kernel32.CloseHandle(handle)
+            return exit_code.value == STILL_ACTIVE
+        else:
+            os.kill(pid, 0)
+            return True
+    except (OSError, ProcessLookupError):
+        return False
+    except Exception:
+        return False
+
+
 @contextmanager
 def lock_execucao():
     if CONFIG.arquivo_lock.exists():
-        raise RuntimeError(f"Robô de ponto já está em execução. Lock: {CONFIG.arquivo_lock}")
+        conteudo = ""
+        try:
+            conteudo = CONFIG.arquivo_lock.read_text(encoding="utf-8", errors="ignore").strip()
+        except Exception:
+            pass
 
-    CONFIG.arquivo_lock.write_text(
-        f"pid={Path(sys.executable).name} | inicio={datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
-        encoding="utf-8",
-    )
+        trava_invalida = False
+        m_pid = re.search(r"pid=(\d+)", conteudo)
+        if m_pid:
+            pid_lock = int(m_pid.group(1))
+            if not _processo_esta_ativo(pid_lock):
+                trava_invalida = True
+                LOGGER.warning(f"Removendo lock órfão de processo inexistente (PID {pid_lock}): {CONFIG.arquivo_lock}")
+
+        if not trava_invalida:
+            try:
+                idade_segundos = (datetime.now() - datetime.fromtimestamp(CONFIG.arquivo_lock.stat().st_mtime)).total_seconds()
+                if idade_segundos > 300:  # 5 minutos
+                    trava_invalida = True
+                    LOGGER.warning(f"Removendo lock órfão expirado ({idade_segundos:.0f}s): {CONFIG.arquivo_lock}")
+            except Exception:
+                pass
+
+        if trava_invalida:
+            try:
+                CONFIG.arquivo_lock.unlink(missing_ok=True)
+            except Exception as e:
+                LOGGER.warning(f"Falha ao remover lock órfão: {e}")
+
+        if CONFIG.arquivo_lock.exists():
+            raise RuntimeError(f"Robô de ponto já está em execução. Lock: {CONFIG.arquivo_lock}")
+
+    try:
+        CONFIG.arquivo_lock.write_text(
+            f"pid={os.getpid()} | inicio={datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
+            encoding="utf-8",
+        )
+    except Exception as e:
+        LOGGER.warning(f"Falha ao gravar lock file: {e}")
+
     try:
         yield
     finally:

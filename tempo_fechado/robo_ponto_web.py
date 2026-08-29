@@ -10640,6 +10640,14 @@ def api_processamento_manual_robo_executar_v81737():
         return jsonify({"ok": False, "erro": f"Nenhum PDF encontrado na pasta de entrada: {entrada}"}), 400
     comando, env_exec = _montar_execucao_script_robo_manual_v82124(script)
     log_exec = controle / "processamento_manual_robo.log"
+    lock_file = controle / "robo_ponto.lock"
+    if lock_file.exists():
+        try:
+            idade_lock = (datetime.now() - datetime.fromtimestamp(lock_file.stat().st_mtime)).total_seconds()
+            if idade_lock > 180:  # Mais de 3 minutos
+                lock_file.unlink(missing_ok=True)
+        except Exception:
+            pass
     ok_trava, trava = _adquirir_trava_processamento_v82140(
         "Processamento Manual",
         "Processamento Manual",
