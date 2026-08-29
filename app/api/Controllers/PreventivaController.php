@@ -51,15 +51,41 @@ class PreventivaController
                 $dataPlanejada = null;
             }
 
+            $qtdExecutada = null;
+            if (isset($data['qtd_executada']) && $data['qtd_executada'] !== '' && $data['qtd_executada'] !== null) {
+                $qtdExecutada = (int) $data['qtd_executada'];
+            }
+
             $result = $this->service->updateStatus(
                 (int) $data['id'],
                 trim($data['status']),
                 trim($data['obs'] ?? ''),
                 (array) $this->currentUser,
-                $dataPlanejada
+                $dataPlanejada,
+                $qtdExecutada
             );
 
             Response::success('Status atualizado com sucesso', $result);
+
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    public function updateQtd(): void
+    {
+        try {
+            $data = Request::body();
+
+            Validator::required($data, ['id', 'qtd_executada']);
+            Validator::integer($data, 'id');
+            Validator::integer($data, 'qtd_executada');
+
+            $result = $this->service->updateQtd((int) $data['id'], (int) $data['qtd_executada']);
+
+            Response::success('Quantidade atualizada com sucesso', $result);
 
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);

@@ -702,17 +702,20 @@ CREATE TABLE IF NOT EXISTS `atividades_preventivas` (
   `ticket`              VARCHAR(50),
   `equipe`              VARCHAR(100),
   `status`              VARCHAR(50) NOT NULL DEFAULT 'Planejado',
+  `qtd_executada`       INT UNSIGNED NULL,
   `obs`                 TEXT,
   `sort_order`          INT NOT NULL DEFAULT 0,
   `sla_days`            INT DEFAULT NULL,
   `sla_include_saturday` TINYINT(1) DEFAULT 0,
   `sla_include_sunday`  TINYINT(1) DEFAULT 0,
   `sla_day_number`      INT DEFAULT 0,
+  `sla_group_id`        INT NULL,
   `created_at`          DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at`          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY `idx_ap_site` (`site`),
   KEY `idx_ap_status` (`status`),
-  KEY `idx_ap_data_planejada` (`data_planejada`)
+  KEY `idx_ap_data_planejada` (`data_planejada`),
+  KEY `idx_ap_sla_group` (`sla_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- user_activity — Rastreio de atividade de usuários online (migration 041 + 046)

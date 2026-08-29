@@ -361,6 +361,8 @@ $router->addRoute('preventiva', 'POST', function () use ($auth) {
     $action = $_GET['action'] ?? '';
     if ($action === 'update-status') {
         $ctrl->updateStatus();
+    } elseif ($action === 'update-qtd') {
+        $ctrl->updateQtd();
     } else {
         $ctrl->plan();
     }

@@ -22,6 +22,29 @@ class PreventivaService
         $this->repository = $repository ?? new PreventivaRepository();
     }
 
+    private function enrichItem(?array $item): ?array
+    {
+        if (!$item || empty($item['sla_days'])) {
+            return $item;
+        }
+        $groupId = $item['sla_group_id'] ?? $item['id'];
+        if ($groupId === null) {
+            return $item;
+        }
+        try {
+            $sum = $this->repository->sumQtdForGroup((int) $groupId);
+        } catch (\Throwable $e) {
+            $sum = 0;
+        }
+        $machineCount = (int) ($item['machine_count'] ?? $this->repository->countMachinesForSite($item['local'] ?? ''));
+        $restam = $machineCount > 0 ? max(0, $machineCount - $sum) : 0;
+        $pct = $machineCount > 0 ? (int) round(($sum / $machineCount) * 100) : 0;
+        $item['sla_feito'] = $sum;
+        $item['sla_restam'] = $restam;
+        $item['sla_pct'] = $pct;
+        return $item;
+    }
+
     public function planPreventiva(array $data, array $currentUser): array
     {
         $site = trim($data['site'] ?? '');
@@ -79,15 +102,16 @@ class PreventivaService
         $id = $this->repository->create($record, self::DEFAULT_STATUS);
 
         if ($hasSla) {
+            $this->repository->setSlaGroupId($id, $id);
             $slaDays = (int) $data['sla_days'];
             $slaDates = $this->generateSlaDates($dataPlanejada, $slaDays, $includeSat, $includeSun);
             foreach ($slaDates as [$date, $dayNum]) {
                 $this->repository->createSlaCard($id, $date, $dayNum);
             }
-            return ['action' => 'created', 'id' => $id, 'sla_days' => $slaDays, 'cards_created' => count($slaDates) + 1, 'item' => $this->repository->getPreventivaItemById($id)];
+            return ['action' => 'created', 'id' => $id, 'sla_days' => $slaDays, 'cards_created' => count($slaDates) + 1, 'item' => $this->enrichItem($this->repository->getPreventivaItemById($id))];
         }
 
-        return ['action' => 'created', 'id' => $id, 'item' => $this->repository->getPreventivaItemById($id)];
+        return ['action' => 'created', 'id' => $id, 'item' => $this->enrichItem($this->repository->getPreventivaItemById($id))];
     }
 
     private function generateSlaDates(string $startDate, int $slaDays, bool $includeSat, bool $includeSun): array
@@ -117,7 +141,9 @@ class PreventivaService
         return $dates;
     }
 
-    public function updateStatus(int $id, string $novoStatus, string $obs, array $currentUser, ?string $dataPlanejada = null): array
+    private const STATUS_REQUIRE_QTD = ['Em Andamento', 'Concluído'];
+
+    public function updateStatus(int $id, string $novoStatus, string $obs, array $currentUser, ?string $dataPlanejada = null, ?int $qtdExecutada = null): array
     {
         $record = $this->repository->getById($id);
 
@@ -135,12 +161,51 @@ class PreventivaService
             );
         }
 
+        // Regra de negócio: qtd_executada obrigatória para Em Andamento / Concluído
+        $requiresQtd = in_array($novoStatus, self::STATUS_REQUIRE_QTD, true);
+        $qtdToPersist = null;
+
+        if ($requiresQtd) {
+            if ($qtdExecutada === null) {
+                throw new \RuntimeException('Informe a quantidade de máquinas preventivadas.');
+            }
+            if ($qtdExecutada < 1 || $qtdExecutada > 999) {
+                throw new \RuntimeException('Quantidade deve estar entre 1 e 999.');
+            }
+            $site = $record['site'] ?? '';
+            $machineCount = $this->repository->countMachinesForSite($site);
+            if ($machineCount > 0 && $qtdExecutada > $machineCount) {
+                throw new \RuntimeException("Quantidade não pode exceder {$machineCount} máquinas do site.");
+            }
+            // Validação acumulada do SLA (não estourar total do site)
+            $groupId = $record['sla_group_id'] ?? null;
+            if ($groupId === null && !empty($record['sla_days'])) {
+                $groupId = $record['id'];
+            }
+            if ($groupId !== null && $machineCount > 0) {
+                $sumOthers = $this->repository->sumQtdForGroup((int) $groupId, $id);
+                $total = $sumOthers + $qtdExecutada;
+                if ($total > $machineCount) {
+                    $restam = $machineCount - $sumOthers;
+                    $restam = max(0, $restam);
+                    throw new \RuntimeException("Total do SLA ({$total}) excede {$machineCount} máquinas do site. Restam {$restam}.");
+                }
+            }
+            $qtdToPersist = $qtdExecutada;
+        } else {
+            // Para Planejado/Cancelado limpa qtd (regra de negócio)
+            $qtdToPersist = null;
+        }
+
         $userName = $currentUser['nome'] ?? $currentUser['username'] ?? 'Desconhecido';
         $userRole = $currentUser['role'] ?? '';
         $now = date('d/m/Y H:i');
 
         $existingObs = $record['obs'] ?? '';
         $newEntry = "[{$now}] {$userName} ({$userRole}): Status alterado para '{$novoStatus}'";
+        if ($requiresQtd && $qtdToPersist !== null) {
+            $newEntry .= " ({$qtdToPersist} máquinas)";
+        }
         if ($obs !== '') {
             $newEntry .= "\n{$obs}";
         }
@@ -150,10 +215,47 @@ class PreventivaService
             throw new \RuntimeException('Formato de data inválido.');
         }
 
-        $this->repository->updateStatus($id, $novoStatus, $newObs, $dataPlanejada);
+        $this->repository->updateStatus($id, $novoStatus, $newObs, $dataPlanejada, $qtdToPersist);
 
         $record = $this->repository->getById($id);
-        return ['action' => 'status_updated', 'id' => $id, 'status' => $novoStatus, 'obs' => $record['obs'] ?? '', 'item' => $this->repository->getPreventivaItemById($id)];
+        return ['action' => 'status_updated', 'id' => $id, 'status' => $novoStatus, 'obs' => $record['obs'] ?? '', 'item' => $this->enrichItem($this->repository->getPreventivaItemById($id))];
+    }
+
+    public function updateQtd(int $id, int $qtdExecutada): array
+    {
+        $record = $this->repository->getById($id);
+        if (!$record) {
+            throw new \RuntimeException('Registro não encontrado.');
+        }
+        $statusAtual = $record['status'] ?? '';
+        if (!in_array($statusAtual, self::STATUS_REQUIRE_QTD, true)) {
+            throw new \RuntimeException('Quantidade só pode ser editada quando status é Em Andamento ou Concluído.');
+        }
+        if ($qtdExecutada < 1 || $qtdExecutada > 999) {
+            throw new \RuntimeException('Quantidade deve estar entre 1 e 999.');
+        }
+        $site = $record['site'] ?? '';
+        $machineCount = $this->repository->countMachinesForSite($site);
+        if ($machineCount > 0 && $qtdExecutada > $machineCount) {
+            throw new \RuntimeException("Quantidade não pode exceder {$machineCount} máquinas do site.");
+        }
+        $groupId = $record['sla_group_id'] ?? null;
+        if ($groupId === null && !empty($record['sla_days'])) {
+            $groupId = $record['id'];
+        }
+        if ($groupId !== null && $machineCount > 0) {
+            $sumOthers = $this->repository->sumQtdForGroup((int) $groupId, $id);
+            $total = $sumOthers + $qtdExecutada;
+            if ($total > $machineCount) {
+                $restam = $machineCount - $sumOthers;
+                $restam = max(0, $restam);
+                throw new \RuntimeException("Total do SLA ({$total}) excede {$machineCount} máquinas do site. Restam {$restam}.");
+            }
+        }
+
+        $this->repository->updateQtd($id, $qtdExecutada);
+
+        return ['action' => 'qtd_updated', 'id' => $id, 'qtd_executada' => $qtdExecutada, 'item' => $this->enrichItem($this->repository->getPreventivaItemById($id))];
     }
 
     public function delete(int $id): array

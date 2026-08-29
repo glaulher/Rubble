@@ -168,6 +168,39 @@ export function buildPlannedCardHtml(item) {
     '</div>';
   }
 
+  var qtdExecutada = item.qtd_executada !== null && item.qtd_executada !== undefined && String(item.qtd_executada) !== '' ? parseInt(item.qtd_executada, 10) : null;
+  var qtdLineHtml = '';
+  var showQtdLine = false;
+  if (tipo === 'preventiva') {
+    if (qtdExecutada !== null && !isNaN(qtdExecutada)) showQtdLine = true;
+    else if (item.status === 'Em Andamento' || item.status === 'Concluído') showQtdLine = true;
+  }
+  if (showQtdLine) {
+    var totalM = machineCount > 0 ? machineCount : null;
+    var qtdText, qtdClass;
+    if (qtdExecutada !== null && !isNaN(qtdExecutada)) {
+      qtdText = totalM ? qtdExecutada + ' de ' + totalM : String(qtdExecutada);
+      qtdText += ' máquinas preventivadas';
+      qtdClass = 'text-emerald-700';
+    } else {
+      qtdText = 'Informar máquinas preventivadas' + (totalM ? ' (máx ' + totalM + ')' : '');
+      qtdClass = 'text-slate-400 italic';
+    }
+    var qtdIcon = canEdit ? '<button class="inline-flex items-center justify-center text-blue-400 hover:text-blue-600 align-middle qtd-edit-btn shrink-0" data-action="edit-qtd" data-id="' + item.id + '" aria-label="Editar quantidade"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' : '';
+    qtdLineHtml = '<div class="mt-2 text-xs ' + qtdClass + ' flex items-center gap-1 qtd-container"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><polyline points="13 2 13 9 18 9"/><path d="M9 13h6"/><path d="M9 17h4"/></svg><span class="qtd-text">' + escapeHtml(qtdText) + '</span>' + qtdIcon + '</div>';
+  }
+
+  var slaProgressHtml = '';
+  if (tipo === 'preventiva' && item.sla_days && parseInt(item.sla_days, 10) > 0 && item.sla_feito !== undefined) {
+    var feito = parseInt(item.sla_feito, 10) || 0;
+    var totalSla = machineCount > 0 ? machineCount : 0;
+    var restam = item.sla_restam !== undefined ? parseInt(item.sla_restam, 10) : (totalSla ? Math.max(0, totalSla - feito) : 0);
+    var pct = item.sla_pct !== undefined ? parseInt(item.sla_pct, 10) : (totalSla ? Math.round(feito/totalSla*100) : 0);
+    var barColor = feito >= totalSla && totalSla > 0 ? 'bg-emerald-500' : (feito > 0 ? 'bg-amber-500' : 'bg-slate-300');
+    var text = totalSla ? feito + ' de ' + totalSla + ' (' + pct + '%) — faltam ' + restam : feito + ' preventivadas';
+    slaProgressHtml = '<div class="mt-2 text-xs text-slate-600 sla-progress-container"><div class="flex items-center gap-1 mb-1"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 16l3-3 3 3 5-5"/></svg><span class="sla-progress-text">Progresso SLA: ' + escapeHtml(text) + '</span></div><div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full sla-progress-bar ' + barColor + '" style="width:' + pct + '%"></div></div></div>';
+  }
+
   var cardDateAttr = tipo === 'corretiva' ? ' data-date="' + safeDate + '"' : '';
   var cardContentHtml =
     '<div class="flex items-start justify-between gap-3">' +
@@ -186,6 +219,8 @@ export function buildPlannedCardHtml(item) {
     '</span>' +
     (material ? '<span>Material: <strong class="text-slate-700">' + escapeHtml(material) + '</strong></span>' : '') +
     '</div>' +
+    qtdLineHtml +
+    slaProgressHtml +
     buildSlaLineHtml(item) +
     obsHtml;
 
@@ -220,7 +255,7 @@ function buildSlaLineHtml(item) {
     : '';
   return '<div class="planned-card-wrapper flex items-start gap-1.5">' +
     dragHandleHtml +
-    '<div class="planned-card flex-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '" data-tipo="' + tipo + '" data-key="' + (item.tipo || 'preventiva') + ':' + item.id + '"' + cardDateAttr + ' data-sla-day-number="' + (item.sla_day_number || '') + '">' +
+    '<div class="planned-card flex-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow" data-id="' + item.id + '" data-tipo="' + tipo + '" data-key="' + (item.tipo || 'preventiva') + ':' + item.id + '"' + cardDateAttr + ' data-sla-day-number="' + (item.sla_day_number || '') + '" data-machine-count="' + (item.machine_count || 0) + '" data-qtd-executada="' + (item.qtd_executada !== null && item.qtd_executada !== undefined ? item.qtd_executada : '') + '" data-sla-feito="' + (item.sla_feito !== undefined ? item.sla_feito : '') + '" data-sla-restam="' + (item.sla_restam !== undefined ? item.sla_restam : '') + '" data-sla-group-id="' + (item.sla_group_id !== null && item.sla_group_id !== undefined ? item.sla_group_id : '') + '" data-sla-days="' + (item.sla_days || '') + '">' +
       cardContentHtml +
     '</div>' +
   '</div>';
@@ -345,6 +380,158 @@ export function finishTeamEdit(input, strong) {
   if (strong) {
     strong.style.display = '';
   }
+}
+
+export function startQtdInlineEdit(btn) {
+  var container = btn.closest('.qtd-container');
+  if (!container) return;
+  var span = container.querySelector('.qtd-text');
+  if (!span) return;
+  var card = btn.closest('.planned-card');
+  if (!card) return;
+  var id = card.getAttribute('data-id');
+  var machineCount = parseInt(card.getAttribute('data-machine-count') || '0', 10) || 0;
+  var slaFeito = parseInt(card.getAttribute('data-sla-feito') || '', 10);
+  var raw = span.textContent || '';
+  var currentVal = raw.trim().split(' ')[0];
+  if (currentVal.indexOf('de') !== -1) currentVal = currentVal.split(' ')[0];
+  var currentNum = parseInt(currentVal, 10);
+  if (isNaN(currentNum)) currentNum = 0;
+  var currentForMax = currentNum || 0;
+
+  var maxAllowed = machineCount > 0 ? machineCount : 999;
+  if (!isNaN(slaFeito) && machineCount > 0) {
+    var sumOthers = slaFeito - currentForMax;
+    maxAllowed = Math.max(1, machineCount - sumOthers);
+  }
+
+  var input = document.createElement('input');
+  input.type = 'number';
+  input.min = '1';
+  input.max = String(maxAllowed);
+  input.step = '1';
+  input.value = currentNum || '';
+  input.className = 'qtd-edit-input text-emerald-700 text-xs bg-transparent border border-blue-300 rounded px-1 py-0.5 w-16 focus:outline-none focus:border-blue-500';
+  input.dataset.id = id;
+  input.dataset.originalValue = String(currentNum || '');
+
+  span.style.display = 'none';
+  btn.style.display = 'none';
+  container.insertBefore(input, span);
+  input.focus();
+  input.select();
+
+  var saved = false;
+  function doSave() {
+    if (saved) return;
+    saved = true;
+    saveQtdInlineEdit(input, span, btn);
+  }
+  function doCancel() {
+    if (saved) return;
+    saved = true;
+    cancelQtdEdit(input, span, btn);
+  }
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      input.blur();
+    } else if (e.key === 'Escape') {
+      doCancel();
+    }
+  });
+  input.addEventListener('blur', function () {
+    doSave();
+  });
+}
+
+export function saveQtdInlineEdit(input, span, btn) {
+  var newValue = input.value.trim();
+  var originalValue = input.dataset.originalValue;
+  var id = input.dataset.id;
+  var card = input.closest('.planned-card');
+  var machineCount = card ? parseInt(card.getAttribute('data-machine-count') || '0', 10) : 0;
+
+  if (newValue === '' || newValue === originalValue) {
+    finishQtdEdit(input, span, btn);
+    return;
+  }
+  var num = parseInt(newValue, 10);
+  if (isNaN(num) || num < 1) {
+    showToast('Quantidade deve ser maior que zero.', 'error');
+    input.focus();
+    return;
+  }
+  if (machineCount > 0 && num > machineCount) {
+    showToast('Quantidade não pode exceder ' + machineCount + ' máquinas.', 'error');
+    input.focus();
+    return;
+  }
+
+  apiFetch('/app/api/index.php?route=preventiva&action=update-qtd', {
+    method: 'POST',
+    body: JSON.stringify({ id: parseInt(id, 10), qtd_executada: num }),
+  })
+  .then(function (res) { return res.json(); })
+  .then(function (result) {
+    if (result && result.success) {
+      if (result.data && result.data.item) {
+        _applyPlannedCardUpdate(result.data.item);
+        // Atualizar progresso SLA de todos os cards do mesmo grupo (regra só no Service, aqui só reflete)
+        var newItem = result.data.item;
+        var gid = newItem.sla_group_id || newItem.id;
+        if (gid && newItem.sla_feito !== undefined) {
+          var selector = '.planned-card[data-sla-group-id="' + gid + '"]';
+          // fallback para grupo null: usar id original como grupo
+          var groupCards = document.querySelectorAll(selector);
+          if (groupCards.length === 0 && newItem.sla_days) {
+            // tenta pelo id do grupo original
+            selector = '.planned-card[data-id="' + gid + '"]';
+            groupCards = document.querySelectorAll(selector);
+          }
+          groupCards.forEach(function (c) {
+            if (c.getAttribute('data-id') === String(newItem.id)) return; // já atualizado via _apply
+            c.setAttribute('data-sla-feito', newItem.sla_feito);
+            c.setAttribute('data-sla-restam', newItem.sla_restam);
+            var bar = c.querySelector('.sla-progress-bar');
+            var txt = c.querySelector('.sla-progress-text');
+            if (bar) bar.style.width = (newItem.sla_pct || 0) + '%';
+            if (txt) {
+              var totalM2 = parseInt(c.getAttribute('data-machine-count') || '0', 10) || parseInt(newItem.machine_count || '0', 10) || 0;
+              var feito = newItem.sla_feito;
+              var restam = newItem.sla_restam;
+              var pct = newItem.sla_pct;
+              var t = totalM2 ? feito + ' de ' + totalM2 + ' (' + pct + '%) — faltam ' + restam : feito + ' preventivadas';
+              txt.textContent = 'Progresso SLA: ' + t;
+            }
+          });
+        }
+      } else {
+        var totalM = machineCount > 0 ? ' de ' + machineCount : '';
+        span.textContent = num + totalM + ' máquinas preventivadas';
+      }
+      showToast('Quantidade atualizada!', 'success');
+    } else {
+      showToast(result && result.message ? result.message : 'Erro ao atualizar quantidade.', 'error');
+    }
+    finishQtdEdit(input, span, btn);
+  })
+  .catch(function () {
+    showToast('Erro ao atualizar quantidade.', 'error');
+    finishQtdEdit(input, span, btn);
+  });
+}
+
+export function cancelQtdEdit(input, span, btn) {
+  finishQtdEdit(input, span, btn);
+}
+
+export function finishQtdEdit(input, span, btn) {
+  if (input && input.parentNode) {
+    input.parentNode.removeChild(input);
+  }
+  if (span) span.style.display = '';
+  if (btn) btn.style.display = '';
 }
 
 /*
@@ -1154,8 +1341,9 @@ export function initPlannedActivity() {
   if (statusSelect) {
     statusSelect.addEventListener('change', function () {
       var dateGroup = document.getElementById('statusDataGroup');
-      if (!dateGroup) return;
-      dateGroup.classList.toggle('hidden', this.value !== 'Planejado');
+      if (dateGroup) dateGroup.classList.toggle('hidden', this.value !== 'Planejado');
+      var qtdGroup = document.getElementById('statusQtdGroup');
+      if (qtdGroup) qtdGroup.classList.toggle('hidden', this.value !== 'Em Andamento' && this.value !== 'Concluído');
     });
   }
 
@@ -1270,6 +1458,12 @@ export function initPlannedActivity() {
         var corrStatus = corretivaStatusBtn.getAttribute('data-status');
         var corrDate = corretivaStatusBtn.getAttribute('data-date') || '';
         if (corrId) openCorretivaStatusModal(corrId, corrStatus, corrDate);
+        return;
+      }
+
+      var qtdBtn = e.target.closest('[data-action="edit-qtd"]');
+      if (qtdBtn) {
+        startQtdInlineEdit(qtdBtn);
         return;
       }
 
@@ -1639,6 +1833,45 @@ export function openStatusPreventiva(id, currentStatus, currentDate) {
   }
   var dateGroup = document.getElementById('statusDataGroup');
   if (dateGroup) dateGroup.classList.add('hidden');
+
+  var qtdGroup = document.getElementById('statusQtdGroup');
+  if (qtdGroup) qtdGroup.classList.add('hidden');
+  var qtdInput = document.getElementById('statusQtdExecutada');
+  if (qtdInput) {
+    qtdInput.value = '';
+    var card = document.querySelector('.planned-card[data-id="' + id + '"][data-tipo="preventiva"]');
+    var mc = card ? parseInt(card.getAttribute('data-machine-count') || '0', 10) : 0;
+    var slaFeito = card ? parseInt(card.getAttribute('data-sla-feito') || '', 10) : NaN;
+    var maxAllowed = mc > 0 ? mc : 999;
+    if (!isNaN(slaFeito) && mc > 0) {
+      var currentQtd = card ? parseInt(card.getAttribute('data-qtd-executada') || '0', 10) || 0 : 0;
+      var sumOthers = slaFeito - (isNaN(currentQtd) ? 0 : currentQtd);
+      maxAllowed = Math.max(1, mc - sumOthers);
+    }
+    if (mc > 0) {
+      qtdInput.max = String(maxAllowed);
+      var hint = document.getElementById('statusQtdHint');
+      if (hint) {
+        if (!isNaN(slaFeito) && maxAllowed !== mc) {
+          hint.textContent = 'Máximo: ' + maxAllowed + ' (restam ' + maxAllowed + ' de ' + mc + ' no SLA)';
+        } else {
+          hint.textContent = 'Máximo: ' + mc + ' máquinas deste site';
+        }
+        hint.classList.remove('hidden');
+      }
+    } else {
+      qtdInput.max = '999';
+      var hint2 = document.getElementById('statusQtdHint');
+      if (hint2) hint2.classList.add('hidden');
+    }
+    // prefill if current card has qtd_executada
+    if (card) {
+      var existingQtd = card.getAttribute('data-qtd-executada');
+      if (existingQtd && existingQtd !== 'null' && existingQtd !== '') {
+        qtdInput.value = existingQtd;
+      }
+    }
+  }
 }
 
 export function closeStatusPreventiva() {
@@ -1648,6 +1881,10 @@ export function closeStatusPreventiva() {
   if (dateGroup) dateGroup.classList.add('hidden');
   var dateInput = document.getElementById('statusDataPlanejada');
   if (dateInput) dateInput.value = '';
+  var qtdGroup = document.getElementById('statusQtdGroup');
+  if (qtdGroup) qtdGroup.classList.add('hidden');
+  var qtdInput = document.getElementById('statusQtdExecutada');
+  if (qtdInput) qtdInput.value = '';
 }
 
 export function generateSlaDateList(startDate, days, includeSat, includeSun) {
@@ -1866,6 +2103,16 @@ export function submitStatusPreventiva() {
     return;
   }
 
+  if (status === 'Em Andamento' || status === 'Concluído') {
+    var qtdInput = document.getElementById('statusQtdExecutada');
+    var qtdVal = qtdInput ? parseInt(qtdInput.value, 10) : NaN;
+    if (isNaN(qtdVal) || qtdVal < 1) {
+      showToast('Informe a quantidade de máquinas preventivadas.', 'error');
+      if (qtdInput) qtdInput.focus();
+      return;
+    }
+  }
+
   var btn = document.querySelector('#statusForm button[type="submit"]');
   if (btn) {
     btn.disabled = true;
@@ -1878,9 +2125,15 @@ export function submitStatusPreventiva() {
     data_planejada = dateInput ? dateInput.value : null;
   }
 
+  var qtd_executada = null;
+  if (status === 'Em Andamento' || status === 'Concluído') {
+    var qi = document.getElementById('statusQtdExecutada');
+    qtd_executada = qi && qi.value !== '' ? parseInt(qi.value, 10) : null;
+  }
+
   apiFetch('/app/api/index.php?route=preventiva&action=update-status', {
     method: 'POST',
-    body: JSON.stringify({ id: parseInt(id, 10), status: status, obs: obs, data_planejada: data_planejada }),
+    body: JSON.stringify({ id: parseInt(id, 10), status: status, obs: obs, data_planejada: data_planejada, qtd_executada: qtd_executada }),
   })
     .then(function (res) { return res.json(); })
     .then(function (result) {
@@ -1894,6 +2147,22 @@ export function submitStatusPreventiva() {
         var data = result.data;
         if (data && data.item) {
           _applyPlannedCardUpdate(data.item);
+          var newItem = data.item;
+          if (newItem.sla_group_id && newItem.sla_feito !== undefined) {
+            document.querySelectorAll('.planned-card[data-sla-group-id="' + newItem.sla_group_id + '"]').forEach(function (c) {
+              if (c.getAttribute('data-id') === String(newItem.id)) return;
+              c.setAttribute('data-sla-feito', newItem.sla_feito);
+              c.setAttribute('data-sla-restam', newItem.sla_restam);
+              var bar = c.querySelector('.sla-progress-bar');
+              var txt = c.querySelector('.sla-progress-text');
+              if (bar) bar.style.width = (newItem.sla_pct || 0) + '%';
+              if (txt) {
+                var totalM2 = parseInt(c.getAttribute('data-machine-count') || '0', 10) || parseInt(newItem.machine_count || '0', 10) || 0;
+                var t = totalM2 ? newItem.sla_feito + ' de ' + totalM2 + ' (' + newItem.sla_pct + '%) — faltam ' + newItem.sla_restam : newItem.sla_feito + ' preventivadas';
+                txt.textContent = 'Progresso SLA: ' + t;
+              }
+            });
+          }
         } else if (data && data.status) {
           var card = document.querySelector('.planned-card[data-id="' + data.id + '"]');
           if (card) {

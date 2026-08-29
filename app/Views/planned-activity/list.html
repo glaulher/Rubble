@@ -99,6 +99,19 @@
           class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
         >
       </div>
+      <div id="statusQtdGroup" class="mb-4 hidden">
+        <label for="statusQtdExecutada" class="block text-sm font-medium text-slate-700 mb-1">Máquinas preventivadas</label>
+        <input
+          id="statusQtdExecutada"
+          type="number"
+          min="1"
+          max="999"
+          step="1"
+          placeholder="Ex: 4"
+          class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+        >
+        <p id="statusQtdHint" class="text-xs text-slate-400 mt-1 hidden"></p>
+      </div>
       <div class="mb-4">
         <label for="statusObs" class="block text-sm font-medium text-slate-700 mb-1">Observação (opcional)</label>
         <textarea

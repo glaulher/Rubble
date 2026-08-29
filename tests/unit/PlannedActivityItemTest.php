@@ -164,14 +164,16 @@ class PlannedActivityItemTest extends TestCase
         $repo = $this->createMock(PreventivaRepository::class);
         $repo->method('getById')->willReturn([
             'id' => 7,
+            'site' => 'RJOCPG',
             'status' => 'Planejado',
             'obs' => '',
         ]);
+        $repo->method('countMachinesForSite')->with('RJOCPG')->willReturn(6);
         $repo->method('updateStatus')->willReturn(true);
         $repo->method('getPreventivaItemById')->with(7)->willReturn(['id' => 7, 'tipo' => 'preventiva', 'status' => 'Em Andamento']);
 
         $service = new PreventivaService($repo);
-        $result = $service->updateStatus(7, 'Em Andamento', '', ['nome' => 'Admin', 'role' => 'admin']);
+        $result = $service->updateStatus(7, 'Em Andamento', '', ['nome' => 'Admin', 'role' => 'admin'], null, 4);
 
         $this->assertSame('status_updated', $result['action']);
         $this->assertArrayHasKey('item', $result);

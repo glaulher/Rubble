@@ -3,10 +3,12 @@
 namespace App\Api\Services;
 
 use App\Api\Repositories\PlannedActivityRepository;
+use App\Api\Repositories\PreventivaRepository;
 
 class PlannedActivityService
 {
     private PlannedActivityRepository $repository;
+    private PreventivaRepository $preventivaRepository;
 
     private const DEFAULT_STATUS = 'Planejado';
     private const UNPLAN_STATUS = 'Pendente';
@@ -17,15 +19,40 @@ class PlannedActivityService
         'Concluído', 'Pendente', 'Em andamento', 'Planejado', 'Projeto Clean up',
     ];
 
-    public function __construct(?PlannedActivityRepository $repository = null)
+    public function __construct(?PlannedActivityRepository $repository = null, ?PreventivaRepository $preventivaRepository = null)
     {
         $this->repository = $repository ?? new PlannedActivityRepository();
+        $this->preventivaRepository = $preventivaRepository ?? new PreventivaRepository();
     }
 
     public function listAll(int $limit, int $offset, string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null): array
     {
         $items = $this->repository->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status);
         $total = $this->repository->count($search, $dateFrom, $dateTo, $status);
+
+        // Enriquecer preventivas com progresso do SLA (regra de negócio no Service)
+        foreach ($items as &$it) {
+            if (($it['tipo'] ?? '') === 'preventiva' && !empty($it['sla_days'])) {
+                $groupId = $it['sla_group_id'] ?? null;
+                if ($groupId === null) {
+                    $groupId = $it['id'];
+                }
+                $groupId = (int) $groupId;
+                $sum = 0;
+                try {
+                    $sum = $this->preventivaRepository->sumQtdForGroup($groupId);
+                } catch (\Throwable $e) {
+                    $sum = 0;
+                }
+                $machineCount = (int) ($it['machine_count'] ?? 0);
+                $restam = $machineCount > 0 ? max(0, $machineCount - $sum) : 0;
+                $pct = $machineCount > 0 ? (int) round(($sum / $machineCount) * 100) : 0;
+                $it['sla_feito'] = $sum;
+                $it['sla_restam'] = $restam;
+                $it['sla_pct'] = $pct;
+            }
+        }
+        unset($it);
 
         return [
             'items' => $items,
