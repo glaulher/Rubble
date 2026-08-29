@@ -14,7 +14,27 @@ function isIgnored(relPath) {
   try {
     execSync(`git check-ignore -q "${relPath}"`);
     return true;
-  } catch { return false; }
+  } catch (e) {
+    if (e.status !== 1 && e.message && e.message.includes('not found')) {
+      // Fallback quando git CLI não está instalado no container
+      try {
+        const gitignore = readFileSync(resolve('.gitignore'), 'utf-8');
+        const lines = gitignore.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+        return lines.some(pattern => {
+          if (pattern === relPath) return true;
+          if (pattern.endsWith('/') && relPath.startsWith(pattern)) return true;
+          if (pattern.includes('*')) {
+            const regex = new RegExp('^' + pattern.replace(/\./g, '\\.').replace(/\*/g, '.*') + '$');
+            return regex.test(relPath);
+          }
+          return false;
+        });
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
 }
 
 describe('tempo-fechado secrets must be in .env, not hardcoded', () => {

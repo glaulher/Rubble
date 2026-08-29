@@ -10685,7 +10685,36 @@ def api_processamento_manual_robo_executar_v81737():
                     origem="Processamento Manual"
                 )
                 return jsonify({"ok": True, "erro": "", "mensagem": "Robô gerou Excel e importação automática foi concluída com aviso.", "aviso": aviso, "stdout": r.stdout[-4000:], "stderr": r.stderr[-4000:], "log": str(log_exec), "excel": str(excel_detectado), "excel_existe": excel_detectado.exists(), "importacao": imp, "resultado_robo": resultado_robo})
-            return jsonify({"ok": False, "erro": f"Robô retornou erro. Código: {r.returncode}", "stdout": r.stdout[-4000:], "stderr": r.stderr[-4000:], "log": str(log_exec), "excel": str(excel), "excel_existe": excel.exists()}), 500
+
+            detalhes = []
+            if isinstance(resultado_robo, dict):
+                if resultado_robo.get("detalhe"):
+                    detalhes.append(str(resultado_robo["detalhe"]))
+                if resultado_robo.get("erros"):
+                    for item_err in resultado_robo.get("erros", []):
+                        if isinstance(item_err, dict):
+                            detalhes.append(f"{item_err.get('arquivo', '')}: {item_err.get('erro', '')}")
+                        elif item_err:
+                            detalhes.append(str(item_err))
+            if not detalhes and r.stderr:
+                detalhes.append(r.stderr.strip()[-500:])
+            elif not detalhes and r.stdout:
+                detalhes.append(r.stdout.strip()[-500:])
+
+            mensagem_detalhada = " — ".join([d for d in detalhes if d])
+            msg_erro = f"Robô retornou erro (Código {r.returncode})" + (f": {mensagem_detalhada}" if mensagem_detalhada else ".")
+
+            return jsonify({
+                "ok": False,
+                "erro": msg_erro,
+                "detalhe": mensagem_detalhada,
+                "stdout": r.stdout[-4000:],
+                "stderr": r.stderr[-4000:],
+                "log": str(log_exec),
+                "excel": str(excel),
+                "excel_existe": excel.exists(),
+                "resultado_robo": resultado_robo
+            }), 500
         imp = _importar_excel_robo_manual_v81737()
         registrar_auditoria("PROCESSAMENTO_MANUAL_ROBO", str(script), "OK")
         registrar_historico_operacao_v8190(

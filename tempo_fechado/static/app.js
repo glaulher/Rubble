@@ -6514,7 +6514,9 @@ async function verLogRoboManualV81737() {
     const alvo = qs("dashboardExecutivoPremium") || qs("conteudoPrincipal") || document.body;
     const antigo = document.getElementById("manualRoboLogPanel");
     if (antigo) antigo.remove();
-    alvo.innerHTML += `<section id="manualRoboLogPanel" class="exec-panel"><div class="exec-panel-title"><div><h4>Detalhes do processamento manual</h4></div></div><pre class="manual-robo-log">${escapeHtml(json.log || "")}</pre></section>`;
+    alvo.insertAdjacentHTML("beforeend", `<section id="manualRoboLogPanel" class="exec-panel" style="margin-top:1.5rem;"><div class="exec-panel-title"><div><h4>Detalhes do processamento manual</h4></div></div><pre class="manual-robo-log">${escapeHtml(json.log || "")}</pre></section>`);
+    const painel = document.getElementById("manualRoboLogPanel");
+    if (painel) painel.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (e) { alert("Erro ao carregar log: " + e.message); }
 }
 
