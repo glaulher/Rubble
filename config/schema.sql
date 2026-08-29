@@ -739,6 +739,23 @@ CREATE TABLE IF NOT EXISTS `sla_extensions` (
   FOREIGN KEY (`registro_id`) REFERENCES `registros` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- filtro_trocas — Troca de Filtros (migrations 051 + 054)
+CREATE TABLE IF NOT EXISTS `filtro_trocas` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `local` VARCHAR(100) NOT NULL,
+  `equipamento` VARCHAR(120) NOT NULL,
+  `uf` VARCHAR(2) NOT NULL DEFAULT 'RJ',
+  `regiao` VARCHAR(50) NOT NULL DEFAULT 'RJ',
+  `tamanho` VARCHAR(50) NOT NULL DEFAULT '',
+  `qtd` INT NOT NULL DEFAULT 1,
+  `os` VARCHAR(50) DEFAULT NULL,
+  `data_troca` DATE NULL,
+  `data_proxima_troca` DATE NULL,
+  `intervalo_meses` TINYINT UNSIGNED NOT NULL DEFAULT 4,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- email_processed — Email approval watcher dedup
 CREATE TABLE IF NOT EXISTS `email_processed` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,

@@ -22,10 +22,11 @@ var FILTER_COLUMNS_DEF = [
   { key: 'os', label: 'OS' },
   { key: 'data_troca', label: 'Troca' },
   { key: 'data_proxima_troca', label: 'Próxima' },
+  { key: 'intervalo_meses', label: 'Intervalo' },
   { key: 'status', label: 'Status' },
 ];
 
-var FILTER_EDITABLE_COLS = ['tamanho', 'qtd', 'os', 'data_troca'];
+var FILTER_EDITABLE_COLS = ['tamanho', 'qtd', 'os', 'data_troca', 'intervalo_meses'];
 
 var FILTER_ADMIN_ONLY_COLS = ['tamanho', 'qtd'];
 
@@ -77,6 +78,7 @@ export function formatFilterDate(value) {
 export function filterFieldDisplay(field, value) {
   if (value === null || value === undefined || value === '') return '-';
   if (field === 'data_troca' || field === 'data_proxima_troca') return formatFilterDate(value);
+  if (field === 'intervalo_meses') return String(value);
   return value;
 }
 
@@ -148,6 +150,7 @@ export function renderFilterTable(list, append) {
       + buildFilterCellHtml('os', item.os)
       + buildFilterCellHtml('data_troca', item.data_troca)
       + buildFilterCellHtml('data_proxima_troca', item.data_proxima_troca)
+      + buildFilterCellHtml('intervalo_meses', item.intervalo_meses)
       + buildFilterCellHtml('status', item.status)
       + (feIsAdmin()
         ? '<td class="px-3 py-2.5 text-sm text-center" data-col="actions">' + filterDeleteBtn() + '</td>'
@@ -199,11 +202,14 @@ export function enterFilterEdit(cell, field) {
 
   var isDate = field === 'data_troca' || field === 'data_proxima_troca';
   var isQtd = field === 'qtd';
+  var isIntervalo = field === 'intervalo_meses';
   var inputHtml = isDate
     ? '<input type="date" class="filter-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800" value="' + escapeHtml(raw) + '" />'
     : isQtd
       ? '<input type="number" min="1" step="1" class="filter-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 w-20" value="' + escapeHtml(raw) + '" />'
-      : '<input type="text" class="filter-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800" value="' + escapeHtml(raw) + '" />';
+      : isIntervalo
+        ? '<input type="number" min="1" max="12" step="1" class="filter-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 w-20" value="' + escapeHtml(raw) + '" />'
+        : '<input type="text" class="filter-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800" value="' + escapeHtml(raw) + '" />';
 
   cell.innerHTML = inputHtml
     + '<button type="button" class="filter-save ml-1 px-1.5 py-1 rounded-lg bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
@@ -253,10 +259,25 @@ export async function saveFilterField(cell) {
       var nextCell = row ? row.querySelector('td[data-col="data_proxima_troca"]') : null;
       if (nextCell) refreshFilterCell(nextCell, 'data_proxima_troca', result.data.data_proxima_troca);
     }
+    if (field === 'data_troca' && result.data && result.data.intervalo_meses !== undefined) {
+      var r1 = cell.closest('tr.filter-row');
+      var ivCell = r1 ? r1.querySelector('td[data-col="intervalo_meses"]') : null;
+      if (ivCell) refreshFilterCell(ivCell, 'intervalo_meses', result.data.intervalo_meses);
+    }
     if (field === 'data_troca' && result.data && result.data.status !== undefined) {
       var row = cell.closest('tr.filter-row');
       var statusCell = row ? row.querySelector('td[data-col="status"]') : null;
       if (statusCell) refreshFilterCell(statusCell, 'status', result.data.status);
+    }
+    if (field === 'intervalo_meses' && result.data && result.data.data_proxima_troca !== undefined) {
+      var r2 = cell.closest('tr.filter-row');
+      var nextCell2 = r2 ? r2.querySelector('td[data-col="data_proxima_troca"]') : null;
+      if (nextCell2) refreshFilterCell(nextCell2, 'data_proxima_troca', result.data.data_proxima_troca);
+    }
+    if (field === 'intervalo_meses' && result.data && result.data.status !== undefined) {
+      var r3 = cell.closest('tr.filter-row');
+      var statusCell2 = r3 ? r3.querySelector('td[data-col="status"]') : null;
+      if (statusCell2) refreshFilterCell(statusCell2, 'status', result.data.status);
     }
     if (typeof showToast === 'function') showToast('Campo atualizado', 'success');
   } catch (e) {

@@ -15,7 +15,7 @@ class FilterExchangeRepository extends BaseRepository
         [$where, $types, $params] = $this->buildFilterClause($search, $status);
 
         $sql = "SELECT f.id, f.local, f.equipamento, f.uf, f.regiao, f.tamanho, f.qtd, f.os,
-                       f.data_troca, f.data_proxima_troca
+                       f.data_troca, f.data_proxima_troca, f.intervalo_meses
                 FROM filtro_trocas f
                 WHERE {$where}
                 ORDER BY {$sortBy} {$sortDir}
@@ -84,7 +84,7 @@ class FilterExchangeRepository extends BaseRepository
     public function getById(int $id): ?array
     {
         $sql = "SELECT f.id, f.local, f.equipamento, f.uf, f.regiao, f.tamanho, f.qtd, f.os,
-                       f.data_troca, f.data_proxima_troca
+                       f.data_troca, f.data_proxima_troca, f.intervalo_meses
                 FROM filtro_trocas f
                 WHERE f.id = ?";
         $stmt = $this->safePrepare($sql);
@@ -120,7 +120,7 @@ class FilterExchangeRepository extends BaseRepository
 
     public function updateField(int $id, string $field, $value): bool
     {
-        $allowed = ['local', 'equipamento', 'uf', 'regiao', 'tamanho', 'qtd', 'os', 'data_troca', 'data_proxima_troca'];
+        $allowed = ['local', 'equipamento', 'uf', 'regiao', 'tamanho', 'qtd', 'os', 'data_troca', 'data_proxima_troca', 'intervalo_meses'];
         if (!in_array($field, $allowed, true)) {
             throw new \InvalidArgumentException('Campo inválido: ' . $field);
         }
@@ -128,7 +128,7 @@ class FilterExchangeRepository extends BaseRepository
         $sql = "UPDATE filtro_trocas SET {$field} = ? WHERE id = ?";
         $stmt = $this->safePrepare($sql);
 
-        if (in_array($field, ['qtd'], true)) {
+        if (in_array($field, ['qtd', 'intervalo_meses'], true)) {
             $types = 'ii';
         } else {
             $types = 'si';

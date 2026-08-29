@@ -101,7 +101,16 @@ class FilterExchangeController
 
             $data = [];
             if ($field === 'data_troca') {
-                $data['data_proxima_troca'] = $this->service->computeNextDate($value === null ? null : (string) $value);
+                $data['data_proxima_troca'] = $this->service->computeNextDate($value === null ? null : (string) $value, 4);
+                $data['intervalo_meses'] = 4;
+                $data['status'] = $this->service->computeStatus($data['data_proxima_troca']);
+            } elseif ($field === 'intervalo_meses') {
+                $meses = (int) $value;
+                // Buscar data_troca atual para recomputar
+                $row = (new \App\Api\Repositories\FilterExchangeRepository())->getById((int) $id);
+                $dataTroca = $row['data_troca'] ?? null;
+                $data['data_proxima_troca'] = $this->service->computeNextDate($dataTroca, $meses);
+                $data['intervalo_meses'] = $meses;
                 $data['status'] = $this->service->computeStatus($data['data_proxima_troca']);
             }
 

@@ -136,7 +136,7 @@ class FilterExchangeServiceTest extends TestCase
     {
         $repo = $this->createMockRepo();
         $calls = [];
-        $repo->expects($this->exactly(2))
+        $repo->expects($this->exactly(3))
             ->method('updateField')
             ->willReturnCallback(function (int $id, string $field, $value) use (&$calls): bool {
                 $calls[] = [$id, $field, $value];
@@ -146,16 +146,17 @@ class FilterExchangeServiceTest extends TestCase
         $service = $this->createService($repo);
         $this->assertTrue($service->updateField(1, 'data_troca', '2026-07-15'));
 
-        $this->assertCount(2, $calls);
+        $this->assertCount(3, $calls);
         $this->assertSame([1, 'data_troca', '2026-07-15'], $calls[0]);
-        $this->assertSame([1, 'data_proxima_troca', '2026-11-15'], $calls[1]);
+        $this->assertSame([1, 'intervalo_meses', 4], $calls[1]);
+        $this->assertSame([1, 'data_proxima_troca', '2026-11-15'], $calls[2]);
     }
 
     public function testUpdateFieldDataTrocaEmptyClearsNextDate(): void
     {
         $repo = $this->createMockRepo();
         $calls = [];
-        $repo->expects($this->exactly(2))
+        $repo->expects($this->exactly(3))
             ->method('updateField')
             ->willReturnCallback(function (int $id, string $field, $value) use (&$calls): bool {
                 $calls[] = [$id, $field, $value];
@@ -165,9 +166,10 @@ class FilterExchangeServiceTest extends TestCase
         $service = $this->createService($repo);
         $this->assertTrue($service->updateField(1, 'data_troca', ''));
 
-        $this->assertCount(2, $calls);
+        $this->assertCount(3, $calls);
         $this->assertSame([1, 'data_troca', null], $calls[0]);
-        $this->assertSame([1, 'data_proxima_troca', null], $calls[1]);
+        $this->assertSame([1, 'intervalo_meses', 4], $calls[1]);
+        $this->assertSame([1, 'data_proxima_troca', null], $calls[2]);
     }
 
     public function testUpdateFieldOsInvalidFormatThrows(): void
@@ -393,5 +395,97 @@ class FilterExchangeServiceTest extends TestCase
         $this->expectExceptionMessage('Apenas administradores');
 
         $service->delete(7, $user);
+    }
+
+    public function testComputeNextDateWithCustomInterval(): void
+    {
+        $service = $this->createService();
+        $this->assertSame('2026-10-15', $service->computeNextDate('2026-07-15', 3));
+        $this->assertSame('2026-09-15', $service->computeNextDate('2026-07-15', 2));
+        $this->assertSame('2027-07-15', $service->computeNextDate('2026-07-15', 12));
+    }
+
+    public function testComputeNextDateInvalidIntervalThrows(): void
+    {
+        $service = $this->createService();
+        $this->expectException(\InvalidArgumentException::class);
+        $service->computeNextDate('2026-07-15', 0);
+    }
+
+    public function testUpdateFieldIntervaloRecomputesNextDate(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('getById')->willReturn(['id' => 1, 'data_troca' => '2026-07-15', 'intervalo_meses' => 4]);
+        $calls = [];
+        $repo->expects($this->exactly(2))
+            ->method('updateField')
+            ->willReturnCallback(function (int $id, string $field, $value) use (&$calls): bool {
+                $calls[] = [$id, $field, $value];
+                return true;
+            });
+
+        $service = $this->createService($repo);
+        $this->assertTrue($service->updateField(1, 'intervalo_meses', 3));
+
+        $this->assertCount(2, $calls);
+        $this->assertSame([1, 'intervalo_meses', 3], $calls[0]);
+        $this->assertSame([1, 'data_proxima_troca', '2026-10-15'], $calls[1]);
+    }
+
+    public function testUpdateFieldIntervaloWithoutTrocaKeepsNullProxima(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('getById')->willReturn(['id' => 1, 'data_troca' => null, 'intervalo_meses' => 4]);
+        $calls = [];
+        $repo->expects($this->exactly(2))
+            ->method('updateField')
+            ->willReturnCallback(function (int $id, string $field, $value) use (&$calls): bool {
+                $calls[] = [$id, $field, $value];
+                return true;
+            });
+
+        $service = $this->createService($repo);
+        $this->assertTrue($service->updateField(1, 'intervalo_meses', 3));
+
+        $this->assertSame([1, 'intervalo_meses', 3], $calls[0]);
+        $this->assertSame([1, 'data_proxima_troca', null], $calls[1]);
+    }
+
+    public function testUpdateFieldIntervaloInvalidThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Intervalo');
+        $service = $this->createService();
+        $service->updateField(1, 'intervalo_meses', 13);
+    }
+
+    public function testUpdateFieldDataTrocaResetsIntervalo(): void
+    {
+        $repo = $this->createMockRepo();
+        $calls = [];
+        $repo->expects($this->exactly(3))
+            ->method('updateField')
+            ->willReturnCallback(function (int $id, string $field, $value) use (&$calls): bool {
+                $calls[] = [$id, $field, $value];
+                return true;
+            });
+
+        $service = $this->createService($repo);
+        // Primeiro ajusta intervalo para 3
+        $repo2 = $this->createMockRepo();
+        $repo2->method('getById')->willReturn(['id' => 1, 'data_troca' => '2026-07-15', 'intervalo_meses' => 3]);
+        $calls2 = [];
+        $repo2->expects($this->exactly(2))->method('updateField')->willReturnCallback(function (int $id, string $field, $value) use (&$calls2): bool {
+            $calls2[] = [$id, $field, $value];
+            return true;
+        });
+        $service2 = $this->createService($repo2);
+        $service2->updateField(1, 'intervalo_meses', 3);
+        $this->assertSame([1, 'data_proxima_troca', '2026-10-15'], $calls2[1]);
+
+        // Depois altera troca -> deve resetar para 4
+        $service->updateField(1, 'data_troca', '2026-08-13');
+        $this->assertSame([1, 'intervalo_meses', 4], $calls[1]);
+        $this->assertSame([1, 'data_proxima_troca', '2026-12-13'], $calls[2]);
     }
 }

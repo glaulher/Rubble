@@ -15,14 +15,14 @@ class FilterExchangeService
 
     public const ALLOWED_SORT = [
         'f.local', 'f.equipamento', 'f.uf', 'f.regiao', 'f.tamanho', 'f.qtd',
-        'f.os', 'f.data_troca', 'f.data_proxima_troca',
+        'f.os', 'f.data_troca', 'f.data_proxima_troca', 'f.intervalo_meses',
     ];
 
     public const ALLOWED_DIRS = ['ASC', 'DESC'];
 
     private const ALLOWED_EDITABLE_FIELDS = [
         'local', 'equipamento', 'uf', 'regiao', 'tamanho', 'qtd', 'os',
-        'data_troca', 'data_proxima_troca',
+        'data_troca', 'data_proxima_troca', 'intervalo_meses',
     ];
 
     private const ADMIN_ONLY_FIELDS = ['tamanho', 'qtd'];
@@ -37,7 +37,7 @@ class FilterExchangeService
         $this->equipmentRepository = $equipmentRepository ?? new EquipmentRepository();
     }
 
-    public function computeNextDate(?string $dataTroca): ?string
+    public function computeNextDate(?string $dataTroca, int $meses = 4): ?string
     {
         if ($dataTroca === null || trim($dataTroca) === '') {
             return null;
@@ -46,7 +46,10 @@ class FilterExchangeService
         if (!$dt) {
             return null;
         }
-        $dt->modify('+4 months');
+        if ($meses < 1 || $meses > 12) {
+            throw new \InvalidArgumentException('Intervalo deve estar entre 1 e 12 meses');
+        }
+        $dt->modify('+' . $meses . ' months');
         return $dt->format('Y-m-d');
     }
 
@@ -155,9 +158,22 @@ class FilterExchangeService
 
         if ($field === 'data_troca') {
             $value = ($value === null || trim((string) $value) === '') ? null : (string) $value;
-            $next = $this->computeNextDate($value);
+            $next = $this->computeNextDate($value, 4);
 
             $this->repository->updateField($id, 'data_troca', $value);
+            $this->repository->updateField($id, 'intervalo_meses', 4);
+            return $this->repository->updateField($id, 'data_proxima_troca', $next);
+        }
+
+        if ($field === 'intervalo_meses') {
+            $meses = (int) $value;
+            if ($meses < 1 || $meses > 12) {
+                throw new \InvalidArgumentException('Intervalo deve estar entre 1 e 12 meses');
+            }
+            $this->repository->updateField($id, 'intervalo_meses', $meses);
+            $row = $this->repository->getById($id);
+            $dataTroca = $row['data_troca'] ?? null;
+            $next = $this->computeNextDate($dataTroca, $meses);
             return $this->repository->updateField($id, 'data_proxima_troca', $next);
         }
 
