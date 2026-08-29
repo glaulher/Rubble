@@ -43,64 +43,182 @@ export function renderBreakdownBarPreventiva(containerId, data, colorMap, total)
   container.innerHTML = html || '<p class="text-sm text-slate-400">Nenhum dado</p>';
 }
 
+export function squarifyTreemap(items, totalW, totalH) {
+  var w = totalW || 100;
+  var h = totalH || 100;
+  var results = [];
+
+  if (!items || items.length === 0) return results;
+
+  var validItems = [];
+  var totalVal = 0;
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var val = Math.max(1, it.value || it.machine_count || 1);
+    validItems.push({ item: it, value: val });
+    totalVal += val;
+  }
+
+  if (totalVal <= 0) totalVal = 1;
+
+  var totalArea = w * h;
+  var normalized = [];
+  for (var k = 0; k < validItems.length; k++) {
+    normalized.push({
+      item: validItems[k].item,
+      area: (validItems[k].value / totalVal) * totalArea,
+      value: validItems[k].value
+    });
+  }
+
+  normalized.sort(function (a, b) {
+    return b.area - a.area;
+  });
+
+  function worst(row, sideLength) {
+    var s = 0;
+    var maxA = 0;
+    var minA = Infinity;
+    for (var i = 0; i < row.length; i++) {
+      var a = row[i].area;
+      s += a;
+      if (a > maxA) maxA = a;
+      if (a < minA) minA = a;
+    }
+    if (s === 0 || sideLength === 0) return Infinity;
+    var sideSq = sideLength * sideLength;
+    var sSq = s * s;
+    return Math.max((sideSq * maxA) / sSq, sSq / (sideSq * minA));
+  }
+
+  function layoutRow(row, sideLength, x, y, isVerticalStripe) {
+    var s = 0;
+    for (var i = 0; i < row.length; i++) s += row[i].area;
+    var stripe = sideLength > 0 ? s / sideLength : 0;
+    var cur = 0;
+
+    for (var j = 0; j < row.length; j++) {
+      var it = row[j];
+      var itLen = stripe > 0 ? it.area / stripe : 0;
+
+      if (isVerticalStripe) {
+        // Vertical stripe of width stripe, items placed top to bottom
+        results.push({
+          item: it.item,
+          value: it.value,
+          x: x,
+          y: y + cur,
+          w: stripe,
+          h: itLen
+        });
+        cur += itLen;
+      } else {
+        // Horizontal stripe of height stripe, items placed left to right
+        results.push({
+          item: it.item,
+          value: it.value,
+          x: x + cur,
+          y: y,
+          w: itLen,
+          h: stripe
+        });
+        cur += itLen;
+      }
+    }
+
+    return stripe;
+  }
+
+  function step(children, x, y, rw, rh) {
+    if (!children || children.length === 0) return;
+    if (rw <= 0.0001 || rh <= 0.0001) return;
+
+    if (children.length === 1) {
+      results.push({
+        item: children[0].item,
+        value: children[0].value,
+        x: x,
+        y: y,
+        w: rw,
+        h: rh
+      });
+      return;
+    }
+
+    var isVerticalStripe = rw >= rh; // if wider than tall, cut vertical stripe
+    var side = isVerticalStripe ? rh : rw;
+
+    var row = [children[0]];
+
+    for (var i = 1; i < children.length; i++) {
+      var nextRow = row.concat([children[i]]);
+      if (worst(nextRow, side) <= worst(row, side)) {
+        row = nextRow;
+      } else {
+        break;
+      }
+    }
+
+    var stripeThickness = layoutRow(row, side, x, y, isVerticalStripe);
+    var remaining = children.slice(row.length);
+
+    if (isVerticalStripe) {
+      step(remaining, x + stripeThickness, y, Math.max(0, rw - stripeThickness), rh);
+    } else {
+      step(remaining, x, y + stripeThickness, rw, Math.max(0, rh - stripeThickness));
+    }
+  }
+
+  step(normalized, 0, 0, w, h);
+  return results;
+}
+
 export function renderTreemap(treemap) {
   var container = document.getElementById('preventivaTreemap');
   if (!container) return;
   if (!treemap || treemap.length === 0) {
-    container.innerHTML = '<p class="text-sm text-slate-400">Nenhum dado para treemap</p>';
+    container.innerHTML = '<p class="text-sm text-slate-400 p-4">Nenhum dado para treemap</p>';
     return;
   }
 
-  var maxVal = 1;
-  for (var i = 0; i < treemap.length; i++) {
-    var v = treemap[i].value || 1;
-    if (v > maxVal) maxVal = v;
-  }
-
+  var layout = squarifyTreemap(treemap, 100, 100);
   var html = '';
-  for (var j = 0; j < treemap.length; j++) {
-    var item = treemap[j];
-    var val = item.value || 1;
-    var ratio = maxVal > 0 ? (val / maxVal) : 0.5;
 
-    // Escala suave e equilibrada (sem esticar excessivamente sites com muitas máquinas)
-    var flexGrow = 1;
-    var flexBasis = '140px';
-    var minHeight = '88px';
-    var titleSize = 'text-xs font-bold';
-
-    if (val >= 16 || ratio >= 0.6) {
-      flexGrow = 3;
-      flexBasis = '240px';
-      minHeight = '108px';
-      titleSize = 'text-sm font-bold';
-    } else if (val >= 7 || ratio >= 0.3) {
-      flexGrow = 2;
-      flexBasis = '190px';
-      minHeight = '98px';
-      titleSize = 'text-xs font-bold';
-    } else if (val <= 2) {
-      flexGrow = 1;
-      flexBasis = '130px';
-      minHeight = '85px';
-      titleSize = 'text-xs font-semibold';
-    }
-
+  for (var j = 0; j < layout.length; j++) {
+    var rect = layout[j];
+    var item = rect.item;
     var qtdText = item.machine_count > 0 ? item.qtd_sum + '/' + item.machine_count : String(item.qtd_sum);
     var restam = item.restam !== undefined ? item.restam : 0;
     var pctText = item.pct !== undefined ? item.pct : 0;
 
-    html += '<div class="rounded-xl p-3 text-white flex flex-col justify-between shadow-sm transition-all hover:brightness-105" style="background:' + (item.color || '#EF4444') + '; flex: ' + flexGrow + ' 1 ' + flexBasis + '; max-width: 320px; min-height:' + minHeight + ';">';
-    html += '  <div class="flex items-start justify-between gap-1.5">';
-    html += '    <span class="' + titleSize + ' truncate" title="' + escapeHtml(item.site) + '">' + escapeHtml(item.site) + '</span>';
-    html += '    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/20 shrink-0">' + (item.machine_count > 0 ? item.machine_count + ' máq.' : item.total + ' ativ.') + '</span>';
-    html += '  </div>';
-    html += '  <div class="mt-1 space-y-0.5">';
-    html += '    <div class="text-xs opacity-95 font-medium">' + escapeHtml(qtdText) + ' (' + pctText + '%) — faltam ' + restam + '</div>';
-    html += '    <div class="text-[11px] opacity-75">' + item.total + ' ' + (item.total === 1 ? 'atividade' : 'atividades') + '</div>';
+    var isLarge = rect.w >= 16 && rect.h >= 16;
+    var isSmall = rect.w < 10 || rect.h < 10;
+    var titleSize = isLarge ? 'text-sm font-bold' : (isSmall ? 'text-[11px] font-semibold' : 'text-xs font-bold');
+    var showDetails = rect.h >= 11 && rect.w >= 10;
+    var showBadge = rect.w >= 8 && rect.h >= 8;
+
+    var tooltip = escapeHtml(item.site) + ' — ' + escapeHtml(qtdText) + ' (' + pctText + '%) | faltam ' + restam + ' | ' + item.total + ' atividade(s)';
+
+    html += '<div style="position:absolute; left:' + rect.x.toFixed(2) + '%; top:' + rect.y.toFixed(2) + '%; width:' + rect.w.toFixed(2) + '%; height:' + rect.h.toFixed(2) + '%; padding:2.5px; box-sizing:border-box;">';
+    html += '  <div class="h-full w-full rounded-xl p-2.5 text-white flex flex-col justify-between overflow-hidden shadow-sm transition-all duration-150 hover:brightness-105 hover:z-20 cursor-pointer" style="background:' + (item.color || '#EF4444') + ';" title="' + tooltip + '">';
+    html += '    <div class="flex items-start justify-between gap-1 leading-none">';
+    html += '      <span class="' + titleSize + ' truncate" title="' + escapeHtml(item.site) + '">' + escapeHtml(item.site) + '</span>';
+    if (showBadge) {
+      html += '      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/25 shrink-0">' + (item.machine_count > 0 ? item.machine_count + ' máq.' : item.total + ' ativ.') + '</span>';
+    }
+    html += '    </div>';
+    if (showDetails) {
+      html += '    <div class="mt-0.5 space-y-0.5 leading-tight">';
+      html += '      <div class="text-[11px] opacity-95 font-medium truncate">' + escapeHtml(qtdText) + ' (' + pctText + '%) — faltam ' + restam + '</div>';
+      if (rect.h >= 18 && rect.w >= 14) {
+        html += '      <div class="text-[10px] opacity-75 truncate">' + item.total + ' ' + (item.total === 1 ? 'atividade' : 'atividades') + '</div>';
+      }
+      html += '    </div>';
+    }
     html += '  </div>';
     html += '</div>';
   }
+
   container.innerHTML = html;
 }
 
@@ -425,9 +543,10 @@ export function exportPreventivaDashboardPdf() {
   }
   var statusHtml = '<div class="section"><div class="section-title">Preventivas por Status</div>' + preventivaBarChartSvg(statusItems) + '</div>';
 
-  // Treemap Grid
+  // Treemap Layout (Squarified layout for Print/PDF)
   var treemapHtml = '';
   if (d.treemap && d.treemap.length > 0) {
+    var pLayout = squarifyTreemap(d.treemap, 100, 100);
     treemapHtml = '<div class="section">';
     treemapHtml += '<div class="section-title"><span>Treemap por Site — Total máquinas e preventivadas</span>';
     treemapHtml += '<div class="legend">';
@@ -435,43 +554,36 @@ export function exportPreventivaDashboardPdf() {
     treemapHtml += '<span class="legend-item"><span class="legend-dot" style="background:#F59E0B;"></span> Em Andamento</span>';
     treemapHtml += '<span class="legend-item"><span class="legend-dot" style="background:#EF4444;"></span> Pendente</span>';
     treemapHtml += '</div></div>';
-    var maxVal = 1;
-    for (var ti0 = 0; ti0 < d.treemap.length; ti0++) {
-      var v0 = d.treemap[ti0].value || 1;
-      if (v0 > maxVal) maxVal = v0;
-    }
-
-    treemapHtml += '<div class="treemap-grid">';
-    for (var ti = 0; ti < d.treemap.length; ti++) {
-      var it = d.treemap[ti];
+    treemapHtml += '<div class="treemap-container">';
+    for (var ti = 0; ti < pLayout.length; ti++) {
+      var pRect = pLayout[ti];
+      var it = pRect.item;
       var bg = it.color || '#EF4444';
-      var val = it.value || 1;
-      var ratio = maxVal > 0 ? (val / maxVal) : 0.5;
       var qtdText = it.machine_count > 0 ? it.qtd_sum + '/' + it.machine_count : String(it.qtd_sum);
       var pctText = it.pct !== undefined ? it.pct : 0;
       var restamText = it.restam !== undefined ? it.restam : 0;
-      var flexGrow = 1;
-      var flexBasis = '130px';
-      var minHeight = '80px';
-      if (val >= 16 || ratio >= 0.6) {
-        flexGrow = 3;
-        flexBasis = '220px';
-        minHeight = '95px';
-      } else if (val >= 7 || ratio >= 0.3) {
-        flexGrow = 2;
-        flexBasis = '175px';
-        minHeight = '88px';
+
+      var isLargeP = pRect.w >= 16 && pRect.h >= 16;
+      var showDetailsP = pRect.h >= 11 && pRect.w >= 10;
+      var showBadgeP = pRect.w >= 8 && pRect.h >= 8;
+
+      treemapHtml += '<div style="position:absolute; left:' + pRect.x.toFixed(2) + '%; top:' + pRect.y.toFixed(2) + '%; width:' + pRect.w.toFixed(2) + '%; height:' + pRect.h.toFixed(2) + '%; padding:2px; box-sizing:border-box;">';
+      treemapHtml += '<div class="treemap-card" style="background:' + bg + '; height:100%; width:100%; box-sizing:border-box;">';
+      treemapHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2px;">';
+      treemapHtml += '<span class="treemap-title" style="font-size:' + (isLargeP ? '12px' : '10px') + ';">' + escapeXml(it.site) + '</span>';
+      if (showBadgeP) {
+        treemapHtml += '<span style="font-size:8px; font-weight:bold; background:rgba(0,0,0,0.25); padding:1px 3px; border-radius:3px;">' + (it.machine_count > 0 ? it.machine_count + ' máq.' : it.total + ' ativ.') + '</span>';
       }
-      treemapHtml += '<div class="treemap-card" style="background:' + bg + '; flex:' + flexGrow + ' 1 ' + flexBasis + '; max-width:280px; min-height:' + minHeight + ';">';
-      treemapHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">';
-      treemapHtml += '<span class="treemap-title" style="font-size:' + (val >= 16 ? '13px' : (val <= 2 ? '11px' : '12px')) + ';">' + escapeHtml(it.site) + '</span>';
-      treemapHtml += '<span style="font-size:9px; font-weight:bold; background:rgba(0,0,0,0.25); padding:1px 4px; border-radius:3px;">' + (it.machine_count > 0 ? it.machine_count + ' máq.' : it.total + ' ativ.') + '</span>';
       treemapHtml += '</div>';
-      treemapHtml += '<div>';
-      treemapHtml += '<div class="treemap-sub">' + escapeHtml(qtdText) + ' (' + pctText + '%) — faltam ' + restamText + '</div>';
-      treemapHtml += '<div class="treemap-count">' + it.total + ' atividade(s)</div>';
-      treemapHtml += '</div>';
-      treemapHtml += '</div>';
+      if (showDetailsP) {
+        treemapHtml += '<div>';
+        treemapHtml += '<div class="treemap-sub">' + escapeXml(qtdText) + ' (' + pctText + '%) — faltam ' + restamText + '</div>';
+        if (pRect.h >= 18 && pRect.w >= 14) {
+          treemapHtml += '<div class="treemap-count">' + it.total + ' atividade(s)</div>';
+        }
+        treemapHtml += '</div>';
+      }
+      treemapHtml += '</div></div>';
     }
     treemapHtml += '</div></div>';
   }
@@ -485,11 +597,11 @@ export function exportPreventivaDashboardPdf() {
     for (var ri = 0; ri < d.allRows.length; ri++) {
       var row = d.allRows[ri];
       tableHtml += '<tr>';
-      tableHtml += '<td><strong>' + escapeHtml(row.site || '-') + '</strong></td>';
+      tableHtml += '<td><strong>' + escapeXml(row.site || '-') + '</strong></td>';
       tableHtml += '<td>' + formatDateBr(row.data_planejada) + '</td>';
-      tableHtml += '<td>' + escapeHtml(row.ticket || '-') + '</td>';
-      tableHtml += '<td>' + escapeHtml(row.status || '-') + '</td>';
-      tableHtml += '<td>' + escapeHtml(row.equipe || '-') + '</td>';
+      tableHtml += '<td>' + escapeXml(row.ticket || '-') + '</td>';
+      tableHtml += '<td>' + escapeXml(row.status || '-') + '</td>';
+      tableHtml += '<td>' + escapeXml(row.equipe || '-') + '</td>';
       tableHtml += '<td>' + (row.qtd_executada !== null && row.qtd_executada !== '' ? row.qtd_executada : '-') + '</td>';
       tableHtml += '<td>' + escapeHtml(truncateLabel(row.obs, 60)) + '</td>';
       tableHtml += '</tr>';
@@ -511,11 +623,11 @@ export function exportPreventivaDashboardPdf() {
   html += '.kpi-label{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em}';
   html += '.kpi-value{font-size:26px;font-weight:800;margin-top:5px}';
   html += '.kpi-dot{position:absolute;top:15px;right:14px;width:11px;height:11px;border-radius:50%}';
-  html += '.treemap-grid{display:flex;flex-wrap:wrap;gap:8px}';
-  html += '.treemap-card{flex:1 1 140px;min-height:85px;border-radius:10px;padding:10px 12px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}';
-  html += '.treemap-title{font-size:13px;font-weight:700}';
-  html += '.treemap-sub{font-size:10px;opacity:0.95;font-weight:500}';
-  html += '.treemap-count{font-size:9px;opacity:0.8}';
+  html += '.treemap-container{position:relative;width:100%;height:380px;border-radius:8px;overflow:hidden;background:#f8fafc;border:1px solid #e2e8f0}';
+  html += '.treemap-card{border-radius:6px;padding:6px 8px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}';
+  html += '.treemap-title{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}';
+  html += '.treemap-sub{font-size:9px;opacity:0.95;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}';
+  html += '.treemap-count{font-size:8px;opacity:0.8}';
   html += '.legend{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:normal;color:#64748b}';
   html += '.legend-item{display:flex;align-items:center;gap:4px}';
   html += '.legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block}';
