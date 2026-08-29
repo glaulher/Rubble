@@ -82,16 +82,34 @@ export function initSidebar() {
   // Tempo Fechado link (nova aba com SSO via JWT Rubble)
   const tfLink = document.getElementById('tempoFechadoLink');
   if (tfLink) {
-    tfLink.addEventListener('click', async function (e) {
-      e.preventDefault();
-      try {
-        const mod = await import('../tempo-fechado/link.js');
-        mod.openTempoFechado();
-      } catch (_) {
-        const tok = sessionStorage.getItem('rubble_token');
-        if (!tok) { window.location.hash = '#/login'; return; }
-        window.open('/tempo-fechado/sso?token=' + encodeURIComponent(tok), '_blank', 'noopener');
+    function prepareTfHref() {
+      const token = sessionStorage.getItem('rubble_token');
+      if (token) {
+        tfLink.href = '/tempo-fechado/sso?token=' + encodeURIComponent(token);
+        tfLink.target = '_blank';
+        tfLink.rel = 'noopener';
+      } else {
+        tfLink.href = '#/login';
+        tfLink.removeAttribute('target');
       }
+    }
+
+    // Prepara o href imediatamente em interações de toque, mouse e foco
+    tfLink.addEventListener('pointerdown', prepareTfHref);
+    tfLink.addEventListener('touchstart', prepareTfHref, { passive: true });
+    tfLink.addEventListener('mouseenter', prepareTfHref);
+    tfLink.addEventListener('focus', prepareTfHref);
+
+    tfLink.addEventListener('click', function (e) {
+      prepareTfHref();
+      const token = sessionStorage.getItem('rubble_token');
+      if (!token) {
+        e.preventDefault();
+        window.location.hash = '#/login';
+      }
+      // Quando autenticado, não bloqueia o evento padrão:
+      // O navegador segue nativamente o href="/tempo-fechado/sso?token=..." com target="_blank",
+      // funcionando em 100% dos navegadores mobile sem bloqueio de pop-up.
     });
   }
 
