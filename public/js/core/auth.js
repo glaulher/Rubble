@@ -161,6 +161,20 @@ export function authGuard() {
   return true;
 }
 
+export function syncTempoFechadoLink() {
+  const tfLink = document.getElementById('tempoFechadoLink');
+  if (!tfLink) return;
+  const token = getToken();
+  if (token) {
+    tfLink.href = '/tempo-fechado/sso?token=' + encodeURIComponent(token);
+    tfLink.target = '_blank';
+    tfLink.rel = 'noopener';
+  } else {
+    tfLink.href = '#/login';
+    tfLink.removeAttribute('target');
+  }
+}
+
 export function applyRoleVisibility() {
   const user = getUser();
   if (!user) return;
@@ -177,6 +191,8 @@ export function applyRoleVisibility() {
       el.style.display = 'none';
     }
   });
+
+  syncTempoFechadoLink();
 }
 
 export function toggleSidebar(visible) {

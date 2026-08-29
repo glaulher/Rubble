@@ -94,6 +94,9 @@ export function initSidebar() {
       }
     }
 
+    // Inicializa imediatamente no carregamento da sidebar
+    prepareTfHref();
+
     // Prepara o href imediatamente em interações de toque, mouse e foco
     tfLink.addEventListener('pointerdown', prepareTfHref);
     tfLink.addEventListener('touchstart', prepareTfHref, { passive: true });
@@ -106,10 +109,26 @@ export function initSidebar() {
       if (!token) {
         e.preventDefault();
         window.location.hash = '#/login';
+        return;
       }
-      // Quando autenticado, não bloqueia o evento padrão:
-      // O navegador segue nativamente o href="/tempo-fechado/sso?token=..." com target="_blank",
-      // funcionando em 100% dos navegadores mobile sem bloqueio de pop-up.
+
+      const url = '/tempo-fechado/sso?token=' + encodeURIComponent(token);
+      tfLink.href = url;
+      tfLink.target = '_blank';
+      tfLink.rel = 'noopener';
+
+      // Em dispositivos mobile/touch, garante que a navegação ocorra mesmo com bloqueador de abas:
+      if (/Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent) || ('ontouchstart' in window)) {
+        try {
+          const w = window.open(url, '_blank');
+          if (!w || w.closed || typeof w.closed === 'undefined') {
+            window.location.href = url;
+          }
+        } catch (_) {
+          window.location.href = url;
+        }
+        e.preventDefault();
+      }
     });
   }
 
