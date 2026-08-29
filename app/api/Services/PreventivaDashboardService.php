@@ -37,11 +37,6 @@ class PreventivaDashboardService
         }
         $rows = $filtered;
 
-        $total = count($rows);
-        $completed = 0;
-        $inProgress = 0;
-        $pending = 0;
-        $statusBreakdown = [];
         $siteMap = [];
         $allRows = [];
 
@@ -57,22 +52,22 @@ class PreventivaDashboardService
             $isCompleted = ($status === 'concluído' || $status === 'concluido');
             $isInProgress = ($status === 'em andamento');
 
-            if ($isCompleted) {
-                $completed++;
-            } elseif ($isInProgress) {
-                $inProgress++;
-            } else {
-                $pending++;
-            }
-
-            $key = $status !== '' ? $status : 'desconhecido';
-            $statusBreakdown[$key] = ($statusBreakdown[$key] ?? 0) + 1;
-
             if (!isset($siteMap[$site])) {
-                $siteMap[$site] = ['site' => $site, 'total' => 0, 'completed' => 0, 'inProgress' => 0, 'pending' => 0, 'machine_count' => $machineCount, 'qtd_sum' => 0, 'status' => $status];
+                $siteMap[$site] = [
+                    'site' => $site,
+                    'total' => 0,
+                    'completed' => 0,
+                    'inProgress' => 0,
+                    'pending' => 0,
+                    'machine_count' => $machineCount,
+                    'qtd_sum' => 0,
+                    'status' => $status,
+                    'statuses' => [],
+                ];
             }
             $siteMap[$site]['total']++;
             $siteMap[$site]['qtd_sum'] += $qtd;
+            $siteMap[$site]['statuses'][$status] = ($siteMap[$site]['statuses'][$status] ?? 0) + 1;
             if ($isCompleted) {
                 $siteMap[$site]['completed']++;
             } elseif ($isInProgress) {
@@ -81,10 +76,80 @@ class PreventivaDashboardService
                 $siteMap[$site]['pending']++;
             }
             // manter machine_count mais recente
-            $siteMap[$site]['machine_count'] = $machineCount;
+            if ($machineCount > 0) {
+                $siteMap[$site]['machine_count'] = $machineCount;
+            }
 
             $allRows[] = $row;
         }
+
+        $totalMachines = 0;
+        $completedMachines = 0;
+        $inProgressMachines = 0;
+        $pendingMachines = 0;
+        $statusBreakdown = [];
+
+        foreach ($siteMap as $site => &$info) {
+            $mCount = (int) $info['machine_count'];
+            if ($mCount <= 0) {
+                $mCount = $info['qtd_sum'] > 0 ? $info['qtd_sum'] : $info['total'];
+            }
+            if ($info['qtd_sum'] > $mCount) {
+                $mCount = $info['qtd_sum'];
+            }
+            $info['machine_count'] = $mCount;
+
+            // 1. Concluídas
+            if ($info['qtd_sum'] > 0) {
+                $siteCompleted = min($info['qtd_sum'], $mCount);
+            } elseif ($info['completed'] > 0 && $info['completed'] === $info['total']) {
+                $siteCompleted = $mCount;
+            } else {
+                $siteCompleted = 0;
+            }
+
+            $remaining = max(0, $mCount - $siteCompleted);
+
+            // 2. Em Andamento
+            $siteInProgress = 0;
+            if ($remaining > 0 && $info['inProgress'] > 0) {
+                if ($info['pending'] === 0) {
+                    $siteInProgress = $remaining;
+                } else {
+                    $siteInProgress = (int) max(1, round($remaining * ($info['inProgress'] / ($info['inProgress'] + $info['pending']))));
+                    if ($siteInProgress > $remaining) {
+                        $siteInProgress = $remaining;
+                    }
+                }
+            }
+
+            // 3. Pendentes
+            $sitePending = max(0, $remaining - $siteInProgress);
+
+            $totalMachines += $mCount;
+            $completedMachines += $siteCompleted;
+            $inProgressMachines += $siteInProgress;
+            $pendingMachines += $sitePending;
+
+            // Status breakdown (em quantidade de máquinas)
+            if ($siteCompleted > 0) {
+                $statusBreakdown['concluído'] = ($statusBreakdown['concluído'] ?? 0) + $siteCompleted;
+            }
+            if ($siteInProgress > 0) {
+                $statusBreakdown['em andamento'] = ($statusBreakdown['em andamento'] ?? 0) + $siteInProgress;
+            }
+            if ($sitePending > 0) {
+                $nonCompletedStatus = 'planejado';
+                foreach ($info['statuses'] as $st => $stCount) {
+                    if ($st !== 'concluído' && $st !== 'concluido' && $st !== 'em andamento') {
+                        $nonCompletedStatus = $st;
+                        break;
+                    }
+                }
+                $statusBreakdown[$nonCompletedStatus] = ($statusBreakdown[$nonCompletedStatus] ?? 0) + $sitePending;
+            }
+        }
+        unset($info);
 
         $isFiltered = ($dateFrom !== null && $dateFrom !== '') || ($dateTo !== null && $dateTo !== '');
 
@@ -150,10 +215,10 @@ class PreventivaDashboardService
         arsort($statusBreakdown);
 
         return [
-            'total' => $total,
-            'completed' => $completed,
-            'inProgress' => $inProgress,
-            'pending' => $pending,
+            'total' => $totalMachines,
+            'completed' => $completedMachines,
+            'inProgress' => $inProgressMachines,
+            'pending' => $pendingMachines,
             'statusBreakdown' => $statusBreakdown,
             'treemap' => $treemap,
             'allRows' => $allRows,

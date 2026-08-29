@@ -528,7 +528,7 @@ export function exportPreventivaDashboardPdf() {
 
   // KPI Cards
   var kpiCards = [
-    { label: 'Total de Atividades', value: d.total || 0, color: '#2563EB', dot: '#2563EB' },
+    { label: 'Total de Máquinas', value: d.total || 0, color: '#2563EB', dot: '#2563EB' },
     { label: 'Concluídas', value: d.completed || 0, color: '#059669', dot: '#059669' },
     { label: 'Em Andamento', value: d.inProgress || 0, color: '#D97706', dot: '#D97706' },
     { label: 'Pendentes / Planejadas', value: d.pending || 0, color: '#DC2626', dot: '#DC2626' },
