@@ -19,8 +19,9 @@ import { initOsDashboard } from '/public/js/os/dashboard.js';
 import { initFilters } from '/public/js/filter-exchanges/list.js';
 import { initPdfAudit } from '/public/js/pdf-audit/audit.js';
 import { initEquipamentDashboard } from '/public/js/equipment/dashboard.js';
+import { initPreventivaDashboard } from '/public/js/preventiva/dashboard.js';
 
-const VIEW_VERSION = 37;
+const VIEW_VERSION = 38;
 
 async function loadPage(url) {
   try {
@@ -176,6 +177,13 @@ async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/os/dashboard.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/preventiva-dashboard") {
+    /*
+    |--------------------------------------------------------------------------
+    | PREVENTIVA DASHBOARD
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/preventiva/dashboard.html?v=" + VIEW_VERSION);
   } else if (hash === "#/filter-exchanges") {
     /*
     |--------------------------------------------------------------------------
@@ -248,6 +256,8 @@ async function router() {
       initPendingTickets();
     } else if (hash === "#/os-dashboard") {
       initOsDashboard();
+    } else if (hash === "#/preventiva-dashboard") {
+      initPreventivaDashboard();
     } else if (hash === "#/filter-exchanges") {
       initFilters();
     } else if (hash === "#/pdf-audit") {

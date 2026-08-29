@@ -1,0 +1,98 @@
+<div class="min-h-screen" style="background: linear-gradient(90deg, #1a2332 0%, #1e3a5f 50%, #1a2332 100%);">
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-2 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Dashboard de Preventiva</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Indicadores de atividades preventivas</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <input
+          id="preventivaDashboardSearchInput"
+          type="text"
+          aria-label="Buscar preventiva no dashboard"
+          placeholder="Filtrar por site..."
+          class="px-4 py-1.5 rounded-xl bg-slate-800 border border-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-slate-700 text-blue-200 w-60"
+        />
+        <button
+          id="preventivaDashboardPdfBtn"
+          data-action="generate-pdf"
+          class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-4 py-2 rounded-xl text-sm font-medium transition"
+        >
+          Gerar PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-4 py-3 flex flex-wrap gap-3 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 mt-3">
+    <div class="flex flex-col shrink-0">
+      <label for="preventivaDateFrom" class="text-xs text-slate-500 mb-1">Data Início</label>
+      <input type="date" id="preventivaDateFrom" class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36" />
+    </div>
+    <div class="flex flex-col shrink-0">
+      <label for="preventivaDateTo" class="text-xs text-slate-500 mb-1">Data Fim</label>
+      <input type="date" id="preventivaDateTo" class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36" />
+    </div>
+    <div class="flex flex-col shrink-0">
+      <label for="preventivaStatusFilter" class="text-xs text-slate-500 mb-1">Status</label>
+      <select id="preventivaStatusFilter" class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40">
+        <option value="">Todos</option>
+        <option value="Planejado">Planejado</option>
+        <option value="Em Andamento">Em Andamento</option>
+        <option value="Concluído">Concluído</option>
+        <option value="Pendente">Pendente</option>
+        <option value="Projeto Clean Up">Projeto Clean Up</option>
+      </select>
+    </div>
+    <div class="flex flex-col shrink-0">
+      <label for="preventivaSearchFilter" class="text-xs text-slate-500 mb-1">Buscar</label>
+      <input type="text" id="preventivaSearchFilter" placeholder="Site, ticket..." class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-64" />
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <div id="preventivaDashboardLoading" class="text-center py-20 text-slate-400">
+      <p class="text-lg">Carregando dados...</p>
+    </div>
+
+    <div id="preventivaKpiSection" class="hidden">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total</p>
+          <p id="preventivaKpiTotal" class="text-3xl font-light text-slate-800 mt-1">0</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Concluídas</p>
+          <p id="preventivaKpiCompleted" class="text-3xl font-light text-emerald-600 mt-1">0</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Em Andamento</p>
+          <p id="preventivaKpiInProgress" class="text-3xl font-light text-amber-600 mt-1">0</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Pendentes</p>
+          <p id="preventivaKpiPending" class="text-3xl font-light text-red-600 mt-1">0</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="preventivaBreakdownSection" class="hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+        <h3 class="text-sm font-semibold text-slate-700 mb-4">Preventivas por Status</h3>
+        <div id="preventivaStatusBars" class="space-y-3"></div>
+      </div>
+    </div>
+
+    <div id="preventivaTreemapSection" class="hidden">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+        <h3 class="text-sm font-semibold text-slate-700 mb-4">Treemap por Site — Total máquinas (tamanho) e preventivadas (cor: verde concluído / amarelo em andamento / vermelho pendente)</h3>
+        <div id="preventivaTreemap" class="flex flex-wrap gap-2 min-h-[200px]"></div>
+        <div id="preventivaTreemapLegend" class="flex flex-wrap gap-4 mt-4 text-xs text-slate-500">
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#10B981"></span> Concluído</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#F59E0B"></span> Em Andamento</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#EF4444"></span> Pendente/Planejado</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

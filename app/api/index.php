@@ -12,7 +12,7 @@ use App\Api\Controllers\{
     PvController, UserController, ScmController, PreventiveCycleController,
     UploadController, EmailController, ExportController, PdfAuditController,
     PlannedActivityController, PreventivaController, FilterExchangeController,
-    PendingTicketsController
+    PendingTicketsController, PreventivaDashboardController
 };
 Env::load(__DIR__ . '/../../.env');
 
@@ -77,6 +77,9 @@ $router->addRoute('pv-dashboard', 'GET', fn () => (new PvDashboardController())-
 
 // OS Dashboard (Gestão de OS KPI)
 $router->addRoute('os-dashboard', 'GET', fn () => (new OsDashboardController())->stats());
+
+// Preventiva Dashboard
+$router->addRoute('preventiva-dashboard', 'GET', fn () => (new PreventivaDashboardController())->stats());
 
 // Notifications
 $router->addRoute('notify', 'GET', function () use ($auth) {
