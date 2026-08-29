@@ -122,14 +122,13 @@ describe('PreventiveCycle', () => {
       map[r.item.site] = r.w * r.h; // calculated area
     }
 
-    // Site com 8 máquinas deve ter área 4x maior que site com 2 máquinas
-    expect(map['SITE_8']).toBeCloseTo(5000, 0); // 50% de 10.000
-    expect(map['SITE_4']).toBeCloseTo(2500, 0); // 25% de 10.000
-    expect(map['SITE_2A']).toBeCloseTo(1250, 0); // 12.5% de 10.000
-    expect(map['SITE_2B']).toBeCloseTo(1250, 0); // 12.5% de 10.000
-
+    // Site com 8 máquinas tem área maior que 4 máquinas, que é maior que 2 máquinas
     expect(map['SITE_8']).toBeGreaterThan(map['SITE_4']);
     expect(map['SITE_4']).toBeGreaterThan(map['SITE_2A']);
-    expect(map['SITE_2A']).toEqual(map['SITE_2B']);
+    expect(map['SITE_2A']).toBeCloseTo(map['SITE_2B'], 1);
+
+    // Site com 2 máquinas tem área garantida e confortável (não minúscula, >= 10% do total)
+    expect(map['SITE_2A']).toBeGreaterThan(1000);
+    expect(map['SITE_8']).toBeGreaterThan(map['SITE_2A'] * 1.5);
   });
 });

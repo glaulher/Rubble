@@ -50,13 +50,17 @@ export function squarifyTreemap(items, totalW, totalH) {
 
   if (!items || items.length === 0) return results;
 
+  // Escala balanceada (sublinear / calibrada):
+  // Garante que sites com 8 máquinas sejam visivelmente maiores que os de 2 máquinas,
+  // mas sem encolher os sites de 1-2 máquinas a um tamanho ilegível/minúsculo.
   var validItems = [];
   var totalVal = 0;
   for (var i = 0; i < items.length; i++) {
     var it = items[i];
-    var val = Math.max(1, it.value || it.machine_count || 1);
-    validItems.push({ item: it, value: val });
-    totalVal += val;
+    var rawVal = Math.max(1, it.value || it.machine_count || 1);
+    var scaledVal = Math.pow(rawVal, 0.6) + 1.5;
+    validItems.push({ item: it, rawValue: rawVal, value: scaledVal });
+    totalVal += scaledVal;
   }
 
   if (totalVal <= 0) totalVal = 1;
@@ -67,7 +71,8 @@ export function squarifyTreemap(items, totalW, totalH) {
     normalized.push({
       item: validItems[k].item,
       area: (validItems[k].value / totalVal) * totalArea,
-      value: validItems[k].value
+      value: validItems[k].value,
+      rawValue: validItems[k].rawValue
     });
   }
 
@@ -106,6 +111,7 @@ export function squarifyTreemap(items, totalW, totalH) {
         results.push({
           item: it.item,
           value: it.value,
+          rawValue: it.rawValue,
           x: x,
           y: y + cur,
           w: stripe,
@@ -117,6 +123,7 @@ export function squarifyTreemap(items, totalW, totalH) {
         results.push({
           item: it.item,
           value: it.value,
+          rawValue: it.rawValue,
           x: x + cur,
           y: y,
           w: itLen,
@@ -137,6 +144,7 @@ export function squarifyTreemap(items, totalW, totalH) {
       results.push({
         item: children[0].item,
         value: children[0].value,
+        rawValue: children[0].rawValue,
         x: x,
         y: y,
         w: rw,
@@ -178,8 +186,14 @@ export function renderTreemap(treemap) {
   if (!container) return;
   if (!treemap || treemap.length === 0) {
     container.innerHTML = '<p class="text-sm text-slate-400 p-4">Nenhum dado para treemap</p>';
+    container.style.height = 'auto';
     return;
   }
+
+  // Altura dinâmica e confortável para garantir leitura excelente de todos os cartões
+  var count = treemap.length;
+  var minContainerH = Math.max(520, Math.min(850, Math.ceil(count / 3) * 75));
+  container.style.height = minContainerH + 'px';
 
   var layout = squarifyTreemap(treemap, 100, 100);
   var html = '';
@@ -187,31 +201,32 @@ export function renderTreemap(treemap) {
   for (var j = 0; j < layout.length; j++) {
     var rect = layout[j];
     var item = rect.item;
-    var qtdText = item.machine_count > 0 ? item.qtd_sum + '/' + item.machine_count : String(item.qtd_sum);
+    var rawMachines = item.machine_count !== undefined ? item.machine_count : (item.value || 0);
+    var qtdText = rawMachines > 0 ? item.qtd_sum + '/' + rawMachines : String(item.qtd_sum);
     var restam = item.restam !== undefined ? item.restam : 0;
     var pctText = item.pct !== undefined ? item.pct : 0;
 
-    var isLarge = rect.w >= 16 && rect.h >= 16;
-    var isSmall = rect.w < 10 || rect.h < 10;
+    var isLarge = rect.w >= 18 && rect.h >= 16;
+    var isSmall = rect.w < 9 || rect.h < 9;
     var titleSize = isLarge ? 'text-sm font-bold' : (isSmall ? 'text-[11px] font-semibold' : 'text-xs font-bold');
-    var showDetails = rect.h >= 11 && rect.w >= 10;
-    var showBadge = rect.w >= 8 && rect.h >= 8;
+    var showDetails = rect.h >= 8 && rect.w >= 7;
+    var showBadge = rect.w >= 6 && rect.h >= 6;
 
     var tooltip = escapeHtml(item.site) + ' — ' + escapeHtml(qtdText) + ' (' + pctText + '%) | faltam ' + restam + ' | ' + item.total + ' atividade(s)';
 
     html += '<div style="position:absolute; left:' + rect.x.toFixed(2) + '%; top:' + rect.y.toFixed(2) + '%; width:' + rect.w.toFixed(2) + '%; height:' + rect.h.toFixed(2) + '%; padding:2.5px; box-sizing:border-box;">';
-    html += '  <div class="h-full w-full rounded-xl p-2.5 text-white flex flex-col justify-between overflow-hidden shadow-sm transition-all duration-150 hover:brightness-105 hover:z-20 cursor-pointer" style="background:' + (item.color || '#EF4444') + ';" title="' + tooltip + '">';
+    html += '  <div class="h-full w-full rounded-xl p-2 text-white flex flex-col justify-between overflow-hidden shadow-sm transition-all duration-150 hover:brightness-105 hover:z-20 cursor-pointer" style="background:' + (item.color || '#EF4444') + ';" title="' + tooltip + '">';
     html += '    <div class="flex items-start justify-between gap-1 leading-none">';
     html += '      <span class="' + titleSize + ' truncate" title="' + escapeHtml(item.site) + '">' + escapeHtml(item.site) + '</span>';
     if (showBadge) {
-      html += '      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/25 shrink-0">' + (item.machine_count > 0 ? item.machine_count + ' máq.' : item.total + ' ativ.') + '</span>';
+      html += '      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/25 shrink-0">' + (rawMachines > 0 ? rawMachines + ' máq.' : item.total + ' ativ.') + '</span>';
     }
     html += '    </div>';
     if (showDetails) {
       html += '    <div class="mt-0.5 space-y-0.5 leading-tight">';
-      html += '      <div class="text-[11px] opacity-95 font-medium truncate">' + escapeHtml(qtdText) + ' (' + pctText + '%) — faltam ' + restam + '</div>';
-      if (rect.h >= 18 && rect.w >= 14) {
-        html += '      <div class="text-[10px] opacity-75 truncate">' + item.total + ' ' + (item.total === 1 ? 'atividade' : 'atividades') + '</div>';
+      html += '      <div class="text-[10px] md:text-[11px] opacity-95 font-medium truncate">' + escapeHtml(qtdText) + ' (' + pctText + '%) — faltam ' + restam + '</div>';
+      if (rect.h >= 14 && rect.w >= 12) {
+        html += '      <div class="text-[9px] md:text-[10px] opacity-75 truncate">' + item.total + ' ' + (item.total === 1 ? 'atividade' : 'atividades') + '</div>';
       }
       html += '    </div>';
     }
@@ -547,6 +562,8 @@ export function exportPreventivaDashboardPdf() {
   var treemapHtml = '';
   if (d.treemap && d.treemap.length > 0) {
     var pLayout = squarifyTreemap(d.treemap, 100, 100);
+    var pCount = d.treemap.length;
+    var printH = Math.max(380, Math.min(560, Math.ceil(pCount / 3) * 60));
     treemapHtml = '<div class="section">';
     treemapHtml += '<div class="section-title"><span>Treemap por Site — Total máquinas e preventivadas</span>';
     treemapHtml += '<div class="legend">';
@@ -554,31 +571,32 @@ export function exportPreventivaDashboardPdf() {
     treemapHtml += '<span class="legend-item"><span class="legend-dot" style="background:#F59E0B;"></span> Em Andamento</span>';
     treemapHtml += '<span class="legend-item"><span class="legend-dot" style="background:#EF4444;"></span> Pendente</span>';
     treemapHtml += '</div></div>';
-    treemapHtml += '<div class="treemap-container">';
+    treemapHtml += '<div class="treemap-container" style="height:' + printH + 'px;">';
     for (var ti = 0; ti < pLayout.length; ti++) {
       var pRect = pLayout[ti];
       var it = pRect.item;
       var bg = it.color || '#EF4444';
-      var qtdText = it.machine_count > 0 ? it.qtd_sum + '/' + it.machine_count : String(it.qtd_sum);
+      var rawMachinesP = it.machine_count !== undefined ? it.machine_count : (it.value || 0);
+      var qtdText = rawMachinesP > 0 ? it.qtd_sum + '/' + rawMachinesP : String(it.qtd_sum);
       var pctText = it.pct !== undefined ? it.pct : 0;
       var restamText = it.restam !== undefined ? it.restam : 0;
 
-      var isLargeP = pRect.w >= 16 && pRect.h >= 16;
-      var showDetailsP = pRect.h >= 11 && pRect.w >= 10;
-      var showBadgeP = pRect.w >= 8 && pRect.h >= 8;
+      var isLargeP = pRect.w >= 18 && pRect.h >= 16;
+      var showDetailsP = pRect.h >= 8 && pRect.w >= 7;
+      var showBadgeP = pRect.w >= 6 && pRect.h >= 6;
 
       treemapHtml += '<div style="position:absolute; left:' + pRect.x.toFixed(2) + '%; top:' + pRect.y.toFixed(2) + '%; width:' + pRect.w.toFixed(2) + '%; height:' + pRect.h.toFixed(2) + '%; padding:2px; box-sizing:border-box;">';
       treemapHtml += '<div class="treemap-card" style="background:' + bg + '; height:100%; width:100%; box-sizing:border-box;">';
       treemapHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2px;">';
       treemapHtml += '<span class="treemap-title" style="font-size:' + (isLargeP ? '12px' : '10px') + ';">' + escapeXml(it.site) + '</span>';
       if (showBadgeP) {
-        treemapHtml += '<span style="font-size:8px; font-weight:bold; background:rgba(0,0,0,0.25); padding:1px 3px; border-radius:3px;">' + (it.machine_count > 0 ? it.machine_count + ' máq.' : it.total + ' ativ.') + '</span>';
+        treemapHtml += '<span style="font-size:8px; font-weight:bold; background:rgba(0,0,0,0.25); padding:1px 3px; border-radius:3px;">' + (rawMachinesP > 0 ? rawMachinesP + ' máq.' : it.total + ' ativ.') + '</span>';
       }
       treemapHtml += '</div>';
       if (showDetailsP) {
         treemapHtml += '<div>';
         treemapHtml += '<div class="treemap-sub">' + escapeXml(qtdText) + ' (' + pctText + '%) — faltam ' + restamText + '</div>';
-        if (pRect.h >= 18 && pRect.w >= 14) {
+        if (pRect.h >= 14 && pRect.w >= 12) {
           treemapHtml += '<div class="treemap-count">' + it.total + ' atividade(s)</div>';
         }
         treemapHtml += '</div>';
