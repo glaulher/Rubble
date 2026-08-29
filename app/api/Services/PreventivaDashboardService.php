@@ -139,8 +139,11 @@ class PreventivaDashboardService
             ];
         }
 
-        // Ordenar treemap por site para estabilidade
+        // Ordenar treemap por value DESC (maiores sites primeiro) e site ASC
         usort($treemap, function ($a, $b) {
+            if ($b['value'] !== $a['value']) {
+                return $b['value'] <=> $a['value'];
+            }
             return strcmp($a['site'], $b['site']);
         });
 

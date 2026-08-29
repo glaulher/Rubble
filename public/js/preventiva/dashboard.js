@@ -50,21 +50,56 @@ export function renderTreemap(treemap) {
     container.innerHTML = '<p class="text-sm text-slate-400">Nenhum dado para treemap</p>';
     return;
   }
-  var totalValue = 0;
-  for (var i = 0; i < treemap.length; i++) totalValue += treemap[i].value || 0;
-  if (totalValue === 0) totalValue = treemap.length;
+
+  var maxVal = 1;
+  for (var i = 0; i < treemap.length; i++) {
+    var v = treemap[i].value || 1;
+    if (v > maxVal) maxVal = v;
+  }
+
   var html = '';
   for (var j = 0; j < treemap.length; j++) {
     var item = treemap[j];
-    var pct = totalValue > 0 ? (item.value / totalValue) * 100 : 0;
-    var flexBasis = Math.max(12, pct).toFixed(1);
+    var val = item.value || 1;
+    var ratio = maxVal > 0 ? (val / maxVal) : 0.5;
+
+    // Escala dinâmica proporcional baseada no número de máquinas
+    var flexGrow = Math.max(1, Math.round(val));
+    var flexBasis = '14%';
+    var minHeight = '90px';
+    var minWidth = '130px';
+    var titleSize = 'text-sm font-semibold';
+
+    if (val >= 16 || ratio >= 0.65) {
+      flexBasis = '28%';
+      minHeight = '140px';
+      minWidth = '210px';
+      titleSize = 'text-base font-bold';
+    } else if (val >= 7 || ratio >= 0.35) {
+      flexBasis = '20%';
+      minHeight = '115px';
+      minWidth = '170px';
+      titleSize = 'text-sm font-bold';
+    } else if (val <= 2) {
+      flexBasis = '11%';
+      minHeight = '80px';
+      minWidth = '115px';
+      titleSize = 'text-xs font-semibold';
+    }
+
     var qtdText = item.machine_count > 0 ? item.qtd_sum + '/' + item.machine_count : String(item.qtd_sum);
     var restam = item.restam !== undefined ? item.restam : 0;
     var pctText = item.pct !== undefined ? item.pct : 0;
-    html += '<div class="rounded-xl p-3 text-white flex flex-col justify-between" style="background:' + (item.color || '#EF4444') + '; flex: 1 1 ' + flexBasis + '%; min-width:140px; min-height:90px;">';
-    html += '<span class="text-sm font-semibold truncate" title="' + escapeHtml(item.site) + '">' + escapeHtml(item.site) + '</span>';
-    html += '<span class="text-xs opacity-90">' + escapeHtml(qtdText) + ' (' + pctText + '%) — faltam ' + restam + '</span>';
-    html += '<span class="text-xs opacity-80">' + item.total + ' atividades</span>';
+
+    html += '<div class="rounded-xl p-3 text-white flex flex-col justify-between shadow-sm transition-all hover:scale-[1.01]" style="background:' + (item.color || '#EF4444') + '; flex: ' + flexGrow + ' 1 ' + flexBasis + '; min-width:' + minWidth + '; min-height:' + minHeight + ';">';
+    html += '  <div class="flex items-start justify-between gap-1">';
+    html += '    <span class="' + titleSize + ' truncate" title="' + escapeHtml(item.site) + '">' + escapeHtml(item.site) + '</span>';
+    html += '    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/25 shrink-0">' + (item.machine_count > 0 ? item.machine_count + ' máq.' : item.total + ' ativ.') + '</span>';
+    html += '  </div>';
+    html += '  <div class="mt-1 space-y-0.5">';
+    html += '    <div class="text-xs opacity-95 font-medium">' + escapeHtml(qtdText) + ' (' + pctText + '%) — faltam ' + restam + '</div>';
+    html += '    <div class="text-[11px] opacity-75">' + item.total + ' ' + (item.total === 1 ? 'atividade' : 'atividades') + '</div>';
+    html += '  </div>';
     html += '</div>';
   }
   container.innerHTML = html;
@@ -401,17 +436,33 @@ export function exportPreventivaDashboardPdf() {
     treemapHtml += '<span class="legend-item"><span class="legend-dot" style="background:#F59E0B;"></span> Em Andamento</span>';
     treemapHtml += '<span class="legend-item"><span class="legend-dot" style="background:#EF4444;"></span> Pendente</span>';
     treemapHtml += '</div></div>';
+    var maxVal = 1;
+    for (var ti0 = 0; ti0 < d.treemap.length; ti0++) {
+      var v0 = d.treemap[ti0].value || 1;
+      if (v0 > maxVal) maxVal = v0;
+    }
+
     treemapHtml += '<div class="treemap-grid">';
     for (var ti = 0; ti < d.treemap.length; ti++) {
       var it = d.treemap[ti];
       var bg = it.color || '#EF4444';
+      var val = it.value || 1;
+      var ratio = maxVal > 0 ? (val / maxVal) : 0.5;
       var qtdText = it.machine_count > 0 ? it.qtd_sum + '/' + it.machine_count : String(it.qtd_sum);
       var pctText = it.pct !== undefined ? it.pct : 0;
       var restamText = it.restam !== undefined ? it.restam : 0;
-      treemapHtml += '<div class="treemap-card" style="background:' + bg + '">';
-      treemapHtml += '<span class="treemap-title">' + escapeHtml(it.site) + '</span>';
-      treemapHtml += '<span class="treemap-sub">' + escapeHtml(qtdText) + ' (' + pctText + '%) — faltam ' + restamText + '</span>';
-      treemapHtml += '<span class="treemap-count">' + it.total + ' atividade(s)</span>';
+      var flexGrow = Math.max(1, Math.round(val));
+      var flexBasis = (val >= 16 || ratio >= 0.65) ? '28%' : ((val >= 7 || ratio >= 0.35) ? '20%' : ((val <= 2) ? '11%' : '14%'));
+      var minHeight = (val >= 16 || ratio >= 0.65) ? '120px' : ((val >= 7 || ratio >= 0.35) ? '95px' : ((val <= 2) ? '70px' : '85px'));
+      treemapHtml += '<div class="treemap-card" style="background:' + bg + '; flex:' + flexGrow + ' 1 ' + flexBasis + '; min-height:' + minHeight + ';">';
+      treemapHtml += '<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">';
+      treemapHtml += '<span class="treemap-title" style="font-size:' + (val >= 16 ? '13px' : (val <= 2 ? '11px' : '12px')) + ';">' + escapeHtml(it.site) + '</span>';
+      treemapHtml += '<span style="font-size:9px; font-weight:bold; background:rgba(0,0,0,0.25); padding:1px 4px; border-radius:3px;">' + (it.machine_count > 0 ? it.machine_count + ' máq.' : it.total + ' ativ.') + '</span>';
+      treemapHtml += '</div>';
+      treemapHtml += '<div>';
+      treemapHtml += '<div class="treemap-sub">' + escapeHtml(qtdText) + ' (' + pctText + '%) — faltam ' + restamText + '</div>';
+      treemapHtml += '<div class="treemap-count">' + it.total + ' atividade(s)</div>';
+      treemapHtml += '</div>';
       treemapHtml += '</div>';
     }
     treemapHtml += '</div></div>';
