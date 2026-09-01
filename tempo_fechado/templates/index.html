@@ -37,8 +37,17 @@
         <button onclick="abrirPagina('inter_jornada', this)">Violações Inter Jornada</button>
         <button onclick="abrirPagina('dashboard', this)">Banco de Horas</button>
         <button onclick="abrirExtratoBancoHoras(this)">Extrato Banco de Horas</button>
-        <button onclick="filtrarTipo('', 'he', this)">Hora Extra</button>
-        <button onclick="abrirPagina('hora_extra_simplificada', this)">Horas Extras Simplificadas</button>
+        <div class="menu-group open" id="groupHorasExtras">
+          <button type="button" class="menu-group-btn" onclick="toggleSubmenu('submenuHorasExtras', this)">
+            <span>Horas Extras</span>
+            <span class="menu-arrow">▾</span>
+          </button>
+          <div id="submenuHorasExtras" class="submenu">
+            <button onclick="filtrarTipo('', 'he', this)">Hora Extra</button>
+            <button onclick="abrirPagina('hora_extra_simplificada', this)">Horas Extras Simplificadas</button>
+            <button onclick="abrirDashboardHorasExtras(this)">Dashboard de Horas Extras</button>
+          </div>
+        </div>
         <button onclick="abrirPainelAnotacoesOperacionaisV82161(this)">Anotações Operacionais</button>
         <button onclick="abrirDashboardExecutivo(this)">Dashboard Executivo</button>
         <button onclick="abrirAlertasAutomaticos(this)">Central de Alertas</button>
@@ -65,6 +74,7 @@
           <a id="btnTopbarBaixarExcel" class="btn secondary" href="/tempo-fechado/download/excel">Baixar Excel</a>
           <button id="btnTopbarExportarGuia" class="btn secondary" onclick="exportarGuiaAtualParaExcelV82160()">Exportar Guia</button>
           <button id="btnTopbarUploadGuia" class="btn secondary hidden" onclick="uploadGuiaHoraExtraSimplificadaV82172()">Upload Guia</button>
+          <button id="btnTopbarPdfDashboardHe" class="btn secondary hidden" onclick="exportarDashboardHorasExtrasPdf()">Gerar PDF</button>
           <button id="btnTopbarAtualizarDados" class="btn" onclick="atualizarDadosGuiaAtual()">Atualizar Dados</button>
         </div>
       </section>
@@ -110,8 +120,11 @@
         <select id="filtroInconsistencia" style="display:none;">
           <option value="">Todas as inconsistências</option>
         </select>
-
-        <span id="boxFiltroTipo"><select id="tipo"><option value="">Todos os tipos</option><option value="he">Com H.E.</option><option value="ausencia">Com Ausência</option><option value="saldo_negativo">Saldo Negativo</option></select></span>
+        <select id="tipo" style="display:none;">
+          <option value="">Todos os registros</option>
+          <option value="he">Horas Extras</option>
+          <option value="ausencia">Ausências</option>
+        </select>
         <button class="btn secondary" onclick="limparFiltros()">Limpar</button>
       </section>
 
@@ -136,6 +149,7 @@
         <div class="table-header"><h3 id="tituloTabela">Base Consolidada</h3><span id="statusCarga">Aguardando dados...</span></div>
         <div id="dashboardExecutivoPremium" class="dashboard-executivo-premium hidden"></div>
         <div id="painelBancoHoras2" class="bh2-panel hidden"></div>
+        <div id="dashboardHorasExtras" class="dashboard-horas-extras hidden"></div>
         <div class="table-wrap">
           <table id="tabelaConsolidado">
             <thead><tr>
@@ -161,9 +175,6 @@
       </section>
     </main>
   </div>
-  <script src="/static/app.js?v=8.21.75"></script>
+  <script src="/static/app.js?v=8.21.76"></script>
 </body>
 </html>
-
-
-

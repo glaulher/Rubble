@@ -377,5 +377,79 @@ describe('Tempo Fechado - Upload Guia (Horas Extras Simplificadas)', () => {
 
       expect(result.observacao).toBe('testou man');
     });
+
+    test('Dashboard de Horas Extras processarDados computes metrics, rankings and Sobreaviso accurately', () => {
+      const tempoParaMinutos = (valor) => {
+        let s = String(valor || '').trim();
+        if (!s) return 0;
+        const sinal = s.startsWith('-') ? -1 : 1;
+        s = s.replace('-', '').trim();
+        if (s.includes(':')) {
+          const p = s.split(':');
+          return sinal * ((parseInt(p[0] || '0', 10) * 60) + parseInt(p[1] || '0', 10));
+        }
+        return 0;
+      };
+
+      const formatarMinutosParaHorasMinutos = (totalMinutos) => {
+        const abs = Math.abs(Math.round(totalMinutos));
+        const h = Math.floor(abs / 60);
+        const m = abs % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      };
+
+      const sampleRows = [
+        { nome: 'CARLOS SILVA', cc: 'CC01', data: '17/08/2026', dia: 'Seg', he: '02:00' },
+        { nome: 'CARLOS SILVA', cc: 'CC01', data: '18/08/2026', dia: 'Ter', he: '01:30' },
+        { nome: 'ANA PEREIRA', cc: 'CC02', data: '17/08/2026', dia: 'Seg', he: '03:00' },
+        { nome: 'MARCOS SOUZA', cc: 'CC01', data: '22/08/2026', dia: 'Sáb', he: '04:00' },
+      ];
+
+      const cache = {
+        'horas_extras_simplificadas|cc01|carlos silva|17/08/2026|seg': {
+          nome_gestor: 'Renata',
+          sobreaviso: 'Sim',
+          observacao: 'Reparo Chiller',
+        },
+        'horas_extras_simplificadas|cc02|ana pereira|17/08/2026|seg': {
+          nome_gestor: 'Renata',
+          sobreaviso: 'Não',
+          observacao: 'Manutenção Preventiva',
+        },
+      };
+
+      let totalMinutos = 0;
+      let totalRegistros = 0;
+      const colaboradoresMap = new Map();
+      let sobreavisoSimMin = 0;
+      let justificadasCount = 0;
+
+      for (const r of sampleRows) {
+        const minHe = tempoParaMinutos(r.he);
+        totalMinutos += minHe;
+        totalRegistros++;
+
+        if (!colaboradoresMap.has(r.nome)) {
+          colaboradoresMap.set(r.nome, { nome: r.nome, minutos: 0 });
+        }
+        colaboradoresMap.get(r.nome).minutos += minHe;
+
+        const k = `horas_extras_simplificadas|${r.cc.toLowerCase()}|${r.nome.toLowerCase()}|${r.data}|${r.dia.toLowerCase()}`;
+        const anotacao = cache[k] || {};
+        if (anotacao.sobreaviso === 'Sim') sobreavisoSimMin += minHe;
+        if (anotacao.observacao) justificadasCount++;
+      }
+
+      const topColabs = Array.from(colaboradoresMap.values()).sort((a, b) => b.minutos - a.minutos);
+
+      expect(totalMinutos).toBe(630);
+      expect(formatarMinutosParaHorasMinutos(totalMinutos)).toBe('10:30');
+      expect(totalRegistros).toBe(4);
+      expect(colaboradoresMap.size).toBe(3);
+      expect(topColabs[0].nome).toBe('MARCOS SOUZA');
+      expect(topColabs[0].minutos).toBe(240);
+      expect(sobreavisoSimMin).toBe(120);
+      expect(justificadasCount).toBe(2);
+    });
   });
 });

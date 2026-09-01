@@ -165,6 +165,7 @@ const PAGINAS_EXPORTAVEIS_V82160 = new Set([
   "extrato_banco_horas",
   "hora_extra",
   "hora_extra_simplificada",
+  "dashboard_horas_extras",
   "ausencias",
   "anotacoes_operacionais"
 ]);
@@ -885,7 +886,7 @@ function ajustarFiltroDataBancoHoras() {
 function ajustarFiltroDataConsolidado() {
   const boxMulti = qs("boxMultiDateControl");
   const boxRange = qs("boxDateRangeControl");
-  const isHes = paginaAtual === "hora_extra_simplificada";
+  const isHes = paginaAtual === "hora_extra_simplificada" || paginaAtual === "dashboard_horas_extras";
 
   if (boxMulti) {
     boxMulti.classList.toggle("hidden", isHes);
@@ -969,6 +970,18 @@ function atualizarAcoesTopbarPorPagina() {
       btnUploadGuia.removeAttribute("aria-hidden");
     } else {
       btnUploadGuia.setAttribute("aria-hidden", "true");
+    }
+  }
+
+  const btnPdfHe = qs("btnTopbarPdfDashboardHe");
+  if (btnPdfHe) {
+    const mostrarPdf = paginaAtual === "dashboard_horas_extras";
+    btnPdfHe.classList.toggle("hidden", !mostrarPdf);
+    btnPdfHe.style.display = mostrarPdf ? "" : "none";
+    if (mostrarPdf) {
+      btnPdfHe.removeAttribute("aria-hidden");
+    } else {
+      btnPdfHe.setAttribute("aria-hidden", "true");
     }
   }
 
@@ -1085,7 +1098,7 @@ function renderizarCardsPorGuia() {
     layout = CARDS_LAYOUT_VIOLACOES_JORNADA;
   } else if (paginaAtual === "dashboard") {
     layout = CARDS_LAYOUT_BANCO_HORAS;
-  } else if (paginaAtual === "hora_extra" || paginaAtual === "hora_extra_simplificada") {
+  } else if (paginaAtual === "hora_extra" || paginaAtual === "hora_extra_simplificada" || paginaAtual === "dashboard_horas_extras") {
     layout = CARDS_LAYOUT_HORA_EXTRA;
   } else if (["inconsistencias", "ponto_aberto", "ponto_aberto_impar", "inter_jornada"].includes(paginaAtual)) {
     layout = CARDS_LAYOUT_OPERACIONAL;
@@ -4400,8 +4413,12 @@ ajustarFiltroTipoInconsistencias();
     qs("subtituloPagina").textContent = "Visão simplificada das entradas, saídas e justificativas de horas extras.";
     if (qs("tipo")) qs("tipo").value = "he";
     if (qs("filtroInconsistencia")) qs("filtroInconsistencia").value = "";
+    abrirSubmenuSeInativo("submenuHorasExtras");
     prepararFiltrosPrincipaisDaGuia(true);
     carregarConsolidado();
+
+  } else if (pagina === "dashboard_horas_extras") {
+    abrirDashboardHorasExtras();
 
   } else {
     paginaAtual = "consolidado";
@@ -4418,12 +4435,14 @@ function filtrarTipo(status, tipo, el) {
   iniciarTransicaoPagina(tipo === "he" ? "hora_extra" : (tipo === "ausencia" ? "ausencias" : "consolidado"));
   ocultarDashboardExecutivoPremium();
   ocultarPainelBancoHoras2();
+  ocultarDashboardHorasExtras();
   if (tipo === "he") {
     paginaAtual = "hora_extra";
     renderizarCardsPorGuia();
     marcarPaginaAtualClasse();
     ajustarControleOrdenacaoBancoHoras();
     renderizarCardsPorGuia();
+    abrirSubmenuSeInativo("submenuHorasExtras");
   } else if (tipo === "ausencia") {
     paginaAtual = "ausencias";
   } else {
@@ -4459,6 +4478,7 @@ function atualizarDadosGuiaAtual() {
   if (pagina === "violacoes_jornada") return carregarViolacoesJornada();
   if (pagina === "extrato_banco_horas") return carregarExtratoBancoHoras();
   if (pagina === "anotacoes_operacionais") return carregarPainelAnotacoesOperacionaisV82161(true);
+  if (pagina === "dashboard_horas_extras") return carregarDashboardHorasExtras();
   if (pagina === "dashboard_executivo") return carregarDashboardExecutivo();
   if (pagina === "alertas_automaticos") return carregarAlertasAutomaticos();
   if (pagina === "servidor_assistido") return carregarServidorAssistidoV82142();
@@ -4483,6 +4503,7 @@ function recarregarPaginaAtualFiltros() {
     else if (paginaAtual === "violacoes_jornada") carregarViolacoesJornada();
     else if (paginaAtual === "extrato_banco_horas") carregarExtratoBancoHoras();
     else if (paginaAtual === "anotacoes_operacionais") carregarPainelAnotacoesOperacionaisV82161(true);
+    else if (paginaAtual === "dashboard_horas_extras") carregarDashboardHorasExtras();
     else if (paginaAtual === "dashboard_executivo") carregarDashboardExecutivo();
     else if (paginaAtual === "alertas_automaticos") carregarAlertasAutomaticos();
     else if (paginaAtual === "servidor_assistido") carregarServidorAssistidoV82142();
@@ -5533,6 +5554,998 @@ async function uploadGuiaHoraExtraSimplificadaV82172() {
   };
 
   input.click();
+}
+
+// ============================================================
+// DASHBOARD DE HORAS EXTRAS - V8.21.76
+// ============================================================
+let _dashboardHorasExtrasDadosBrutos = [];
+let _dashboardHorasExtrasEstatisticas = null;
+
+function toggleSubmenu(id, btn) {
+  const submenu = qs(id);
+  const group = btn ? btn.closest(".menu-group") : (submenu ? submenu.closest(".menu-group") : null);
+  if (!submenu) return;
+  const isHidden = submenu.classList.contains("hidden");
+  submenu.classList.toggle("hidden", !isHidden);
+  if (group) group.classList.toggle("open", isHidden);
+}
+
+function abrirSubmenuSeInativo(id) {
+  const submenu = qs(id);
+  const group = submenu ? submenu.closest(".menu-group") : null;
+  if (submenu) submenu.classList.remove("hidden");
+  if (group) group.classList.add("open");
+}
+
+function setVisibilidadeDashboardHorasExtras(mostrar) {
+  const painel = qs("dashboardHorasExtras");
+  const wrap = document.querySelector(".table-wrap");
+  if (painel) painel.classList.toggle("hidden", !mostrar);
+  if (wrap) wrap.classList.toggle("hidden", mostrar);
+  if (mostrar) {
+    if (typeof ocultarDashboardExecutivoPremium === "function") ocultarDashboardExecutivoPremium();
+    if (typeof ocultarPainelBancoHoras2 === "function") ocultarPainelBancoHoras2();
+  }
+}
+
+function ocultarDashboardHorasExtras() {
+  const painel = qs("dashboardHorasExtras");
+  if (painel) painel.classList.add("hidden");
+}
+
+function abrirDashboardHorasExtras(el) {
+  iniciarTransicaoPagina("dashboard_horas_extras");
+  paginaAtual = "dashboard_horas_extras";
+  marcarPaginaAtualClasse();
+  setVisibilidadeDashboardHorasExtras(true);
+  abrirSubmenuSeInativo("submenuHorasExtras");
+  dadosConsolidadoAtual = [];
+
+  document.querySelectorAll(".menu button").forEach(b => b.classList.remove("active"));
+  if (el) el.classList.add("active");
+
+  if (qs("tituloPagina")) qs("tituloPagina").textContent = "Dashboard de Horas Extras";
+  if (qs("subtituloPagina")) qs("subtituloPagina").textContent = "Indicadores consolidados, distribuição por colaborador, sobreaviso e justificativas operacionais.";
+  if (qs("tituloTabela")) qs("tituloTabela").textContent = "Dashboard de Horas Extras";
+  if (qs("statusCarga")) qs("statusCarga").textContent = "Carregando Dashboard de Horas Extras...";
+
+  prepararFiltrosPrincipaisDaGuia(true);
+  ajustarFiltroDataConsolidado();
+  atualizarAcoesTopbarPorPagina();
+
+  carregarDashboardHorasExtras();
+}
+
+function formatarMinutosParaHorasMinutos(totalMinutos) {
+  const negativo = totalMinutos < 0;
+  const abs = Math.abs(Math.round(totalMinutos));
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return `${negativo ? "-" : ""}${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+async function carregarDashboardHorasExtras() {
+  const paginaEsperada = "dashboard_horas_extras";
+  const tokenEsperado = tokenAtualPagina();
+  paginaAtual = "dashboard_horas_extras";
+  marcarPaginaAtualClasse();
+  setVisibilidadeDashboardHorasExtras(true);
+  abrirSubmenuSeInativo("submenuHorasExtras");
+
+  if (qs("statusCarga")) qs("statusCarga").textContent = "Buscando dados consolidados de horas extras...";
+
+  const p = new URLSearchParams();
+  p.set("tipo", "he");
+  if (qs("cc") && qs("cc").value) p.set("cc", qs("cc").value);
+  if (qs("nome") && qs("nome").value) p.set("nome", qs("nome").value);
+  if (qs("turno") && qs("turno").value) p.set("turno", qs("turno").value);
+
+  const dataInicioVal = qs("dataInicio") ? qs("dataInicio").value : "";
+  const dataFimVal = qs("dataFim") ? qs("dataFim").value : "";
+  if (dataInicioVal) p.set("data_inicio", dataInicioVal);
+  if (dataFimVal) p.set("data_fim", dataFimVal);
+
+  const { controller, timer: timeoutDashboard } = criarControllerNavegacao(15000);
+
+  try {
+    const [respConsolidado] = await Promise.all([
+      fetch(`/tempo-fechado/api/consolidado?${p.toString()}`, { signal: controller.signal }),
+      carregarAnotacoesOperacionais(false)
+    ]);
+
+    const json = await respConsolidado.json();
+    if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
+
+    if (!respConsolidado.ok || json.erro) {
+      if (qs("statusCarga")) qs("statusCarga").textContent = json.erro || `Erro HTTP ${respConsolidado.status}`;
+      renderDashboardHorasExtrasVazio();
+      return;
+    }
+
+    const linhas = Array.isArray(json.linhas) ? json.linhas : (Array.isArray(json) ? json : []);
+    _dashboardHorasExtrasDadosBrutos = linhas;
+    const stats = processarDadosDashboardHorasExtras(linhas);
+    _dashboardHorasExtrasEstatisticas = stats;
+
+    requestAnimationFrame(() => {
+      if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
+      renderCardsDashboardHorasExtras(stats.kpis);
+      renderDashboardHorasExtras(stats);
+      if (qs("statusCarga")) {
+        qs("statusCarga").textContent = `${stats.kpis.totalRegistros} registro(s) de horas extras analisado(s).`;
+      }
+    });
+  } catch (e) {
+    if (!requisicaoAindaValida(paginaEsperada, tokenEsperado)) return;
+    renderDashboardHorasExtrasVazio();
+    if (qs("statusCarga")) {
+      qs("statusCarga").textContent = e.name === "AbortError"
+        ? "Consulta demorou demais. Tente refinar o período."
+        : "Erro ao carregar Dashboard de Horas Extras: " + e.message;
+    }
+  } finally {
+    finalizarControllerNavegacao(controller, timeoutDashboard);
+  }
+}
+
+function processarDadosDashboardHorasExtras(linhas) {
+  linhas = Array.isArray(linhas) ? linhas : [];
+
+  let totalMinutos = 0;
+  let totalRegistros = 0;
+  const colaboradoresMap = new Map();
+  const ccsMap = new Map();
+  const gestoresMap = new Map();
+  const diasSemanaMap = {
+    "Segunda": { label: "Seg", minutos: 0, count: 0, order: 1 },
+    "Terça": { label: "Ter", minutos: 0, count: 0, order: 2 },
+    "Quarta": { label: "Qua", minutos: 0, count: 0, order: 3 },
+    "Quinta": { label: "Qui", minutos: 0, count: 0, order: 4 },
+    "Sexta": { label: "Sex", minutos: 0, count: 0, order: 5 },
+    "Sábado": { label: "Sáb", minutos: 0, count: 0, order: 6 },
+    "Domingo": { label: "Dom", minutos: 0, count: 0, order: 7 }
+  };
+  const evolucaoMap = new Map();
+
+  let sobreavisoSim = { count: 0, minutos: 0 };
+  let sobreavisoNao = { count: 0, minutos: 0 };
+  let sobreavisoOutros = { count: 0, minutos: 0 };
+
+  let justificadas = { count: 0, minutos: 0 };
+  let pendentes = { count: 0, minutos: 0 };
+
+  const ocorrenciasDetalhadas = [];
+
+  for (const r of linhas) {
+    const minHe = tempoParaMinutos(r.he || r.minutos_he || "00:00");
+    if (minHe <= 0 && (!r.he || r.he === "00:00")) continue;
+
+    totalMinutos += minHe;
+    totalRegistros++;
+
+    const nome = String(r.nome || "Não identificado").trim();
+    const cc = String(r.cc || "Sem CC").trim();
+    const data = String(r.data || "").trim();
+    const diaExt = String(r.dia || "").trim();
+
+    const anotacao = obterAnotacaoOperacional("horas_extras_simplificadas", r);
+    const gestor = String(anotacao.nome_gestor || "").trim() || "Não Informado";
+    const adm = String(anotacao.adm_responsavel || "").trim();
+    const sobreaviso = String(anotacao.sobreaviso || "").trim();
+    const obs = String(anotacao.observacao || "").trim();
+
+    // Colaborador
+    if (!colaboradoresMap.has(nome)) {
+      colaboradoresMap.set(nome, { nome, minutos: 0, count: 0, cc, gestores: new Set() });
+    }
+    const cObj = colaboradoresMap.get(nome);
+    cObj.minutos += minHe;
+    cObj.count++;
+    if (gestor && gestor !== "Não Informado") cObj.gestores.add(gestor);
+
+    // CC
+    if (!ccsMap.has(cc)) {
+      ccsMap.set(cc, { cc, minutos: 0, count: 0, colaboradores: new Set() });
+    }
+    const ccObj = ccsMap.get(cc);
+    ccObj.minutos += minHe;
+    ccObj.count++;
+    ccObj.colaboradores.add(nome);
+
+    // Gestor
+    if (!gestoresMap.has(gestor)) {
+      gestoresMap.set(gestor, { gestor, minutos: 0, count: 0, justificadas: 0 });
+    }
+    const gObj = gestoresMap.get(gestor);
+    gObj.minutos += minHe;
+    gObj.count++;
+    if (obs) gObj.justificadas++;
+
+    // Dia da semana
+    const diaNorm = diaExt.toLowerCase();
+    let diaChave = "Segunda";
+    if (diaNorm.includes("ter")) diaChave = "Terça";
+    else if (diaNorm.includes("qua")) diaChave = "Quarta";
+    else if (diaNorm.includes("qui")) diaChave = "Quinta";
+    else if (diaNorm.includes("sex")) diaChave = "Sexta";
+    else if (diaNorm.includes("sáb") || diaNorm.includes("sab")) diaChave = "Sábado";
+    else if (diaNorm.includes("dom")) diaChave = "Domingo";
+    else if (diaNorm.includes("seg")) diaChave = "Segunda";
+
+    if (diasSemanaMap[diaChave]) {
+      diasSemanaMap[diaChave].minutos += minHe;
+      diasSemanaMap[diaChave].count++;
+    }
+
+    // Evolução diária
+    if (data) {
+      const dNorm = normalizarDataAnotacao(data);
+      if (!evolucaoMap.has(dNorm)) {
+        evolucaoMap.set(dNorm, { data: dNorm, minutos: 0, count: 0 });
+      }
+      const evoObj = evolucaoMap.get(dNorm);
+      evoObj.minutos += minHe;
+      evoObj.count++;
+    }
+
+    // Sobreaviso
+    const sobreavisoNorm = sobreaviso.toLowerCase();
+    if (sobreavisoNorm === "sim" || sobreavisoNorm === "s") {
+      sobreavisoSim.count++;
+      sobreavisoSim.minutos += minHe;
+    } else if (sobreavisoNorm === "não" || sobreavisoNorm === "nao" || sobreavisoNorm === "n") {
+      sobreavisoNao.count++;
+      sobreavisoNao.minutos += minHe;
+    } else {
+      sobreavisoOutros.count++;
+      sobreavisoOutros.minutos += minHe;
+    }
+
+    // Justificativas
+    if (obs) {
+      justificadas.count++;
+      justificadas.minutos += minHe;
+    } else {
+      pendentes.count++;
+      pendentes.minutos += minHe;
+    }
+
+    // Ocorrência individual
+    ocorrenciasDetalhadas.push({
+      data,
+      dia: diaExt,
+      nome,
+      cc,
+      he: r.he || formatarMinutosParaHorasMinutos(minHe),
+      minutos: minHe,
+      e1: primeiraEntradaHoraExtraSimplificadaV82167(r),
+      s1: ultimaSaidaHoraExtraSimplificadaV82167(r),
+      gestor,
+      adm,
+      sobreaviso: sobreaviso || "-",
+      observacao: obs || ""
+    });
+  }
+
+  // Ordenações
+  const topColaboradores = Array.from(colaboradoresMap.values())
+    .sort((a, b) => b.minutos - a.minutos)
+    .slice(0, 10);
+
+  const topCcs = Array.from(ccsMap.values())
+    .sort((a, b) => b.minutos - a.minutos)
+    .slice(0, 8);
+
+  const topGestores = Array.from(gestoresMap.values())
+    .sort((a, b) => b.minutos - a.minutos)
+    .slice(0, 8);
+
+  const evolucao = Array.from(evolucaoMap.values())
+    .sort((a, b) => {
+      const [d1, m1, y1] = a.data.split("/");
+      const [d2, m2, y2] = b.data.split("/");
+      return `${y1 || "0"}-${m1 || "0"}-${d1 || "0"}`.localeCompare(`${y2 || "0"}-${m2 || "0"}-${d2 || "0"}`);
+    });
+
+  const diasSemana = Object.values(diasSemanaMap);
+
+  ocorrenciasDetalhadas.sort((a, b) => b.minutos - a.minutos);
+
+  const totalColabs = colaboradoresMap.size;
+  const mediaMinPorColab = totalColabs > 0 ? Math.round(totalMinutos / totalColabs) : 0;
+  const taxaJustificadas = totalRegistros > 0 ? Math.round((justificadas.count / totalRegistros) * 100) : 0;
+
+  return {
+    kpis: {
+      totalMinutos,
+      totalHorasFormatado: formatarMinutosParaHorasMinutos(totalMinutos),
+      totalHorasDecimais: (totalMinutos / 60).toFixed(1),
+      totalRegistros,
+      totalColabs,
+      mediaMinPorColab,
+      mediaHorasFormatado: formatarMinutosParaHorasMinutos(mediaMinPorColab),
+      sobreavisoSimCount: sobreavisoSim.count,
+      sobreavisoSimHoras: formatarMinutosParaHorasMinutos(sobreavisoSim.minutos),
+      sobreavisoSimPct: totalMinutos > 0 ? Math.round((sobreavisoSim.minutos / totalMinutos) * 100) : 0,
+      justificadasCount: justificadas.count,
+      justificadasHoras: formatarMinutosParaHorasMinutos(justificadas.minutos),
+      pendentesCount: pendentes.count,
+      pendentesHoras: formatarMinutosParaHorasMinutos(pendentes.minutos),
+      taxaJustificadas,
+      totalGestores: gestoresMap.size
+    },
+    topColaboradores,
+    topCcs,
+    topGestores,
+    evolucao,
+    diasSemana,
+    sobreaviso: { sim: sobreavisoSim, nao: sobreavisoNao, outros: sobreavisoOutros },
+    justificativas: { justificadas, pendentes },
+    maioresOcorrencias: ocorrenciasDetalhadas.slice(0, 15)
+  };
+}
+
+function renderCardsDashboardHorasExtras(k) {
+  const container = qs("cardsContainer");
+  if (!container) return;
+  k = k || {};
+  container.innerHTML = `
+    <div class="card"><span>Registros</span><strong>${k.totalRegistros ?? 0}</strong></div>
+    <div class="card"><span>Colaboradores</span><strong>${k.totalColabs ?? 0}</strong></div>
+    <div class="card" id="cardHE"><span>Horas Extras Total</span><strong>${k.totalHorasFormatado ?? "00:00"}</strong></div>
+    <div class="card"><span>Média / Colab</span><strong>${k.mediaHorasFormatado ?? "00:00"}</strong></div>
+    <div class="card"><span>Sobreaviso (Sim)</span><strong>${k.sobreavisoSimCount ?? 0} (${k.sobreavisoSimPct ?? 0}%)</strong></div>
+    <div class="card"><span>Taxa Justificativas</span><strong>${k.taxaJustificadas ?? 0}%</strong></div>
+  `;
+  container.dataset.layoutAtual = "dashboard_horas_extras";
+}
+
+function renderDashboardHorasExtrasVazio() {
+  const painel = qs("dashboardHorasExtras");
+  if (!painel) return;
+  painel.innerHTML = `
+    <div class="dhe-hero">
+      <div>
+        <span class="dhe-eyebrow">Gestão de Horas Extras</span>
+        <h3>Dashboard de Horas Extras</h3>
+        <p>Nenhum registro de hora extra encontrado para os filtros selecionados.</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderDashboardHorasExtras(stats) {
+  const painel = qs("dashboardHorasExtras");
+  if (!painel) return;
+
+  const k = stats.kpis || {};
+  const dataInicioVal = qs("dataInicio") ? qs("dataInicio").value : "";
+  const dataFimVal = qs("dataFim") ? qs("dataFim").value : "";
+  let textoPeriodo = "Período completo";
+  if (dataInicioVal && dataFimVal) {
+    textoPeriodo = `${normalizarDataAnotacao(dataInicioVal)} a ${normalizarDataAnotacao(dataFimVal)}`;
+  } else if (dataInicioVal) {
+    textoPeriodo = `A partir de ${normalizarDataAnotacao(dataInicioVal)}`;
+  } else if (dataFimVal) {
+    textoPeriodo = `Até ${normalizarDataAnotacao(dataFimVal)}`;
+  }
+
+  painel.innerHTML = `
+    <div class="dhe-hero">
+      <div>
+        <span class="dhe-eyebrow">Gestão Operacional de Ponto</span>
+        <h3>Dashboard de Horas Extras</h3>
+        <p>Visão analítica de horas extras consolidadas, colaboradores com maior demanda, sobreaviso e aderência a justificativas.</p>
+      </div>
+      <div class="dhe-hero-actions">
+        <div class="dhe-periodo-badge">
+          <span>Período Analisado</span>
+          <strong>${escapeHtml(textoPeriodo)}</strong>
+        </div>
+        <button type="button" class="btn secondary" onclick="exportarDashboardHorasExtrasPdf()" style="font-size:13px;padding:10px 16px;">
+          🖨️ Gerar PDF / Imprimir
+        </button>
+      </div>
+    </div>
+
+    <div class="dhe-kpi-grid">
+      <div class="dhe-kpi-card he-total">
+        <span class="dhe-kpi-label">Total de Horas Extras</span>
+        <strong class="dhe-kpi-value">${k.totalHorasFormatado}</strong>
+        <span class="dhe-kpi-sub">${k.totalHorasDecimais}h decimais no período</span>
+      </div>
+      <div class="dhe-kpi-card colabs">
+        <span class="dhe-kpi-label">Colaboradores</span>
+        <strong class="dhe-kpi-value">${k.totalColabs}</strong>
+        <span class="dhe-kpi-sub">Média de ${k.mediaHorasFormatado} por pessoa</span>
+      </div>
+      <div class="dhe-kpi-card">
+        <span class="dhe-kpi-label">Ocorrências de H.E.</span>
+        <strong class="dhe-kpi-value">${k.totalRegistros}</strong>
+        <span class="dhe-kpi-sub">Total de lançamentos</span>
+      </div>
+      <div class="dhe-kpi-card sobreaviso">
+        <span class="dhe-kpi-label">Acionamentos Sobreaviso</span>
+        <strong class="dhe-kpi-value">${k.sobreavisoSimCount}</strong>
+        <span class="dhe-kpi-sub">${k.sobreavisoSimHoras} (${k.sobreavisoSimPct}% do total)</span>
+      </div>
+      <div class="dhe-kpi-card justificativas">
+        <span class="dhe-kpi-label">Taxa Justificativas</span>
+        <strong class="dhe-kpi-value">${k.taxaJustificadas}%</strong>
+        <span class="dhe-kpi-sub">${k.justificadasCount} justif. / ${k.pendentesCount} pend.</span>
+      </div>
+      <div class="dhe-kpi-card gestores">
+        <span class="dhe-kpi-label">Gestores Mediatos</span>
+        <strong class="dhe-kpi-value">${k.totalGestores}</strong>
+        <span class="dhe-kpi-sub">Gestão mediata ativa</span>
+      </div>
+    </div>
+
+    <!-- Seção 1: Evolução Diária (Largura Total) -->
+    <div class="dhe-panel">
+      <div class="dhe-panel-title">
+        <h4>Evolução Diária de Horas Extras</h4>
+        <span>Volume diário de horas extras acumuladas ao longo das datas</span>
+      </div>
+      <div class="dhe-svg-wrap">
+        ${renderSvgEvolucaoHorasExtras(stats.evolucao, k.totalMinutos)}
+      </div>
+    </div>
+
+    <!-- Seção 2: Top Colaboradores + Dias da Semana -->
+    <div class="dhe-grid-2">
+      <div class="dhe-panel">
+        <div class="dhe-panel-title">
+          <h4>Top 10 Colaboradores com Mais Horas Extras</h4>
+          <span>Concentração individual de H.E.</span>
+        </div>
+        <div class="dhe-svg-wrap">
+          ${renderSvgTopColaboradoresHe(stats.topColaboradores, k.totalMinutos)}
+        </div>
+      </div>
+
+      <div class="dhe-panel">
+        <div class="dhe-panel-title">
+          <h4>Distribuição por Dia da Semana</h4>
+          <span>Volume por dia útil vs final de semana</span>
+        </div>
+        <div class="dhe-svg-wrap">
+          ${renderSvgDiasSemanaHe(stats.diasSemana, k.totalMinutos)}
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção 3: Centros de Custo + Gestores + Proporções -->
+    <div class="dhe-grid-3">
+      <div class="dhe-panel">
+        <div class="dhe-panel-title">
+          <h4>Horas por Centro de Custo</h4>
+          <span>Distribuição por CC</span>
+        </div>
+        <div class="dhe-svg-wrap">
+          ${renderSvgCentrosCustoHe(stats.topCcs, k.totalMinutos)}
+        </div>
+      </div>
+
+      <div class="dhe-panel">
+        <div class="dhe-panel-title">
+          <h4>Horas por Gestor Mediato</h4>
+          <span>Alocação por gestor responsável</span>
+        </div>
+        <div class="dhe-svg-wrap">
+          ${renderSvgGestoresHe(stats.topGestores, k.totalMinutos)}
+        </div>
+      </div>
+
+      <div class="dhe-panel">
+        <div class="dhe-panel-title">
+          <h4>Sobreaviso & Justificativas</h4>
+          <span>Proporções operacionais</span>
+        </div>
+        <div class="dhe-svg-wrap">
+          ${renderSvgProporcoesHe(stats.sobreaviso, stats.justificativas, k.totalMinutos)}
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção 4: Tabela de Maiores Ocorrências -->
+    <div class="dhe-panel">
+      <div class="dhe-panel-title">
+        <h4>Maiores Ocorrências de Horas Extras no Período</h4>
+        <span>Lançamentos individuais de maior impacto</span>
+      </div>
+      <div class="dhe-svg-wrap">
+        ${renderTabelaMaioresOcorrenciasHe(stats.maioresOcorrencias)}
+      </div>
+    </div>
+  `;
+}
+
+// ------------------------------------------------------------
+// SVG CHARTS BUILDERS (VETORIAIS NATIVOS DE ALTA RESOLUÇÃO)
+// ------------------------------------------------------------
+
+function renderSvgEvolucaoHorasExtras(evolucao, totalMinutos) {
+  if (!evolucao || !evolucao.length) {
+    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Sem dados de evolução no período.</p>';
+  }
+
+  const W = 840, H = 240, P = { t: 24, r: 24, b: 46, l: 50 };
+  const cw = W - P.l - P.r, ch = H - P.t - P.b;
+
+  let maxMin = 60;
+  for (const item of evolucao) {
+    if (item.minutos > maxMin) maxMin = item.minutos;
+  }
+  maxMin = Math.ceil(maxMin / 60) * 60; // Arredonda para a hora inteira seguinte
+
+  const stepX = evolucao.length > 1 ? cw / (evolucao.length - 1) : cw / 2;
+  const pts = evolucao.map((item, idx) => ({
+    x: P.l + (evolucao.length > 1 ? idx * stepX : cw / 2),
+    y: P.t + ch - (item.minutos / maxMin) * ch,
+    data: item.data,
+    minutos: item.minutos,
+    horas: formatarMinutosParaHorasMinutos(item.minutos)
+  }));
+
+  let line = "";
+  for (let i = 0; i < pts.length; i++) {
+    line += (i ? "L" : "M") + pts[i].x.toFixed(1) + "," + pts[i].y.toFixed(1);
+  }
+  const area = line + "L" + pts[pts.length - 1].x.toFixed(1) + "," + (P.t + ch).toFixed(1)
+    + "L" + pts[0].x.toFixed(1) + "," + (P.t + ch).toFixed(1) + "Z";
+
+  // Grid lines horizontais (4 divisões)
+  let grids = "";
+  for (let i = 0; i <= 4; i++) {
+    const gy = P.t + (ch / 4) * i;
+    const gvMin = Math.round(maxMin - (maxMin / 4) * i);
+    const gvStr = `${Math.round(gvMin / 60)}h`;
+    grids += `<line x1="${P.l}" y1="${gy}" x2="${P.l + cw}" y2="${gy}" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="3,3"/>`;
+    grids += `<text x="${P.l - 8}" y="${gy + 4}" font-size="10" fill="#94A3B8" text-anchor="end" font-family="Arial,sans-serif">${gvStr}</text>`;
+  }
+
+  // Rótulos do eixo X (datas)
+  const every = Math.max(1, Math.ceil(evolucao.length / 14));
+  let xLabels = "";
+  for (let i = 0; i < pts.length; i++) {
+    if (i % every !== 0 && i !== pts.length - 1) continue;
+    const x = pts[i].x;
+    const yl = H - P.b + 18;
+    const dStr = pts[i].data.length > 5 ? pts[i].data.slice(0, 5) : pts[i].data;
+    xLabels += `<text x="${x.toFixed(1)}" y="${yl}" font-size="10" fill="#64748B" text-anchor="middle" font-family="Arial,sans-serif">${dStr}</text>`;
+  }
+
+  // Pontos com hover / badge
+  let dots = "";
+  for (let i = 0; i < pts.length; i++) {
+    dots += `<circle cx="${pts[i].x.toFixed(1)}" cy="${pts[i].y.toFixed(1)}" r="4" fill="#2563EB" stroke="#fff" stroke-width="2"/>`;
+  }
+
+  return `
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;max-height:260px;" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="evoHeGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2563EB" stop-opacity="0.5"/>
+          <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.03"/>
+        </linearGradient>
+      </defs>
+      ${grids}
+      <path d="${area}" fill="url(#evoHeGrad)"/>
+      <path d="${line}" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+      ${xLabels}
+    </svg>
+  `;
+}
+
+function renderSvgTopColaboradoresHe(topColaboradores, totalMinutos) {
+  if (!topColaboradores || !topColaboradores.length) {
+    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Nenhum colaborador com hora extra.</p>';
+  }
+
+  const maxMin = topColaboradores[0]?.minutos || 1;
+  const barH = 22, gap = 8, labelW = 160, valW = 80;
+  const W = 460;
+  const H = topColaboradores.length * (barH + gap) + 8;
+  const barW = W - labelW - valW - 12;
+
+  let bars = "";
+  for (let i = 0; i < topColaboradores.length; i++) {
+    const item = topColaboradores[i];
+    const y = i * (barH + gap) + 4;
+    const w = Math.max((item.minutos / maxMin) * barW, 2);
+    const pct = totalMinutos > 0 ? ((item.minutos / totalMinutos) * 100).toFixed(1) : "0";
+    const horasFormatado = formatarMinutosParaHorasMinutos(item.minutos);
+
+    // Destaque nos 3 primeiros
+    let corBarra = "#3B82F6";
+    if (i === 0) corBarra = "#D97706";
+    else if (i === 1) corBarra = "#2563EB";
+    else if (i === 2) corBarra = "#0284C7";
+
+    const nomeTrunc = item.nome.length > 20 ? item.nome.slice(0, 18) + "..." : item.nome;
+
+    bars += `<text x="${labelW - 8}" y="${y + barH / 2 + 4}" font-size="11" font-weight="600" fill="#334155" text-anchor="end" font-family="Arial,sans-serif">${i + 1}. ${escapeXml(nomeTrunc)}</text>`;
+    bars += `<rect x="${labelW}" y="${y}" width="${barW}" height="${barH}" rx="5" fill="#F1F5F9"/>`;
+    bars += `<rect x="${labelW}" y="${y}" width="${w.toFixed(1)}" height="${barH}" rx="5" fill="${corBarra}"/>`;
+    bars += `<text x="${labelW + barW + 8}" y="${y + barH / 2 + 4}" font-size="11" font-weight="700" fill="#1E293B" text-anchor="start" font-family="Arial,sans-serif">${horasFormatado} <tspan font-size="9" font-weight="normal" fill="#64748B">(${pct}%)</tspan></text>`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
+}
+
+function renderSvgDiasSemanaHe(diasSemana, totalMinutos) {
+  if (!diasSemana || !diasSemana.length) {
+    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Sem dados por dia da semana.</p>';
+  }
+
+  let maxMin = 1;
+  for (const d of diasSemana) {
+    if (d.minutos > maxMin) maxMin = d.minutos;
+  }
+
+  const W = 460, H = 260, P = { t: 30, r: 16, b: 36, l: 20 };
+  const cw = W - P.l - P.r, ch = H - P.t - P.b;
+  const colW = cw / diasSemana.length;
+  const barW = Math.min(colW * 0.65, 34);
+
+  let bars = "";
+  for (let i = 0; i < diasSemana.length; i++) {
+    const d = diasSemana[i];
+    const x = P.l + i * colW + (colW - barW) / 2;
+    const barH = Math.max((d.minutos / maxMin) * ch, 4);
+    const y = P.t + ch - barH;
+    const isWeekend = d.label === "Sáb" || d.label === "Dom";
+    const cor = isWeekend ? "#8B5CF6" : "#3B82F6";
+    const horasStr = formatarMinutosParaHorasMinutos(d.minutos);
+
+    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="6" fill="${cor}"/>`;
+    if (d.minutos > 0) {
+      bars += `<text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" font-size="10" font-weight="700" fill="#1E293B" text-anchor="middle" font-family="Arial,sans-serif">${horasStr}</text>`;
+    }
+    bars += `<text x="${(x + barW / 2).toFixed(1)}" y="${H - P.b + 18}" font-size="11" font-weight="${isWeekend ? "700" : "600"}" fill="${isWeekend ? "#7C3AED" : "#475569"}" text-anchor="middle" font-family="Arial,sans-serif">${d.label}</text>`;
+  }
+
+  return `
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;" xmlns="http://www.w3.org/2000/svg">
+      <line x1="${P.l}" y1="${P.t + ch}" x2="${P.l + cw}" y2="${P.t + ch}" stroke="#E2E8F0" stroke-width="1"/>
+      ${bars}
+    </svg>
+  `;
+}
+
+function renderSvgCentrosCustoHe(topCcs, totalMinutos) {
+  if (!topCcs || !topCcs.length) {
+    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Nenhum Centro de Custo registrado.</p>';
+  }
+
+  const maxMin = topCcs[0]?.minutos || 1;
+  const barH = 20, gap = 8, labelW = 90, valW = 65;
+  const W = 300;
+  const H = topCcs.length * (barH + gap) + 8;
+  const barW = W - labelW - valW - 8;
+
+  let bars = "";
+  for (let i = 0; i < topCcs.length; i++) {
+    const item = topCcs[i];
+    const y = i * (barH + gap) + 4;
+    const w = Math.max((item.minutos / maxMin) * barW, 2);
+    const horasStr = formatarMinutosParaHorasMinutos(item.minutos);
+    const ccLabel = item.cc.length > 11 ? item.cc.slice(0, 10) + "..." : item.cc;
+
+    bars += `<text x="${labelW - 6}" y="${y + barH / 2 + 4}" font-size="11" font-weight="600" fill="#334155" text-anchor="end" font-family="Arial,sans-serif">${escapeXml(ccLabel)}</text>`;
+    bars += `<rect x="${labelW}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="#F1F5F9"/>`;
+    bars += `<rect x="${labelW}" y="${y}" width="${w.toFixed(1)}" height="${barH}" rx="4" fill="#0284C7"/>`;
+    bars += `<text x="${labelW + barW + 6}" y="${y + barH / 2 + 4}" font-size="11" font-weight="700" fill="#0F172A" text-anchor="start" font-family="Arial,sans-serif">${horasStr}</text>`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
+}
+
+function renderSvgGestoresHe(topGestores, totalMinutos) {
+  if (!topGestores || !topGestores.length) {
+    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Nenhum Gestor Mediato registrado.</p>';
+  }
+
+  const maxMin = topGestores[0]?.minutos || 1;
+  const barH = 20, gap = 8, labelW = 100, valW = 65;
+  const W = 300;
+  const H = topGestores.length * (barH + gap) + 8;
+  const barW = W - labelW - valW - 8;
+
+  let bars = "";
+  for (let i = 0; i < topGestores.length; i++) {
+    const item = topGestores[i];
+    const y = i * (barH + gap) + 4;
+    const w = Math.max((item.minutos / maxMin) * barW, 2);
+    const horasStr = formatarMinutosParaHorasMinutos(item.minutos);
+    const gestorLabel = item.gestor.length > 13 ? item.gestor.slice(0, 11) + "..." : item.gestor;
+
+    bars += `<text x="${labelW - 6}" y="${y + barH / 2 + 4}" font-size="11" font-weight="600" fill="#334155" text-anchor="end" font-family="Arial,sans-serif">${escapeXml(gestorLabel)}</text>`;
+    bars += `<rect x="${labelW}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="#F1F5F9"/>`;
+    bars += `<rect x="${labelW}" y="${y}" width="${w.toFixed(1)}" height="${barH}" rx="4" fill="#059669"/>`;
+    bars += `<text x="${labelW + barW + 6}" y="${y + barH / 2 + 4}" font-size="11" font-weight="700" fill="#0F172A" text-anchor="start" font-family="Arial,sans-serif">${horasStr}</text>`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
+}
+
+function renderSvgProporcoesHe(sobreaviso, justificativas, totalMinutos) {
+  const simMin = sobreaviso.sim.minutos;
+  const naoMin = sobreaviso.nao.minutos;
+  const outrosMin = sobreaviso.outros.minutos;
+  const totSob = simMin + naoMin + outrosMin || 1;
+
+  const pctSim = Math.round((simMin / totSob) * 100);
+  const pctNao = Math.round((naoMin / totSob) * 100);
+  const pctOutros = 100 - pctSim - pctNao;
+
+  const justMin = justificativas.justificadas.minutos;
+  const pendMin = justificativas.pendentes.minutos;
+  const totJust = justMin + pendMin || 1;
+
+  const pctJust = Math.round((justMin / totJust) * 100);
+  const pctPend = 100 - pctJust;
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0;">
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">
+          <span>Acionamentos Sobreaviso</span>
+          <span>${pctSim}% Sim</span>
+        </div>
+        <div style="display:flex;height:14px;border-radius:999px;overflow:hidden;background:#F1F5F9;">
+          <div style="width:${pctSim}%;background:#7C3AED;" title="Sim: ${formatarMinutosParaHorasMinutos(simMin)}"></div>
+          <div style="width:${pctNao}%;background:#94A3B8;" title="Não: ${formatarMinutosParaHorasMinutos(naoMin)}"></div>
+          <div style="width:${pctOutros}%;background:#E2E8F0;" title="Outros: ${formatarMinutosParaHorasMinutos(outrosMin)}"></div>
+        </div>
+        <div style="display:flex;gap:10px;font-size:10px;color:#64748B;margin-top:5px;">
+          <span><b style="color:#7C3AED;">■</b> Sim (${formatarMinutosParaHorasMinutos(simMin)})</span>
+          <span><b style="color:#94A3B8;">■</b> Não (${formatarMinutosParaHorasMinutos(naoMin)})</span>
+          <span><b style="color:#CBD5E1;">■</b> Não inf.</span>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid #EEF2F7;padding-top:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">
+          <span>Status das Justificativas</span>
+          <span>${pctJust}% Preenchidas</span>
+        </div>
+        <div style="display:flex;height:14px;border-radius:999px;overflow:hidden;background:#F1F5F9;">
+          <div style="width:${pctJust}%;background:#10B981;" title="Justificadas: ${formatarMinutosParaHorasMinutos(justMin)}"></div>
+          <div style="width:${pctPend}%;background:#EF4444;" title="Pendentes: ${formatarMinutosParaHorasMinutos(pendMin)}"></div>
+        </div>
+        <div style="display:flex;gap:10px;font-size:10px;color:#64748B;margin-top:5px;">
+          <span><b style="color:#10B981;">■</b> Justificadas (${formatarMinutosParaHorasMinutos(justMin)})</span>
+          <span><b style="color:#EF4444;">■</b> Pendentes (${formatarMinutosParaHorasMinutos(pendMin)})</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderTabelaMaioresOcorrenciasHe(ocorrencias) {
+  if (!ocorrencias || !ocorrencias.length) {
+    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Nenhuma ocorrência registrada.</p>';
+  }
+
+  let html = `
+    <table class="dhe-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Dia</th>
+          <th>Colaborador</th>
+          <th>CC</th>
+          <th>Entrada</th>
+          <th>Saída</th>
+          <th>Total HE</th>
+          <th>Gestor Mediato</th>
+          <th>Sobreaviso</th>
+          <th>Justificativa</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  for (const r of ocorrencias) {
+    const isSobreaviso = String(r.sobreaviso).toLowerCase() === "sim" || String(r.sobreaviso).toLowerCase() === "s";
+    const badgeSob = isSobreaviso ? '<span class="dhe-badge sim">Sim</span>' : '<span class="dhe-badge nao">Não</span>';
+    const hasJust = Boolean(r.observacao && r.observacao.trim());
+    const badgeJust = hasJust
+      ? `<span class="dhe-badge justificado" title="${escapeHtml(r.observacao)}">${escapeHtml(r.observacao.slice(0, 45))}${r.observacao.length > 45 ? "..." : ""}</span>`
+      : '<span class="dhe-badge pendente">Pendente</span>';
+
+    html += `
+      <tr>
+        <td><strong>${escapeHtml(r.data)}</strong></td>
+        <td>${escapeHtml(r.dia)}</td>
+        <td><strong>${escapeHtml(r.nome)}</strong></td>
+        <td>${escapeHtml(r.cc)}</td>
+        <td>${escapeHtml(r.e1 || "-")}</td>
+        <td>${escapeHtml(r.s1 || "-")}</td>
+        <td><strong style="color:#D97706;">${escapeHtml(r.he)}</strong></td>
+        <td>${escapeHtml(r.gestor || "-")}</td>
+        <td>${badgeSob}</td>
+        <td>${badgeJust}</td>
+      </tr>
+    `;
+  }
+
+  html += "</tbody></table>";
+  return html;
+}
+
+// ------------------------------------------------------------
+// EXPORTAÇÃO DE RELATÓRIO / PDF DO DASHBOARD DE HORAS EXTRAS
+// ------------------------------------------------------------
+
+function exportarDashboardHorasExtrasPdf() {
+  if (!_dashboardHorasExtrasEstatisticas) {
+    alert("Dados do Dashboard de Horas Extras não carregados para exportação.");
+    return;
+  }
+
+  const stats = _dashboardHorasExtrasEstatisticas;
+  const k = stats.kpis || {};
+
+  const dataInicioVal = qs("dataInicio") ? qs("dataInicio").value : "";
+  const dataFimVal = qs("dataFim") ? qs("dataFim").value : "";
+  let textoPeriodo = "Período completo";
+  if (dataInicioVal && dataFimVal) {
+    textoPeriodo = `${normalizarDataAnotacao(dataInicioVal)} a ${normalizarDataAnotacao(dataFimVal)}`;
+  } else if (dataInicioVal) {
+    textoPeriodo = `A partir de ${normalizarDataAnotacao(dataInicioVal)}`;
+  } else if (dataFimVal) {
+    textoPeriodo = `Até ${normalizarDataAnotacao(dataFimVal)}`;
+  }
+
+  const svgEvo = renderSvgEvolucaoHorasExtras(stats.evolucao, k.totalMinutos);
+  const svgTop = renderSvgTopColaboradoresHe(stats.topColaboradores, k.totalMinutos);
+  const svgDias = renderSvgDiasSemanaHe(stats.diasSemana, k.totalMinutos);
+  const svgCcs = renderSvgCentrosCustoHe(stats.topCcs, k.totalMinutos);
+  const svgGestores = renderSvgGestoresHe(stats.topGestores, k.totalMinutos);
+  const tabelaOcorrencias = renderTabelaMaioresOcorrenciasHe(stats.maioresOcorrencias);
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Dashboard de Horas Extras — Relatório Executivo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; padding: 28px; color: #0f172a; background: #fff; }
+    .header { border-bottom: 3px solid #1e3a8a; padding-bottom: 14px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .header h1 { font-size: 22px; color: #1e3a8a; font-weight: 800; }
+    .header p { font-size: 11px; color: #64748b; margin-top: 4px; }
+    .header .meta { text-align: right; font-size: 11px; color: #475569; }
+    .section { margin-bottom: 22px; page-break-inside: avoid; }
+    .section-title { font-size: 14px; font-weight: 700; color: #1e3a8a; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #e2e8f0; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+    .kpi-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; background: #f8fafc; }
+    .kpi-card.he-total { border-color: #fde68a; background: #fffbeb; }
+    .kpi-card.sobreaviso { border-color: #ddd6fe; background: #f5f3ff; }
+    .kpi-card.justificativas { border-color: #bbf7d0; background: #f0fdf4; }
+    .kpi-label { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
+    .kpi-value { font-size: 20px; font-weight: 800; margin-top: 4px; color: #0f172a; }
+    .kpi-card.he-total .kpi-value { color: #d97706; }
+    .kpi-card.sobreaviso .kpi-value { color: #7c3aed; }
+    .kpi-card.justificativas .kpi-value { color: #059669; }
+    .kpi-sub { font-size: 9px; color: #64748b; margin-top: 4px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .dhe-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    .dhe-table th { background: #1e3a8a; color: #fff; padding: 6px 8px; text-align: left; font-size: 9px; text-transform: uppercase; }
+    .dhe-table td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
+    .dhe-table tbody tr:nth-child(even) { background: #f8fafc; }
+    .dhe-badge { display: inline-block; padding: 2px 6px; border-radius: 999px; font-size: 9px; font-weight: 700; }
+    .dhe-badge.sim { background: #ede9fe; color: #6d28d9; }
+    .dhe-badge.nao { background: #f1f5f9; color: #64748b; }
+    .dhe-badge.justificado { background: #d1fae5; color: #047857; }
+    .dhe-badge.pendente { background: #fee2e2; color: #b91c1c; }
+    @page { margin: 1.2cm; }
+    @media print { body { padding: 0; } .section { page-break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>Dashboard de Horas Extras</h1>
+      <p>Relatório Executivo Consolidado — Rubble / Tempo Fechado</p>
+    </div>
+    <div class="meta">
+      <strong>Período: ${escapeHtml(textoPeriodo)}</strong><br>
+      <span>Emissão: ${new Date().toLocaleString("pt-BR")}</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="kpi-grid">
+      <div class="kpi-card he-total">
+        <div class="kpi-label">Total de H.E.</div>
+        <div class="kpi-value">${k.totalHorasFormatado}</div>
+        <div class="kpi-sub">${k.totalHorasDecimais}h decimais</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Colaboradores</div>
+        <div class="kpi-value">${k.totalColabs}</div>
+        <div class="kpi-sub">Média: ${k.mediaHorasFormatado}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ocorrências</div>
+        <div class="kpi-value">${k.totalRegistros}</div>
+        <div class="kpi-sub">Lançamentos de HE</div>
+      </div>
+      <div class="kpi-card sobreaviso">
+        <div class="kpi-label">Sobreaviso (Sim)</div>
+        <div class="kpi-value">${k.sobreavisoSimCount}</div>
+        <div class="kpi-sub">${k.sobreavisoSimPct}% do total</div>
+      </div>
+      <div class="kpi-card justificativas">
+        <div class="kpi-label">Justificativas</div>
+        <div class="kpi-value">${k.taxaJustificadas}%</div>
+        <div class="kpi-sub">${k.justificadasCount} justif. / ${k.pendentesCount} pend.</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Gestores</div>
+        <div class="kpi-value">${k.totalGestores}</div>
+        <div class="kpi-sub">Mediatos ativos</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Evolução Diária de Horas Extras</div>
+    ${svgEvo}
+  </div>
+
+  <div class="section">
+    <div class="two-col">
+      <div>
+        <div class="section-title">Top 10 Colaboradores com Mais Horas Extras</div>
+        ${svgTop}
+      </div>
+      <div>
+        <div class="section-title">Distribuição por Dia da Semana</div>
+        ${svgDias}
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="two-col">
+      <div>
+        <div class="section-title">Horas Extras por Centro de Custo</div>
+        ${svgCcs}
+      </div>
+      <div>
+        <div class="section-title">Horas Extras por Gestor Mediato</div>
+        ${svgGestores}
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Maiores Ocorrências de Horas Extras no Período</div>
+    ${tabelaOcorrencias}
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 300);
+    };
+  <\/script>
+</body>
+</html>`;
+
+  const printWindow = window.open("", "_blank", "width=960,height=750");
+  if (!printWindow) {
+    alert("Bloqueador de pop-up ativo. Permita pop-ups para gerar o PDF.");
+    return;
+  }
+  printWindow.document.write(html);
+  printWindow.document.close();
 }
 
 function renderResultadoFechamentoPeriodoV82166(json) {
