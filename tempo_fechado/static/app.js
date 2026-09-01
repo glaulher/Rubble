@@ -417,57 +417,47 @@ function obterAnotacaoOperacional(guia, r) {
   const ccNorm = normalizarTextoAnotacao(r?.cc);
   const diaNorm = normalizarTextoAnotacao(r?.dia);
 
+  if (!nomeNorm || !dataBr) return {};
+
   function temConteudo(obj) {
     if (!obj || typeof obj !== "object") return false;
     return Boolean(obj.nome_gestor || obj.adm_responsavel || obj.sobreaviso || obj.observacao);
   }
 
-  // 1) Chave exata completa com CC e Dia
-  const chaveCompleta = [guia, ccNorm, nomeNorm, dataBr, diaNorm].join("|").slice(0, 260);
-  if (temConteudo(anotacoesOperacionaisCache[chaveCompleta])) {
-    return anotacoesOperacionaisCache[chaveCompleta];
-  }
+  // Coleta todos os registros correspondentes para este colaborador + data nesta guia
+  const candidatos = [];
 
-  // 2) Chave sem CC
-  const chaveSemCc = [guia, "", nomeNorm, dataBr, diaNorm].join("|").slice(0, 260);
-  if (temConteudo(anotacoesOperacionaisCache[chaveSemCc])) {
-    return anotacoesOperacionaisCache[chaveSemCc];
-  }
-
-  // 3) Chave sem Dia
-  const chaveSemDia = [guia, ccNorm, nomeNorm, dataBr, ""].join("|").slice(0, 260);
-  if (temConteudo(anotacoesOperacionaisCache[chaveSemDia])) {
-    return anotacoesOperacionaisCache[chaveSemDia];
-  }
-
-  // 4) Chave sem CC e sem Dia
-  const chaveSemCcSemDia = [guia, "", nomeNorm, dataBr, ""].join("|").slice(0, 260);
-  if (temConteudo(anotacoesOperacionaisCache[chaveSemCcSemDia])) {
-    return anotacoesOperacionaisCache[chaveSemCcSemDia];
-  }
-
-  // 5) Busca flexível por nome + data
-  let candidatoSemConteudo = null;
-  if (nomeNorm && dataBr) {
-    for (const [k, obj] of Object.entries(anotacoesOperacionaisCache)) {
-      if (!k.startsWith(guia + "|")) continue;
-      const partes = k.split("|");
-      if (partes.length >= 4) {
-        const kNome = normalizarTextoAnotacao(partes[2]);
-        const kData = normalizarDataAnotacao(partes[3]);
-        if (kNome === nomeNorm && kData === dataBr) {
-          if (temConteudo(obj)) {
-            return obj;
-          }
-          if (!candidatoSemConteudo) {
-            candidatoSemConteudo = obj;
-          }
-        }
+  for (const [k, obj] of Object.entries(anotacoesOperacionaisCache)) {
+    if (!k.startsWith(guia + "|") || !obj) continue;
+    const partes = k.split("|");
+    if (partes.length >= 4) {
+      const kNome = normalizarTextoAnotacao(partes[2]);
+      const kData = normalizarDataAnotacao(partes[3]);
+      if (kNome === nomeNorm && kData === dataBr) {
+        const kCc = normalizarTextoAnotacao(partes[1]);
+        const kDia = normalizarTextoAnotacao(partes[4] || "");
+        let score = 0;
+        if (temConteudo(obj)) score += 100;
+        if (kCc && kCc === ccNorm) score += 20;
+        if (kDia && kDia === diaNorm) score += 10;
+        const ts = obj.atualizado_em ? String(obj.atualizado_em) : "";
+        candidatos.push({ k, obj, score, ts });
       }
     }
   }
 
-  return candidatoSemConteudo || anotacoesOperacionaisCache[chaveCompleta] || {};
+  if (!candidatos.length) return {};
+
+  // Ordena por: 1) tem conteúdo (score >= 100), 2) data/hora de atualização mais recente, 3) especificidade
+  candidatos.sort((a, b) => {
+    const aHas = a.score >= 100 ? 1 : 0;
+    const bHas = b.score >= 100 ? 1 : 0;
+    if (aHas !== bHas) return bHas - aHas;
+    if (a.ts && b.ts && a.ts !== b.ts) return b.ts.localeCompare(a.ts);
+    return b.score - a.score;
+  });
+
+  return candidatos[0].obj || {};
 }
 
 function valorAnotacaoOperacional(chave, campo) {
