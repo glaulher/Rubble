@@ -1,1276 +1,489 @@
-# Rubble — Documentação Técnica
+# Rubble — Manual de Uso e Documentação Técnica
 
-SPA de gestão de manutenção de equipamentos de climatização. PHP puro, JS puro, MariaDB. Servido via USBWebserver (Apache + MySQL portáteis) em desenvolvimento; Docker Compose com Traefik em produção.
-
----
-
-## 1. Visão Geral
-
-### O que é
-
-Rubble é um sistema de gestão de manutenção de equipamentos de climatização (HVAC). Permite controlar equipamentos, ordens de serviço, propostas de venda (PV), SCM (controle de medição), e ciclos de manutenção preventiva.
-
-### Stack
-
-| Camada | Tecnologia |
-|--------|-----------|
-| Backend | PHP 8.4 puro (mysqli), PHPMailer |
-| Frontend | JS puro (sem framework, ES modules em `type="module"`), Tailwind v4 via CDN + fallback local |
-| Database | MariaDB 11.4, charset utf8mb4 |
-| Cache | APCu (Docker) / file-based (local) |
-| PDF | html2canvas + jsPDF (client-side) |
-| Microservice | Python 3.12 + FastAPI + CLIP (ViT-B/32) — `rubble-pdf-checker/` |
-| Email | PHPMailer (SMTP) |
-| Auth | JWT HMAC-SHA256 (custom) |
-| Server | Apache 2.4 + PHP (portable via USBWebserver) / Nginx + PHP-FPM (Docker) |
-| Deploy | Docker Compose + Traefik (SSL) + DuckDNS |
-| Testes | PHPUnit 11 (PHP) + Bun/Happy-DOM (JS) |
-
-### Arquitetura
-
-```
-Controller → Service → Repository → Entity
-```
-
-- **Controllers:** Handle HTTP requests, validate input, delegate to services
-- **Services:** Business logic, validation rules, data transformation
-- **Repositories:** Data access (SQL queries, CRUD) — sem business logic
-- **Entities:** Typed properties, data mapping
-
-Sem framework. Sem IOC container. Autoloader manual (`config/autoloader.php`).
-
-**Princípio de separação:** Toda regra de negócio pertence aos Services, nunca aos Repositories. Exemplos: `getFornecimentoId()` (PvService), `STATUS_PRIORITY` (TicketService), `STATUS_MAP` (DashboardService), `resolveOsToTicketIds()` (TicketService). Vazamentos identificados e corrigidos em refatoração (2026-07-03).
-
-**ES Modules:** Componentes compartilhados (`infinite-scroll.js`, `button.js`) usam ES modules (`export/import`). Views que os usam precisam de `<script type="module">`. Módulos que não usam `export` são scripts regulares.
-
-### Router + Middlewares
-
-**`app/api/Router.php`** — Classe de 44 linhas:
-- `addRoute(route, method, handler)` — fluent chaining
-- `dispatch(route, method)` — lookup + invoke, retorna 404/405 JSON
-
-**`app/api/index.php`** — ~248 linhas. Pipeline:
-
-1. `CorsMiddleware::handle()` — CORS headers, security headers, OPTIONS preflight (204)
-2. `AuthMiddleware::handle()` — JWT validation, role check, stores user
-3. `RateLimitMiddleware::handle()` — Per-route IP rate limiting (60s window)
-4. `Router::dispatch(route, method)` — Route lookup + handler invocation
+SPA de gestão de manutenção de equipamentos de climatização (HVAC). Desenvolvido em PHP 8.4 puro + Vanilla JS + MariaDB 11.4 com Tailwind CSS v4 e microserviço de IA para auditoria de laudos em PDF.
 
 ---
 
-## 2. Setup & Desenvolvimento
+## 1. Visão Geral do Sistema
 
-### Pré-requisitos
+### 1.1. O que é o Rubble
 
-- PHP 8.4+ (ou binário `php/` do USBWebserver)
-- MySQL / MariaDB
-- Bun (para testes JS)
+O **Rubble** é uma plataforma integrada para planejamento, execução, controle orçamentário e auditoria técnica de serviços de manutenção em equipamentos de ar condicionado e refrigeração (HVAC). A plataforma unifica em uma única interface:
+- Cadastro e inventário de máquinas e endereços técnicos (sites/HUBs).
+- Gestão e acompanhamento operacional de ordens de serviço corretivas (OS).
+- Planejamento diário e cronograma de manutenções preventivas e corretivas.
+- Gestão de ciclos periódicos de preventiva e controle de medição (SCM).
+- Elaboração, envio de e-mails e aprovação automática de propostas de venda (PV / orçamentos LPU e FLPU).
+- Registro e controle de trocas de filtros de ar.
+- Auditoria automatizada de laudos técnicos em PDF via Inteligência Artificial (CLIP).
+- Painéis gerenciais com indicadores operacionais, financeiros e mapas de calor (Treemaps).
 
-### Instalação (USBWebserver)
+### 1.2. Stack Tecnológica
 
-1. Executar `usbwebserver.exe` do diretório pai
-2. Acessar: `http://localhost/root/`
-3. Configurar `.env` copiando de `.env.example`
+| Camada | Tecnologia | Descrição |
+|--------|-----------|-----------|
+| **Backend** | PHP 8.4 puro | Sem frameworks pesados; arquitetura estruturada em Controller → Service → Repository → Entity |
+| **Frontend** | Vanilla JS (ES Modules) | SPA hash-based, Tailwind CSS v4, Chart.js, html2canvas, jsPDF |
+| **Banco de Dados**| MariaDB 11.4 | Charset `utf8mb4`, índices otimizados e suporte a FULLTEXT search |
+| **Microserviço IA**| Python 3.12 + FastAPI + CLIP | Comparação visual de laudos em PDF (`rubble-pdf-checker/`) |
+| **E-mails & IMAP**| PHPMailer + PHP IMAP | Disparo SMTP e robô (*Mail Watcher*) de leitura de respostas e aprovação automática |
+| **Cache & Polling**| APCu / Arquivo local | Invalidação por prefixo e polling incremental (30s com jitter) |
+| **Servidor & Deploy**| Docker Compose + Traefik | SSL automático via Let's Encrypt e proxy reverso |
+| **Testes** | PHPUnit 11 + Bun | Testes unitários PHP e testes de interface/módulos JS |
 
-### Variáveis de Ambiente
-
-| Variável | Descrição |
-|----------|-----------|
-| `DB_HOST` | Host do banco |
-| `DB_NAME` | Nome do banco (`manutencao`) |
-| `DB_USER` / `DB_PASS` | Credenciais MySQL |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Configurações SMTP |
-| `JWT_SECRET` | String hex de 64 caracteres para assinatura JWT |
-| `PV_EMAILS_ES` / `PV_EMAILS_RJ` | Destinatários PV por UF |
-| `PV_EMAILS_ES_CC` / `PV_EMAILS_RJ_CC` | Cc por UF |
-| `NOTIFY_EMAILS` | Destinatários notificação (separados por vírgula) |
-| `APP_DEBUG` | Modo debug (`true`/`false`) |
-| `ALLOWED_ORIGINS` | CORS origins (`*` para dev) |
-| `DB_ROOT_PASSWORD` | Senha root MySQL |
-
-### Comandos
-
-> Todos os comandos dentro da pasta `root/`.
-
-```bash
-# Testes PHP
-..\php\php.exe vendor\bin\phpunit
-..\php\php.exe vendor\bin\phpunit tests/unit/ValidatorTest.php
-
-# Testes JS
-bun test
-bun test tests/utils.test.js
-
-# Instalar dependências (só dev/testes)
-..\php\php.exe composer.phar install
-bun install
-```
-
-### Estrutura de Diretórios
+### 1.3. Arquitetura do Backend
 
 ```
-.                              ← Document root + repo root
-├── index.html                 ← SPA entry (scripts carregados em ordem)
-├── .env                       ← Credenciais (NÃO commitar)
-├── config/
-│   ├── autoloader.php         ← Autoload manual (NÃO usa vendor/autoload.php)
-│   ├── Database.php           ← mysqli singleton
-│   ├── Env.php                ← Leitor de .env
-│   ├── schema.sql             ← Schema completo (Docker init)
-│   ├── apache/site.conf       ← VirtualHost + PHP limits
-│   ├── crontab                ← Cron job notificação (supercronic)
-│   └── migrations/            ← Migrações SQL (executar manualmente)
-├── app/api/
-│   ├── index.php              ← Bootstrap + middleware + routes
-│   ├── Router.php             ← Classe de roteamento
-│   ├── Auth/                  ← JwtHelper, AuthService
-│   ├── Middleware/             ← Cors, Auth, RateLimit
-│   ├── Controllers/           ← 17 controllers
-│   ├── Services/              ← 15 services
-│   ├── Repositories/          ← 14 repositories
-│   ├── Entities/              ← 5 entities
-│   ├── Helpers/               ← Response, Request, Validator, Cache, etc.
-│   └── Cron/check_notification.php
-├── app/libs/PHPMailer/        ← PHPMailer (manual, não Composer)
-├── app/Views/                 ← HTML parciais (carregados via fetch)
-├── public/
-│   ├── css/                   ← default.css, fonts.css
-│   ├── tailwindcss.js         ← Tailwind v4 fallback local
-│   └── js/
-│       ├── auth.js            ← Login, token, auth guard
-│       ├── router.js          ← Hash-based SPA router
-│       ├── utils/             ← utils, csv, upload, report, polling
-│       ├── components/        ← button, modal, messagebox, pagination
-│       ├── home/              ← home-ui, equipment, form
-│       ├── pv/                ← constants, form-utils, form, list, modals, dashboard
-│       ├── user/              ← list, form (admin)
-│       ├── equipment/         ← list, form, dashboard (admin/coordenador)
-│       ├── equipment-prices/  ← list, form (admin)
-│       ├── scm/               ← scm-list, scm-import
-│       ├── preventive-cycle/  ← list (admin/coordenador)
-│       ├── planned-activity/  ← list (preventive + corrective)
-│       ├── pdf-audit/         ← audit (admin/coordenador/administrativo)
-│       └── lib/               ← chart, html2canvas, jspdf
-├── tests/                     ← PHPUnit + Bun tests
-├── OS/ / LAUDO/               ← Upload dirs (local, não versionado)
-└── vendor/ / node_modules/    ← Dependências dev
+HTTP Request → CorsMiddleware → AuthMiddleware → RateLimitMiddleware → Router → Controller → Service → Repository → MariaDB
 ```
+
+- **Controllers (`app/api/Controllers/`):** Recebem requisições HTTP, validam parâmetros de entrada e delegam a execução para os Services.
+- **Services (`app/api/Services/`):** Contêm **todas** as regras de negócio, cálculos, validações e integrações externas (e-mail, IA, IMAP).
+- **Repositories (`app/api/Repositories/`):** Camada de acesso a dados exclusiva. Executam queries SQL seguras via prepared statements (`safePrepare`). Não contêm regras de negócio.
+- **Entities (`app/api/Entities/`):** Objetos de transferência de dados com propriedades tipadas.
 
 ---
 
-## 3. API Reference
+## 2. Perfis de Acesso & Permissões
 
-### Authentication
+O controle de acesso é baseado em papéis (RBAC). O token JWT emitido no login carrega a role do usuário, validada em cada requisição pelo `AuthMiddleware` e refletida na interface pelo `applyRoleVisibility()`.
 
-- **JWT HMAC-SHA256** — Custom implementation (`app/api/Auth/JwtHelper.php`), no external dependencies
-- Token stored in `sessionStorage`, sent as `Authorization: Bearer <token>`
-- Token TTL: 12 hours (43200s)
-- Public routes: `auth` only
-- Blacklist support: table `token_blacklist` for explicit logout revocation
+| Módulo / Recurso | Admin | Coordenador | Supervisor | Administrativo | Cliente |
+|-------------------|:-----:|:-----------:|:----------:|:--------------:|:-------:|
+| **Home (Equipamentos & Chamados)** | CRUD | CRUD | CRUD | R/O | R/O |
+| **Gestão de OS (Pending Tickets)** | CRUD | CRUD | CRUD | R/O | R/O |
+| **Atividades Planejadas** | CRUD | CRUD (sem delete) | R/O | R/O | R/O |
+| **Ciclo de Preventiva** | CRUD (save) | R/O | R/O | ❌ | ❌ |
+| **Propostas de Venda (PV)** | CRUD | CRUD (sem delete) | ❌ | ❌ | ❌ |
+| **Controle de Medição (SCM)** | CRUD | CRUD (sem delete) | ❌ | ❌ | ❌ |
+| **Troca de Filtros** | CRUD | CRUD | CRUD | R/O | R/O |
+| **Auditoria de Laudos (PDF Audit)**| CRUD | R/O | ❌ | R/O | ❌ |
+| **Equipment Dashboard** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **OS Dashboard** | ✅ | ✅ | ✅ | ✅ | ❌ |
+| **Preventiva Dashboard** | ✅ | ✅ | ✅ | ❌ | ✅ |
+| **PV Dashboard** | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **Gestão de Equipamentos** | CRUD | CRUD (sem delete) | ❌ | ❌ | ❌ |
+| **Tabela de Preços** | CRUD | ❌ | ❌ | ❌ | ❌ |
+| **Gestão de Usuários** | CRUD | ❌ | ❌ | ❌ | ❌ |
 
-### Base URL
+> **Legenda:**
+> - **CRUD:** Criar, Consultar, Editar e Excluir.
+> - **R/O:** Somente Leitura (*Read-Only* / Consulta e exportação).
+> - **✅ / ❌:** Acesso permitido / bloqueado aos dashboards gerenciais.
+
+---
+
+## 3. Manual de Uso & Guia Operacional
+
+Este capítulo apresenta o passo a passo prático para utilização de cada módulo do sistema.
+
+### 3.1. Home — Consulta de Equipamentos & Atendimentos (`#/home`)
+
+A Home é a tela inicial do sistema, projetada para visualização rápida do parque de máquinas e dos atendimentos técnicos.
 
 ```
-https://rubbleapp.duckdns.org/api/?route={route}&action={action}
++-----------------------------------------------------------------------------------+
+|  [Logo Rubble]  [Contador de Máquinas / Valor]  [Campo de Busca...]  [+ Registrar]  |
++-----------------------------------------------------------------------------------+
+|  Site: VITORIA - HUB PRAIA DO CANTO — Rua Exemplo, 123                            |
+|  +-------------------------------------+  +-------------------------------------+ |
+|  | Máquina: WM 01 - 10 TR              |  | Máquina: FANCOIL 02 - 15 TR         | |
+|  | Badges: [10 TR] [MERCADO 1] [R$ 450]|  | Badges: [15 TR] [MERCADO 2] [R$ 600]| |
+|  | Última OS: 123456 [Concluído] (P1)  |  | Última OS: 123457 [Pendente] (P0)   | |
+|  | Técnico: João Silva                 |  | Técnico: Carlos Souza               | |
+|  | [Registrar OS] [Editar Máquina]     |  | [Registrar OS] [Editar Máquina]     | |
+|  +-------------------------------------+  +-------------------------------------+ |
++-----------------------------------------------------------------------------------+
 ```
 
-All routes require JWT Bearer token (except `auth`). Access controlled by role.
+#### Funcionalidades da Home:
+1. **Agrupamento por Site:** Os equipamentos são agrupados por localidade e HUB. O nome do HUB é formatado automaticamente em Title Case.
+2. **Cards de Máquinas:** Cada card exibe:
+   - Identificação do equipamento e capacidade em TR.
+   - Tag Infratel (se cadastrada).
+   - Badge de mercado e valor de manutenção calculado com base na tabela de preços.
+   - Histórico resumido das ordens de serviço (OS) associadas, com badge colorido por status e prioridade (P0 vermelho a P5 cinza).
+3. **Ações no Card:**
+   - **Registrar Atendimento:** Abre o modal/formulário para abertura de uma nova OS vinculada àquela máquina específica.
+   - **Histórico:** Permite expandir os tickets anteriores para consultar data, causa, solução e técnico responsável.
+4. **Busca em Tempo Real:** Campo de busca no cabeçalho com suporte a busca textual por nome de site, máquina, endereço ou número de OS.
+5. **Exportação CSV:** Botão no canto superior direito para gerar uma planilha com todos os equipamentos e seus respectivos tickets filtrados.
 
-### Response Format
+---
+
+### 3.2. Gestão de OS — Ordens de Serviço Corretivas (`#/pending-tickets`)
+
+Módulo dedicado ao acompanhamento operacional minucioso de todas as ordens de serviço corretivas.
+
+```
++-----------------------------------------------------------------------------------+
+| Gestão de OS | [Badge: 42 OS] | [Registrar] [Busca...] [Gerar CSV]                |
+| Filtros: [Coluna Data: Abertura ▼] [De: 01/08/2026] [Até: 31/08/2026] [Status ▼] |
++-----------------------------------------------------------------------------------+
+| OS     | Site / Localidade | Máquina | Prioridade | Status     | Técnico | PV Status  |
+| 260101 | VITORIA - CENTRO  | WM 01   | P1 (Alta)  | Em Andam.  | João S. | Aprovado   |
+| ▶ Detalhes da OS (Clique para expandir observações, causas, peças e datas)       |
++-----------------------------------------------------------------------------------+
+```
+
+#### Como Utilizar:
+1. **Filtro por Coluna de Data:** Selecione qual data deseja filtrar:
+   - *Data Abertura*
+   - *Data PV Enviada*
+   - *Data PV Aprovada*
+   - *Data Programada*
+   - *Data Real Início*
+   - *Data Prevista Conclusão*
+   - *Data Conclusão*
+2. **Filtro Multi-Select de Status:** Permite selecionar múltiplos status simultaneamente (Pendente, Planejado, Em Andamento, Concluído, Projeto Clean Up).
+3. **Linhas Expansíveis de Detalhes:** Clique no ícone de seta (`▶`) ao lado da OS para abrir o painel com observações técnicas completas, materiais necessários, localidade e histórico.
+4. **Edição Rápida de Campos:** Campos como responsável, etapa e observação podem ser atualizados diretamente na listagem.
+
+---
+
+### 3.3. Atividades Planejadas — Cronograma & Planejamento (`#/planned-activity`)
+
+Módulo para programação diária das equipes de campo, combinando atividades preventivas e corretivas.
+
+#### Tipos de Atividades:
+- **Preventiva:** Agendada em **nível de Site** (sem amarrar a uma máquina específica, associada ao ticket de preventiva).
+- **Corretiva:** Agendada em **nível de Equipamento** (associada à máquina e número de OS).
+
+```
++-----------------------------------------------------------------------------------+
+| [Planejamento]  [+ Planejar Atividade]  [Busca...]  [Filtros de Data]  [Exportar] |
++-----------------------------------------------------------------------------------+
+| 📅 Segunda-feira, 7 de julho de 2026                      [Duplicar Dia]         |
+| --------------------------------------------------------------------------------- |
+| [Prev] Site: VITORIA - PRAIA DO CANTO | Equipe: Equipe Alfa ✏️ | Status: Planejado |
+|        Obs: Verificar filtros e condensadoras ✏️          [Alterar Status] [Excluir] |
+| --------------------------------------------------------------------------------- |
+| [Corr] OS: 260102 - WM 02 (10 TR)     | Equipe: Carlos/Marcos ✏️| Status: Em Andam. |
++-----------------------------------------------------------------------------------+
+```
+
+#### Operações no Planejamento:
+1. **Nova Atividade:** Clique em `+ Planejar Atividade` e escolha o tipo (*Preventiva* ou *Corretiva*):
+   - *Preventiva:* Selecione o Site, Ticket, Data Planejada e Equipe.
+   - *Corretiva:* Selecione o Equipamento, OS, Data Planejada e Equipe.
+2. **Edição Rápida Inline (Ícone do Lápis ✏️):** Clique no lápis ao lado do nome da Equipe ou da Observação para editar o texto imediatamente sem abrir modais. Pressione `Enter` ou clique fora para salvar.
+3. **Transição de Status:**
+   - Clique no botão de status para abrir o modal de transição: `Planejado` → `Em Andamento` → `Concluído` ou `Cancelado`.
+   - Permite reagendar a data diretamente no modal caso a atividade precise ser postergada.
+4. **Duplicar Dia Inteiro:** Clique em `Duplicar Dia` no cabeçalho da data para clonar toda a programação de um dia para uma nova data de destino.
+
+---
+
+### 3.4. Ciclo de Manutenção Preventiva (`#/preventive-cycle`)
+
+Módulo para controle mensal do cumprimento do plano de manutenção preventiva e vinculação com o SCM.
+
+#### Regra do Ciclo de Medição:
+O ciclo operacional de medição compreende do **dia 16 do mês anterior até o dia 15 do mês atual** (ex: Ciclo de Agosto/2026 = 16/07/2026 a 15/08/2026).
+
+```
++-----------------------------------------------------------------------------------+
+| Ciclo Preventiva: [Ciclo: 2026-08 ▼]                                              |
+| Resumo: [R$ 145.200,00 · 82 sites · 320 máq. | Enviado: 12 · Aprovado: 308]      |
+| Filtros: (o) Todos  ( ) Com Obs  ( ) Selecionados  ( ) Sem SCM  ( ) Lançados       |
+| Ações: [Marcar Todos no Filtro]  [Desmarcar Todos no Filtro]  [Salvar Ciclo]      |
++-----------------------------------------------------------------------------------+
+| [✓] Site: CARIACICA - HUB CAMPO GRANDE — WM 01 (10 TR)                            |
+|     SCM: [ 26004512 ] (Status: SCM aprovado ✅) | Obs: [ Concluído no prazo ]     |
++-----------------------------------------------------------------------------------+
+```
+
+#### Passo a Passo:
+1. **Selecionar Ciclo:** Escolha o ano/mês de referência no dropdown superior.
+2. **Filtros Rápidos:**
+   - *Todos:* Exibe todo o parque de máquinas.
+   - *Com Obs:* Apenas equipamentos com anotações manuais.
+   - *Selecionados:* Apenas equipamentos marcados no ciclo.
+   - *Sem SCM:* Equipamentos marcados que ainda não possuem número SCM preenchido.
+   - *Lançados:* Equipamentos cujo SCM já foi processado/aprovado.
+3. **Validação de SCM em Tempo Real:** Ao digitar o número do SCM no card, o sistema valida automaticamente e exibe o badge de status retornado da base do SCM.
+4. **Ações em Lote:** Utilize `Marcar Todos` ou `Desmarcar Todos` para atualizar em bloco os itens visíveis no filtro atual.
+5. **Salvar Ciclo:** Clique no botão verde para persistir as marcações e observações.
+
+---
+
+### 3.5. Propostas de Venda (PV) & Aprovação Automática (`#/pv`)
+
+Módulo completo para elaboração de orçamentos de serviços e materiais, envio de e-mails para o cliente e faturamento.
+
+```
++-----------------------------------------------------------------------------------+
+| Propostas de Venda (PV) | [+ Nova PV] [Busca...] [Exportar CSV]                   |
++-----------------------------------------------------------------------------------+
+| Nº PV  | Local / Site      | Valor Total  | Status             | Ações             |
+| 260085 | VITORIA - CENTRO  | R$ 3.450,00  | Aguardando envio   | [PDF] [✉️] [✏️] [❌]|
+| 260084 | SERRA - CIVIT II  | R$ 12.800,00 | Aprovado aquisição | [PDF] [✉️] [✏️] [❌]|
++-----------------------------------------------------------------------------------+
+```
+
+#### 1. Criação de Nova PV:
+- Acesse `+ Nova PV`.
+- Selecione o **Local / Site** (com autocomplete).
+- Adicione os itens da proposta:
+  - **LPU:** Digite o código ou descrição do item para buscar nos catálogos oficiais (Civil, Materiais Clima/Chiller, Serviços Clima/Chiller). Ao selecionar um item LPU, o campo de fatura é definido automaticamente como "LPU".
+  - **FLPU (Fora de Tabela):** Para itens sob medida, insira descrição livre, valor sem BDI e taxa de BDI (%).
+  - **Calculadora de Filtros de Ar:** Para itens de troca de elemento filtrante, marque a opção de filtro para abrir a calculadora automática: informe largura (cm), altura (cm), quantidade de peças e espessura para gerar o **Memorial de Cálculo** formatado.
+
+#### 2. Envio de E-mail:
+- Clique no ícone de envelope (`✉️`) na PV desejada ou selecione múltiplas PVs para **Envio em Lote (Batch Email)**.
+- Escolha o tipo de assunto: *Materiais*, *Serviços* ou *Contratação*.
+- O sistema monta um e-mail com design corporativo contendo a tabela de itens, memorial de cálculo e anexa automaticamente os PDFs de OS e Laudos Técnicos salvos nas pastas `OS/` e `LAUDO/`.
+- Os destinatários (*Para* e *Cc*) são preenchidos automaticamente conforme a UF do site (`PV_EMAILS_ES` ou `PV_EMAILS_RJ`).
+- O cabeçalho `Reply-To` do e-mail é configurado para a caixa de monitoramento (`rubbleaprovacoes@gmail.com`).
+
+#### 3. Aprovação Automática por E-mail (Mail Watcher):
+- Quando o cliente responde ao e-mail contendo no assunto o número da PV (ex: `PV: 260085`) e no corpo termos de aprovação (ex: *"Aprovado"*, *"Aprovo o faturamento"*), o robô de leitura IMAP em background processa a mensagem.
+- O sistema atualiza automaticamente todos os itens daquela PV para o status `Aprovado aquisição/serviço`, eliminando intervenção manual.
+- O controle de duplicidade armazena os UIDs das mensagens processadas na tabela `email_processed`.
+
+---
+
+### 3.6. Controle de Medição (SCM) (`#/scm`)
+
+Módulo de importação e auditoria das planilhas de medição fornecidas pelo cliente.
+
+```
++-----------------------------------------------------------------------------------+
+| Controle SCM | [Importar CSV] | [Segmento: Todos ▼] [Site: Todos ▼] [Status ▼]     |
++-----------------------------------------------------------------------------------+
+| SCM Nº   | Site / Cidade     | Segmento | Status SCM       | Validação Mercado    |
+| 26009812 | VITORIA - CENTRO  | ACESSO   | SCM aprovado ✅  | Mercado Correto ✅   |
+| 26009813 | LINHARES - RURAL  | CORE     | SCM negado ❌    | Erro no mercado ⚠️  |
++-----------------------------------------------------------------------------------+
+```
+
+#### Operações:
+1. **Importação de CSV:** Clique em `Importar CSV`. O sistema detecta automaticamente o delimitador (vírgula ou ponto-e-vírgula), converte encoding (UTF-8 com suporte a Latin-1/BOM) e realiza o parse dos registros.
+2. **Mapeamento de Status:** Converte os status brutos da planilha (`GERADO` → `SCM aprovado`, `NEGADO` → `SCM negado`, `CONFERIDO` → `SCM verificado`, `EXECUTADO` → `SCM enviado`).
+3. **Sincronização com PV:** Propaga os status do SCM para os itens de PV vinculados pelo número SCM.
+4. **Diagnóstico de Mercado:** Realiza a conferência cruzada entre o campo `origem` do SCM e o `mercado` cadastrado no equipamento. Exibe badge de alerta vermelho caso haja divergência de faturamento.
+
+---
+
+### 3.7. Troca de Filtros (`#/filter-exchanges`)
+
+Controle histórico do ciclo de vida dos elementos filtrantes de ar condicionado.
+
+- **Listagem e Registro:** Acompanhamento por equipamento, data de instalação, tipo de filtro e técnico executor.
+- **Filtros Rápidos:** Botões de rádio para visualização por status (*Todos*, *Pendente*, *Planejado*, *Concluído*).
+- **Seletor de Colunas:** Dropdown dinâmico que permite ocultar ou exibir colunas na tabela conforme a necessidade do usuário.
+- **Exportação:** Geração de planilha CSV formatada.
+
+---
+
+### 3.8. Auditoria de Laudos com IA (PDF Audit) (`#/pdf-audit`)
+
+Módulo avançado de inteligência artificial para garantia de qualidade de relatórios técnicos e laudos fotográficos em PDF.
+
+```
++-----------------------------------------------------------------------------------+
+| Auditoria PDF com IA | [Modo: CLIP IA (ViT-B/32)] | Referência: [Modelo_Padrao.pdf]|
+| [Carregar Nova Referência]  [Auditar Lote de Laudos (PDFs)]  [Exportar Resultados]|
++-----------------------------------------------------------------------------------+
+| Resultado da Auditoria: [48 Aprovados - 2 Rejeitados]                             |
+| --------------------------------------------------------------------------------- |
+| [▼] Laudo_OS_260105.pdf — STATUS: REPROVADO ❌ (Score: 0.62 / Mínimo: 0.78)     |
+|     - Foto 3 (Placa do Motor): Inconforme / Ângulo Incorreto                      |
+|     - Campo obrigatório ausente: "Pressão de Sucção"                              |
++-----------------------------------------------------------------------------------+
+```
+
+#### Modos de Auditoria:
+1. **Modo IA (CLIP - OpenAI ViT-B/32):**
+   - Utiliza rede neural de visão computacional para comparar semanticamente as fotos do laudo enviado contra as fotos do PDF de referência.
+   - O limiar (*threshold*) de aprovação é calibrado dinamicamente com base no score de qualidade da própria referência.
+2. **Modo OCR:**
+   - Validação textual e estrutural sem IA pesada, indicada para conferência rápida de preenchimento de campos e cabeçalhos em lotes de até 30 arquivos.
+
+#### Como Executar a Auditoria:
+1. Defina um PDF de referência através de `Carregar Referência` (armazenado com segurança no microserviço).
+2. Selecione os arquivos de laudo a serem auditados e clique em `Auditar`.
+3. Acompanhe a barra de progresso em tempo real.
+4. Analise o relatório com cards colapsáveis contendo fotos comparadas lado a lado, itens NOK e exporte o resultado em CSV.
+
+---
+
+### 3.9. Dashboards Gerenciais
+
+O Rubble disponibiliza 4 dashboards interativos focados em métricas operacionais e financeiras:
+
+1. **Equipment Dashboard (`#/equipament-dashboard`):**
+   - Gráficos de Pareto com ranking de localidades e máquinas mais críticas.
+   - Análise de produtividade e volume de atendimentos por técnico.
+   - Indicador de Tempo Médio de Resolução (MTTR).
+2. **OS Dashboard (`#/os-dashboard`):**
+   - Visão gerencial consolidada das ordens de serviço corretivas.
+   - Distribuição de chamados por faixa de prioridade (P0 emergencial a P5 preventiva).
+   - Divisão percentual de responsabilidade de atendimento (Prestador vs Claro).
+   - Botão para exportação do painel formatado em PDF.
+3. **Preventiva Dashboard (`#/preventiva-dashboard`):**
+   - Indicadores-chave (KPIs): Total de Máquinas, Concluídas, Em Andamento e Pendentes.
+   - Gráfico de barras com distribuição de status.
+   - **Treemap Proporcional por Site:** Gráfico de áreas onde o tamanho do bloco representa o volume de máquinas do site e a cor indica o status predominante (Verde = Concluído, Amarelo = Em Andamento, Vermelho = Pendente).
+   - **Navegação por Ciclo de Medição:** Botões rápidos para avançar ou retroceder entre ciclos mensais de medição (16 a 15).
+   - Exportação do dashboard em PDF gerencial.
+4. **PV Dashboard (`#/pv-dashboard`):**
+   - Análise financeira com volume total orçado e faturado.
+   - Funil de propostas de venda por status de aprovação.
+   - Ranking de localidades com maior faturamento.
+
+---
+
+### 3.10. Módulos Administrativos
+
+1. **Gestão de Usuários (`#/users`):**
+   - Criação de contas de acesso com definição de perfil de permissão (`admin`, `coordenador`, `supervisor`, `administrativo`, `cliente`).
+   - Redefinição de senhas com criptografia `password_hash` (bcrypt).
+   - Proteção contra auto-exclusão do administrador logado.
+2. **Gestão de Equipamentos (`#/equipment-manager`):**
+   - Cadastro e edição de máquinas HVAC (capacidade TR, fabricante, modelo, tag Infratel).
+   - Associação de endereços com criação automática de registros vinculados.
+   - Configuração de HUBs/local_scm e mercados de faturamento.
+3. **Tabela de Preços (`#/equipment-prices`):**
+   - Cadastro de regras de precificação por TR (fórmulas `capacidade × valor`) ou valor fixo (Chillers).
+   - Filtros de aplicação por mercado e locais especiais.
+
+---
+
+## 4. Referência Técnica de API
+
+Todas as rotas (exceto `auth/login` e `config`) exigem cabeçalho `Authorization: Bearer <token_jwt>`.
+
+### Formato Padrão de Resposta
 
 ```json
 {
   "success": true,
-  "message": "Operação realizada",
+  "message": "Operação realizada com sucesso",
   "data": {}
 }
 ```
 
-Errors: `{ "success": false, "message": "Erro msg" }` with appropriate HTTP status.
-
----
-
-### Auth
-
-#### `POST ?route=auth&action=login`
-
-Authenticate user and receive JWT.
-
-**Request:**
+Em caso de erro:
 ```json
 {
-  "username": "admin@example.com",
-  "password": "secret123"
+  "success": false,
+  "message": "Descrição amigável do erro"
 }
 ```
 
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "token": "eyJhbGciOiJIUzI1NiIs...",
-    "user": { "id": 1, "nome": "Admin", "role": "admin" }
-  }
-}
-```
+### Principais Endpoints
 
-**Errors:** 401 invalid credentials, 429 rate limit (5 attempts/5min).
-
-#### `GET ?route=auth&action=me`
-
-Get current user from token.
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": { "id": 1, "nome": "Admin", "username": "admin@example.com", "role": "admin" }
-}
-```
-
-#### `POST ?route=auth&action=logout`
-
-Revoke current token (adds to blacklist).
-
-**Headers:** `Authorization: Bearer <token>`
+| Rota | Método | Descrição |
+|------|--------|-----------|
+| `?route=auth&action=login` | POST | Autentica usuário e retorna token JWT |
+| `?route=auth&action=me` | GET | Retorna os dados do usuário logado |
+| `?route=auth&action=logout` | POST | Revoga o token atual inserindo-o na blacklist |
+| `?route=auth&action=active-count`| GET | Retorna a quantidade de usuários ativos |
+| `?route=equipment&action=listAll`| GET | Listagem paginada de equipamentos (keyset pagination) |
+| `?route=tickets&action=save` | POST | Cria um novo ticket / OS |
+| `?route=tickets&action=import` | POST | Importa lote de OS via CSV |
+| `?route=pending-tickets` | GET | Listagem de OS corretivas com filtros avançados |
+| `?route=planned-activities` | GET, POST | Gestão do cronograma de planejamento |
+| `?route=preventiva&action=plan` | POST | Planeja atividade preventiva em nível de site |
+| `?route=preventive-cycle` | GET, POST | Operações do ciclo de preventiva |
+| `?route=pv` | GET, POST, PUT, DELETE | CRUD completo de Propostas de Venda |
+| `?route=pv&action=send-email` | POST | Dispara e-mail de PV com anexos |
+| `?route=pv&action=send-batch-email`| POST| Dispara lote de e-mails de PV |
+| `?route=scm` | GET, POST | Listagem e importação de medições SCM |
+| `?route=filter-exchanges` | GET, POST, PATCH | Gestão de trocas de filtros de ar |
+| `?route=pdf-audit&action=audit`| POST | Executa auditoria de PDFs via microserviço |
+| `?route=dashboard` | GET | Dados do Dashboard de Equipamentos |
+| `?route=os-dashboard` | GET | Dados do Dashboard de Gestão de OS |
+| `?route=preventiva-dashboard` | GET | Dados do Dashboard de Preventiva e Treemap |
+| `?route=pv-dashboard` | GET | Dados do Dashboard Financeiro de PV |
+| `?route=equipment-management` | GET, POST, PUT, DELETE | CRUD de equipamentos (Admin/Coordenador) |
+| `?route=equipment-prices` | GET, POST, PUT, DELETE | CRUD de regras de preço (Admin) |
+| `?route=users` | GET, POST, PUT, DELETE | CRUD de usuários (Admin) |
 
 ---
 
-### Equipment
-
-#### `GET ?route=equipment&action=listAll`
-
-Paginated equipment list with tickets and PV counts. Keyset pagination (no offset).
-
-**Query Params:** `limit` (default 20), `last_local`, `last_equipamento`, `last_id`, `search`, `exact_name`
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": [{ "id": 1, "equipamento": "WM 01", "capacidade": "10 TR", "local": "BMA", "localidade": "Container 1", "local_scm": "BMADTC", "mercado": "Residencial", "status_aberto": 3, "pvs_pendentes_count": 1, "pvs_pendentes": "260025|OS12345" }],
-  "keyset": { "last_local": "BMA", "last_equipamento": "WM 01", "last_id": 50 },
-  "_hash": "a1b2c3d4e5f6..."
-}
-```
-
-#### `GET ?route=equipment&action=sumValue`
-
-Aggregated total value for all equipment (used in home badge).
-
-**Response (200):**
-```json
-{ "success": true, "data": { "total": 158942.50 } }
-```
-
-#### `GET ?route=equipment&action=ticketsByEquipment`
-
-Tickets for a single equipment (loaded on card expand).
-
-**Query Params:** `id` (equipment ID)
-
-#### `GET ?route=equipment&action=ticketsByIds`
-
-Batch ticket lookup for CSV export.
-
-**Query Params:** `ids[]` (array of equipment IDs), `limit`, `offset`
-
-#### `GET ?route=equipment&action=checkChiller`
-
-Check if equipment has chiller naming pattern.
-
-**Query Params:** `local`
-
----
-
-### Locals (Autocomplete)
-
-#### `GET ?route=locals`
-
-Return distinct local values for autocomplete dropdowns.
-
----
-
-### Tickets (OS)
-
-#### `GET ?route=tickets&action=listByItem`
-
-List tickets for an equipment.
-
-**Query Params:** `equipamento_id`
-
-#### `POST ?route=tickets&action=save`
-
-Create a new ticket.
-
-#### `PUT ?route=tickets&action=update`
-
-Update ticket status/fields.
-
-#### `DELETE ?route=tickets&action=delete`
-
-Delete a ticket. Returns 400 if linked to a PV.
-
-#### `POST ?route=tickets&action=import`
-
-Bulk import from CSV. Auto-detects delimiter, BOM strip, site code extraction.
-
----
-
-### PV (Propostas de Venda)
-
-#### `GET ?route=pv&action=listAll`
-
-List PVs with pagination, search, status filter, cycle filter. Sorted by created_at DESC.
-
-**Query Params:** `page`, `search`, `status`, `ciclo`, `sort_by`, `sort_dir`
-
-#### `GET ?route=pv&action=getById`
-
-Single PV with all items.
-
-**Query Params:** `id`
-
-#### `POST ?route=pv&action=save`
-
-Create new PV with items.
-
-#### `PUT ?route=pv&action=update`
-
-Update PV and its items.
-
-#### `PATCH ?route=pv&action=updateStatus`
-
-Update status of one or more PV items.
-
-**Request:**
-```json
-{
-  "items": [{ "id": 1, "status": "SCM aprovado" }]
-}
-```
-
-#### `DELETE ?route=pv&action=delete`
-
-Delete PV and all items.
-
-#### `GET ?route=pv&action=searchOs`
-
-Autocomplete: OS numbers matching query.
-
-#### `GET ?route=pv&action=lookupItem`
-
-Lookup LPU item details by item number.
-
-#### `GET ?route=pv&action=searchLpuItems`
-
-Search LPU catalogs (civil, material, servico) by description.
-
-#### `GET ?route=pv&action=exportCsv`
-
-Export PV items as CSV (Windows-1252 encoding).
-
-#### `POST ?route=pv&action=sendEmail`
-
-Send single PV email with HTML tables and OS/laudo PDF attachments.
-
-**Request:**
-```json
-{
-  "pv_id": 123,
-  "subject": "materiais"
-}
-```
-
-#### `POST ?route=pv&action=sendBatchEmail`
-
-Batch email dispatch.
-
-**Request:**
-```json
-{
-  "ids": [123, 124],
-  "subject": "servicos"
-}
-```
-
-Subjects: `materiais`, `servicos`, `contratacao`.
-
-#### `POST ?route=pv&action=uploadFile`
-
-Upload OS or laudo file (PDF, max 2MB).
-
----
-
-### Equipment Management (CRUD — admin/coordenador)
-
-#### `GET ?route=equipment-management`
-
-List all equipment (infinite scroll via keyset pagination).
-
-#### `POST ?route=equipment-management`
-
-Create equipment with address (find-or-create).
-
-#### `PUT ?route=equipment-management`
-
-Update equipment.
-
-#### `DELETE ?route=equipment-management`
-
-Delete equipment. Blocked if linked to tickets or PVs.
-
----
-
-### Equipment Pricing (CRUD — admin only)
-
-#### `GET ?route=equipment-prices`
-
-List pricing rules.
-
-#### `POST ?route=equipment-prices`
-
-Create pricing rule.
-
-#### `PUT ?route=equipment-prices`
-
-Update pricing rule.
-
-#### `DELETE ?route=equipment-prices`
-
-Delete pricing rule.
-
-#### `GET ?route=equipment-prices&action=resolvePrice`
-
-Resolve price for a given equipment/capacity/local/mercado.
-
-**Query Params:** `equipamento`, `capacidade`, `local`, `mercado`
-
----
-
-### SCM (Controle de Medição)
-
-#### `GET ?route=scm`
-
-List SCM records with filters (paginated).
-
-**Query Params:** `page`, `date_from`, `date_to`, `segments[]`, `sites[]`, `status`, `search`
-
-#### `GET ?route=scm&action=getById`
-
-Single SCM with items.
-
-#### `POST ?route=scm&action=import`
-
-Import SCM from CSV. Auto-detects delimiter, strips BOM, filters ABERTO/EM ABERTO.
-
-#### `DELETE ?route=scm&action=delete`
-
-Delete SCM (admin only).
-
-#### `GET ?route=scm&action=segments`
-
-Distinct segment values for filter dropdown.
-
-#### `GET ?route=scm&action=sites`
-
-Distinct site values for filter dropdown.
-
----
-
-### Preventive Cycle
-
-#### `GET ?route=preventive-cycle&action=listAll`
-
-Paginated equipment list for a cycle.
-
-**Query Params:** `ciclo` (YYYY-MM), `search`, `limit`, `offset`, `has_observacao`, `no_scm`, `scm_lancados`
-
-#### `GET ?route=preventive-cycle&action=summary`
-
-Aggregated summary: total value, site count, machine count, checked count.
-
-**Query Params:** `ciclo`, `has_observacao`, `no_scm`, `scm_lancados`
-
-#### `POST ?route=preventive-cycle&action=save`
-
-Batch save checkboxes, observações, SCM numbers.
-
-#### `POST ?route=preventive-cycle&action=check-all`
-
-Check all items matching current filters.
-
-#### `POST ?route=preventive-cycle&action=uncheck-all`
-
-Uncheck all items matching current filters.
-
-#### `GET ?route=preventive-cycle&action=scmStatusCount`
-
-SCM status distribution for items in cycle.
-
-#### `POST ?route=preventive-cycle&action=validateScm`
-
-Validate SCM number against database.
-
-**Request:**
-```json
-{ "scm": "260001" }
-```
-
----
-
-### Planned Activities
-
-#### `GET ?route=planned-activities`
-
-List all planned activities (preventiva + corretiva via UNION ALL).
-
-**Query Params:** `search`, `status`, `type`, `limit`, `offset`, `date_from`, `date_to`
-
-#### `POST ?route=planned-activities&action=plan`
-
-Create planned activity (preventiva or corretiva).
-
-#### `POST ?route=planned-activities&action=duplicate`
-
-Duplicate all activities from one day to another.
-
-**Request:**
-```json
-{
-  "from_date": "2026-07-01",
-  "to_date": "2026-07-02"
-}
-```
-
-#### `PUT ?route=planned-activities&action=update-obs`
-
-Update observation for a planned activity (inline pencil edit).
-
-**Request:**
-```json
-{
-  "id": 123,
-  "obs": "Nova observação"
-}
-```
-
-#### `PUT ?route=planned-activities&action=update-team`
-
-Update team name for a planned activity (inline pencil edit).
-
-**Request:**
-```json
-{
-  "id": 123,
-  "equipe": "Equipe Alpha"
-}
-```
-
-#### `PUT ?route=planned-activities&action=update-status`
-
-Update status for a corrective planned activity.
-
-**Request:**
-```json
-{
-  "id": 123,
-  "status": "Concluído",
-  "data_conclusao": "2026-07-05"
-}
-```
-
-#### `DELETE ?route=planned-activities&action=delete`
-
-Delete planned activity.
-
-#### `GET ?route=planned-activities&action=export-csv`
-
-Export as CSV.
-
----
-
-### Preventiva
-
-#### `POST ?route=preventiva&action=plan`
-
-Create site-level preventive activity.
-
-#### `POST ?route=preventiva&action=updateStatus`
-
-Update status: Planejado → Em Andamento → Concluído / Cancelado. Also supports Planejado → Planejado for date rescheduling. Resets notification flag when returning to Planejado.
-
-#### `DELETE ?route=preventiva&action=delete`
-
-Delete preventive activity.
-
----
-
-### PDF Audit
-
-#### `POST ?route=pdf-audit&action=setReference`
-
-Upload reference PDF for comparison.
-
-#### `POST ?route=pdf-audit&action=audit`
-
-Run audit: forward PDF to Python microservice (CLIP-based comparison).
-
-**Query Params:** `photo_indices`, `ai_enabled`
-
-#### `GET ?route=pdf-audit&action=getReference`
-
-Get current reference metadata.
-
-#### `POST ?route=pdf-audit&action=clearReference`
-
-Clear current reference. Changed from GET to POST for security (prevent unauthorized access via CSRF/link prefetch).
-
-#### `GET ?route=pdf-audit&action=health`
-
-Health check for Python microservice.
-
----
-
-### Notify
-
-#### `GET ?route=notify`
-
-Cron trigger: check for activities planned for tomorrow and send email notifications.
-
----
-
-### Middleware Pipeline
-
-```
-Request → CorsMiddleware → AuthMiddleware → RateLimitMiddleware → Router → Handler
-```
-
-**Rate Limits (60s window):**
-
-| Route | Method | Limit |
-|-------|--------|-------|
-| `auth` | POST | 5 |
-| `pv` | POST/PUT/PATCH | 30 |
-| `pv` | DELETE | 10 |
-| `tickets` | POST/PUT/DELETE | 10 |
-| `users` | POST/PUT/DELETE | 10 |
-| `equipment-management` | POST/PUT/DELETE | 10 |
-| `scm` | POST | 5 |
-| `scm` | DELETE | 10 |
-| `preventive-cycle` | POST | 10 |
-| `planned-activities` | POST/DELETE | 10 |
-| `preventiva` | POST/DELETE | 10 |
-
-### Permissions by Role
-
-| Resource | Admin | Supervisor | Coordenador | Administrativo | Cliente |
-|----------|:-----:|:----------:|:-----------:|:--------------:|:-------:|
-| Home (equip + tickets) | CRUD | CRUD | CRUD | R/O | R/O |
-| Equipment Dashboard | ✅ | ✅ | ✅ | ✅ | ✅ |
-| OS Dashboard | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Preventiva Dashboard | ✅ | ✅ | ✅ | ❌ | ✅ |
-| PV Dashboard | ✅ | ❌ | ✅ | ❌ | ❌ |
-| PV (Propostas) | CRUD | ❌ | CRUD (no delete) | ❌ | ❌ |
-| Manage Users | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Manage Equipment | CRUD | ❌ | CRUD (no delete) | ❌ | ❌ |
-| SCM Status | CRUD | ❌ | CRUD (no delete) | ❌ | ❌ |
-| Preventive Cycle | CRUD (save) | R/O | R/O | ❌ | ❌ |
-| Planned Activities | CRUD | R/O | CRUD (no delete) | R/O | R/O |
-| Equipment Pricing | CRUD | ❌ | ❌ | ❌ | ❌ |
-| PDF Audit | CRUD | ❌ | R/O | R/O | ❌ |
-
----
-
-## 4. Database
+## 5. Banco de Dados & Schema
 
 ### Tabelas Principais
 
-| Tabela | Propósito |
-|--------|-----------|
-| `equipamentos` | Equipamentos HVAC |
-| `enderecos` | Endereços |
-| `registros` | Ordens de serviço / tickets |
-| `pv` | Propostas de Venda |
-| `pv_item` | Itens de PV |
-| `pv_os` | PV ↔ registros (N:N) |
-| `usuarios` | Usuários (auth) |
-| `civil_lpu`, `material_*_lpu`, `servico_*_lpu` | Catálogos LPU |
-| `scm` | SCM status tracking |
-| `scm_items` | SCM itens (FK → scm) |
-| `equipamento_precos` | Regras de preço |
-| `preventive_cycle_items` | Ciclo preventiva |
-| `atividades_preventivas` | Atividades planejadas (preventiva) |
-| `cron_controle` | Controle de notificações |
-| `login_attempts` | Rate limiting login |
-| `rate_limits` | Rate limiting genérico |
-| `token_blacklist` | Tokens JWT revogados |
-| `user_activity` | Atividade de usuários (last_activity + IP) |
+- **`equipamentos`:** Inventário de máquinas de ar condicionado.
+- **`enderecos`:** Cadastro de locais físicos, cidades, UFs e HUBs.
+- **`registros`:** Ordens de serviço, tickets corretivos e preventivos de máquina.
+- **`atividades_preventivas`:** Atividades planejadas preventivas em nível de site.
+- **`pv` & `pv_item`:** Cabeçalho e itens detalhados das propostas de venda.
+- **`pv_os`:** Relacionamento N:N entre propostas e ordens de serviço.
+- **`scm` & `scm_items`:** Dados de controle de medição importados.
+- **`preventive_cycle_items`:** Registro de equipamentos executados por ciclo mensal.
+- **`filter_exchanges`:** Histórico de trocas de elementos filtrantes.
+- **`equipamento_precos`:** Regras de cálculo de valor de manutenção.
+- **`usuarios`:** Contas de acesso, senhas com hash e roles.
+- **`user_activity`:** Rastreamento de última atividade e IP dos usuários logados.
+- **`token_blacklist`:** Tokens JWT revogados por logout.
+- **`email_processed`:** UIDs de e-mails processados pelo watcher para evitar duplicidade.
+- **`rate_limits` & `login_attempts`:** Controle de rate limiting e proteção de força bruta.
 
-### Schema Principal
+---
 
-```sql
-CREATE TABLE scm (
-    id              INT AUTO_INCREMENT PRIMARY KEY,
-    scm             VARCHAR(100) NOT NULL UNIQUE,
-    data            DATE,
-    atividade       TEXT,
-    site            VARCHAR(100),
-    cidade          VARCHAR(100),
-    abertura        VARCHAR(100),
-    status          VARCHAR(50),
-    data_execucao   DATE,
-    data_validacao  DATE,
-    medicao         VARCHAR(100),
-    origem          VARCHAR(100),
-    segmento        VARCHAR(100),
-    obs             TEXT,
-    equipamento_id  INT,
-    FOREIGN KEY (equipamento_id) REFERENCES equipamentos(id)
-);
+## 6. Automações em Background (Crons & Watchers)
 
-CREATE TABLE scm_items (
-    id                  INT AUTO_INCREMENT PRIMARY KEY,
-    scm_id              INT NOT NULL,
-    servico             TEXT,
-    unidade             VARCHAR(50),
-    valor               DECIMAL(12,2),
-    qtde_execucao       DECIMAL(12,3),
-    subtotal_execucao   DECIMAL(12,2),
-    FOREIGN KEY (scm_id) REFERENCES scm(id) ON DELETE CASCADE
-);
+As rotinas automáticas rodam via container CLI com `supercronic`:
 
-CREATE TABLE equipamento_precos (
-    id                  INT AUTO_INCREMENT PRIMARY KEY,
-    nome                VARCHAR(50) NOT NULL,
-    equipamento_pattern VARCHAR(100) DEFAULT NULL,
-    locais_especiais    TEXT DEFAULT NULL,
-    mercado             VARCHAR(50) DEFAULT NULL,
-    valor               DECIMAL(12,2) NOT NULL,
-    ativo               TINYINT(1) DEFAULT 1,
-    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+1. **Notificação de Atividades (`app/api/Cron/check_notification.php`):**
+   - Executado diariamente para identificar atividades agendadas para o dia seguinte e enviar e-mails de alerta aos supervisores e técnicos.
+2. **Aprovação de PV por E-mail (`app/api/Cron/check_pv_approval.php`):**
+   - Executado periodicamente às 09:00 e 16:00.
+   - Conecta via IMAP SSL na caixa de aprovação (`rubbleaprovacoes@gmail.com`), busca mensagens não lidas com assunto contendo `PV:`, decodifica o corpo procurando termos de aprovação e atualiza os itens no banco de dados automaticamente.
 
-CREATE TABLE preventive_cycle_items (
-    id              INT AUTO_INCREMENT PRIMARY KEY,
-    ciclo           VARCHAR(7) NOT NULL,
-    equipamento_id  INT NOT NULL,
-    observacao      TEXT,
-    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY (ciclo, equipamento_id),
-    FOREIGN KEY (equipamento_id) REFERENCES equipamentos(id)
-);
+---
 
-CREATE TABLE atividades_preventivas (
-    id              INT AUTO_INCREMENT PRIMARY KEY,
-    site            VARCHAR(100) NOT NULL,
-    data_planejada  DATE NOT NULL,
-    ticket          VARCHAR(50) DEFAULT NULL,
-    equipe          VARCHAR(100) DEFAULT NULL,
-    status          VARCHAR(50) DEFAULT 'Planejado',
-    obs             TEXT,
-    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+## 7. Instalação, Configuração & Deploy
 
-CREATE TABLE login_attempts (
-    id            INT AUTO_INCREMENT PRIMARY KEY,
-    ip_address    VARCHAR(45) NOT NULL,
-    attempted_at  DATETIME NOT NULL,
-    success       TINYINT(1) NOT NULL DEFAULT 0
-);
+### 7.1. Configuração do `.env`
 
-CREATE TABLE rate_limits (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    ip_address  VARCHAR(45) NOT NULL,
-    endpoint    VARCHAR(100) NOT NULL,
-    window_start DATETIME NOT NULL,
-    request_count INT NOT NULL DEFAULT 1,
-    UNIQUE KEY uk_rate (ip_address, endpoint, window_start)
-);
+Copie `.env.example` para `.env` e preencha as variáveis:
+- `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`: Dados de conexão ao MariaDB.
+- `JWT_SECRET`: Chave hexadecimal de 64 caracteres para assinatura dos tokens.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: Credenciais para envio de e-mails.
+- `PV_REPLY_TO`: Endereço da caixa de aprovação (`rubbleaprovacoes@gmail.com`).
+- `IMAP_HOST`, `IMAP_PORT`, `IMAP_USER`, `IMAP_PASS`: Configurações IMAP (com senha de aplicativo do Gmail).
+- `PV_EMAILS_ES`, `PV_EMAILS_RJ`, `PV_EMAILS_ES_CC`, `PV_EMAILS_RJ_CC`: Listas de destinatários padrão de PV.
 
-CREATE TABLE user_activity (
-    user_id     INT NOT NULL PRIMARY KEY,
-    username    VARCHAR(50) NOT NULL,
-    nome        VARCHAR(100) NOT NULL,
-    role        VARCHAR(20) NOT NULL,
-    last_activity DATETIME NOT NULL,
-    ip_address  VARCHAR(45) DEFAULT NULL,
-    INDEX idx_user_activity (last_activity)
-);
-```
-
-### Migrations
-
-Migrations ficam em `config/migrations/` e devem ser executadas manualmente:
+### 7.2. Deploy em Produção (Docker Compose + Traefik)
 
 ```bash
-docker exec -i rubble-db mariadb -u root -pSENHA manutencao < config/migrations/0XX_xxx.sql
-```
-
-Principais migrations:
-- 008: `filtro_data` em pv_item
-- 010: Status movido de pv para pv_item
-- 011: Campo `orcamento` em pv_item
-- 012: Tabela scm + local_scm
-- 014: Normalização scm_items
-- 015: Campo `mercado` em equipamentos
-- 023: Tabela equipamento_precos + seed data
-- 024: Índices + FULLTEXT search (`idx_equipamentos_mercado`)
-- 025: Status SCM lowercase + preventive_cycle_items
-- 027: local_scm para hubs
-- 028: mercado para hubs
-- 031: Índices de performance (`idx_pv_item_pv_status`, `idx_pv_item_scm`)
-- 032: Índice rate_limits (`idx_rate_limits_lookup`)
-- 033: Token blacklist (`token_blacklist` table + cleanup cron)
-- 035: Role `administrativo` adicionada em usuarios
-- 037: Campo `origin` (ENUM ticket/planning) em registros
-- 038: Campo `tipo` (ENUM preventiva/corretiva) em registros
-- 039: Tabela `atividades_preventivas` (site-level planned activities)
-- 040: Fix default de `tipo` em registros
-- 041: Tabela `user_activity` (track user activity + IP)
-- 042: Remove UNIQUE constraint de `registros.os` (permite mesma OS para múltiplos equipamentos)
-
----
-
-## 5. Módulos
-
-### Equipment (Equipamentos)
-
-- **CRUD:** `equipment-management` route (admin/coordenador)
-- **Schema:** `equipamentos` + `enderecos` (FK)
-- **Campos:** equipamento, capacidade, local, localidade, local_endereco, UF, endereco, local_scm, mercado
-- **Dashboard:** Chart.js (Pareto de locais/máquinas/técnicos, tempo de resolução)
-- **Permissões:** Admin CRUD completo, coordenador sem DELETE
-- **Keyset pagination:** Scroll infinito via `WHERE e.id > ? LIMIT ?` em vez de `LIMIT/OFFSET`
-- **FULLTEXT search:** `MATCH(...) AGAINST(? IN BOOLEAN MODE)` para search ≥ 3 chars, fallback LIKE para < 3 chars
-
-### Equipment Pricing (Cadastro de Valores)
-
-- **CRUD:** `equipment-prices` route (admin only)
-- **Schema:** `equipamento_precos` (migration 023)
-- **Regras de preço:** gerenciadas via CRUD na tabela `equipamento_precos`, com nome, padrão de equipamento, locais especiais, mercado e valor.
-- **Prioridade:** definida por ordem de matching: chiller_especial(1) > chiller(2) > tr(3) > other(4)
-- **`resolvePrice()` algorithm:** Para cada regra ativa: 1) verifica `mercado` (case-insensitive), 2) testa `equipamento_pattern` via regex (converte LIKE wildcards), 3) verifica `locais_especiais`, 4) calcula: TR = `capacidade * valor`, Chiller = `valor` fixo
-- **`sumValueByFilter()` (badge):** SQL CASE WHEN hardcoded (não usa tabela de regras) — apenas no badge total da home. `resolvePrice()` por card usa a tabela corretamente.
-
-### Tickets / OS (Ordens de Serviço)
-
-- **CRUD:** `tickets` route
-- **Status workflow:** Pendente → Planejado → Em Andamento → Concluido / Projeto Clean Up
-- **Import CSV:** `POST ?route=tickets&action=import`
-  - Extrai site code do campo empresa
-  - Busca equipamento por local (exato → LIKE fallback)
-  - Matching por tag ou texto de problema/causa/solução
-
-### PV (Propostas de Venda)
-
-- **CRUD:** `pv` route, status por item em `pv_item` (migration 010)
-- **Items:** `pv_item` com `filtro_data` (JSON), `orcamento` (FLPU), `status` individual
-- **LPU Autocomplete:** Busca em catálogos (civil_lpu, material_clima_lpu, material_chiller_lpu, servico_clima_lpu, servico_chiller_lpu)
-- **LPU Origem → Fatura LPU auto:** Ao selecionar LPU Origem, campo Fatura é setado automaticamente para "LPU"
-- **Filtro Calculation:** Modal com cálculo de área (largura × altura × qtd_peças × 2), salvo como JSON em `pv_item.filtro_data`
-- **Email:** Envio HTML com tabela Memorial de Cálculo + Proposta. Assuntos: `materiais`, `servicos`, `contratacao`. CC via `PV_EMAILS_ES_CC`/`PV_EMAILS_RJ_CC`. Anexos: PDFs de OS e laudos.
-- **PDF:** html2canvas + jsPDF com wrapped text (`drawWrappedRow()`)
-- **CSV Export:** Encoding Windows-1252,一行 por item
-- **Batch Email:** `POST ?route=pv&action=send-batch-email` com `ids[]` + `subject`
-
-**Convenções de Campo:**
-- Equipamento: exibe `WM 01 — 10 TR - Container 1`
-- Localidade: apenas em `equipamentos.localidade` (JOIN no PV)
-- Laudo: default "N/A", salva `null` no banco
-- LPU Origem: auto-seta Fatura para "LPU"
-- Quantidade: integer para unidades UN., TR, KIT, etc.; fração para M², M, KG
-
-### SCM (Controle de Medição)
-
-- **CRUD:** `scm` route (admin/coordenador)
-- **Schema:** `scm` (parent) + `scm_items` (FK com CASCADE)
-- **Import CSV:** Auto-delimiter (`;` ou `,`), BOM strip, pula ABERTO/EM ABERTO
-- **Status mapping (lowercase, migration 025):**
-  | CSV | Exibido | Badge |
-  |-----|---------|-------|
-  | GERADO | SCM aprovado | emerald |
-  | NEGADO | SCM negado | red |
-  | CONFERIDO/VALIDADO | SCM verificado | blue |
-  | EXECUTADO | SCM enviado | purple |
-- **PV Sync:** Status em `PV_SYNC_STATUSES` (`SCM aprovado`, `SCM negado`, `SCM enviado`) propagado para `pv_item.status` via `updatePvItemStatusByScm()` (UPDATE na coluna `scm`)
-- **Filtros:** Data início/fim, Segmento (multi-select dropdown), Site (multi-select dropdown), Status, Busca livre
-- **Multi-select dropdowns:** Checkboxes com state `Set`-based, flag booleana "Todos" (`segmentTodosChecked`/`siteTodosChecked`) como source of truth (não `Set.size === 0`). Event delegation no container com listener único via `dataset.delegated`.
-- **Badge Mercado:** Cross-validation entre `scm.origem` e `equipamentos.mercado` (case-insensitive). Match → badge verde, mismatch → badge vermelho "Erro no mercado"
-- **Equipamento resolution:** Duas etapas: 1) `equipamentos.local_scm` match exato, 2) `enderecos.local_do_endereco LIKE` fallback fuzzy
-
-### Users (Usuários)
-
-- **CRUD:** `users` route (admin only)
-- **Username = email** (campo email salvo como username)
-- **Password:** hash único (`password_hash`), sempre obrigatório (re-hash se preenchido no edit)
-- **Self-delete:** Bloqueado (verificação no controller)
-- **Role:** `ENUM('admin','supervisor','coordenador','administrativo','cliente')`
-
-### Preventive Cycle (Ciclo Preventiva)
-
-- **Rota:** `preventive-cycle`
-- **Endpoints:** listAll, summary, save, check-all, uncheck-all, scmStatusCount, validateScm
-- **Filtros:** Radio buttons mutuamente exclusivos: `all`, `observacao` (com observação), `selecionados`, `sem_scm` (sem SCM number), `lancados` (SCM aprovado/verificado/enviado)
-- **SCM validation:** Input por card com validação via `POST ?route=preventive-cycle&action=validate-scm`, cache em `_cycleScmValidationCache`
-- **Badge unificado:** `R$ X.XXX,XX · N sites · M máq. | enviado N · negado N · verificado N · aprovado N` — dados mesclados de `summary()` + `scm-status-count()` client-side
-- **Batch operations:** `check-all`/`uncheck-all` respeitam filtro atual, usam INSERT com múltiplos VALUES + DELETE com IN (não 1 query por item)
-- **Agrupamento:** `local - hubRecase(local_scm)` (header do grupo), `localidade` exibida por card individual
-
-### PDF Audit (Auditoria de PDF)
-
-- **Rota:** `pdf-audit` — referência + auditoria de PDFs contra modelo
-- **Microserviço Python:** FastAPI + CLIP (ViT-B/32) em container separado (`rubble-pdf-checker/`)
-- **Threshold dinâmico:** CLIP threshold definido pelo pior score das fotos da referência
-- **Toggles:** IA (CLIP) ou OCR (sem IA, qualidade básica, até 30 arquivos)
-- **Upload progress:** barra mapeada 0-50% (upload real) + simulação 50-90% (processamento Python), mesma do `runAudit()`
-- **Center badge:** sub-header mostra `X aprovado - Y rejeitado` (verde/vermelho) em vez de nome da referência
-- **Cards de resultado:** colapsáveis (Ver/Ocultar) com itens NOK, problemas de fotos, campos ausentes, tabela de comparação CLIP
-- **CSV export:** resultados em formato CSV com encoding UTF-8 BOM
-- **Permissões:** admin = CRUD (upload/set reference/clear), coordenador/administrativo = R/O (visualizar/CSV)
-
-### Home (Dashboard Principal)
-
-- **Cards de equipamento:** Agrupados por local, site groups com `data-site` attribute
-- **Polling:** `PollingManager` com jitter aleatório (±5s) para evitar thundering herd
-- **Hash comparison:** `lastHomeHash` comparado via MD5 server-side — só atualiza DOM se dados mudaram
-- **Incremental DOM:** `syncHomeCards()` atualiza in-place por `data-equip-id`, preserva estado expandido, remove cards obsoletos
-- **Badge total:** `#counterValue` via polling separado, sincronizado com `syncHomeCards()`
-- **Keyset pagination:** Scroll infinito via `WHERE e.id > ? LIMIT ?` (enviado como `lastId` do frontend)
-- **FULLTEXT search:** Search ≥ 3 chars usa `MATCH ... AGAINST IN BOOLEAN MODE`
-
-### Planned Activities (Atividades Planejadas)
-
-- **Rotas:** `planned-activities` (listAll, exportCsv, plan, duplicate, updateTeam, updateObs, updateCorretivaStatus, delete) + `preventiva` (plan, updateStatus, delete)
-- **Tipos:** `preventiva` (site-level, sem OS, com ticket) e `corretiva` (per-equipment, com OS, em `registros`)
-- **Preventiva:** Armazenada em `atividades_preventivas` (tabela dedicada). Site-level: sem campo equipamento, com ticket e contagem de máquinas por subquery.
-- **Corretiva:** Armazenada em `registros` com `origin='planning'`. Hard DELETE ao deletar.
-- **UNION ALL:** Feed unificado via `PlannedActivityRepository::listAll()` — merge de `atividades_preventivas` (tipo=preventiva) com `registros` (tipo=corretiva, origin=planning), ordenado por `data_planejada DESC`
-- **Inline editing (pencil icons):** Observação (`updateObs`) e equipe (`updateTeam`) editáveis inline — botão lápis ao lado do texto, substituído por input ao clicar, salva com Enter/blur
-- **Corretiva status modal:** Modal dedicado para alterar status de atividades corretivas, com data de conclusão e date rescheduling
-- **Duplicate-day button:** Duplica todas as atividades de um dia para outro via modal
-- **Day-of-week labels:** Dia da semana exibido no header de cada dia (ex: "segunda-feira, 7 de julho de 2026")
-- **Status transitions (preventiva):** Planejado → Em Andamento/Cancelado/Planejado (rescheduling), Em Andamento → Concluído/Cancelado, Cancelado → Planejado, Concluído → terminal
-- **Notification reset:** Ao retornar para Planejado, `notificacao_enviada` é resetado (re-dispara notificação)
-- **Form toggle:** Campo tipo (Selecione/Preventiva/Corretiva) alterna campos: preventiva = site + ticket; corretiva = equipamento + OS
-- **Botões de ação:** Usam `iconButtonHtml()` — status (edit/azul com tooltip "Alterar status"), delete (vermelho com tooltip "Excluir atividade")
-- **Dark mode:** Botões de formulário usam classes únicas (sem `dark:` variants) — cores dark gerenciadas via `.dark .bg-*` e `.dark .text-*` em `default.css`
-- **CSV export:** Paginação em chunks de 500 via offset, reutiliza `listAll()` com filtro por ciclo + busca
-- **Filtros:** Busca, status, data início/fim. Click-to-clear em filtros de data. Filtros restaurados ao voltar do form.
-- **Permissões:** Admin CRUD completo, coordenador CRUD sem DELETE, supervisor/cliente leitura apenas
-
----
-
-## 6. Frontend
-
-### SPA Router
-
-- Hash-based (`#/route`)
-- Views carregadas via `fetch()`, HTML injetado com `innerHTML`
-- Init chamado em `requestAnimationFrame`
-- `PollingManager.stopAll()` em toda navegação
-
-### Componentes Compartilhados
-
-**`iconButtonHtml(type, tooltip, attrs, tooltipPos)`** (`components/button.js`):
-- Tipos: `edit` (blue), `delete` (red), `status` (amber)
-- SVG inline com `currentColor`
-- Tooltip com `group-hover:scale-100`
-
-**`confirmDelete(title, message, itemName)`** (`components/messagebox.js`):
-- Modal dedicado para delete (`#modalDeleteConfirm`)
-- Retorna Promise<boolean>
-
-**`confirmAction()`**: Modal genérico de confirmação
-**`showToast(msg, type)`**: Toast notification (success/error/loading)
-**`updateToastProgress(percent, label)`**: Barra de progresso `#toastProgressBar`
-
-### Dark Mode
-
-- Toggle moon/sun na top bar, persistido em `localStorage('theme')`
-- Init no `<head>` antes do paint (previne flash)
-- `prefers-color-scheme: dark` como default
-- Login page sempre light (imune ao dark mode) — `router.js` remove classe `dark` do `<html>`, `auth.js` restaura ao sair
-- CSS Variables em `default.css` com overrides `!important`
-- **Estratégia:** `default.css` com seletores `.dark .*` + `!important` é a fonte de verdade — Tailwind CDN é tratado como extra
-- `dark:` variants **não devem ser usadas** no HTML: quando o SO está em dark mode, o Tailwind aplica `dark:` variants mesmo sem a classe `.dark`, causando texto claro em fundo claro
-- Cobertura CSS `!important` para cards de resultado, botões, inputs, selects (ex: `.dark .bg-amber-50`, `.dark .border-amber-200`, `.dark .text-amber-700`) — adicionar em `default.css` conforme necessário
-
-### Skeleton Screen
-
-- Placeholder visual durante carregamento inicial do SPA (antes do `router()` executar)
-- Logo Monster (80x80px) + "Rubble" + "Data Mining" dentro de `<div id="app">` no `index.html`
-- Animação `skeleton-breathe` (opacity 0.7→0.35, scale 1.0→0.97, 2.5s)
-- Removido implicitamente: `router.js` faz `app.innerHTML = html` no primeiro load, substituindo todo conteúdo de `#app`
-
-### Real-time Polling + Cache
-
-- **Polling 30s** (não SSE/WebSocket), com jitter aleatório ±5s para evitar thundering herd
-- **Cache:** APCu primário (Docker), file fallback (USBWebserver local). TTL 10s
-- **Visibility API:** Pausa quando aba em background, retoma ao focar
-- **Incremental DOM:** Atualiza in-place, preserva estado expandido, remove obsoletos
-- **Hash comparison:** MD5 server-side incluso na resposta JSON — frontend compara hash antes de processar dados
-- **PollingManager:** Classe em `utils/polling.js` com `start(name, fn, interval)`, `stop(name)`, `stopAll()`. Router chama `stopAll()` em toda navegação.
-
-### ES Modules
-
-- `components/infinite-scroll.js` e `components/button.js` são ES modules com `export`
-- Views que os usam precisam de `<script type="module">` no `index.html`
-- Módulos com `type="module"` têm escopo próprio — funções globais (como `getUser()`, `escapeHtml()`) continuam acessíveis via `window`/`globalThis`
-- **Factory pattern:** `createInfiniteScroll()` substitui 6 implementações manuais de scroll infinito
-- **Import paths** devem ser absolutos: `'/public/js/components/infinite-scroll.js'` (não relativos)
-
-### Autocomplete Customizado
-
-- `createAutocomplete(input, options)` — factory em `form-autocomplete.js` (350 → 60 linhas na refatoração)
-- Substitui `<datalist>` (não estilizável em dark mode)
-- Keyboard nav: ArrowUp/Down/Enter/Escape
-- Mouse: `mouseenter` sem re-render, `mousedown` com `e.preventDefault()` mantém foco
-- Blur: valida contra lista de opções ou apenas esconde dropdown
-- Usado em: Local, OS, Ciclo (PV form), LPU Description (autocomplete dropdown)
-
-### Upload Progress Bar
-
-- `XMLHttpRequest` com `xhr.upload.onprogress`
-- `uploadWithProgress(url, formData, { onProgress })` em `utils/upload.js`
-- Toast com barra de progresso `#toastProgressBar`
-- Cache-busting: `?v=N` em scripts do `index.html`
-
----
-
-## 7. Deploy
-
-### Docker Compose + Traefik
-
-```bash
-# Clone e configure
+# 1. Clonar o projeto
 git clone https://github.com/glaulher/Rubble.git /opt/rubble
-cp .env.example .env  # editar com credenciais reais
+cd /opt/rubble
 
-# Subir (Traefik auto-provisiona SSL via Let's Encrypt)
+# 2. Configurar o .env de produção
+cp .env.example .env
+nano .env
+
+# 3. Inicializar todos os serviços
 docker compose up -d --build
-
-# phpMyAdmin via SSH tunnel
-ssh -L 8080:localhost:8080 user@vps
 ```
 
-### Variáveis de Produção
-
-| Variável | Valor |
-|----------|-------|
-| `DB_HOST` | `db` (nome do container) |
-| `ALLOWED_ORIGINS` | `https://seudominio.duckdns.org` |
-| `APP_DEBUG` | `false` |
-
-### Comandos de Deploy
-
-```bash
-# Atualização normal (código):
-git pull && docker compose up -d --build
-
-# Migration nova:
-docker exec -i rubble-db mariadb -u root -pSENHA manutencao < config/migrations/0XX_xxx.sql
-
-# Ativar mod_headers (só na primeira vez):
-docker exec rubble-app a2enmod headers && docker exec rubble-app service apache2 restart
-```
-
-### DuckDNS
-
-```bash
-# /home/rubble/duckdns.sh
-curl -s "https://www.duckdns.org/update?domains=seudominio&token=SEU_TOKEN&ip=" -o ~/duckdns.log
-# crontab -e: */5 * * * * /home/rubble/duckdns.sh >/dev/null 2>&1
-```
+O Traefik provisiona automaticamente os certificados SSL via Let's Encrypt para o domínio configurado.
 
 ---
 
-## 8. Segurança
+## 8. Segurança & Hardening
 
-### CORS Validation
-
-- `ALLOWED_ORIGINS=*` rejeitado quando `APP_DEBUG=false`
-- Newlines no origin rejeitados com erro 500
-
-### Login Rate Limiting
-
-- Max 5 tentativas fracassadas por IP em 5 minutos
-- Tabela `login_attempts`
-
-### Error Sanitization
-
-- `Response::serverError($e)` loga erro real em `error_log()` com arquivo + linha
-- Retorna mensagem genérica ao client
-- Se `APP_DEBUG=true`, retorna `$e->getMessage()`
-- `Response::$exitEnabled` (boolean estático) controla se `exit` é chamado — `false` em testes para evitar morte prematura
-- Todos controllers usam `return` após `Response::error()` para defense-in-depth
-
-### Token Blacklist
-
-- Tabela `token_blacklist` para tokens revogados (logout explícito)
-- `JwtHelper::decode()` verifica cache APCu primeiro, depois DB fallback
-- Graceful sem DB: `try/catch` no `Database::connect()` — tokens válidos (assinatura + exp) continuam funcionando mesmo sem banco
-
-### Security Headers
-
-```
-Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-src https://challenges.cloudflare.com
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=()
-Strict-Transport-Security: max-age=31536000; includeSubDomains
-```
-
-### Apache Hardening
-
-- `ServerTokens Prod`
-- `ServerSignature Off`
-- `TraceEnable Off`
-- `php_flag expose_php off`
+- **CORS Estrito:** Em produção (`APP_DEBUG=false`), apenas as origens definidas em `ALLOWED_ORIGINS` são aceitas.
+- **Rate Limiting:** Proteção contra força bruta no login (máximo 5 tentativas por 5 minutos) e limites por IP em rotas de mutação de dados.
+- **Revogação de Sessão:** Tokens revogados no logout são armazenados na `token_blacklist` e invalidados no cache.
+- **Sanitização de Erros:** Erros internos de banco e servidor são gravados em log protegido e nunca expostos na resposta JSON.
+- **Headers HTTP de Segurança:** CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` e `Permissions-Policy`.
 
 ---
 
-## 9. Convenções & Padrões
+## 9. Armadilhas Conhecidas & Troubleshooting
 
-### Button Palette (Pastel)
-
-| Função | Classes |
-|--------|---------|
-| Primary (emerald) | `bg-emerald-200 hover:bg-emerald-300 text-emerald-800` |
-| Secondary (sky) | `bg-sky-200 hover:bg-sky-300 text-sky-800` |
-| Submit forms (blue) | `bg-blue-200 hover:bg-blue-300 text-blue-800` |
-| Danger (red) | `bg-red-200 hover:bg-red-300 text-red-800` |
-| Neutral (slate) | `bg-slate-200 hover:bg-slate-300 text-slate-900` |
-| Ícones tabela | `bg-*-100 hover:bg-*-200 text-*-600 p-2 rounded-xl` |
-
-Sem sombras — `shadow-lg` removido de todos os botões.
-
-### Quantity Validation
-
-- `UNIT_MIN_ONE`: CONJUNTO, CV, DIARIA, HH, HORA, KIT, LOCAÇÃO MENSAL, MENSAL, PAR, PÇ, PEÇA, PONTO, PROJETO, SACO, SERV., TR, UN., UNIDADE, UNIT
-- Regra: valores inteiros (1.5, 2.3 bloqueados)
-- Outras unidades (M², M, KG) permitem fração
-
-### SCM Status lowercase
-
-Todos os status SCM são lowercase (`SCM aprovado`, não `SCM Aprovado`). Migration 025 aplica retroativamente.
-
-### hubRecase + local_scm
-
-`home-ui.js` usa `hubRecase(local_scm)` para converter HUBs de UPPER para Title Case nos headers de site.
-
-### PV Status por Item
-
-Status está em `pv_item`, não em `pv` (migration 010). Queries devem JOINar com `pv_item`.
-
----
-
-## 10. Armadilhas Conhecidas
-
-- **Número PV:** Formato `YYNNNN`. Regra hardcoded `if ($prefix === '26' && $next < 145)` — ajuste de implantação.
-- **FORNECIMENTO_ID:** Resolvido dinamicamente por `PvService::getFornecimentoId()`.
-- **Bun é só para testes JS.** Composer é só para PHPUnit.
-- **O projeto funciona sem vendor/autoload.php.**
-- **PHPMailer** está em `app/libs/PHPMailer/` — incluído manualmente.
-- **USBWebserver é o ambiente-alvo.**
-- **Import CSV:** UTF-8 com fallback ISO-8859-1. BOM detectado e removido.
-- **PDF drawWrappedRow:** Sempre usar `String(...)` no valueGetter.
-- **Button cursor:** `default.css` tem `button { cursor: pointer; }` global.
-- **BOM em config files:** UTF-8 BOM quebra Apache e supercronic.
-- **Case-sensitivity Linux:** `config/Database.php` com D maiúsculo.
-- **Volume permissions:** Volumes Docker sobrescrevem permissões do Dockerfile.
-- **Traefik timeout upload:** Configurado para 120s.
-- **APCu não disponível no USBWebserver local:** Fallback file-based.
-- **sessionStorage vs localStorage:** Token usa sessionStorage, tema usa localStorage.
-- **Nunca usar `onclick="..."` inline** no HTML gerado via innerHTML.
-- **SQL error leak:** Todos os repositories logam erro real e retornam mensagem genérica.
-- **Upload validation:** PDF validado por magic bytes (`%PDF-`), limite 2MB.
-- **XSS via onclick + escapeHtml():** Migração para `data-*` + `addEventListener` obrigatória.
-- **Env::get() retorna string, não boolean:** Comparar com `=== 'true'`.
-- **Tailwind CDN vs CSS cascade:** CDN injeta `<style>` DEPOIS de CSS estático.
-- **`public/tailwindcss.js` NÃO PODE SER MODIFICADO.**
-- **Dark mode login immune:** Remover classe `dark` do `<html>` via JS (`router.js`), nunca via CSS (Tailwind CDN sobrescreve). CSS overrides com `!important` são fallback, não solução.
-- **Equipment Pricing `sumValueByFilter()` hardcoded:** Não usa tabela de regras.
-- **Router class é deliberadamente fina:** Só registro + dispatch.
-- **Skeleton screen removido implicitamente:** `router.js` substitui via `innerHTML`.
-- **SCM status lowercase:** Migration 025 unifica para lowercase.
-- **Cache invalidation:** Controllers devem chamar `Cache::deleteByPrefix()` após mutations.
-- **Incremental DOM + stale hash:** `initHome()` reseta `lastHomeHash` para `''`.
-- **`<IfModule mod_php8.c>` no Docker:** Remover wrapper, declarar `php_value` diretamente.
-- **Cache-busting `?v=N`:** Incrementar a cada mudança no `index.html`.
-- **TicketService retorno é `array[]`, não `Ticket[]`:** Ao refatorar Controller para usar Service em vez de Repository, verificar tipo de retorno. `TicketService::listByItem()` retorna `array[]` — não chamar `toArray()`.
-- **Set pré-população única no SCM multi-select:** Só pré-popular o Set com todos os itens na **primeira** vez que um item é desmarcado com Todos ativo. Chamadas subsequentes devem apenas `delete()`.
-- **SCM multi-select "Todos":** Usar flag booleana (`segmentTodosChecked`/`siteTodosChecked`), não `Set.size === 0`. Filtro vazio = API retorna todos. Event delegation no container (evitar `querySelectorAll().addEventListener()` que morre com `innerHTML`).
-- **`safePrepare()`:** `BaseRepository::safePrepare($sql)` lança `RuntimeException` se `prepare()` falhar. Substitui `$this->conn->prepare($sql)` em todos os repositórios.
-- **`Response::$exitEnabled`:** Setar como `false` em testes para evitar `exit` prematuro. Padrão é `true`.
-- **RateLimiter atômico:** Usa `INSERT ... ON DUPLICATE KEY UPDATE` — sem janela entre SELECT e INSERT.
-- **CronRepository atômico:** INSERT primeiro (garante row exists) + SELECT para verificação.
-- **`importante`:** Filtros SCM multi-select: ao desmarcar o 1º item com Todos ativo, pré-popular `Set` com todos os itens e remover apenas o desmarcado. Não `delete()` em Set vazio.
-- **Dark mode buttons:** `default.css` com `.dark .bg-*` + `!important` é a fonte de verdade. `dark:` variants NÃO devem ser usadas (conflitam com `prefers-color-scheme` do CDN). Adicionar overrides em `default.css` conforme necessário.
-- **schema.sql vs .gitignore:** `*.sql` está no `.gitignore`. Para commitar schema, comentar temporariamente. `git add -f` não funciona com padrões do `.gitignore`.
-- **var hoisting em funções:** `var canEdit = false` declarado DEPOIS de uso (`var obsIcon = canEdit ? ...`) resulta em `undefined` (falsy). Sempre declarar variáveis antes do uso, ou usar `let`/`const` que são block-scoped e dão ReferenceError em vez de `undefined`.
-- **PDF audit clearReference via POST:** Migrado de GET para POST para prevenir acesso não autorizado via CSRF/link prefetch. Frontend (`audit.js`) e backend (`PdfAuditController`) devem usar POST.
-- **OS alfanumérica:** Campo `registros.os` aceita 1-20 chars alfanuméricos (migration 042 remove UNIQUE constraint). Permite mesma OS para múltiplos equipamentos.
-- **Timezone API:** Bootstrap da API (`index.php`) define `date_default_timezone_set('America/Sao_Paulo')`. Todos os `date()` e `strtotime()` usam BRT.
-- **Repository→Service refactoring:** Toda regra de negócio foi movida de Repositories para Services (2026-07-03). Repositories expõem apenas data access. Exemplos: `getFornecimentoId()`, `STATUS_PRIORITY`, `STATUS_MAP`, `resolveOsToTicketIds()`.
-
----
-
-## 11. Escalabilidade
-
-### Limites Atuais
-
-| Métrica | Limite seguro | Limite máximo |
-|---------|---------------|---------------|
-| Equipamentos | ~10.000 | ~20.000+ |
-| Usuários simultâneos (Docker) | 500 | 1.000+ |
-| Usuários simultâneos (USBWeb) | 1-3 | 5 |
-
-### Fases Concluídas
-
-**Fase 1:**
-- Tickets removidos da listagem (payload -80%)
-- `sumValueByFilter()` movido para SQL (CASE WHEN)
-- APCu cache (TTL 10s)
-- Endpoint leve para badge total
-
-**Fase 2:**
-- Virtual scrolling (`content-visibility: auto`)
-- Badge polling separado (30s) + list polling (60s)
-- MySQL indexes + FULLTEXT search (migration 024)
-- Batch ticket endpoint + CSV export filtrado
-
-**Fase 3 (parcialmente concluída):**
-
-| Item | Status | Descrição |
-|:----:|:------:|-----------|
-| 3.3 | ✅ | Jitter polling (±5s aleatório) — evita thundering herd |
-| 3.4 | ✅ | Polling combinado home + badge em 1 request |
-| 3.5 | ✅ | FULLTEXT search no EquipmentRepository (≥ 3 chars) |
-| 3.6 | ✅ | Keyset pagination (WHERE id > ? LIMIT ?) |
-| 3.7 | ✅ | Gzip compression via Nginx (site.conf) |
-| 3.10 | ✅ | Hash MD5 server-side para polling eficiente |
-| 3.12 | ✅ | Health check no container app |
-| 3.1 | ❌ | PHP-FPM + Nginx (pendente) |
-| 3.2 | ❌ | OpCache tuning (pendente) |
-| 3.8 | ❌ | Materialized view (pendente) |
-| 3.9 | ❌ | CSV em chunks (pendente) |
-| 3.11 | ❌ | Virtual scrolling real (pendente) |
-| 3.13 | ❌ | Multi-container scale (pendente) |
-
-### Fase 4 (futuro, >1.000 users)
-
-- SSE para substituir polling
-- Read replica MariaDB + ProxySQL
-- Redis cache compartilhado
-- Rate limiting via Redis
-- Session cache JWT em Redis
-
----
-
-*Documentação gerada a partir do AGENTS.md. Última atualização: 2026-07-07.*
+- **Formato do Número de PV:** Padrão `YYNNNN` (ex: `260085`).
+- **Autoload PHP:** O runtime da aplicação utiliza o `config/autoloader.php`. O autoloader do Composer existe apenas para o ambiente de testes (PHPUnit).
+- **Tailwind CDN vs CSS Cascade:** O Tailwind CSS v4 injeta estilos dinamicamente. Para elementos com injeção HTML dinâmica, overrides em `default.css` com regras específicas e `!important` garantem a consistência visual em modo escuro.
+- **Página de Login Imune ao Dark Mode:** A tela de login (`#/login`) é mantida estritamente em modo claro para clareza visual; a classe `dark` é removida temporariamente e restaurada na autenticação.
+- **Filtros Multi-Select do SCM:** Ao desmarcar o primeiro item de uma seleção com a opção "Todos" marcada, o conjunto de dados é populado com os itens restantes e a flag de "Todos" é desativada.
+- **Timezone Padronizado:** A aplicação é configurada globalmente para `America/Sao_Paulo` (`date_default_timezone_set`). Todas as datas operacionais seguem o horário de Brasília.
+- **Aprovação via IMAP:** A caixa Gmail de aprovação requer o uso de **senha de aplicativo** (com 2FA ativo). Certifique-se de configurar filtros no Gmail para que mensagens de resposta de PV nunca caiam na pasta de Spam.
