@@ -4479,23 +4479,71 @@ function exportarGuiaAtualParaExcelV82160() {
     const copia = tabela.cloneNode(true);
     substituirControlesPorTextoV82160(copia);
     const titulo = (qs("tituloPagina")?.textContent || "Tempo Fechado").trim();
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 12px; }
-    th, td { border: 1px solid #999; padding: 6px; vertical-align: top; mso-number-format:"\\@"; }
-    th { background: #eaf1fb; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <h3>${escapeHtml(titulo)}</h3>
-  ${copia.outerHTML}
-</body>
-</html>`;
 
-    const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const escapeXml = (str) =>
+      String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+
+    let rowsXml = "";
+    const trs = copia.querySelectorAll("tr");
+    trs.forEach((tr) => {
+      const isHeader = !!tr.closest("thead");
+      const cells = tr.querySelectorAll("th, td");
+      let cellsXml = "";
+      cells.forEach((cell) => {
+        const text = (cell.textContent || "").trim();
+        const styleAttr = isHeader ? ' ss:StyleID="Header"' : ' ss:StyleID="Default"';
+        cellsXml += `<Cell${styleAttr}><Data ss:Type="String">${escapeXml(text)}</Data></Cell>`;
+      });
+      if (cellsXml) {
+        rowsXml += `<Row>${cellsXml}</Row>\n`;
+      }
+    });
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Top"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D9E1EC"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D9E1EC"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D9E1EC"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D9E1EC"/>
+   </Borders>
+   <Font ss:FontName="Arial" ss:Size="10" ss:Color="#111827"/>
+   <NumberFormat ss:Format="@"/>
+  </Style>
+  <Style ss:ID="Header">
+   <Alignment ss:Vertical="Center" ss:Horizontal="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#999999"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#999999"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#999999"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#999999"/>
+   </Borders>
+   <Font ss:FontName="Arial" ss:Bold="1" ss:Size="10" ss:Color="#1E3A8A"/>
+   <Interior ss:Color="#EAF1FB" ss:Pattern="Solid"/>
+   <NumberFormat ss:Format="@"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="${escapeXml(titulo.slice(0, 31))}">
+  <Table>
+   ${rowsXml}
+  </Table>
+ </Worksheet>
+</Workbook>`;
+
+    const blob = new Blob([xml], { type: "application/vnd.ms-excel;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
