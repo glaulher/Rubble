@@ -848,6 +848,18 @@ function atualizarAcoesTopbarPorPagina() {
     }
   }
 
+  const btnUploadGuia = qs("btnTopbarUploadGuia");
+  if (btnUploadGuia) {
+    const mostrarUploadGuia = paginaAtual === "hora_extra_simplificada";
+    btnUploadGuia.classList.toggle("hidden", !mostrarUploadGuia);
+    btnUploadGuia.style.display = mostrarUploadGuia ? "" : "none";
+    if (mostrarUploadGuia) {
+      btnUploadGuia.removeAttribute("aria-hidden");
+    } else {
+      btnUploadGuia.setAttribute("aria-hidden", "true");
+    }
+  }
+
   const btnExportar = qs("btnTopbarExportarGuia");
   if (btnExportar) {
     const ocultarExportar = !PAGINAS_EXPORTAVEIS_V82160.has(paginaAtual);
@@ -878,6 +890,7 @@ function marcarPaginaAtualClasse() {
   document.body.classList.toggle("pagina-central-operacao", paginaAtual === "central_operacao");
   document.body.classList.toggle("pagina-diagnostico-instalacao", paginaAtual === "diagnostico_instalacao");
   document.body.classList.toggle("pagina-painel-implantacao", paginaAtual === "painel_implantacao");
+  document.body.classList.toggle("pagina-hora-extra-simplificada", paginaAtual === "hora_extra_simplificada");
   document.body.classList.toggle("pagina-administracao", paginaAtual === "administracao");
   document.body.classList.toggle("pagina-consolidado", paginaAtual === "consolidado");
   atualizarAcoesTopbarPorPagina();
@@ -5241,6 +5254,287 @@ function renderHoraExtraSimplificadaV82167(rows) {
       if (paginaAtual === paginaRenderizada) qs("statusCarga").textContent = `${linhas.length} registro(s) simplificado(s) de hora extra carregado(s).`;
     },
   });
+}
+
+// v8.21.72 - Upload da Guia de Horas Extras Simplificadas
+
+function parseLinhasCsv(texto) {
+  let limpo = String(texto || "");
+  if (limpo.charCodeAt(0) === 0xfeff) limpo = limpo.slice(1);
+  if (!limpo.trim()) return [];
+
+  const linhas = [];
+  let linhaAtual = [];
+  let campoAtual = "";
+  let inQuotes = false;
+
+  const primeiraQuebra = limpo.indexOf("\n");
+  const headerPreview = primeiraQuebra !== -1 ? limpo.substring(0, primeiraQuebra) : limpo;
+  const countPontoVirgula = (headerPreview.match(/;/g) || []).length;
+  const countVirgula = (headerPreview.match(/,/g) || []).length;
+  const countTab = (headerPreview.match(/\t/g) || []).length;
+
+  let delimitador = ";";
+  if (countTab > countPontoVirgula && countTab > countVirgula) delimitador = "\t";
+  else if (countVirgula > countPontoVirgula) delimitador = ",";
+
+  for (let i = 0; i < limpo.length; i++) {
+    const ch = limpo[i];
+    const prox = limpo[i + 1];
+
+    if (ch === '"') {
+      if (inQuotes && prox === '"') {
+        campoAtual += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (ch === delimitador && !inQuotes) {
+      linhaAtual.push(campoAtual.trim());
+      campoAtual = "";
+    } else if ((ch === "\r" || ch === "\n") && !inQuotes) {
+      if (ch === "\r" && prox === "\n") i++;
+      linhaAtual.push(campoAtual.trim());
+      campoAtual = "";
+      if (linhaAtual.some((c) => c !== "")) {
+        linhas.push(linhaAtual);
+      }
+      linhaAtual = [];
+    } else {
+      campoAtual += ch;
+    }
+  }
+  if (campoAtual || linhaAtual.length > 0) {
+    linhaAtual.push(campoAtual.trim());
+    if (linhaAtual.some((c) => c !== "")) {
+      linhas.push(linhaAtual);
+    }
+  }
+  return linhas;
+}
+
+function normalizarNomeColunaCsv(col) {
+  return String(col || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+async function uploadGuiaHoraExtraSimplificadaV82172() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".xls,.xlsx,.csv,.htm,.html,.txt";
+  input.style.display = "none";
+  document.body.appendChild(input);
+
+  input.onchange = async (e) => {
+    try {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const nomeArquivo = (file.name || "").toLowerCase();
+      const isXlsx = nomeArquivo.endsWith(".xlsx") || nomeArquivo.endsWith(".xlsm");
+
+      if (isXlsx) {
+        if (qs("statusCarga")) {
+          qs("statusCarga").textContent = "Enviando planilha para o servidor...";
+        }
+        const formData = new FormData();
+        formData.append("planilha", file);
+        const resp = await fetch("/tempo-fechado/api/hora-extra-simplificada/upload-guia", {
+          method: "POST",
+          body: formData,
+        });
+        const json = await resp.json().catch(() => ({}));
+        if (!resp.ok || json.ok === false) {
+          throw new Error(json.erro || `Erro HTTP ${resp.status}`);
+        }
+
+        await carregarAnotacoesOperacionais(true);
+        if (paginaAtual === "hora_extra_simplificada") {
+          renderHoraExtraSimplificadaV82167(dadosConsolidadoAtual);
+        }
+        const msg = `Guia de Horas Extras Simplificadas atualizada com sucesso! ${json.atualizados || 0} registro(s) processado(s).`;
+        if (qs("statusCarga")) qs("statusCarga").textContent = msg;
+        alert(msg);
+        return;
+      }
+
+      const texto = await file.text();
+      let headers = [];
+      let rows = [];
+
+      if (texto.toLowerCase().includes("<table")) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(texto, "text/html");
+        const table = doc.querySelector("table");
+        if (!table) {
+          throw new Error("Nenhuma tabela encontrada no arquivo da guia.");
+        }
+
+        const thElements = table.querySelectorAll("thead th, thead td, tr:first-child th, tr:first-child td");
+        headers = Array.from(thElements).map((el) => (el.textContent || "").trim());
+
+        const bodyRows = table.querySelectorAll("tbody tr");
+        const trList = bodyRows.length ? bodyRows : Array.from(table.querySelectorAll("tr")).slice(1);
+        trList.forEach((tr) => {
+          const cells = Array.from(tr.querySelectorAll("td, th")).map((td) => (td.textContent || "").trim());
+          if (cells.some((c) => c !== "")) {
+            rows.push(cells);
+          }
+        });
+      } else {
+        const parsed = parseLinhasCsv(texto);
+        if (parsed.length > 0) {
+          headers = parsed[0] || [];
+          rows = parsed.slice(1);
+        }
+      }
+
+      if (headers.length === 0 || rows.length === 0) {
+        alert("O arquivo selecionado está vazio ou não contém registros de dados.");
+        return;
+      }
+
+      const cabecalhoNorm = headers.map(normalizarNomeColunaCsv);
+
+      const idxData = cabecalhoNorm.findIndex((c) => c === "data" || c === "dt" || c === "datareferencia");
+      const idxColab = cabecalhoNorm.findIndex(
+        (c) => c === "colaborador" || c === "nome" || c === "funcionario" || c === "empregado"
+      );
+      const idxDia = cabecalhoNorm.findIndex((c) => c === "dia" || c === "diasemana");
+      const idxCc = cabecalhoNorm.findIndex((c) => c === "cc" || c === "centrocusto" || c === "centrodecusto");
+      const idxGestor = cabecalhoNorm.findIndex(
+        (c) => c.includes("gestor") || c === "gestormediato" || c === "nomedogestor" || c === "nomegestor"
+      );
+      const idxAdm = cabecalhoNorm.findIndex(
+        (c) => c.includes("adm") || c === "admresponsavel" || c === "responsaveladm"
+      );
+      const idxSobreaviso = cabecalhoNorm.findIndex((c) => c.includes("sobreaviso"));
+      const idxJustificativa = cabecalhoNorm.findIndex(
+        (c) => c.includes("justificativa") || c.includes("observacao") || c === "obs"
+      );
+
+      if (idxData === -1 || idxColab === -1) {
+        alert("A planilha precisa conter pelo menos as colunas 'Data' e 'Colaborador' (ou 'Nome').");
+        return;
+      }
+
+      if (idxGestor === -1 && idxAdm === -1 && idxSobreaviso === -1 && idxJustificativa === -1) {
+        alert("A planilha não possui colunas de anotações editáveis ('Gestor Mediato', 'Adm', 'Sobreaviso' ou 'Justificativa').");
+        return;
+      }
+
+      const guia = "horas_extras_simplificadas";
+      const listaItens = [];
+      let registrosIdentificados = 0;
+
+      const normData = (d) => {
+        const s = String(d || "").trim();
+        if (s.includes("-")) {
+          const p = s.split("-");
+          if (p.length === 3 && p[0].length === 4) return `${p[2]}/${p[1]}/${p[0]}`;
+        }
+        return s;
+      };
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+
+        const dataBruta = String(row[idxData] || "").trim();
+        const nomeBruto = String(row[idxColab] || "").trim();
+        if (!dataBruta || !nomeBruto) continue;
+
+        const diaBruto = idxDia !== -1 ? String(row[idxDia] || "").trim() : "";
+        const ccBruto = idxCc !== -1 ? String(row[idxCc] || "").trim() : "";
+        const gestorVal = idxGestor !== -1 ? String(row[idxGestor] || "").trim() : "";
+        const admVal = idxAdm !== -1 ? String(row[idxAdm] || "").trim() : "";
+        let sobreavisoVal = idxSobreaviso !== -1 ? String(row[idxSobreaviso] || "").trim() : "";
+        if (/^s(im)?$/i.test(sobreavisoVal)) sobreavisoVal = "Sim";
+        else if (/^n(ao|\u00e3o)?$/i.test(sobreavisoVal)) sobreavisoVal = "Não";
+        const justificativaVal = idxJustificativa !== -1 ? String(row[idxJustificativa] || "").trim() : "";
+
+        const dataNorm = normData(dataBruta);
+        const nomeNorm = nomeBruto.toLowerCase();
+
+        const correspondente = (dadosConsolidadoAtual || []).find((r) => {
+          const rNome = String(r?.nome || "").trim().toLowerCase();
+          const rData = normData(r?.data || r?.data_referencia || "");
+          return rNome === nomeNorm && rData === dataNorm;
+        });
+
+        const ccFinal = ccBruto || correspondente?.cc || "";
+        const diaFinal = diaBruto || correspondente?.dia || "";
+        const dataFinal = correspondente?.data || dataBruta;
+        const nomeFinal = correspondente?.nome || nomeBruto;
+
+        const chave = [guia, ccFinal, nomeFinal, dataFinal, diaFinal]
+          .map((v) => String(v ?? "").trim().toLowerCase())
+          .join("|")
+          .slice(0, 260);
+
+        listaItens.push({
+          chave,
+          guia,
+          nome_gestor: gestorVal,
+          adm_responsavel: admVal,
+          sobreaviso: sobreavisoVal,
+          observacao: justificativaVal,
+        });
+
+        anotacoesOperacionaisCache[chave] = {
+          guia,
+          nome_gestor: gestorVal,
+          adm_responsavel: admVal,
+          sobreaviso: sobreavisoVal,
+          observacao: justificativaVal,
+          atualizado_em: new Date().toISOString(),
+        };
+
+        registrosIdentificados++;
+      }
+
+      if (listaItens.length === 0) {
+        alert("Nenhum registro válido foi encontrado na planilha.");
+        return;
+      }
+
+      if (qs("statusCarga")) {
+        qs("statusCarga").textContent = `Salvando ${listaItens.length} anotação(ões) da planilha...`;
+      }
+
+      const resp = await fetch("/tempo-fechado/api/anotacoes-operacionais/lote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itens: listaItens }),
+      });
+
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || json.ok === false) {
+        throw new Error(json.erro || `Erro HTTP ${resp.status}`);
+      }
+
+      if (paginaAtual === "hora_extra_simplificada") {
+        renderHoraExtraSimplificadaV82167(dadosConsolidadoAtual);
+      }
+
+      const msg = `Guia de Horas Extras Simplificadas atualizada com sucesso! ${registrosIdentificados} registro(s) processado(s).`;
+      if (qs("statusCarga")) {
+        qs("statusCarga").textContent = msg;
+      }
+      alert(msg);
+    } catch (err) {
+      console.error("Erro ao fazer upload da guia:", err);
+      alert("Erro ao fazer upload da guia: " + (err?.message || err));
+    } finally {
+      input.remove();
+    }
+  };
+
+  input.click();
 }
 
 function renderResultadoFechamentoPeriodoV82166(json) {

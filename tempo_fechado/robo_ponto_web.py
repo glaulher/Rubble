@@ -3175,6 +3175,196 @@ def api_salvar_anotacao_operacional_v82150():
     return jsonify({"ok": True, "chave": chave, "anotacao": dados.get(chave, {})})
 
 
+@app.route("/api/anotacoes-operacionais/lote", methods=["POST"])
+@login_obrigatorio
+def api_salvar_anotacoes_operacionais_lote_v82172():
+    payload = request.get_json(silent=True) or {}
+    itens = payload.get("itens") or []
+    if not isinstance(itens, list):
+        return jsonify({"ok": False, "erro": "Formato inválido. 'itens' deve ser uma lista."}), 400
+
+    usuario_logado = str(session.get("usuario") or session.get("nome") or "")
+    agora_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    atualizados = 0
+
+    with ANOTACOES_OPERACIONAIS_LOCK:
+        dados = _carregar_anotacoes_operacionais_v82150()
+        for item in itens:
+            if not isinstance(item, dict):
+                continue
+            chave = _limpar_texto_anotacao_v82150(item.get("chave"), 260)
+            if not chave:
+                continue
+
+            registro = {
+                "guia": _limpar_texto_anotacao_v82150(item.get("guia") or "horas_extras_simplificadas", 80),
+                "nome_gestor": _limpar_texto_anotacao_v82150(item.get("nome_gestor"), 120),
+                "adm_responsavel": _limpar_texto_anotacao_v82150(item.get("adm_responsavel"), 120),
+                "sobreaviso": _limpar_texto_anotacao_v82150(item.get("sobreaviso"), 20),
+                "observacao": _limpar_texto_anotacao_v82150(item.get("observacao"), 600),
+                "atualizado_em": agora_str,
+                "atualizado_por": usuario_logado,
+            }
+
+            if registro["nome_gestor"] or registro["adm_responsavel"] or registro["sobreaviso"] or registro["observacao"]:
+                dados[chave] = registro
+                atualizados += 1
+            else:
+                if chave in dados:
+                    dados.pop(chave, None)
+                    atualizados += 1
+
+        _salvar_anotacoes_operacionais_v82150(dados)
+
+    return jsonify({"ok": True, "atualizados": atualizados, "total": len(itens)})
+
+
+@app.route("/api/hora-extra-simplificada/upload-guia", methods=["POST"])
+@login_obrigatorio
+def api_upload_guia_hora_extra_simplificada_v82172():
+    arquivo = request.files.get("planilha") or request.files.get("arquivo") or request.files.get("file")
+    if not arquivo:
+        return jsonify({"ok": False, "erro": "Nenhum arquivo enviado."}), 400
+
+    nome_arq = str(arquivo.filename or "").lower()
+    linhas_tabela = []
+
+    try:
+        if nome_arq.endswith(".xlsx") or nome_arq.endswith(".xlsm"):
+            if load_workbook is not None:
+                wb = load_workbook(arquivo, data_only=True)
+                ws = wb.active
+                for row in ws.iter_rows(values_only=True):
+                    if row and any(v is not None and str(v).strip() for v in row):
+                        linhas_tabela.append([str(v if v is not None else "").strip() for v in row])
+            else:
+                import io
+                df_up = pd.read_excel(arquivo)
+                linhas_tabela = [df_up.columns.tolist()] + df_up.fillna("").values.tolist()
+        else:
+            conteudo_bytes = arquivo.read()
+            texto = None
+            for enc in ["utf-8-sig", "utf-8", "latin-1", "cp1252"]:
+                try:
+                    texto = conteudo_bytes.decode(enc)
+                    break
+                except Exception:
+                    pass
+            if texto is None:
+                texto = conteudo_bytes.decode("utf-8", errors="ignore")
+
+            if "<table" in texto.lower():
+                import re
+                tr_matches = re.findall(r"<tr[^>]*>(.*?)</tr>", texto, flags=re.IGNORECASE | re.DOTALL)
+                for tr in tr_matches:
+                    celulas = re.findall(r"<(?:td|th)[^>]*>(.*?)</(?:td|th)>", tr, flags=re.IGNORECASE | re.DOTALL)
+                    if celulas:
+                        limpas = [html.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in celulas]
+                        if any(limpas):
+                            linhas_tabela.append(limpas)
+            else:
+                import io
+                import csv
+                primeiras_linhas = [l for l in texto.splitlines() if l.strip()]
+                if not primeiras_linhas:
+                    return jsonify({"ok": False, "erro": "Arquivo vazio."}), 400
+                primeira_linha = primeiras_linhas[0]
+                delimitador = ";" if ";" in primeira_linha else ("," if "," in primeira_linha else "\t")
+                leitor = csv.reader(io.StringIO(texto), delimiter=delimitador)
+                for row in leitor:
+                    if row and any(str(c).strip() for c in row):
+                        linhas_tabela.append([str(c).strip() for c in row])
+
+        if len(linhas_tabela) < 2:
+            return jsonify({"ok": False, "erro": "Planilha sem linhas de dados."}), 400
+
+        def normalizar_hdr(h):
+            import unicodedata
+            h_limpo = unicodedata.normalize("NFD", str(h or "")).encode("ascii", "ignore").decode("utf-8").lower().strip()
+            if h_limpo in ["nome", "colaborador", "funcionario", "empregado"]:
+                return "nome"
+            if h_limpo in ["data", "dt", "datareferencia"]:
+                return "data"
+            if h_limpo in ["dia", "diasemana"]:
+                return "dia"
+            if h_limpo in ["cc", "centrocusto", "centrodecusto"]:
+                return "cc"
+            if "gestor" in h_limpo:
+                return "nome_gestor"
+            if "adm" in h_limpo:
+                return "adm_responsavel"
+            if "sobreaviso" in h_limpo:
+                return "sobreaviso"
+            if "justificativa" in h_limpo or "observacao" in h_limpo or "obs" in h_limpo:
+                return "observacao"
+            return h_limpo
+
+        cabecalho = [normalizar_hdr(h) for h in linhas_tabela[0]]
+
+        if "nome" not in cabecalho or "data" not in cabecalho:
+            return jsonify({"ok": False, "erro": "A planilha deve conter as colunas 'Colaborador' (ou 'Nome') e 'Data'."}), 400
+
+        idx_nome = cabecalho.index("nome")
+        idx_data = cabecalho.index("data")
+        idx_dia = cabecalho.index("dia") if "dia" in cabecalho else None
+        idx_cc = cabecalho.index("cc") if "cc" in cabecalho else None
+        idx_gestor = cabecalho.index("nome_gestor") if "nome_gestor" in cabecalho else None
+        idx_adm = cabecalho.index("adm_responsavel") if "adm_responsavel" in cabecalho else None
+        idx_sobreaviso = cabecalho.index("sobreaviso") if "sobreaviso" in cabecalho else None
+        idx_obs = cabecalho.index("observacao") if "observacao" in cabecalho else None
+
+        usuario_logado = str(session.get("usuario") or session.get("nome") or "")
+        agora_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        atualizados = 0
+        guia = "horas_extras_simplificadas"
+
+        with ANOTACOES_OPERACIONAIS_LOCK:
+            dados = _carregar_anotacoes_operacionais_v82150()
+            for row in linhas_tabela[1:]:
+                nome_val = row[idx_nome].strip() if idx_nome < len(row) else ""
+                data_val = row[idx_data].strip() if idx_data < len(row) else ""
+                if not nome_val or not data_val:
+                    continue
+
+                dia_val = row[idx_dia].strip() if idx_dia is not None and idx_dia < len(row) else ""
+                cc_val = row[idx_cc].strip() if idx_cc is not None and idx_cc < len(row) else ""
+                gestor_val = row[idx_gestor].strip() if idx_gestor is not None and idx_gestor < len(row) else ""
+                adm_val = row[idx_adm].strip() if idx_adm is not None and idx_adm < len(row) else ""
+                sobreaviso_val = row[idx_sobreaviso].strip() if idx_sobreaviso is not None and idx_sobreaviso < len(row) else ""
+                if sobreaviso_val.lower() in ["sim", "s"]:
+                    sobreaviso_val = "Sim"
+                elif sobreaviso_val.lower() in ["nao", "não", "n"]:
+                    sobreaviso_val = "Não"
+                obs_val = row[idx_obs].strip() if idx_obs is not None and idx_obs < len(row) else ""
+
+                partes = [guia, cc_val, nome_val, data_val, dia_val]
+                chave = "|".join(str(v or "").strip().lower() for v in partes)[:260]
+
+                registro = {
+                    "guia": guia,
+                    "nome_gestor": _limpar_texto_anotacao_v82150(gestor_val, 120),
+                    "adm_responsavel": _limpar_texto_anotacao_v82150(adm_val, 120),
+                    "sobreaviso": _limpar_texto_anotacao_v82150(sobreaviso_val, 20),
+                    "observacao": _limpar_texto_anotacao_v82150(obs_val, 600),
+                    "atualizado_em": agora_str,
+                    "atualizado_por": usuario_logado,
+                }
+
+                if registro["nome_gestor"] or registro["adm_responsavel"] or registro["sobreaviso"] or registro["observacao"]:
+                    dados[chave] = registro
+                    atualizados += 1
+                else:
+                    if chave in dados:
+                        dados.pop(chave, None)
+                        atualizados += 1
+
+            _salvar_anotacoes_operacionais_v82150(dados)
+
+        return jsonify({"ok": True, "atualizados": atualizados, "total": len(linhas_tabela) - 1})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": f"Erro ao processar planilha: {str(e)}"}), 500
+
+
 @app.route("/api/usuario-atual")
 @login_obrigatorio
 def api_usuario_atual():
