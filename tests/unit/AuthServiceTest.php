@@ -141,4 +141,39 @@ class AuthServiceTest extends TestCase
         $result = AuthService::requireRole($user, 'filter-exchanges', 'DELETE', null);
         $this->assertFalse($result);
     }
+
+    public function testRequireRoleAdminAllowsPreventivaDashboard(): void
+    {
+        $user = (object)['role' => 'admin'];
+        $result = AuthService::requireRole($user, 'preventiva-dashboard', 'GET', null);
+        $this->assertTrue($result);
+    }
+
+    public function testRequireRoleSupervisorAllowsPreventivaDashboard(): void
+    {
+        $user = (object)['role' => 'supervisor'];
+        $result = AuthService::requireRole($user, 'preventiva-dashboard', 'GET', null);
+        $this->assertTrue($result);
+    }
+
+    public function testRequireRoleCoordenadorAllowsPreventivaDashboard(): void
+    {
+        $user = (object)['role' => 'coordenador'];
+        $result = AuthService::requireRole($user, 'preventiva-dashboard', 'GET', null);
+        $this->assertTrue($result);
+    }
+
+    public function testRequireRoleClienteAllowsPreventivaDashboard(): void
+    {
+        $user = (object)['role' => 'cliente'];
+        $result = AuthService::requireRole($user, 'preventiva-dashboard', 'GET', null);
+        $this->assertTrue($result);
+    }
+
+    public function testRequireRoleAdministrativoDeniesPreventivaDashboard(): void
+    {
+        $user = (object)['role' => 'administrativo'];
+        $result = AuthService::requireRole($user, 'preventiva-dashboard', 'GET', null);
+        $this->assertFalse($result);
+    }
 }

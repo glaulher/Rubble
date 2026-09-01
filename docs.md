@@ -668,8 +668,11 @@ Request → CorsMiddleware → AuthMiddleware → RateLimitMiddleware → Router
 | Resource | Admin | Supervisor | Coordenador | Administrativo | Cliente |
 |----------|:-----:|:----------:|:-----------:|:--------------:|:-------:|
 | Home (equip + tickets) | CRUD | CRUD | CRUD | R/O | R/O |
-| Dashboard | ✅ | ✅ | ✅ | ✅ | R/O |
-| PV + PV Dashboard | CRUD | ❌ | CRUD (no delete) | ❌ | ❌ |
+| Equipment Dashboard | ✅ | ✅ | ✅ | ✅ | ✅ |
+| OS Dashboard | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Preventiva Dashboard | ✅ | ✅ | ✅ | ❌ | ✅ |
+| PV Dashboard | ✅ | ❌ | ✅ | ❌ | ❌ |
+| PV (Propostas) | CRUD | ❌ | CRUD (no delete) | ❌ | ❌ |
 | Manage Users | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Manage Equipment | CRUD | ❌ | CRUD (no delete) | ❌ | ❌ |
 | SCM Status | CRUD | ❌ | CRUD (no delete) | ❌ | ❌ |

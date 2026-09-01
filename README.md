@@ -180,6 +180,8 @@ Script load order (index.html): `sidebar.js` → `auth.js` → libs (chart, html
 | `tickets` | GET, POST, PUT, DELETE | `listByItem()`, `getById()`, `save()`, `import()`, `update()`, `delete()` |
 | `dashboard` | GET | `stats()` (equipment) |
 | `pv-dashboard` | GET | `stats()` (PV financial) |
+| `os-dashboard` | GET | `stats()` (Gestão de OS KPI) |
+| `preventiva-dashboard` | GET | `stats()` (Preventiva KPI / Treemap) |
 | `pv` | GET, POST, PUT, PATCH, DELETE | CRUD + `searchOs()`, `lookupItem()`, `searchLpuItems()`, `exportCsv()`, `sendEmail()`, `sendBatchEmail()`, `uploadFile()` |
 | `locals` | GET | `getLocals()` (autocomplete) |
 | `equipment-management` | GET, POST, PUT, DELETE | Equipment CRUD (admin/coordenador) |
@@ -199,8 +201,11 @@ All routes (except `auth`) require JWT Bearer token. Access controlled by role.
 | Resource | Admin | Supervisor | Coordenador | Administrativo | Cliente |
 |----------|-------|-----------|-------------|----------------|---------|
 | Home (equip + tickets) | CRUD | CRUD | CRUD | R/O | R/O |
-| Dashboard | yes | yes | yes | yes | R/O |
-| PV + PV Dashboard | CRUD | no | CRUD (no delete) | no | no |
+| Equipment Dashboard | yes | yes | yes | yes | yes |
+| OS Dashboard | yes | yes | yes | yes | no |
+| Preventiva Dashboard | yes | yes | yes | no | yes |
+| PV Dashboard | yes | no | yes | no | no |
+| PV (Propostas) | CRUD | no | CRUD (no delete) | no | no |
 | Manage Users | yes | no | no | no | no |
 | Manage Equipment | CRUD | no | CRUD (no delete) | no | no |
 | SCM Status | CRUD | no | CRUD (no delete) | no | no |

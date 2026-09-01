@@ -161,4 +161,45 @@ describe('auth.js', () => {
     toggleSidebar(false);
     expect(sidebar.style.display).toBe('none');
   });
+
+  test('applyRoleVisibility shows preventiva-dashboard for admin, supervisor, coordenador, cliente', () => {
+    document.body.innerHTML = `
+      <div id="dashboardMenuContainer" data-role="admin supervisor coordenador cliente">
+        <a id="preventivaLink" href="#/preventiva-dashboard" data-role="admin supervisor coordenador cliente">Preventiva</a>
+        <a id="pvLink" href="#/pv-dashboard" data-role="admin coordenador">PV</a>
+      </div>
+    `;
+
+    const container = document.getElementById('dashboardMenuContainer');
+    const prevLink = document.getElementById('preventivaLink');
+    const pvLink = document.getElementById('pvLink');
+
+    // Test cliente
+    sessionStorage.setItem('rubble_user', JSON.stringify({ id: 2, role: 'cliente' }));
+    applyRoleVisibility();
+    expect(container.style.display).toBe('');
+    expect(prevLink.style.display).toBe('');
+    expect(pvLink.style.display).toBe('none');
+
+    // Test supervisor
+    sessionStorage.setItem('rubble_user', JSON.stringify({ id: 3, role: 'supervisor' }));
+    applyRoleVisibility();
+    expect(container.style.display).toBe('');
+    expect(prevLink.style.display).toBe('');
+    expect(pvLink.style.display).toBe('none');
+
+    // Test coordenador
+    sessionStorage.setItem('rubble_user', JSON.stringify({ id: 4, role: 'coordenador' }));
+    applyRoleVisibility();
+    expect(container.style.display).toBe('');
+    expect(prevLink.style.display).toBe('');
+    expect(pvLink.style.display).toBe('');
+
+    // Test admin
+    sessionStorage.setItem('rubble_user', JSON.stringify({ id: 1, role: 'admin' }));
+    applyRoleVisibility();
+    expect(container.style.display).toBe('');
+    expect(prevLink.style.display).toBe('');
+    expect(pvLink.style.display).toBe('');
+  });
 });

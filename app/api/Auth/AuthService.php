@@ -104,11 +104,11 @@ class AuthService
 
         $rolePermissions = [
             'supervisor' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'locals', 'notify', 'auth', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'locals', 'notify', 'auth', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
                 'write' => ['equipment', 'tickets', 'pending-tickets', 'filter-exchanges'],
             ],
             'coordenador' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
                 'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities', 'preventiva', 'pending-tickets', 'filter-exchanges'],
             ],
             'administrativo' => [
@@ -116,7 +116,7 @@ class AuthService
                 'write' => [],
             ],
             'cliente' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'locals', 'notify', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'locals', 'notify', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
                 'write' => [],
             ],
         ];
