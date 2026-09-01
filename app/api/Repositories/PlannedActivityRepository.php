@@ -6,10 +6,10 @@ use App\Api\Entities\Ticket;
 
 class PlannedActivityRepository extends BaseRepository
 {
-    public function listAll(int $limit, int $offset, string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null): array
+    public function listAll(int $limit, int $offset, string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null, ?string $tipo = null): array
     {
-        [$pw, $pp, $pt] = $this->buildPreventivaFilter($search, $dateFrom, $dateTo, $status);
-        [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status);
+        [$pw, $pp, $pt] = $this->buildPreventivaFilter($search, $dateFrom, $dateTo, $status, $tipo);
+        [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status, $tipo);
 
         $sql = $this->combinedSelect($pw, $cw) . "
             ORDER BY data_planejada DESC, sort_order ASC, id DESC
@@ -93,10 +93,10 @@ class PlannedActivityRepository extends BaseRepository
         ";
     }
 
-    public function count(string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null): int
+    public function count(string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null, ?string $tipo = null): int
     {
-        [$pw, $pp, $pt] = $this->buildPreventivaFilter($search, $dateFrom, $dateTo, $status);
-        [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status);
+        [$pw, $pp, $pt] = $this->buildPreventivaFilter($search, $dateFrom, $dateTo, $status, $tipo);
+        [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status, $tipo);
 
         $sql = "
             SELECT COUNT(*) AS total
@@ -124,8 +124,12 @@ class PlannedActivityRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
-    private function buildCorretivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status): array
+    private function buildCorretivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status, ?string $tipo = null): array
     {
+        if ($tipo !== null && $tipo !== '' && mb_strtolower($tipo) !== 'corretiva') {
+            return ['1 = 0', [], ''];
+        }
+
         $where = 'r.tipo = \'corretiva\'';
         $params = [];
         $types = '';
@@ -164,8 +168,12 @@ class PlannedActivityRepository extends BaseRepository
         return [$where, $params, $types];
     }
 
-    private function buildPreventivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status): array
+    private function buildPreventivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status, ?string $tipo = null): array
     {
+        if ($tipo !== null && $tipo !== '' && mb_strtolower($tipo) !== 'preventiva') {
+            return ['1 = 0', [], ''];
+        }
+
         $where = 'ap.data_planejada IS NOT NULL';
         $params = [];
         $types = '';

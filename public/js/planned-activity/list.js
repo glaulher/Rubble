@@ -9,6 +9,7 @@ import { PlanModal } from '/public/js/components/plan-modal.js';
 let plannedSearch = '';
 let plannedDateFrom = '';
 let plannedDateTo = '';
+let plannedTipoFilter = '';
 let plannedStatusFilter = '';
 let _plannedScroll = null;
 
@@ -957,6 +958,7 @@ export function setupPlannedScroll() {
       urlParams.set('offset', params.offset);
       if (plannedDateFrom) urlParams.set('date_from', plannedDateFrom);
       if (plannedDateTo) urlParams.set('date_to', plannedDateTo);
+      if (plannedTipoFilter) urlParams.set('tipo', plannedTipoFilter);
       if (plannedStatusFilter) urlParams.set('status', plannedStatusFilter);
       if (plannedSearch) urlParams.set('search', plannedSearch);
       return apiFetch('/app/api/index.php?route=planned-activities&' + urlParams.toString(), opts)
@@ -978,7 +980,7 @@ export function setupPlannedScroll() {
       if (counter) counter.textContent = state.total + ' atividades';
     },
     getFilterHash: function () {
-      return plannedDateFrom + '|' + plannedDateTo + '|' + plannedStatusFilter + '|' + plannedSearch;
+      return plannedDateFrom + '|' + plannedDateTo + '|' + plannedTipoFilter + '|' + plannedStatusFilter + '|' + plannedSearch;
     },
     onError: function (err) {
       console.error('Erro ao carregar atividades:', err);
@@ -989,12 +991,14 @@ export function setupPlannedScroll() {
 export function setupPlannedFilters() {
   var dateFromInput = document.getElementById('plannedDateFrom');
   var dateToInput = document.getElementById('plannedDateTo');
+  var tipoSelect = document.getElementById('plannedTipoFilter');
   var statusSelect = document.getElementById('plannedStatusFilter');
   var searchInput = document.getElementById('plannedSearchFilter');
 
   function applyFilters() {
     plannedDateFrom = dateFromInput ? dateFromInput.value : '';
     plannedDateTo = dateToInput ? dateToInput.value : '';
+    plannedTipoFilter = tipoSelect ? tipoSelect.value : '';
     plannedStatusFilter = statusSelect ? statusSelect.value : '';
     var newSearch = searchInput ? searchInput.value.trim() : '';
     if (plannedSearch !== newSearch) {
@@ -1040,6 +1044,9 @@ export function setupPlannedFilters() {
       }
     });
   }
+  if (tipoSelect) {
+    tipoSelect.addEventListener('change', applyFilters);
+  }
   if (statusSelect) {
     statusSelect.addEventListener('change', applyFilters);
   }
@@ -1050,6 +1057,7 @@ export function exportPlannedCsv() {
   params.set('limit', '99999');
   if (plannedDateFrom) params.set('date_from', plannedDateFrom);
   if (plannedDateTo) params.set('date_to', plannedDateTo);
+  if (plannedTipoFilter) params.set('tipo', plannedTipoFilter);
   if (plannedStatusFilter) params.set('status', plannedStatusFilter);
   if (plannedSearch) params.set('search', plannedSearch);
 
@@ -1097,6 +1105,7 @@ export function copyPlannedWhatsApp() {
   params.set('limit', '99999');
   if (plannedDateFrom) params.set('date_from', plannedDateFrom);
   if (plannedDateTo) params.set('date_to', plannedDateTo);
+  if (plannedTipoFilter) params.set('tipo', plannedTipoFilter);
   if (plannedStatusFilter) params.set('status', plannedStatusFilter);
   if (plannedSearch) params.set('search', plannedSearch);
 
@@ -1158,6 +1167,9 @@ export function copyPlannedWhatsApp() {
       }
       if (plannedDateTo) {
         filterParts.push('Data\u00a0fim: ' + toDDMMYYYY(plannedDateTo));
+      }
+      if (plannedTipoFilter) {
+        filterParts.push('Tipo: ' + (plannedTipoFilter.charAt(0).toUpperCase() + plannedTipoFilter.slice(1).toLowerCase()));
       }
       if (plannedStatusFilter) {
         filterParts.push('Status: ' + plannedStatusFilter);
@@ -1272,6 +1284,7 @@ export function initPlannedActivity() {
   plannedSearch = '';
   plannedDateFrom = '';
   plannedDateTo = '';
+  plannedTipoFilter = '';
   plannedStatusFilter = '';
   window._plannedTotal = 0;
   var contentEl = document.getElementById('plannedContent');
@@ -1285,6 +1298,8 @@ export function initPlannedActivity() {
   if (dateFromEl) dateFromEl.value = plannedDateFrom;
   var dateToEl = document.getElementById('plannedDateTo');
   if (dateToEl) dateToEl.value = plannedDateTo;
+  var tipoEl = document.getElementById('plannedTipoFilter');
+  if (tipoEl) tipoEl.value = plannedTipoFilter;
   var statusEl = document.getElementById('plannedStatusFilter');
   if (statusEl) statusEl.value = plannedStatusFilter;
 

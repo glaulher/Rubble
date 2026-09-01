@@ -163,14 +163,19 @@ Módulo para programação diária das equipes de campo, combinando atividades p
 ```
 
 #### Operações no Planejamento:
-1. **Nova Atividade:** Clique em `+ Planejar Atividade` e escolha o tipo (*Preventiva* ou *Corretiva*):
+1. **Filtros da Barra Superior:**
+   - *Data Início / Data Fim:* Seleciona o período de agendamento (com limpeza ao clicar).
+   - *Tipo:* Filtro dropdown para exibir **Todos**, apenas **Preventiva** ou apenas **Corretiva**.
+   - *Status:* Filtro por situação (*Todos*, *Planejado*, *Concluído*, *Pendente*, *Em Andamento*, *Projeto Clean Up*).
+   - *Buscar:* Busca textual com debounce por site, máquina, OS, equipe ou observação.
+2. **Nova Atividade:** Clique em `+ Planejar Atividade` e escolha o tipo (*Preventiva* ou *Corretiva*):
    - *Preventiva:* Selecione o Site, Ticket, Data Planejada e Equipe.
    - *Corretiva:* Selecione o Equipamento, OS, Data Planejada e Equipe.
-2. **Edição Rápida Inline (Ícone do Lápis ✏️):** Clique no lápis ao lado do nome da Equipe ou da Observação para editar o texto imediatamente sem abrir modais. Pressione `Enter` ou clique fora para salvar.
-3. **Transição de Status:**
+3. **Edição Rápida Inline (Ícone do Lápis ✏️):** Clique no lápis ao lado do nome da Equipe ou da Observação para editar o texto imediatamente sem abrir modais. Pressione `Enter` ou clique fora para salvar.
+4. **Transição de Status:**
    - Clique no botão de status para abrir o modal de transição: `Planejado` → `Em Andamento` → `Concluído` ou `Cancelado`.
    - Permite reagendar a data diretamente no modal caso a atividade precise ser postergada.
-4. **Duplicar Dia Inteiro:** Clique em `Duplicar Dia` no cabeçalho da data para clonar toda a programação de um dia para uma nova data de destino.
+5. **Duplicar Dia Inteiro:** Clique em `Duplicar Dia` no cabeçalho da data para clonar toda a programação de um dia para uma nova data de destino.
 
 ---
 

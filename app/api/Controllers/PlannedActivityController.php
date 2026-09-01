@@ -33,9 +33,10 @@ class PlannedActivityController
             $search = trim($_GET['search'] ?? '');
             $dateFrom = trim($_GET['date_from'] ?? '') ?: null;
             $dateTo = trim($_GET['date_to'] ?? '') ?: null;
+            $tipo = trim($_GET['tipo'] ?? '') ?: null;
             $status = trim($_GET['status'] ?? '') ?: null;
 
-            $result = $this->service->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status);
+            $result = $this->service->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status, $tipo);
 
             Response::success('Atividades listadas com sucesso', [
                 'items' => $result['items'],
@@ -55,9 +56,10 @@ class PlannedActivityController
             $search = trim($_GET['search'] ?? '');
             $dateFrom = trim($_GET['date_from'] ?? '') ?: null;
             $dateTo = trim($_GET['date_to'] ?? '') ?: null;
+            $tipo = trim($_GET['tipo'] ?? '') ?: null;
             $status = trim($_GET['status'] ?? '') ?: null;
 
-            $result = $this->service->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status);
+            $result = $this->service->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status, $tipo);
             $items = $result['items'] ?? [];
 
             header('Content-Type: text/csv; charset=Windows-1252');

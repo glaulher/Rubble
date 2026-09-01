@@ -48,10 +48,10 @@ class PlannedActivityService
         return $item;
     }
 
-    public function listAll(int $limit, int $offset, string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null): array
+    public function listAll(int $limit, int $offset, string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null, ?string $tipo = null): array
     {
-        $items = $this->repository->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status);
-        $total = $this->repository->count($search, $dateFrom, $dateTo, $status);
+        $items = $this->repository->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status, $tipo);
+        $total = $this->repository->count($search, $dateFrom, $dateTo, $status, $tipo);
 
         // Enriquecer preventivas com progresso do SLA (regra de negócio no Service)
         foreach ($items as &$it) {

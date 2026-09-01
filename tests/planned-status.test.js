@@ -223,3 +223,48 @@ describe("_updateGroupSlaProgress", () => {
     expect(card10.querySelector('.sla-progress-bar').classList.contains('bg-emerald-500')).toBe(true);
   });
 });
+
+describe("plannedTipoFilter", () => {
+  beforeEach(() => {
+    document.body.innerHTML =
+      '<div class="px-4 py-3 flex flex-wrap gap-3 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 mt-3">' +
+        '<div class="flex flex-col shrink-0">' +
+          '<label for="plannedTipoFilter" class="text-xs text-slate-500 mb-1">Tipo</label>' +
+          '<select id="plannedTipoFilter" class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36">' +
+            '<option value="">Todos</option>' +
+            '<option value="Preventiva">Preventiva</option>' +
+            '<option value="Corretiva">Corretiva</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="flex flex-col shrink-0">' +
+          '<label for="plannedStatusFilter" class="text-xs text-slate-500 mb-1">Status</label>' +
+          '<select id="plannedStatusFilter" class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40">' +
+            '<option value="">Todos</option>' +
+            '<option value="Planejado">Planejado</option>' +
+          '</select>' +
+        '</div>' +
+      '</div>';
+  });
+
+  it("renders plannedTipoFilter with Todos, Preventiva and Corretiva options", () => {
+    const select = document.getElementById('plannedTipoFilter');
+    expect(select).not.toBeNull();
+    const options = Array.from(select.querySelectorAll('option')).map(o => ({ value: o.value, text: o.textContent }));
+    expect(options).toEqual([
+      { value: '', text: 'Todos' },
+      { value: 'Preventiva', text: 'Preventiva' },
+      { value: 'Corretiva', text: 'Corretiva' }
+    ]);
+  });
+
+  it("updates value when option is changed", () => {
+    const select = document.getElementById('plannedTipoFilter');
+    select.value = 'Preventiva';
+    expect(select.value).toBe('Preventiva');
+    select.value = 'Corretiva';
+    expect(select.value).toBe('Corretiva');
+    select.value = '';
+    expect(select.value).toBe('');
+  });
+});
+

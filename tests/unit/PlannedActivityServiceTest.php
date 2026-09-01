@@ -465,4 +465,42 @@ class PlannedActivityServiceTest extends TestCase
 
         $this->assertSame('moved', $result['action']);
     }
+
+    public function testListAllPassesTipoFilterToRepository(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('listAll')
+            ->with(20, 0, '', null, null, null, 'preventiva')
+            ->willReturn([]);
+        $repo->expects($this->once())
+            ->method('count')
+            ->with('', null, null, null, 'preventiva')
+            ->willReturn(0);
+
+        $service = $this->createService($repo);
+        $result = $service->listAll(20, 0, '', null, null, null, 'preventiva');
+
+        $this->assertSame([], $result['items']);
+        $this->assertSame(0, $result['total']);
+    }
+
+    public function testListAllWithCorretivaTipoFilter(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('listAll')
+            ->with(50, 10, 'busca', '2026-08-01', '2026-08-31', 'Planejado', 'corretiva')
+            ->willReturn([]);
+        $repo->expects($this->once())
+            ->method('count')
+            ->with('busca', '2026-08-01', '2026-08-31', 'Planejado', 'corretiva')
+            ->willReturn(0);
+
+        $service = $this->createService($repo);
+        $result = $service->listAll(50, 10, 'busca', '2026-08-01', '2026-08-31', 'Planejado', 'corretiva');
+
+        $this->assertSame([], $result['items']);
+        $this->assertSame(0, $result['total']);
+    }
 }
