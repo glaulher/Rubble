@@ -6,12 +6,12 @@ aside{background:linear-gradient(180deg,var(--sidebar),var(--sidebar2));color:#f
 .menu button:hover,.menu button.active{background:rgba(255,255,255,.12);color:#fff}main{padding:24px;overflow:auto}.topbar{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px}.topbar h2{margin:0;font-size:28px}.topbar p{margin:6px 0 0;color:var(--muted)}
 .actions{display:flex;gap:10px;flex-wrap:wrap}.btn{border:0;background:var(--primary);color:#fff;padding:11px 15px;border-radius:12px;cursor:pointer;font-weight:700;text-decoration:none;display:inline-block}.btn.secondary{background:#fff;color:var(--text);border:1px solid var(--line)}
 .cards{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:12px;margin-bottom:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 8px 26px rgba(15,23,42,.06)}.card span{display:block;color:var(--muted);font-size:12px;margin-bottom:8px}.card strong{font-size:24px}
-.filters{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;grid-template-columns:1.1fr 1.1fr 1fr 1fr 1fr 1.2fr auto;gap:10px;margin-bottom:16px}.filters input,.filters select{border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-size:14px;background:#fff}
+.filters{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-bottom:16px}.filters input,.filters select{border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:13.5px;background:#fff;height:42px;box-sizing:border-box}
 .table-card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 8px 26px rgba(15,23,42,.06)}.table-header{padding:15px 18px;display:flex;justify-content:space-between;border-bottom:1px solid var(--line)}.table-header h3{margin:0}.table-header span{color:var(--muted);font-size:13px}
 .table-wrap{overflow:auto;max-height:calc(100vh - 330px)}table{width:100%;border-collapse:collapse;min-width:1500px;font-size:13px}.dashboard-table{min-width:1100px}th,td{padding:10px 12px;border-bottom:1px solid #eef2f7;white-space:nowrap;text-align:left}th{background:#f8fafc;position:sticky;top:0;z-index:2;font-size:12px;color:#475569;text-transform:uppercase}tr:hover td{background:#f9fbff}
 .table-top-hscroll{height:24px;overflow-x:scroll;overflow-y:hidden;background:#f8fafc;border-bottom:1px solid var(--line);padding:4px 14px 3px;scrollbar-gutter:stable}.table-top-hscroll.hidden{display:none}.table-top-hscroll-inner{height:1px}.table-top-hscroll::-webkit-scrollbar{height:13px}.table-top-hscroll::-webkit-scrollbar-track{background:#e5eaf2;border-radius:999px}.table-top-hscroll::-webkit-scrollbar-thumb{background:#64748b;border:3px solid #e5eaf2;border-radius:999px}.table-top-hscroll::-webkit-scrollbar-thumb:hover{background:#334155}
 .badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800}.success{background:#d1fae5;color:var(--success)}.warning{background:#fef3c7;color:var(--warning)}.danger{background:#fee2e2;color:var(--danger)}.neutral{background:#e5e7eb;color:#374151}.hidden{display:none}
-@media(max-width:1100px){.app{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}.filters{grid-template-columns:1fr 1fr}}@media(max-width:700px){.cards,.filters{grid-template-columns:1fr}.topbar{flex-direction:column;align-items:flex-start}}
+@media(max-width:1100px){.app{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.cards{grid-template-columns:1fr}.topbar{flex-direction:column;align-items:flex-start}}
 
 .th-sort{
   border:0;
@@ -28,7 +28,7 @@ aside{background:linear-gradient(180deg,var(--sidebar),var(--sidebar2));color:#f
 
 /* V6.8.1-E - filtro de inconsistências isolado */
 #filtroInconsistencia {
-  min-width: 220px;
+  min-width: 200px;
 }
 
 
@@ -36,15 +36,18 @@ aside{background:linear-gradient(180deg,var(--sidebar),var(--sidebar2));color:#f
 .multi-date-control {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 190px;
+  flex: 0 0 auto;
 }
 
 .date-range-control {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 250px;
+  min-width: 290px;
+  max-width: 340px;
+  flex: 0 0 auto;
 }
 
 .date-range-control.hidden {
@@ -55,6 +58,7 @@ aside{background:linear-gradient(180deg,var(--sidebar),var(--sidebar2));color:#f
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
 }
 
 .date-field {
@@ -65,11 +69,11 @@ aside{background:linear-gradient(180deg,var(--sidebar),var(--sidebar2));color:#f
 }
 
 .date-label {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
 }
 
 .date-field input[type="date"] {
@@ -79,6 +83,21 @@ aside{background:linear-gradient(180deg,var(--sidebar),var(--sidebar2));color:#f
   font-size: 13px;
   background: #fff;
   width: 100%;
+  height: 42px;
+  box-sizing: border-box;
+}
+
+.filters button.btn.secondary {
+  height: 42px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .multi-date-row {
@@ -1824,7 +1843,7 @@ main{
   gap:12px;
   padding:15px;
   margin-bottom:18px;
-  align-items:start;
+  align-items:flex-end;
 }
 .table-card{
   border-radius:20px;
