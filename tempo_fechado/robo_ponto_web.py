@@ -3249,35 +3249,29 @@ def api_upload_guia_hora_extra_simplificada_v82172():
             except Exception:
                 pass
 
-        # 2) Binary Excel 97-2003 (.xls BIFF8 / OLE2 header)
-        if not linhas_tabela and (conteudo_bytes[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" or nome_arq.endswith(".xls")):
-            try:
-                df_up = pd.read_excel(BytesIO(conteudo_bytes))
-                linhas_tabela = [[str(c).strip() for c in df_up.columns.tolist()]] + [
-                    [str(v if v is not None and str(v).strip().lower() != "nan" else "").strip() for v in r]
-                    for r in df_up.fillna("").values.tolist()
-                ]
-            except Exception:
-                pass
-
-        # 3) XML Spreadsheet 2003 (xmlns="urn:schemas-microsoft-com:office:spreadsheet")
-        if not linhas_tabela and (b"urn:schemas-microsoft-com:office:spreadsheet" in conteudo_bytes or (b"<Workbook" in conteudo_bytes and b"<Table" in conteudo_bytes)):
+        # 2) XML Spreadsheet 2003 (xmlns="urn:schemas-microsoft-com:office:spreadsheet" or <Workbook / <?xml)
+        if not linhas_tabela and (b"urn:schemas-microsoft-com:office:spreadsheet" in conteudo_bytes or b"<Workbook" in conteudo_bytes or b"<?xml" in conteudo_bytes):
             try:
                 import xml.etree.ElementTree as ET
                 root = ET.fromstring(conteudo_bytes)
                 for row_el in root.iter():
                     if row_el.tag.endswith("Row"):
                         row_cells = []
-                        for cell_el in row_el.iter():
-                            if cell_el.tag.endswith("Data"):
-                                val = cell_el.text or ""
+                        for cell_el in row_el:
+                            if cell_el.tag.endswith("Cell"):
+                                data_el = None
+                                for c_child in cell_el:
+                                    if c_child.tag.endswith("Data"):
+                                        data_el = c_child
+                                        break
+                                val = data_el.text if data_el is not None and data_el.text else ""
                                 row_cells.append(str(val).strip())
                         if any(row_cells):
                             linhas_tabela.append(row_cells)
             except Exception:
                 pass
 
-        # 4) HTML Table (or text .xls containing <table>)
+        # 3) HTML Table (or text .xls containing <table>)
         texto = None
         if not linhas_tabela:
             for enc in ["utf-8-sig", "utf-8", "latin-1", "cp1252", "iso-8859-1"]:
@@ -3290,28 +3284,26 @@ def api_upload_guia_hora_extra_simplificada_v82172():
                 texto = conteudo_bytes.decode("utf-8", errors="ignore")
 
             if re.search(r"<table", texto, flags=re.IGNORECASE):
-                try:
-                    import io
-                    dfs = pd.read_html(io.StringIO(texto))
-                    if dfs and not dfs[0].empty:
-                        df_html = dfs[0]
-                        linhas_tabela = [[str(c).strip() for c in df_html.columns.tolist()]] + [
-                            [str(v if v is not None and str(v).strip().lower() != "nan" else "").strip() for v in r]
-                            for r in df_html.fillna("").values.tolist()
-                        ]
-                except Exception:
-                    pass
+                tr_matches = re.findall(r"<tr[^>]*>(.*?)</tr>", texto, flags=re.IGNORECASE | re.DOTALL)
+                for tr in tr_matches:
+                    celulas = re.findall(r"<(?:td|th)[^>]*>(.*?)</(?:td|th)>", tr, flags=re.IGNORECASE | re.DOTALL)
+                    if celulas:
+                        limpas = [html.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in celulas]
+                        if any(limpas):
+                            linhas_tabela.append(limpas)
 
-                if not linhas_tabela:
-                    tr_matches = re.findall(r"<tr[^>]*>(.*?)</tr>", texto, flags=re.IGNORECASE | re.DOTALL)
-                    for tr in tr_matches:
-                        celulas = re.findall(r"<(?:td|th)[^>]*>(.*?)</(?:td|th)>", tr, flags=re.IGNORECASE | re.DOTALL)
-                        if celulas:
-                            limpas = [html.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in celulas]
-                            if any(limpas):
-                                linhas_tabela.append(limpas)
+        # 4) Binary Excel 97-2003 (.xls BIFF8 / OLE2 header)
+        if not linhas_tabela and (conteudo_bytes[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" or nome_arq.endswith(".xls")):
+            try:
+                df_up = pd.read_excel(BytesIO(conteudo_bytes))
+                linhas_tabela = [[str(c).strip() for c in df_up.columns.tolist()]] + [
+                    [str(v if v is not None and str(v).strip().lower() != "nan" else "").strip() for v in r]
+                    for r in df_up.fillna("").values.tolist()
+                ]
+            except Exception:
+                pass
 
-        # 5) CSV / TSV
+        # 5) CSV / TSV / Delimited text
         if not linhas_tabela:
             if texto is None:
                 for enc in ["utf-8-sig", "utf-8", "latin-1", "cp1252", "iso-8859-1"]:
@@ -3323,16 +3315,21 @@ def api_upload_guia_hora_extra_simplificada_v82172():
                 if texto is None:
                     texto = conteudo_bytes.decode("utf-8", errors="ignore")
 
-            import io
             import csv
             primeiras_linhas = [l for l in texto.splitlines() if l.strip()]
             if primeiras_linhas:
                 primeira_linha = primeiras_linhas[0]
                 delimitador = ";" if ";" in primeira_linha else ("," if "," in primeira_linha else "\t")
-                leitor = csv.reader(io.StringIO(texto), delimiter=delimitador)
-                for row in leitor:
-                    if row and any(str(c).strip() for c in row):
-                        linhas_tabela.append([str(c).strip() for c in row])
+                try:
+                    leitor = csv.reader(texto.splitlines(), delimiter=delimitador)
+                    for row in leitor:
+                        if row and any(str(c).strip() for c in row):
+                            linhas_tabela.append([str(c).strip() for c in row])
+                except Exception:
+                    for line in primeiras_linhas:
+                        parts = [p.strip().strip('"') for p in line.split(delimitador)]
+                        if any(parts):
+                            linhas_tabela.append(parts)
 
         if len(linhas_tabela) < 2:
             return jsonify({"ok": False, "erro": "Planilha sem linhas de dados reconhecíveis."}), 400
