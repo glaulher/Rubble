@@ -2819,7 +2819,7 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
    MENU GROUP & SUBMENU
    ============================================================ */
 .menu-group {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .menu-group-btn {
@@ -2828,10 +2828,24 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
   align-items: center !important;
   width: 100% !important;
   cursor: pointer;
+  padding: 10px 14px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #cbd5e1 !important;
+  background: transparent !important;
+  border: none !important;
+  text-align: left !important;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.menu-group-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
 }
 
 .menu-group-btn .menu-arrow {
-  font-size: 11px;
+  font-size: 10px;
   transition: transform 0.2s ease;
   opacity: 0.8;
 }
@@ -2843,11 +2857,11 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
 .submenu {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding-left: 10px;
-  margin-top: 3px;
+  gap: 2px;
+  padding-left: 12px;
+  margin-top: 2px;
   margin-bottom: 6px;
-  border-left: 2px solid rgba(255, 255, 255, 0.16);
+  border-left: 2px solid rgba(255, 255, 255, 0.18);
 }
 
 .submenu.hidden {
@@ -2855,28 +2869,33 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
 }
 
 .submenu button {
-  padding: 10px 12px !important;
-  font-size: 13px !important;
-  margin-bottom: 2px !important;
+  padding: 8px 12px !important;
+  font-size: 12.5px !important;
+  margin-bottom: 1px !important;
   color: #cbd5e1 !important;
   background: transparent !important;
+  border-radius: 6px !important;
+  border: none !important;
+  text-align: left !important;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .submenu button:hover,
 .submenu button.active {
-  background: rgba(255, 255, 255, 0.16) !important;
+  background: rgba(255, 255, 255, 0.18) !important;
   color: #fff !important;
   font-weight: 700 !important;
 }
 
 /* ============================================================
-   DASHBOARD DE HORAS EXTRAS - V8.21.76
+   DASHBOARD DE HORAS EXTRAS - V8.21.77
    ============================================================ */
 .dashboard-horas-extras {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 18px;
+  gap: 16px;
+  padding: 16px 20px 24px;
   background: #f8fafc;
 }
 
@@ -2885,15 +2904,15 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
 }
 
 .dhe-hero {
-  border-radius: 20px;
-  padding: 22px 24px;
+  border-radius: 16px;
+  padding: 18px 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   color: #fff;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e3a8a 100%);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
   position: relative;
   overflow: hidden;
 }
@@ -2901,12 +2920,12 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
 .dhe-hero:after {
   content: "";
   position: absolute;
-  right: -50px;
-  top: -60px;
-  width: 200px;
-  height: 200px;
+  right: -40px;
+  top: -50px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   pointer-events: none;
 }
 
@@ -2915,26 +2934,27 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 3px 9px;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #93c5fd;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .dhe-hero h3 {
-  margin: 0 0 6px 0;
-  font-size: 24px;
-  letter-spacing: -0.02em;
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: #fff;
 }
 
 .dhe-hero p {
   margin: 0;
   color: #cbd5e1;
-  font-size: 13px;
-  max-width: 620px;
+  font-size: 12.5px;
+  max-width: 600px;
   line-height: 1.4;
 }
 
@@ -2948,14 +2968,14 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
 .dhe-periodo-badge {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 14px;
-  padding: 10px 16px;
+  border-radius: 12px;
+  padding: 8px 14px;
   text-align: right;
 }
 
 .dhe-periodo-badge span {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   color: #94a3b8;
   text-transform: uppercase;
   font-weight: 700;
@@ -2963,30 +2983,34 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
 
 .dhe-periodo-badge strong {
   display: block;
-  font-size: 15px;
+  font-size: 13.5px;
   color: #fff;
   margin-top: 2px;
 }
 
 .dhe-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 12px;
 }
 
 .dhe-kpi-card {
   background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
   position: relative;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .dhe-kpi-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
 }
 
 .dhe-kpi-card.he-total {
@@ -3016,17 +3040,17 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
 
 .dhe-kpi-label {
   display: block;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .dhe-kpi-value {
   display: block;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.1;
@@ -3040,9 +3064,9 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
 
 .dhe-kpi-sub {
   display: block;
-  font-size: 11px;
+  font-size: 10.5px;
   color: #64748b;
-  margin-top: 6px;
+  margin-top: 4px;
   font-weight: 600;
 }
 
@@ -3052,39 +3076,34 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
   gap: 16px;
 }
 
-.dhe-grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
 .dhe-panel {
   background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 18px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
   min-width: 0;
+  overflow: hidden;
 }
 
 .dhe-panel-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .dhe-panel-title h4 {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: #1e293b;
 }
 
 .dhe-panel-title span {
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
 }
 
@@ -3093,11 +3112,47 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
   overflow-x: auto;
 }
 
+.dhe-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.dhe-stat-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.dhe-stat-box span {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.dhe-stat-box strong {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 4px;
+}
+
+.dhe-stat-box small {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 3px;
+}
+
 .dhe-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
-  min-width: 900px;
+  min-width: 860px;
 }
 
 .dhe-table th {
@@ -3112,7 +3167,7 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
 }
 
 .dhe-table td {
-  padding: 8px 10px;
+  padding: 7px 10px;
   border-bottom: 1px solid #f1f5f9;
   color: #1e293b;
 }
@@ -3125,9 +3180,9 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 2px 7px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
 }
 
@@ -3151,24 +3206,13 @@ body[data-pagina-atual="alertas_automaticos"] #subtituloPagina,
   color: #b91c1c;
 }
 
-@media (max-width: 1200px) {
-  .dhe-kpi-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .dhe-grid-3 {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 860px) {
+@media (max-width: 1000px) {
   .dhe-hero {
     flex-direction: column;
     align-items: flex-start;
-  }
-  .dhe-kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
   .dhe-grid-2 {
     grid-template-columns: 1fr;
   }
 }
+
