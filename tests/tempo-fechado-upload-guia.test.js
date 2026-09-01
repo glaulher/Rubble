@@ -203,5 +203,90 @@ describe('Tempo Fechado - Upload Guia (Horas Extras Simplificadas)', () => {
 
       expect(p.toString()).toBe('data_inicio=2026-08-01&data_fim=2026-08-31');
     });
+
+    test('obterAnotacaoOperacional matches uploaded record without CC and ignores empty shadow keys', () => {
+      const normalizarDataAnotacao = (d) => {
+        let s = String(d || '').trim().split(' ')[0];
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+          const [y, m, dia] = s.split('-');
+          return `${dia}/${m}/${y}`;
+        }
+        return s;
+      };
+
+      const normalizarTextoAnotacao = (t) => {
+        return String(t || '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .toLowerCase();
+      };
+
+      const cache = {
+        'horas_extras_simplificadas|rj001|claudio roberto ferreira rocha|17/08/2026|seg': {
+          nome_gestor: '',
+          adm_responsavel: '',
+          sobreaviso: '',
+          observacao: '',
+        },
+        'horas_extras_simplificadas||claudio roberto ferreira rocha|17/08/2026|seg': {
+          nome_gestor: 'Renata',
+          adm_responsavel: 'Fernanda',
+          sobreaviso: 'Não',
+          observacao: 'testou man',
+        },
+      };
+
+      const obterAnotacaoOperacional = (guia, r) => {
+        const nomeNorm = normalizarTextoAnotacao(r?.nome);
+        const dataBr = normalizarDataAnotacao(r?.data || r?.data_referencia || r?.data_retorno || r?.data_anterior);
+        const ccNorm = normalizarTextoAnotacao(r?.cc);
+        const diaNorm = normalizarTextoAnotacao(r?.dia);
+
+        const temConteudo = (obj) => Boolean(obj && (obj.nome_gestor || obj.adm_responsavel || obj.sobreaviso || obj.observacao));
+
+        const chaveCompleta = [guia, ccNorm, nomeNorm, dataBr, diaNorm].join('|').slice(0, 260);
+        if (temConteudo(cache[chaveCompleta])) return cache[chaveCompleta];
+
+        const chaveSemCc = [guia, '', nomeNorm, dataBr, diaNorm].join('|').slice(0, 260);
+        if (temConteudo(cache[chaveSemCc])) return cache[chaveSemCc];
+
+        const chaveSemDia = [guia, ccNorm, nomeNorm, dataBr, ''].join('|').slice(0, 260);
+        if (temConteudo(cache[chaveSemDia])) return cache[chaveSemDia];
+
+        const chaveSemCcSemDia = [guia, '', nomeNorm, dataBr, ''].join('|').slice(0, 260);
+        if (temConteudo(cache[chaveSemCcSemDia])) return cache[chaveSemCcSemDia];
+
+        let candidatoSemConteudo = null;
+        if (nomeNorm && dataBr) {
+          for (const [k, obj] of Object.entries(cache)) {
+            if (!k.startsWith(guia + '|')) continue;
+            const partes = k.split('|');
+            if (partes.length >= 4) {
+              const kNome = normalizarTextoAnotacao(partes[2]);
+              const kData = normalizarDataAnotacao(partes[3]);
+              if (kNome === nomeNorm && kData === dataBr) {
+                if (temConteudo(obj)) return obj;
+                if (!candidatoSemConteudo) candidatoSemConteudo = obj;
+              }
+            }
+          }
+        }
+        return candidatoSemConteudo || cache[chaveCompleta] || {};
+      };
+
+      const result = obterAnotacaoOperacional('horas_extras_simplificadas', {
+        cc: 'RJ001',
+        nome: 'CLAUDIO ROBERTO FERREIRA ROCHA',
+        data: '17/08/2026',
+        dia: 'SEG',
+      });
+
+      expect(result.nome_gestor).toBe('Renata');
+      expect(result.adm_responsavel).toBe('Fernanda');
+      expect(result.sobreaviso).toBe('Não');
+      expect(result.observacao).toBe('testou man');
+    });
   });
 });

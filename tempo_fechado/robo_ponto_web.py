@@ -3557,6 +3557,14 @@ def api_upload_guia_hora_extra_simplificada_v82172():
         idx_sobreaviso = cabecalho.index("sobreaviso") if "sobreaviso" in cabecalho else None
         idx_obs = cabecalho.index("observacao") if "observacao" in cabecalho else None
 
+        def norm_data_lookup(d_str):
+            s = str(d_str or "").strip().split(" ")[0]
+            if "-" in s:
+                parts = s.split("-")
+                if len(parts) == 3 and len(parts[0]) == 4:
+                    return f"{parts[2]}/{parts[1]}/{parts[0]}"
+            return s
+
         # Carrega dados base do consolidado para lookup de CC e Dia quando omitidos na visão
         df_base, _ = ler_consolidado()
         lookup_base = {}
@@ -3566,18 +3574,13 @@ def api_upload_guia_hora_extra_simplificada_v82172():
                 n_b = str(r_base.get("nome") or "").strip().lower()
                 d_b = str(r_base.get("data") or "").strip()
                 if n_b and d_b:
-                    lookup_base[(n_b, d_b)] = {
+                    d_norm = norm_data_lookup(d_b)
+                    info = {
                         "cc": str(r_base.get("cc") or "").strip(),
                         "dia": str(r_base.get("dia") or "").strip(),
                     }
-
-        def norm_data_lookup(d_str):
-            s = str(d_str or "").strip()
-            if "-" in s:
-                parts = s.split("-")
-                if len(parts) == 3 and len(parts[0]) == 4:
-                    return f"{parts[2]}/{parts[1]}/{parts[0]}"
-            return s
+                    lookup_base[(n_b, d_norm)] = info
+                    lookup_base[(n_b, d_b.lower())] = info
 
         usuario_logado = str(session.get("usuario") or session.get("nome") or "")
         agora_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -3606,14 +3609,17 @@ def api_upload_guia_hora_extra_simplificada_v82172():
                     sobreaviso_val = "Não"
                 obs_val = row[idx_obs].strip() if idx_obs is not None and idx_obs < len(row) else ""
 
+                data_norm_val = norm_data_lookup(data_val)
+                nome_norm_val = nome_val.strip().lower()
+
                 # Se cc_val ou dia_val estiverem vazios, tenta buscar da base consolidada
-                lookup_info = lookup_base.get((nome_val.lower(), norm_data_lookup(data_val)), {})
+                lookup_info = lookup_base.get((nome_norm_val, data_norm_val), {})
                 if not cc_val:
                     cc_val = lookup_info.get("cc", "")
                 if not dia_val:
                     dia_val = lookup_info.get("dia", "")
 
-                partes = [guia, cc_val, nome_val, norm_data_lookup(data_val), dia_val]
+                partes = [guia, cc_val, nome_val, data_norm_val, dia_val]
                 chave = "|".join(str(v or "").strip().lower() for v in partes)[:260]
 
                 registro = {
@@ -3626,13 +3632,29 @@ def api_upload_guia_hora_extra_simplificada_v82172():
                     "atualizado_por": usuario_logado,
                 }
 
+                # Procura se já existem chaves salvas para este mesmo colaborador e data nesta guia
+                chaves_existentes = []
+                for k in list(dados.keys()):
+                    if not k.startswith(guia + "|"):
+                        continue
+                    k_partes = k.split("|")
+                    if len(k_partes) >= 4:
+                        k_nome = k_partes[2].strip().lower()
+                        k_data = norm_data_lookup(k_partes[3])
+                        if k_nome == nome_norm_val and k_data == data_norm_val:
+                            chaves_existentes.append(k)
+
                 if registro["nome_gestor"] or registro["adm_responsavel"] or registro["sobreaviso"] or registro["observacao"]:
                     dados[chave] = registro
+                    for k_antiga in chaves_existentes:
+                        dados[k_antiga] = registro
                     atualizados += 1
                 else:
                     if chave in dados:
                         dados.pop(chave, None)
                         atualizados += 1
+                    for k_antiga in chaves_existentes:
+                        dados.pop(k_antiga, None)
 
             _salvar_anotacoes_operacionais_v82150(dados)
 

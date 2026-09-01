@@ -391,59 +391,99 @@ async function carregarAnotacoesOperacionais(force = false) {
   return anotacoesOperacionaisPromise;
 }
 
+function normalizarDataAnotacao(d) {
+  let s = String(d || "").trim().split(" ")[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, dia] = s.split("-");
+    return `${dia}/${m}/${y}`;
+  }
+  return s;
+}
+
+function normalizarTextoAnotacao(t) {
+  return String(t || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 function obterAnotacaoOperacional(guia, r) {
   if (!anotacoesOperacionaisCache || typeof anotacoesOperacionaisCache !== "object") return {};
 
-  const nomeNorm = String(r?.nome || "").trim().toLowerCase();
-  const dataNorm = String(r?.data || r?.data_referencia || r?.data_retorno || r?.data_anterior || "").trim().toLowerCase();
-  const ccNorm = String(r?.cc || "").trim().toLowerCase();
-  const diaNorm = String(r?.dia || "").trim().toLowerCase();
+  const nomeNorm = normalizarTextoAnotacao(r?.nome);
+  const dataBr = normalizarDataAnotacao(r?.data || r?.data_referencia || r?.data_retorno || r?.data_anterior);
+  const ccNorm = normalizarTextoAnotacao(r?.cc);
+  const diaNorm = normalizarTextoAnotacao(r?.dia);
 
-  // 1) Chave exata completa
-  const chaveCompleta = [guia, ccNorm, nomeNorm, dataNorm, diaNorm].join("|").slice(0, 260);
-  if (anotacoesOperacionaisCache[chaveCompleta]) return anotacoesOperacionaisCache[chaveCompleta];
+  function temConteudo(obj) {
+    if (!obj || typeof obj !== "object") return false;
+    return Boolean(obj.nome_gestor || obj.adm_responsavel || obj.sobreaviso || obj.observacao);
+  }
 
-  // 2) Chave sem dia
-  const chaveSemDia = [guia, ccNorm, nomeNorm, dataNorm, ""].join("|").slice(0, 260);
-  if (anotacoesOperacionaisCache[chaveSemDia]) return anotacoesOperacionaisCache[chaveSemDia];
+  // 1) Chave exata completa com CC e Dia
+  const chaveCompleta = [guia, ccNorm, nomeNorm, dataBr, diaNorm].join("|").slice(0, 260);
+  if (temConteudo(anotacoesOperacionaisCache[chaveCompleta])) {
+    return anotacoesOperacionaisCache[chaveCompleta];
+  }
 
-  // 3) Match flexível por nome + data
-  if (nomeNorm && dataNorm) {
+  // 2) Chave sem CC
+  const chaveSemCc = [guia, "", nomeNorm, dataBr, diaNorm].join("|").slice(0, 260);
+  if (temConteudo(anotacoesOperacionaisCache[chaveSemCc])) {
+    return anotacoesOperacionaisCache[chaveSemCc];
+  }
+
+  // 3) Chave sem Dia
+  const chaveSemDia = [guia, ccNorm, nomeNorm, dataBr, ""].join("|").slice(0, 260);
+  if (temConteudo(anotacoesOperacionaisCache[chaveSemDia])) {
+    return anotacoesOperacionaisCache[chaveSemDia];
+  }
+
+  // 4) Chave sem CC e sem Dia
+  const chaveSemCcSemDia = [guia, "", nomeNorm, dataBr, ""].join("|").slice(0, 260);
+  if (temConteudo(anotacoesOperacionaisCache[chaveSemCcSemDia])) {
+    return anotacoesOperacionaisCache[chaveSemCcSemDia];
+  }
+
+  // 5) Busca flexível por nome + data
+  let candidatoSemConteudo = null;
+  if (nomeNorm && dataBr) {
     for (const [k, obj] of Object.entries(anotacoesOperacionaisCache)) {
       if (!k.startsWith(guia + "|")) continue;
       const partes = k.split("|");
       if (partes.length >= 4) {
-        const kNome = (partes[2] || "").trim().toLowerCase();
-        const kData = (partes[3] || "").trim().toLowerCase();
-        if (kNome === nomeNorm && kData === dataNorm) {
-          return obj || {};
+        const kNome = normalizarTextoAnotacao(partes[2]);
+        const kData = normalizarDataAnotacao(partes[3]);
+        if (kNome === nomeNorm && kData === dataBr) {
+          if (temConteudo(obj)) {
+            return obj;
+          }
+          if (!candidatoSemConteudo) {
+            candidatoSemConteudo = obj;
+          }
         }
       }
     }
   }
 
-  return {};
+  return candidatoSemConteudo || anotacoesOperacionaisCache[chaveCompleta] || {};
 }
 
 function valorAnotacaoOperacional(chave, campo) {
-  if (anotacoesOperacionaisCache[chave]) {
+  if (anotacoesOperacionaisCache[chave] && (anotacoesOperacionaisCache[chave] || {})[campo]) {
     return String((anotacoesOperacionaisCache[chave] || {})[campo] || "");
   }
   const partes = String(chave || "").split("|");
   if (partes.length >= 4) {
     const guia = partes[0];
-    const nomeNorm = (partes[2] || "").trim().toLowerCase();
-    const dataNorm = (partes[3] || "").trim().toLowerCase();
-    for (const [k, obj] of Object.entries(anotacoesOperacionaisCache)) {
-      if (!k.startsWith(guia + "|")) continue;
-      const kPartes = k.split("|");
-      if (kPartes.length >= 4) {
-        const kNome = (kPartes[2] || "").trim().toLowerCase();
-        const kData = (kPartes[3] || "").trim().toLowerCase();
-        if (kNome === nomeNorm && kData === dataNorm) {
-          return String((obj || {})[campo] || "");
-        }
-      }
+    const cc = partes[1];
+    const nome = partes[2];
+    const data = partes[3];
+    const dia = partes[4] || "";
+    const obj = obterAnotacaoOperacional(guia, { cc, nome, data, dia });
+    if (obj && obj[campo]) {
+      return String(obj[campo]);
     }
   }
   return "";
