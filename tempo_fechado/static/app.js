@@ -373,8 +373,12 @@ function chaveAnotacaoOperacional(guia, r) {
 }
 
 async function carregarAnotacoesOperacionais(force = false) {
+  if (force) {
+    anotacoesOperacionaisPromise = null;
+  }
   if (!force && anotacoesOperacionaisPromise) return anotacoesOperacionaisPromise;
-  anotacoesOperacionaisPromise = fetch("/tempo-fechado/api/anotacoes-operacionais")
+  const ts = Date.now();
+  anotacoesOperacionaisPromise = fetch(`/tempo-fechado/api/anotacoes-operacionais?_t=${ts}`)
     .then(resp => resp.json())
     .then(json => {
       anotacoesOperacionaisCache = json.anotacoes || {};
@@ -387,18 +391,73 @@ async function carregarAnotacoesOperacionais(force = false) {
   return anotacoesOperacionaisPromise;
 }
 
+function obterAnotacaoOperacional(guia, r) {
+  if (!anotacoesOperacionaisCache || typeof anotacoesOperacionaisCache !== "object") return {};
+
+  const nomeNorm = String(r?.nome || "").trim().toLowerCase();
+  const dataNorm = String(r?.data || r?.data_referencia || r?.data_retorno || r?.data_anterior || "").trim().toLowerCase();
+  const ccNorm = String(r?.cc || "").trim().toLowerCase();
+  const diaNorm = String(r?.dia || "").trim().toLowerCase();
+
+  // 1) Chave exata completa
+  const chaveCompleta = [guia, ccNorm, nomeNorm, dataNorm, diaNorm].join("|").slice(0, 260);
+  if (anotacoesOperacionaisCache[chaveCompleta]) return anotacoesOperacionaisCache[chaveCompleta];
+
+  // 2) Chave sem dia
+  const chaveSemDia = [guia, ccNorm, nomeNorm, dataNorm, ""].join("|").slice(0, 260);
+  if (anotacoesOperacionaisCache[chaveSemDia]) return anotacoesOperacionaisCache[chaveSemDia];
+
+  // 3) Match flexível por nome + data
+  if (nomeNorm && dataNorm) {
+    for (const [k, obj] of Object.entries(anotacoesOperacionaisCache)) {
+      if (!k.startsWith(guia + "|")) continue;
+      const partes = k.split("|");
+      if (partes.length >= 4) {
+        const kNome = (partes[2] || "").trim().toLowerCase();
+        const kData = (partes[3] || "").trim().toLowerCase();
+        if (kNome === nomeNorm && kData === dataNorm) {
+          return obj || {};
+        }
+      }
+    }
+  }
+
+  return {};
+}
+
 function valorAnotacaoOperacional(chave, campo) {
-  return String((anotacoesOperacionaisCache[chave] || {})[campo] || "");
+  if (anotacoesOperacionaisCache[chave]) {
+    return String((anotacoesOperacionaisCache[chave] || {})[campo] || "");
+  }
+  const partes = String(chave || "").split("|");
+  if (partes.length >= 4) {
+    const guia = partes[0];
+    const nomeNorm = (partes[2] || "").trim().toLowerCase();
+    const dataNorm = (partes[3] || "").trim().toLowerCase();
+    for (const [k, obj] of Object.entries(anotacoesOperacionaisCache)) {
+      if (!k.startsWith(guia + "|")) continue;
+      const kPartes = k.split("|");
+      if (kPartes.length >= 4) {
+        const kNome = (kPartes[2] || "").trim().toLowerCase();
+        const kData = (kPartes[3] || "").trim().toLowerCase();
+        if (kNome === nomeNorm && kData === dataNorm) {
+          return String((obj || {})[campo] || "");
+        }
+      }
+    }
+  }
+  return "";
 }
 
 function renderCamposAnotacaoOperacional(guia, r) {
   const chave = chaveAnotacaoOperacional(guia, r);
   const chaveAttr = escapeHtml(encodeURIComponent(chave));
   const guiaAttr = escapeHtml(guia);
+  const anotacao = obterAnotacaoOperacional(guia, r);
   return `
-    <td class="op-note-cell"><input class="op-note-input" value="${escapeHtml(valorAnotacaoOperacional(chave, "nome_gestor"))}" placeholder="Nome do Gestor" onchange="salvarAnotacaoOperacional('${guiaAttr}','${chaveAttr}','nome_gestor',this.value)"></td>
-    <td class="op-note-cell"><input class="op-note-input" value="${escapeHtml(valorAnotacaoOperacional(chave, "adm_responsavel"))}" placeholder="Adm Respons&aacute;vel" onchange="salvarAnotacaoOperacional('${guiaAttr}','${chaveAttr}','adm_responsavel',this.value)"></td>
-    <td class="op-note-cell"><textarea class="op-note-textarea" placeholder="Observa&ccedil;&atilde;o" onchange="salvarAnotacaoOperacional('${guiaAttr}','${chaveAttr}','observacao',this.value)">${escapeHtml(valorAnotacaoOperacional(chave, "observacao"))}</textarea></td>
+    <td class="op-note-cell"><input class="op-note-input" value="${escapeHtml(anotacao.nome_gestor || "")}" placeholder="Nome do Gestor" onchange="salvarAnotacaoOperacional('${guiaAttr}','${chaveAttr}','nome_gestor',this.value)"></td>
+    <td class="op-note-cell"><input class="op-note-input" value="${escapeHtml(anotacao.adm_responsavel || "")}" placeholder="Adm Respons&aacute;vel" onchange="salvarAnotacaoOperacional('${guiaAttr}','${chaveAttr}','adm_responsavel',this.value)"></td>
+    <td class="op-note-cell"><textarea class="op-note-textarea" placeholder="Observa&ccedil;&atilde;o" onchange="salvarAnotacaoOperacional('${guiaAttr}','${chaveAttr}','observacao',this.value)">${escapeHtml(anotacao.observacao || "")}</textarea></td>
   `;
 }
 
@@ -5288,10 +5347,15 @@ function renderCamposHoraExtraSimplificadaV82167(r) {
     .join("|")
     .slice(0, 260);
   const chaveAttr = escapeHtml(encodeURIComponent(chave));
-  const valSobreaviso = valorAnotacaoOperacional(chave, "sobreaviso");
+  const anotacao = obterAnotacaoOperacional(guia, r);
+  const valSobreaviso = anotacao.sobreaviso || "";
+  const valGestor = anotacao.nome_gestor || "";
+  const valAdm = anotacao.adm_responsavel || "";
+  const valObs = anotacao.observacao || "";
+
   return `
-    <td class="op-note-cell"><input class="op-note-input" value="${escapeHtml(valorAnotacaoOperacional(chave, "nome_gestor"))}" placeholder="Gestor Mediato" onchange="salvarAnotacaoOperacional('${guia}','${chaveAttr}','nome_gestor',this.value)"></td>
-    <td class="op-note-cell"><input class="op-note-input" value="${escapeHtml(valorAnotacaoOperacional(chave, "adm_responsavel"))}" placeholder="Adm" onchange="salvarAnotacaoOperacional('${guia}','${chaveAttr}','adm_responsavel',this.value)"></td>
+    <td class="op-note-cell"><input class="op-note-input" value="${escapeHtml(valGestor)}" placeholder="Gestor Mediato" onchange="salvarAnotacaoOperacional('${guia}','${chaveAttr}','nome_gestor',this.value)"></td>
+    <td class="op-note-cell"><input class="op-note-input" value="${escapeHtml(valAdm)}" placeholder="Adm" onchange="salvarAnotacaoOperacional('${guia}','${chaveAttr}','adm_responsavel',this.value)"></td>
     <td class="op-note-cell">
       <select class="op-note-select" onchange="salvarAnotacaoOperacional('${guia}','${chaveAttr}','sobreaviso',this.value)">
         <option value="" ${!valSobreaviso ? "selected" : ""}>-</option>
@@ -5299,7 +5363,7 @@ function renderCamposHoraExtraSimplificadaV82167(r) {
         <option value="Não" ${valSobreaviso === "Não" || valSobreaviso === "Nao" ? "selected" : ""}>Não</option>
       </select>
     </td>
-    <td class="op-note-cell"><textarea class="op-note-textarea" placeholder="Justificativa" onchange="salvarAnotacaoOperacional('${guia}','${chaveAttr}','observacao',this.value)">${escapeHtml(valorAnotacaoOperacional(chave, "observacao"))}</textarea></td>
+    <td class="op-note-cell"><textarea class="op-note-textarea" placeholder="Justificativa" onchange="salvarAnotacaoOperacional('${guia}','${chaveAttr}','observacao',this.value)">${escapeHtml(valObs)}</textarea></td>
   `;
 }
 
