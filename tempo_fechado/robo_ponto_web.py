@@ -3227,24 +3227,60 @@ def api_upload_guia_hora_extra_simplificada_v82172():
         return jsonify({"ok": False, "erro": "Nenhum arquivo enviado."}), 400
 
     nome_arq = str(arquivo.filename or "").lower()
+    conteudo_bytes = arquivo.read()
+    if not conteudo_bytes:
+        return jsonify({"ok": False, "erro": "Arquivo enviado está vazio."}), 400
+
     linhas_tabela = []
 
     try:
-        if nome_arq.endswith(".xlsx") or nome_arq.endswith(".xlsm"):
-            if load_workbook is not None:
-                wb = load_workbook(arquivo, data_only=True)
-                ws = wb.active
-                for row in ws.iter_rows(values_only=True):
-                    if row and any(v is not None and str(v).strip() for v in row):
-                        linhas_tabela.append([str(v if v is not None else "").strip() for v in row])
-            else:
-                import io
-                df_up = pd.read_excel(arquivo)
-                linhas_tabela = [df_up.columns.tolist()] + df_up.fillna("").values.tolist()
-        else:
-            conteudo_bytes = arquivo.read()
-            texto = None
-            for enc in ["utf-8-sig", "utf-8", "latin-1", "cp1252"]:
+        # 1) OpenXML (.xlsx / .xlsm / PK zip header)
+        if conteudo_bytes[:4] == b"PK\x03\x04" or nome_arq.endswith(".xlsx") or nome_arq.endswith(".xlsm"):
+            try:
+                if load_workbook is not None:
+                    wb = load_workbook(BytesIO(conteudo_bytes), data_only=True)
+                    ws = wb.active
+                    for row in ws.iter_rows(values_only=True):
+                        if row and any(v is not None and str(v).strip() for v in row):
+                            linhas_tabela.append([str(v if v is not None else "").strip() for v in row])
+                else:
+                    df_up = pd.read_excel(BytesIO(conteudo_bytes))
+                    linhas_tabela = [df_up.columns.tolist()] + df_up.fillna("").values.tolist()
+            except Exception:
+                pass
+
+        # 2) Binary Excel 97-2003 (.xls BIFF8 / OLE2 header)
+        if not linhas_tabela and (conteudo_bytes[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" or nome_arq.endswith(".xls")):
+            try:
+                df_up = pd.read_excel(BytesIO(conteudo_bytes))
+                linhas_tabela = [[str(c).strip() for c in df_up.columns.tolist()]] + [
+                    [str(v if v is not None and str(v).strip().lower() != "nan" else "").strip() for v in r]
+                    for r in df_up.fillna("").values.tolist()
+                ]
+            except Exception:
+                pass
+
+        # 3) XML Spreadsheet 2003 (xmlns="urn:schemas-microsoft-com:office:spreadsheet")
+        if not linhas_tabela and (b"urn:schemas-microsoft-com:office:spreadsheet" in conteudo_bytes or (b"<Workbook" in conteudo_bytes and b"<Table" in conteudo_bytes)):
+            try:
+                import xml.etree.ElementTree as ET
+                root = ET.fromstring(conteudo_bytes)
+                for row_el in root.iter():
+                    if row_el.tag.endswith("Row"):
+                        row_cells = []
+                        for cell_el in row_el.iter():
+                            if cell_el.tag.endswith("Data"):
+                                val = cell_el.text or ""
+                                row_cells.append(str(val).strip())
+                        if any(row_cells):
+                            linhas_tabela.append(row_cells)
+            except Exception:
+                pass
+
+        # 4) HTML Table (or text .xls containing <table>)
+        texto = None
+        if not linhas_tabela:
+            for enc in ["utf-8-sig", "utf-8", "latin-1", "cp1252", "iso-8859-1"]:
                 try:
                     texto = conteudo_bytes.decode(enc)
                     break
@@ -3253,21 +3289,44 @@ def api_upload_guia_hora_extra_simplificada_v82172():
             if texto is None:
                 texto = conteudo_bytes.decode("utf-8", errors="ignore")
 
-            if "<table" in texto.lower():
-                import re
-                tr_matches = re.findall(r"<tr[^>]*>(.*?)</tr>", texto, flags=re.IGNORECASE | re.DOTALL)
-                for tr in tr_matches:
-                    celulas = re.findall(r"<(?:td|th)[^>]*>(.*?)</(?:td|th)>", tr, flags=re.IGNORECASE | re.DOTALL)
-                    if celulas:
-                        limpas = [html.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in celulas]
-                        if any(limpas):
-                            linhas_tabela.append(limpas)
-            else:
-                import io
-                import csv
-                primeiras_linhas = [l for l in texto.splitlines() if l.strip()]
-                if not primeiras_linhas:
-                    return jsonify({"ok": False, "erro": "Arquivo vazio."}), 400
+            if re.search(r"<table", texto, flags=re.IGNORECASE):
+                try:
+                    import io
+                    dfs = pd.read_html(io.StringIO(texto))
+                    if dfs and not dfs[0].empty:
+                        df_html = dfs[0]
+                        linhas_tabela = [[str(c).strip() for c in df_html.columns.tolist()]] + [
+                            [str(v if v is not None and str(v).strip().lower() != "nan" else "").strip() for v in r]
+                            for r in df_html.fillna("").values.tolist()
+                        ]
+                except Exception:
+                    pass
+
+                if not linhas_tabela:
+                    tr_matches = re.findall(r"<tr[^>]*>(.*?)</tr>", texto, flags=re.IGNORECASE | re.DOTALL)
+                    for tr in tr_matches:
+                        celulas = re.findall(r"<(?:td|th)[^>]*>(.*?)</(?:td|th)>", tr, flags=re.IGNORECASE | re.DOTALL)
+                        if celulas:
+                            limpas = [html.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in celulas]
+                            if any(limpas):
+                                linhas_tabela.append(limpas)
+
+        # 5) CSV / TSV
+        if not linhas_tabela:
+            if texto is None:
+                for enc in ["utf-8-sig", "utf-8", "latin-1", "cp1252", "iso-8859-1"]:
+                    try:
+                        texto = conteudo_bytes.decode(enc)
+                        break
+                    except Exception:
+                        pass
+                if texto is None:
+                    texto = conteudo_bytes.decode("utf-8", errors="ignore")
+
+            import io
+            import csv
+            primeiras_linhas = [l for l in texto.splitlines() if l.strip()]
+            if primeiras_linhas:
                 primeira_linha = primeiras_linhas[0]
                 delimitador = ";" if ";" in primeira_linha else ("," if "," in primeira_linha else "\t")
                 leitor = csv.reader(io.StringIO(texto), delimiter=delimitador)
@@ -3276,30 +3335,42 @@ def api_upload_guia_hora_extra_simplificada_v82172():
                         linhas_tabela.append([str(c).strip() for c in row])
 
         if len(linhas_tabela) < 2:
-            return jsonify({"ok": False, "erro": "Planilha sem linhas de dados."}), 400
+            return jsonify({"ok": False, "erro": "Planilha sem linhas de dados reconhecíveis."}), 400
 
         def normalizar_hdr(h):
             import unicodedata
             h_limpo = unicodedata.normalize("NFD", str(h or "")).encode("ascii", "ignore").decode("utf-8").lower().strip()
-            if h_limpo in ["nome", "colaborador", "funcionario", "empregado"]:
+            h_alnum = re.sub(r"[^a-z0-9]", "", h_limpo)
+            if h_alnum in ["nome", "colaborador", "funcionario", "empregado", "colab"]:
                 return "nome"
-            if h_limpo in ["data", "dt", "datareferencia"]:
+            if h_alnum in ["data", "dt", "datareferencia"]:
                 return "data"
-            if h_limpo in ["dia", "diasemana"]:
+            if h_alnum in ["dia", "diasemana"]:
                 return "dia"
-            if h_limpo in ["cc", "centrocusto", "centrodecusto"]:
+            if h_alnum in ["cc", "centrocusto", "centrodecusto"]:
                 return "cc"
-            if "gestor" in h_limpo:
+            if "gestor" in h_alnum:
                 return "nome_gestor"
-            if "adm" in h_limpo:
+            if "adm" in h_alnum:
                 return "adm_responsavel"
-            if "sobreaviso" in h_limpo:
+            if "sobreaviso" in h_alnum:
                 return "sobreaviso"
-            if "justificativa" in h_limpo or "observacao" in h_limpo or "obs" in h_limpo:
+            if "justificativa" in h_alnum or "observacao" in h_alnum or "obs" in h_alnum:
                 return "observacao"
-            return h_limpo
+            return h_alnum
 
-        cabecalho = [normalizar_hdr(h) for h in linhas_tabela[0]]
+        # Localiza a linha de cabeçalho
+        idx_linha_cabecalho = 0
+        cabecalho = []
+        for i, row in enumerate(linhas_tabela[:10]):
+            hdrs_teste = [normalizar_hdr(c) for c in row]
+            if "nome" in hdrs_teste and "data" in hdrs_teste:
+                cabecalho = hdrs_teste
+                idx_linha_cabecalho = i
+                break
+
+        if not cabecalho:
+            cabecalho = [normalizar_hdr(h) for h in linhas_tabela[0]]
 
         if "nome" not in cabecalho or "data" not in cabecalho:
             return jsonify({"ok": False, "erro": "A planilha deve conter as colunas 'Colaborador' (ou 'Nome') e 'Data'."}), 400
@@ -3313,14 +3384,39 @@ def api_upload_guia_hora_extra_simplificada_v82172():
         idx_sobreaviso = cabecalho.index("sobreaviso") if "sobreaviso" in cabecalho else None
         idx_obs = cabecalho.index("observacao") if "observacao" in cabecalho else None
 
+        # Carrega dados base do consolidado para lookup de CC e Dia quando omitidos na visão
+        df_base, _ = ler_consolidado()
+        lookup_base = {}
+        if not df_base.empty:
+            df_base = normalizar_colunas(df_base)
+            for _, r_base in df_base.iterrows():
+                n_b = str(r_base.get("nome") or "").strip().lower()
+                d_b = str(r_base.get("data") or "").strip()
+                if n_b and d_b:
+                    lookup_base[(n_b, d_b)] = {
+                        "cc": str(r_base.get("cc") or "").strip(),
+                        "dia": str(r_base.get("dia") or "").strip(),
+                    }
+
+        def norm_data_lookup(d_str):
+            s = str(d_str or "").strip()
+            if "-" in s:
+                parts = s.split("-")
+                if len(parts) == 3 and len(parts[0]) == 4:
+                    return f"{parts[2]}/{parts[1]}/{parts[0]}"
+            return s
+
         usuario_logado = str(session.get("usuario") or session.get("nome") or "")
         agora_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         atualizados = 0
         guia = "horas_extras_simplificadas"
+        linhas_dados = linhas_tabela[idx_linha_cabecalho + 1:]
 
         with ANOTACOES_OPERACIONAIS_LOCK:
             dados = _carregar_anotacoes_operacionais_v82150()
-            for row in linhas_tabela[1:]:
+            for row in linhas_dados:
+                if not row or not any(str(c).strip() for c in row):
+                    continue
                 nome_val = row[idx_nome].strip() if idx_nome < len(row) else ""
                 data_val = row[idx_data].strip() if idx_data < len(row) else ""
                 if not nome_val or not data_val:
@@ -3337,7 +3433,14 @@ def api_upload_guia_hora_extra_simplificada_v82172():
                     sobreaviso_val = "Não"
                 obs_val = row[idx_obs].strip() if idx_obs is not None and idx_obs < len(row) else ""
 
-                partes = [guia, cc_val, nome_val, data_val, dia_val]
+                # Se cc_val ou dia_val estiverem vazios, tenta buscar da base consolidada
+                lookup_info = lookup_base.get((nome_val.lower(), norm_data_lookup(data_val)), {})
+                if not cc_val:
+                    cc_val = lookup_info.get("cc", "")
+                if not dia_val:
+                    dia_val = lookup_info.get("dia", "")
+
+                partes = [guia, cc_val, nome_val, norm_data_lookup(data_val), dia_val]
                 chave = "|".join(str(v or "").strip().lower() for v in partes)[:260]
 
                 registro = {
@@ -3360,7 +3463,7 @@ def api_upload_guia_hora_extra_simplificada_v82172():
 
             _salvar_anotacoes_operacionais_v82150(dados)
 
-        return jsonify({"ok": True, "atualizados": atualizados, "total": len(linhas_tabela) - 1})
+        return jsonify({"ok": True, "atualizados": atualizados, "total": len(linhas_dados)})
     except Exception as e:
         return jsonify({"ok": False, "erro": f"Erro ao processar planilha: {str(e)}"}), 500
 
