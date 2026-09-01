@@ -5586,8 +5586,12 @@ function abrirSubmenuSeInativo(id) {
 function setVisibilidadeDashboardHorasExtras(mostrar) {
   const painel = qs("dashboardHorasExtras");
   const wrap = document.querySelector(".table-wrap");
+  const tableHeader = document.querySelector(".table-header");
+  const cards = qs("cardsContainer");
   if (painel) painel.classList.toggle("hidden", !mostrar);
   if (wrap) wrap.classList.toggle("hidden", mostrar);
+  if (tableHeader) tableHeader.classList.toggle("hidden", mostrar);
+  if (cards && mostrar) cards.classList.add("hidden");
   if (mostrar) {
     if (typeof ocultarDashboardExecutivoPremium === "function") ocultarDashboardExecutivoPremium();
     if (typeof ocultarPainelBancoHoras2 === "function") ocultarPainelBancoHoras2();
@@ -5595,8 +5599,7 @@ function setVisibilidadeDashboardHorasExtras(mostrar) {
 }
 
 function ocultarDashboardHorasExtras() {
-  const painel = qs("dashboardHorasExtras");
-  if (painel) painel.classList.add("hidden");
+  setVisibilidadeDashboardHorasExtras(false);
 }
 
 function abrirDashboardHorasExtras(el) {
@@ -5610,9 +5613,8 @@ function abrirDashboardHorasExtras(el) {
   document.querySelectorAll(".menu button").forEach(b => b.classList.remove("active"));
   if (el) el.classList.add("active");
 
-  if (qs("tituloPagina")) qs("tituloPagina").textContent = "Dashboard de Horas Extras";
-  if (qs("subtituloPagina")) qs("subtituloPagina").textContent = "Indicadores consolidados, distribuição por colaborador, sobreaviso e justificativas operacionais.";
-  if (qs("tituloTabela")) qs("tituloTabela").textContent = "Dashboard de Horas Extras";
+  if (qs("tituloPagina")) qs("tituloPagina").textContent = "Dashboard de Gestão de Horas Extras";
+  if (qs("subtituloPagina")) qs("subtituloPagina").textContent = "Indicadores consolidados das folhas de ponto e horas extras.";
   if (qs("statusCarga")) qs("statusCarga").textContent = "Carregando Dashboard de Horas Extras...";
 
   prepararFiltrosPrincipaisDaGuia(true);
@@ -5906,7 +5908,7 @@ function processarDadosDashboardHorasExtras(linhas) {
     diasSemana,
     sobreaviso: { sim: sobreavisoSim, nao: sobreavisoNao, outros: sobreavisoOutros },
     justificativas: { justificadas, pendentes },
-    maioresOcorrencias: ocorrenciasDetalhadas.slice(0, 15)
+    maioresOcorrencias: ocorrenciasDetalhadas.slice(0, 20)
   };
 }
 
@@ -5914,12 +5916,14 @@ function renderDashboardHorasExtrasVazio() {
   const painel = qs("dashboardHorasExtras");
   if (!painel) return;
   painel.innerHTML = `
-    <div class="dhe-hero">
+    <div class="os-dash-header">
       <div>
-        <span class="dhe-eyebrow">Gestão de Horas Extras</span>
-        <h3>Dashboard de Horas Extras</h3>
-        <p>Nenhum registro de hora extra encontrado para os filtros selecionados.</p>
+        <h1 class="os-dash-title">Dashboard de Gestão de Horas Extras</h1>
+        <p class="os-dash-subtitle">Nenhum registro de hora extra encontrado para os filtros selecionados.</p>
       </div>
+    </div>
+    <div class="os-dash-body">
+      <p class="os-empty-text" style="text-align:center;padding:40px 0;">Ajuste os filtros acima (período, CC ou colaborador) e tente novamente.</p>
     </div>
   `;
 }
@@ -5941,158 +5945,311 @@ function renderDashboardHorasExtras(stats) {
   }
 
   painel.innerHTML = `
-    <div class="dhe-hero">
+    <!-- Topbar idêntica ao Dashboard de OS -->
+    <div class="os-dash-header">
       <div>
-        <span class="dhe-eyebrow">Gestão Operacional de Ponto</span>
-        <h3>Dashboard de Horas Extras</h3>
-        <p>Visão analítica de horas extras consolidadas, colaboradores com maior demanda, sobreaviso e aderência a justificativas.</p>
+        <h1 class="os-dash-title">Dashboard de Gestão de Horas Extras</h1>
+        <p class="os-dash-subtitle">Indicadores consolidados das folhas de ponto — Período: ${escapeHtml(textoPeriodo)}</p>
       </div>
-      <div class="dhe-hero-actions">
-        <div class="dhe-periodo-badge">
-          <span>Período Analisado</span>
-          <strong>${escapeHtml(textoPeriodo)}</strong>
-        </div>
-        <button type="button" class="btn secondary" onclick="exportarDashboardHorasExtrasPdf()" style="font-size:13px;padding:10px 16px;">
-          🖨️ Gerar PDF / Imprimir
+      <div class="os-dash-actions">
+        <input
+          id="heDashboardSearchInput"
+          type="text"
+          placeholder="Filtrar colaboradores..."
+          oninput="filtrarDashboardHorasExtras(this.value)"
+          class="os-dash-search"
+        />
+        <button
+          type="button"
+          onclick="exportarDashboardHorasExtrasPdf()"
+          class="btn-os-pdf"
+        >
+          Gerar PDF
         </button>
       </div>
     </div>
 
-    <!-- 6 Cards de KPIs Estratégicos -->
-    <div class="dhe-kpi-grid">
-      <div class="dhe-kpi-card he-total">
-        <span class="dhe-kpi-label">Total de Horas Extras</span>
-        <strong class="dhe-kpi-value">${k.totalHorasFormatado}</strong>
-        <span class="dhe-kpi-sub">${k.totalHorasDecimais}h decimais no período</span>
-      </div>
-      <div class="dhe-kpi-card colabs">
-        <span class="dhe-kpi-label">Colaboradores</span>
-        <strong class="dhe-kpi-value">${k.totalColabs}</strong>
-        <span class="dhe-kpi-sub">Média de ${k.mediaHorasFormatado} por pessoa</span>
-      </div>
-      <div class="dhe-kpi-card">
-        <span class="dhe-kpi-label">Ocorrências de H.E.</span>
-        <strong class="dhe-kpi-value">${k.totalRegistros}</strong>
-        <span class="dhe-kpi-sub">Total de lançamentos</span>
-      </div>
-      <div class="dhe-kpi-card sobreaviso">
-        <span class="dhe-kpi-label">Acionamentos Sobreaviso</span>
-        <strong class="dhe-kpi-value">${k.sobreavisoSimCount}</strong>
-        <span class="dhe-kpi-sub">${k.sobreavisoSimHoras} (${k.sobreavisoSimPct}% do total)</span>
-      </div>
-      <div class="dhe-kpi-card justificativas">
-        <span class="dhe-kpi-label">Taxa Justificativas</span>
-        <strong class="dhe-kpi-value">${k.taxaJustificadas}%</strong>
-        <span class="dhe-kpi-sub">${k.justificadasCount} justif. / ${k.pendentesCount} pend.</span>
-      </div>
-      <div class="dhe-kpi-card gestores">
-        <span class="dhe-kpi-label">Gestores Mediatos</span>
-        <strong class="dhe-kpi-value">${k.totalGestores}</strong>
-        <span class="dhe-kpi-sub">Gestão mediata ativa</span>
-      </div>
-    </div>
-
-    <!-- Seção 1: Evolução Diária (Largura Total) -->
-    <div class="dhe-panel">
-      <div class="dhe-panel-title">
-        <h4>Evolução Diária de Horas Extras</h4>
-        <span>Volume diário acumulado ao longo das datas</span>
-      </div>
-      <div class="dhe-svg-wrap">
-        ${renderSvgEvolucaoHorasExtras(stats.evolucao, k.totalMinutos)}
-      </div>
-    </div>
-
-    <!-- Seção 2: Top Colaboradores + Dias da Semana -->
-    <div class="dhe-grid-2">
-      <div class="dhe-panel">
-        <div class="dhe-panel-title">
-          <h4>Top 10 Colaboradores com Mais Horas Extras</h4>
-          <span>Concentração individual de H.E.</span>
+    <div class="os-dash-body">
+      <!-- 4 KPI Cards idênticos ao padrão do Dashboard de OS -->
+      <div class="os-kpi-grid">
+        <div class="os-kpi-card">
+          <p class="os-kpi-label">Total de Horas Extras</p>
+          <p class="os-kpi-val" style="color:#d97706;">${k.totalHorasFormatado}</p>
+          <div class="os-kpi-meta">${k.totalHorasDecimais}h decimais no período</div>
         </div>
-        <div class="dhe-svg-wrap">
-          ${renderSvgTopColaboradoresHe(stats.topColaboradores, k.totalMinutos)}
+        <div class="os-kpi-card">
+          <p class="os-kpi-label">Colaboradores</p>
+          <p class="os-kpi-val" style="color:#2563eb;">${k.totalColabs}</p>
+          <div class="os-kpi-meta">Média de ${k.mediaHorasFormatado} / colaborador</div>
+        </div>
+        <div class="os-kpi-card">
+          <p class="os-kpi-label">Acionamentos Sobreaviso</p>
+          <p class="os-kpi-val" style="color:#7c3aed;">${k.sobreavisoSimCount}</p>
+          <div class="os-kpi-meta">${k.sobreavisoSimHoras} (${k.sobreavisoSimPct}% do total)</div>
+        </div>
+        <div class="os-kpi-card">
+          <p class="os-kpi-label">Aderência Justificativas</p>
+          <p class="os-kpi-val" style="color:#059669;">${k.taxaJustificadas}%</p>
+          <div class="os-kpi-meta">${k.justificadasCount} justif. / ${k.pendentesCount} pendentes</div>
         </div>
       </div>
 
-      <div class="dhe-panel">
-        <div class="dhe-panel-title">
-          <h4>Distribuição por Dia da Semana</h4>
-          <span>Volume por dia útil vs final de semana</span>
+      <!-- Grid 2 Colunas: Top Colaboradores + Dias da Semana -->
+      <div class="os-grid-2">
+        <div class="os-card">
+          <h3 class="os-card-title">Top 10 Colaboradores com Mais Horas Extras</h3>
+          <div id="osColaboradoresBars" class="os-bar-stack">
+            ${renderBreakdownBarsColaboradores(stats.topColaboradores, k.totalMinutos)}
+          </div>
         </div>
-        <div class="dhe-svg-wrap">
-          ${renderSvgDiasSemanaHe(stats.diasSemana, k.totalMinutos)}
-        </div>
-      </div>
-    </div>
 
-    <!-- Seção 3: Centros de Custo + Gestores -->
-    <div class="dhe-grid-2">
-      <div class="dhe-panel">
-        <div class="dhe-panel-title">
-          <h4>Horas Extras por Centro de Custo</h4>
-          <span>Distribuição por CC</span>
-        </div>
-        <div class="dhe-svg-wrap">
-          ${renderSvgCentrosCustoHe(stats.topCcs, k.totalMinutos)}
+        <div class="os-card">
+          <h3 class="os-card-title">Horas Extras por Dia da Semana</h3>
+          <div id="osDiasSemanaBars" class="os-bar-stack">
+            ${renderBreakdownBarsDiasSemana(stats.diasSemana, k.totalMinutos)}
+          </div>
         </div>
       </div>
 
-      <div class="dhe-panel">
-        <div class="dhe-panel-title">
-          <h4>Horas Extras por Gestor Mediato</h4>
-          <span>Alocação por gestor responsável</span>
+      <!-- Grid 2 Colunas: Centros de Custo + Gestores Mediatos -->
+      <div class="os-grid-2">
+        <div class="os-card">
+          <h3 class="os-card-title">Horas Extras por Centro de Custo</h3>
+          <div id="osCentrosCustoBars" class="os-bar-stack">
+            ${renderBreakdownBarsCentrosCusto(stats.topCcs, k.totalMinutos)}
+          </div>
         </div>
-        <div class="dhe-svg-wrap">
-          ${renderSvgGestoresHe(stats.topGestores, k.totalMinutos)}
-        </div>
-      </div>
-    </div>
 
-    <!-- Seção 4: Proporções + Destaques Operacionais -->
-    <div class="dhe-grid-2">
-      <div class="dhe-panel">
-        <div class="dhe-panel-title">
-          <h4>Sobreaviso & Justificativas</h4>
-          <span>Proporções e aderência operacional</span>
-        </div>
-        <div class="dhe-svg-wrap">
-          ${renderSvgProporcoesHe(stats.sobreaviso, stats.justificativas, k.totalMinutos)}
+        <div class="os-card">
+          <h3 class="os-card-title">Horas Extras por Gestor Mediato</h3>
+          <div id="osGestoresBars" class="os-bar-stack">
+            ${renderBreakdownBarsGestores(stats.topGestores, k.totalMinutos)}
+          </div>
         </div>
       </div>
 
-      <div class="dhe-panel">
-        <div class="dhe-panel-title">
-          <h4>Destaques de Gestão Operacional</h4>
-          <span>Métricas consolidadas do período</span>
+      <!-- Gráfico de Evolução Diária (Largura Total, estilo OS) -->
+      <div class="os-card">
+        <h3 class="os-card-title">Evolução Diária de Horas Extras</h3>
+        <div style="width:100%;overflow-x:auto;">
+          ${renderSvgEvolucaoHorasExtras(stats.evolucao, k.totalMinutos)}
         </div>
-        ${renderResumoOperacionalHe(stats)}
       </div>
-    </div>
 
-    <!-- Seção 5: Tabela de Maiores Ocorrências -->
-    <div class="dhe-panel">
-      <div class="dhe-panel-title">
-        <h4>Maiores Ocorrências de Horas Extras no Período</h4>
-        <span>Lançamentos individuais de maior impacto</span>
-      </div>
-      <div class="dhe-svg-wrap">
-        ${renderTabelaMaioresOcorrenciasHe(stats.maioresOcorrencias)}
+      <!-- Tabela de Maiores Ocorrências (Largura Total, estilo OS) -->
+      <div class="os-card">
+        <h3 class="os-card-title">Maiores Ocorrências de Horas Extras no Período</h3>
+        <div id="osTabelaOcorrenciasWrap" style="overflow-x:auto;">
+          ${renderTabelaMaioresOcorrenciasHe(stats.maioresOcorrencias)}
+        </div>
       </div>
     </div>
   `;
 }
 
 // ------------------------------------------------------------
-// SVG CHARTS BUILDERS (VETORIAIS NATIVOS DE ALTA RESOLUÇÃO)
+// BARRAS DE BREAKDOWN (MODELO DASHBOARD DE OS)
+// ------------------------------------------------------------
+
+function renderBreakdownBarsColaboradores(topColaboradores, totalMinutos) {
+  if (!topColaboradores || !topColaboradores.length) {
+    return '<p class="os-empty-text">Nenhum colaborador com horas extras.</p>';
+  }
+  const maxMin = topColaboradores[0]?.minutos || 1;
+  const colors = ["#D97706", "#2563EB", "#0284C7", "#3B82F6", "#60A5FA", "#818CF8", "#A78BFA", "#94A3B8", "#94A3B8", "#94A3B8"];
+
+  let html = "";
+  for (let i = 0; i < topColaboradores.length; i++) {
+    const item = topColaboradores[i];
+    const pct = totalMinutos > 0 ? ((item.minutos / totalMinutos) * 100).toFixed(1) : "0";
+    const barPct = Math.max(Math.round((item.minutos / maxMin) * 100), 2);
+    const color = colors[i % colors.length];
+    const horasStr = formatarMinutosParaHorasMinutos(item.minutos);
+
+    html += `
+      <div class="os-bar-row">
+        <span class="os-bar-dot" style="background:${color}"></span>
+        <span class="os-bar-label" title="${escapeHtml(item.nome)}">${i + 1}. ${escapeHtml(item.nome)}</span>
+        <div class="os-bar-track">
+          <div class="os-bar-fill" style="width:${barPct}%;background:${color}"></div>
+        </div>
+        <span class="os-bar-val">${horasStr} <small>(${pct}%)</small></span>
+      </div>
+    `;
+  }
+  return html;
+}
+
+function renderBreakdownBarsDiasSemana(diasSemana, totalMinutos) {
+  if (!diasSemana || !diasSemana.length) {
+    return '<p class="os-empty-text">Sem dados por dia da semana.</p>';
+  }
+  let maxMin = 1;
+  for (const d of diasSemana) {
+    if (d.minutos > maxMin) maxMin = d.minutos;
+  }
+
+  let html = "";
+  for (let i = 0; i < diasSemana.length; i++) {
+    const d = diasSemana[i];
+    const pct = totalMinutos > 0 ? ((d.minutos / totalMinutos) * 100).toFixed(1) : "0";
+    const barPct = Math.max(Math.round((d.minutos / maxMin) * 100), 2);
+    const isWeekend = d.label === "Sáb" || d.label === "Dom";
+    const color = isWeekend ? "#8B5CF6" : "#3B82F6";
+    const horasStr = formatarMinutosParaHorasMinutos(d.minutos);
+
+    html += `
+      <div class="os-bar-row">
+        <span class="os-bar-dot" style="background:${color}"></span>
+        <span class="os-bar-label" style="font-weight:${isWeekend ? "700" : "500"};color:${isWeekend ? "#7C3AED" : "#475569"};">${escapeHtml(d.label)}</span>
+        <div class="os-bar-track">
+          <div class="os-bar-fill" style="width:${barPct}%;background:${color}"></div>
+        </div>
+        <span class="os-bar-val">${horasStr} <small>(${pct}%)</small></span>
+      </div>
+    `;
+  }
+  return html;
+}
+
+function renderBreakdownBarsCentrosCusto(topCcs, totalMinutos) {
+  if (!topCcs || !topCcs.length) {
+    return '<p class="os-empty-text">Nenhum Centro de Custo registrado.</p>';
+  }
+  const maxMin = topCcs[0]?.minutos || 1;
+
+  let html = "";
+  for (let i = 0; i < topCcs.length; i++) {
+    const item = topCcs[i];
+    const pct = totalMinutos > 0 ? ((item.minutos / totalMinutos) * 100).toFixed(1) : "0";
+    const barPct = Math.max(Math.round((item.minutos / maxMin) * 100), 2);
+    const color = "#0284C7";
+    const horasStr = formatarMinutosParaHorasMinutos(item.minutos);
+
+    html += `
+      <div class="os-bar-row">
+        <span class="os-bar-dot" style="background:${color}"></span>
+        <span class="os-bar-label" title="${escapeHtml(item.cc)}">${escapeHtml(item.cc)}</span>
+        <div class="os-bar-track">
+          <div class="os-bar-fill" style="width:${barPct}%;background:${color}"></div>
+        </div>
+        <span class="os-bar-val">${horasStr} <small>(${pct}%)</small></span>
+      </div>
+    `;
+  }
+  return html;
+}
+
+function renderBreakdownBarsGestores(topGestores, totalMinutos) {
+  if (!topGestores || !topGestores.length) {
+    return '<p class="os-empty-text">Nenhum Gestor Mediato registrado.</p>';
+  }
+  const maxMin = topGestores[0]?.minutos || 1;
+
+  let html = "";
+  for (let i = 0; i < topGestores.length; i++) {
+    const item = topGestores[i];
+    const pct = totalMinutos > 0 ? ((item.minutos / totalMinutos) * 100).toFixed(1) : "0";
+    const barPct = Math.max(Math.round((item.minutos / maxMin) * 100), 2);
+    const color = "#059669";
+    const horasStr = formatarMinutosParaHorasMinutos(item.minutos);
+
+    html += `
+      <div class="os-bar-row">
+        <span class="os-bar-dot" style="background:${color}"></span>
+        <span class="os-bar-label" title="${escapeHtml(item.gestor)}">${escapeHtml(item.gestor)}</span>
+        <div class="os-bar-track">
+          <div class="os-bar-fill" style="width:${barPct}%;background:${color}"></div>
+        </div>
+        <span class="os-bar-val">${horasStr} <small>(${pct}%)</small></span>
+      </div>
+    `;
+  }
+  return html;
+}
+
+function filtrarDashboardHorasExtras(termo) {
+  if (!_dashboardHorasExtrasEstatisticas) return;
+  const termoNorm = String(termo || "").trim().toLowerCase();
+  const todos = _dashboardHorasExtrasEstatisticas.maioresOcorrencias || [];
+
+  const filtrados = termoNorm
+    ? todos.filter(r =>
+        (r.nome && r.nome.toLowerCase().includes(termoNorm)) ||
+        (r.cc && r.cc.toLowerCase().includes(termoNorm)) ||
+        (r.gestor && r.gestor.toLowerCase().includes(termoNorm)) ||
+        (r.observacao && r.observacao.toLowerCase().includes(termoNorm))
+      )
+    : todos;
+
+  const alvo = qs("osTabelaOcorrenciasWrap");
+  if (alvo) {
+    alvo.innerHTML = renderTabelaMaioresOcorrenciasHe(filtrados);
+  }
+}
+
+function renderTabelaMaioresOcorrenciasHe(ocorrencias) {
+  if (!ocorrencias || !ocorrencias.length) {
+    return '<p class="os-empty-text">Nenhuma ocorrência encontrada.</p>';
+  }
+
+  let html = `
+    <table class="os-dash-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Dia</th>
+          <th>Colaborador</th>
+          <th>CC</th>
+          <th>Entrada</th>
+          <th>Saída</th>
+          <th>Total HE</th>
+          <th>Gestor Mediato</th>
+          <th>Sobreaviso</th>
+          <th>Justificativa</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  for (const r of ocorrencias) {
+    const isSobreaviso = String(r.sobreaviso).toLowerCase() === "sim" || String(r.sobreaviso).toLowerCase() === "s";
+    const badgeSob = isSobreaviso ? '<span class="os-badge sim">Sim</span>' : '<span class="os-badge nao">Não</span>';
+    const hasJust = Boolean(r.observacao && r.observacao.trim());
+    const badgeJust = hasJust
+      ? `<span class="os-badge justificado" title="${escapeHtml(r.observacao)}">${escapeHtml(r.observacao.slice(0, 45))}${r.observacao.length > 45 ? "..." : ""}</span>`
+      : '<span class="os-badge pendente">Pendente</span>';
+
+    html += `
+      <tr>
+        <td><strong>${escapeHtml(r.data)}</strong></td>
+        <td>${escapeHtml(r.dia)}</td>
+        <td><strong style="color:#0f172a;">${escapeHtml(r.nome)}</strong></td>
+        <td>${escapeHtml(r.cc)}</td>
+        <td>${escapeHtml(r.e1 || "-")}</td>
+        <td>${escapeHtml(r.s1 || "-")}</td>
+        <td><strong style="color:#d97706;">${escapeHtml(r.he)}</strong></td>
+        <td>${escapeHtml(r.gestor || "-")}</td>
+        <td>${badgeSob}</td>
+        <td>${badgeJust}</td>
+      </tr>
+    `;
+  }
+
+  html += "</tbody></table>";
+  return html;
+}
+
+// ------------------------------------------------------------
+// SVG CHARTS BUILDERS (VETORIAIS NATIVOS MODELO OS DASHBOARD)
 // ------------------------------------------------------------
 
 function renderSvgEvolucaoHorasExtras(evolucao, totalMinutos) {
   if (!evolucao || !evolucao.length) {
-    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Sem dados de evolução no período.</p>';
+    return '<p class="os-empty-text">Sem dados de evolução no período.</p>';
   }
 
-  const W = 840, H = 200, P = { t: 20, r: 24, b: 38, l: 48 };
+  const W = 820, H = 220, P = { t: 20, r: 24, b: 40, l: 44 };
   const cw = W - P.l - P.r, ch = H - P.t - P.b;
 
   let maxMin = 60;
@@ -6138,294 +6295,27 @@ function renderSvgEvolucaoHorasExtras(evolucao, totalMinutos) {
     xLabels += `<text x="${x.toFixed(1)}" y="${yl}" font-size="10" fill="#64748B" text-anchor="middle" font-family="Arial,sans-serif">${dStr}</text>`;
   }
 
-  // Pontos
+  // Pontos com estilo OS Dashboard
   let dots = "";
   for (let i = 0; i < pts.length; i++) {
-    dots += `<circle cx="${pts[i].x.toFixed(1)}" cy="${pts[i].y.toFixed(1)}" r="3.5" fill="#2563EB" stroke="#fff" stroke-width="2"/>`;
+    dots += `<circle cx="${pts[i].x.toFixed(1)}" cy="${pts[i].y.toFixed(1)}" r="3.5" fill="#1E3A5F" stroke="#fff" stroke-width="1.5"/>`;
   }
 
   return `
     <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="evoHeGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#2563EB" stop-opacity="0.45"/>
-          <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.02"/>
+          <stop offset="0%" stop-color="#1E3A5F" stop-opacity="0.85"/>
+          <stop offset="100%" stop-color="#2563EB" stop-opacity="0.10"/>
         </linearGradient>
       </defs>
       ${grids}
       <path d="${area}" fill="url(#evoHeGrad)"/>
-      <path d="${line}" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="${line}" fill="none" stroke="#1E3A5F" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
       ${dots}
       ${xLabels}
     </svg>
   `;
-}
-
-function renderSvgTopColaboradoresHe(topColaboradores, totalMinutos) {
-  if (!topColaboradores || !topColaboradores.length) {
-    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Nenhum colaborador com hora extra.</p>';
-  }
-
-  const maxMin = topColaboradores[0]?.minutos || 1;
-  const barH = 20, gap = 7, labelW = 150, valW = 85;
-  const W = 460;
-  const H = topColaboradores.length * (barH + gap) + 8;
-  const barW = W - labelW - valW - 8;
-
-  let bars = "";
-  for (let i = 0; i < topColaboradores.length; i++) {
-    const item = topColaboradores[i];
-    const y = i * (barH + gap) + 4;
-    const w = Math.max((item.minutos / maxMin) * barW, 2);
-    const pct = totalMinutos > 0 ? ((item.minutos / totalMinutos) * 100).toFixed(1) : "0";
-    const horasFormatado = formatarMinutosParaHorasMinutos(item.minutos);
-
-    let corBarra = "#3B82F6";
-    if (i === 0) corBarra = "#D97706";
-    else if (i === 1) corBarra = "#2563EB";
-    else if (i === 2) corBarra = "#0284C7";
-
-    const nomeTrunc = item.nome.length > 19 ? item.nome.slice(0, 17) + "..." : item.nome;
-
-    bars += `<text x="${labelW - 6}" y="${y + barH / 2 + 4}" font-size="10.5" font-weight="600" fill="#334155" text-anchor="end" font-family="Arial,sans-serif">${i + 1}. ${escapeXml(nomeTrunc)}</text>`;
-    bars += `<rect x="${labelW}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="#F1F5F9"/>`;
-    bars += `<rect x="${labelW}" y="${y}" width="${w.toFixed(1)}" height="${barH}" rx="4" fill="${corBarra}"/>`;
-    bars += `<text x="${labelW + barW + 6}" y="${y + barH / 2 + 4}" font-size="10.5" font-weight="700" fill="#1E293B" text-anchor="start" font-family="Arial,sans-serif">${horasFormatado} <tspan font-size="9" font-weight="normal" fill="#64748B">(${pct}%)</tspan></text>`;
-  }
-
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
-}
-
-function renderSvgDiasSemanaHe(diasSemana, totalMinutos) {
-  if (!diasSemana || !diasSemana.length) {
-    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Sem dados por dia da semana.</p>';
-  }
-
-  let maxMin = 1;
-  for (const d of diasSemana) {
-    if (d.minutos > maxMin) maxMin = d.minutos;
-  }
-
-  const W = 460, H = 240, P = { t: 28, r: 16, b: 32, l: 20 };
-  const cw = W - P.l - P.r, ch = H - P.t - P.b;
-  const colW = cw / diasSemana.length;
-  const barW = Math.min(colW * 0.65, 32);
-
-  let bars = "";
-  for (let i = 0; i < diasSemana.length; i++) {
-    const d = diasSemana[i];
-    const x = P.l + i * colW + (colW - barW) / 2;
-    const barH = Math.max((d.minutos / maxMin) * ch, 4);
-    const y = P.t + ch - barH;
-    const isWeekend = d.label === "Sáb" || d.label === "Dom";
-    const cor = isWeekend ? "#8B5CF6" : "#3B82F6";
-    const horasStr = formatarMinutosParaHorasMinutos(d.minutos);
-
-    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="5" fill="${cor}"/>`;
-    if (d.minutos > 0) {
-      bars += `<text x="${(x + barW / 2).toFixed(1)}" y="${(y - 5).toFixed(1)}" font-size="10" font-weight="700" fill="#1E293B" text-anchor="middle" font-family="Arial,sans-serif">${horasStr}</text>`;
-    }
-    bars += `<text x="${(x + barW / 2).toFixed(1)}" y="${H - P.b + 16}" font-size="11" font-weight="${isWeekend ? "700" : "600"}" fill="${isWeekend ? "#7C3AED" : "#475569"}" text-anchor="middle" font-family="Arial,sans-serif">${d.label}</text>`;
-  }
-
-  return `
-    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">
-      <line x1="${P.l}" y1="${P.t + ch}" x2="${P.l + cw}" y2="${P.t + ch}" stroke="#E2E8F0" stroke-width="1"/>
-      ${bars}
-    </svg>
-  `;
-}
-
-function renderSvgCentrosCustoHe(topCcs, totalMinutos) {
-  if (!topCcs || !topCcs.length) {
-    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Nenhum Centro de Custo registrado.</p>';
-  }
-
-  const maxMin = topCcs[0]?.minutos || 1;
-  const barH = 20, gap = 7, labelW = 140, valW = 85;
-  const W = 460;
-  const H = topCcs.length * (barH + gap) + 8;
-  const barW = W - labelW - valW - 8;
-
-  let bars = "";
-  for (let i = 0; i < topCcs.length; i++) {
-    const item = topCcs[i];
-    const y = i * (barH + gap) + 4;
-    const w = Math.max((item.minutos / maxMin) * barW, 2);
-    const horasStr = formatarMinutosParaHorasMinutos(item.minutos);
-    const pct = totalMinutos > 0 ? ((item.minutos / totalMinutos) * 100).toFixed(1) : "0";
-    const ccLabel = item.cc.length > 17 ? item.cc.slice(0, 15) + "..." : item.cc;
-
-    bars += `<text x="${labelW - 6}" y="${y + barH / 2 + 4}" font-size="10.5" font-weight="600" fill="#334155" text-anchor="end" font-family="Arial,sans-serif">${escapeXml(ccLabel)}</text>`;
-    bars += `<rect x="${labelW}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="#F1F5F9"/>`;
-    bars += `<rect x="${labelW}" y="${y}" width="${w.toFixed(1)}" height="${barH}" rx="4" fill="#0284C7"/>`;
-    bars += `<text x="${labelW + barW + 6}" y="${y + barH / 2 + 4}" font-size="10.5" font-weight="700" fill="#0F172A" text-anchor="start" font-family="Arial,sans-serif">${horasStr} <tspan font-size="9" font-weight="normal" fill="#64748B">(${pct}%)</tspan></text>`;
-  }
-
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
-}
-
-function renderSvgGestoresHe(topGestores, totalMinutos) {
-  if (!topGestores || !topGestores.length) {
-    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Nenhum Gestor Mediato registrado.</p>';
-  }
-
-  const maxMin = topGestores[0]?.minutos || 1;
-  const barH = 20, gap = 7, labelW = 140, valW = 85;
-  const W = 460;
-  const H = topGestores.length * (barH + gap) + 8;
-  const barW = W - labelW - valW - 8;
-
-  let bars = "";
-  for (let i = 0; i < topGestores.length; i++) {
-    const item = topGestores[i];
-    const y = i * (barH + gap) + 4;
-    const w = Math.max((item.minutos / maxMin) * barW, 2);
-    const horasStr = formatarMinutosParaHorasMinutos(item.minutos);
-    const pct = totalMinutos > 0 ? ((item.minutos / totalMinutos) * 100).toFixed(1) : "0";
-    const gestorLabel = item.gestor.length > 17 ? item.gestor.slice(0, 15) + "..." : item.gestor;
-
-    bars += `<text x="${labelW - 6}" y="${y + barH / 2 + 4}" font-size="10.5" font-weight="600" fill="#334155" text-anchor="end" font-family="Arial,sans-serif">${escapeXml(gestorLabel)}</text>`;
-    bars += `<rect x="${labelW}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="#F1F5F9"/>`;
-    bars += `<rect x="${labelW}" y="${y}" width="${w.toFixed(1)}" height="${barH}" rx="4" fill="#059669"/>`;
-    bars += `<text x="${labelW + barW + 6}" y="${y + barH / 2 + 4}" font-size="10.5" font-weight="700" fill="#0F172A" text-anchor="start" font-family="Arial,sans-serif">${horasStr} <tspan font-size="9" font-weight="normal" fill="#64748B">(${pct}%)</tspan></text>`;
-  }
-
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
-}
-
-function renderSvgProporcoesHe(sobreaviso, justificativas, totalMinutos) {
-  const simMin = sobreaviso.sim.minutos;
-  const naoMin = sobreaviso.nao.minutos;
-  const outrosMin = sobreaviso.outros.minutos;
-  const totSob = simMin + naoMin + outrosMin || 1;
-
-  const pctSim = Math.round((simMin / totSob) * 100);
-  const pctNao = Math.round((naoMin / totSob) * 100);
-  const pctOutros = Math.max(0, 100 - pctSim - pctNao);
-
-  const justMin = justificativas.justificadas.minutos;
-  const pendMin = justificativas.pendentes.minutos;
-  const totJust = justMin + pendMin || 1;
-
-  const pctJust = Math.round((justMin / totJust) * 100);
-  const pctPend = Math.max(0, 100 - pctJust);
-
-  return `
-    <div style="display:flex;flex-direction:column;gap:14px;padding:6px 0;">
-      <div>
-        <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:6px;">
-          <span>Acionamentos de Sobreaviso</span>
-          <span style="color:#7C3AED;">${pctSim}% Sim (${formatarMinutosParaHorasMinutos(simMin)})</span>
-        </div>
-        <div style="display:flex;height:12px;border-radius:999px;overflow:hidden;background:#F1F5F9;">
-          <div style="width:${pctSim}%;background:#7C3AED;" title="Sim: ${formatarMinutosParaHorasMinutos(simMin)}"></div>
-          <div style="width:${pctNao}%;background:#94A3B8;" title="Não: ${formatarMinutosParaHorasMinutos(naoMin)}"></div>
-          <div style="width:${pctOutros}%;background:#E2E8F0;" title="Outros: ${formatarMinutosParaHorasMinutos(outrosMin)}"></div>
-        </div>
-        <div style="display:flex;gap:12px;font-size:10.5px;color:#64748B;margin-top:6px;">
-          <span><b style="color:#7C3AED;">■</b> Sim (${formatarMinutosParaHorasMinutos(simMin)})</span>
-          <span><b style="color:#94A3B8;">■</b> Não (${formatarMinutosParaHorasMinutos(naoMin)})</span>
-          <span><b style="color:#CBD5E1;">■</b> Não informado</span>
-        </div>
-      </div>
-
-      <div style="border-top:1px solid #EEF2F7;padding-top:12px;">
-        <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:6px;">
-          <span>Aderência às Justificativas</span>
-          <span style="color:#059669;">${pctJust}% Preenchidas (${formatarMinutosParaHorasMinutos(justMin)})</span>
-        </div>
-        <div style="display:flex;height:12px;border-radius:999px;overflow:hidden;background:#F1F5F9;">
-          <div style="width:${pctJust}%;background:#10B981;" title="Justificadas: ${formatarMinutosParaHorasMinutos(justMin)}"></div>
-          <div style="width:${pctPend}%;background:#EF4444;" title="Pendentes: ${formatarMinutosParaHorasMinutos(pendMin)}"></div>
-        </div>
-        <div style="display:flex;gap:12px;font-size:10.5px;color:#64748B;margin-top:6px;">
-          <span><b style="color:#10B981;">■</b> Justificadas (${formatarMinutosParaHorasMinutos(justMin)})</span>
-          <span><b style="color:#EF4444;">■</b> Pendentes (${formatarMinutosParaHorasMinutos(pendMin)})</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderResumoOperacionalHe(stats) {
-  const k = stats.kpis || {};
-  return `
-    <div class="dhe-stat-grid" style="padding:6px 0;">
-      <div class="dhe-stat-box">
-        <span>Finais de Semana (Sáb/Dom)</span>
-        <strong>${k.horasFimDeSemana}</strong>
-        <small>${k.pctFimDeSemana}% do volume total de HE</small>
-      </div>
-      <div class="dhe-stat-box">
-        <span>Concentração Top 3</span>
-        <strong>${k.pctTop3}%</strong>
-        <small>das horas nos 3 maiores colaboradores</small>
-      </div>
-      <div class="dhe-stat-box">
-        <span>Média por Colaborador</span>
-        <strong>${k.mediaHorasFormatado}</strong>
-        <small>distribuídos entre ${k.totalColabs} pessoas</small>
-      </div>
-      <div class="dhe-stat-box">
-        <span>Taxa de Pendência</span>
-        <strong style="color:${k.taxaPendentes > 30 ? '#EF4444' : '#059669'};">${k.taxaPendentes}%</strong>
-        <small>${k.pendentesCount} ocorrência(s) sem justificativa</small>
-      </div>
-    </div>
-  `;
-}
-
-function renderTabelaMaioresOcorrenciasHe(ocorrencias) {
-  if (!ocorrencias || !ocorrencias.length) {
-    return '<p style="color:#94a3b8;font-style:italic;padding:16px;">Nenhuma ocorrência registrada.</p>';
-  }
-
-  let html = `
-    <table class="dhe-table">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Dia</th>
-          <th>Colaborador</th>
-          <th>CC</th>
-          <th>Entrada</th>
-          <th>Saída</th>
-          <th>Total HE</th>
-          <th>Gestor Mediato</th>
-          <th>Sobreaviso</th>
-          <th>Justificativa</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-  for (const r of ocorrencias) {
-    const isSobreaviso = String(r.sobreaviso).toLowerCase() === "sim" || String(r.sobreaviso).toLowerCase() === "s";
-    const badgeSob = isSobreaviso ? '<span class="dhe-badge sim">Sim</span>' : '<span class="dhe-badge nao">Não</span>';
-    const hasJust = Boolean(r.observacao && r.observacao.trim());
-    const badgeJust = hasJust
-      ? `<span class="dhe-badge justificado" title="${escapeHtml(r.observacao)}">${escapeHtml(r.observacao.slice(0, 45))}${r.observacao.length > 45 ? "..." : ""}</span>`
-      : '<span class="dhe-badge pendente">Pendente</span>';
-
-    html += `
-      <tr>
-        <td><strong>${escapeHtml(r.data)}</strong></td>
-        <td>${escapeHtml(r.dia)}</td>
-        <td><strong>${escapeHtml(r.nome)}</strong></td>
-        <td>${escapeHtml(r.cc)}</td>
-        <td>${escapeHtml(r.e1 || "-")}</td>
-        <td>${escapeHtml(r.s1 || "-")}</td>
-        <td><strong style="color:#D97706;">${escapeHtml(r.he)}</strong></td>
-        <td>${escapeHtml(r.gestor || "-")}</td>
-        <td>${badgeSob}</td>
-        <td>${badgeJust}</td>
-      </tr>
-    `;
-  }
-
-  html += "</tbody></table>";
-  return html;
 }
 
 // ------------------------------------------------------------
@@ -6453,55 +6343,56 @@ function exportarDashboardHorasExtrasPdf() {
   }
 
   const svgEvo = renderSvgEvolucaoHorasExtras(stats.evolucao, k.totalMinutos);
-  const svgTop = renderSvgTopColaboradoresHe(stats.topColaboradores, k.totalMinutos);
-  const svgDias = renderSvgDiasSemanaHe(stats.diasSemana, k.totalMinutos);
-  const svgCcs = renderSvgCentrosCustoHe(stats.topCcs, k.totalMinutos);
-  const svgGestores = renderSvgGestoresHe(stats.topGestores, k.totalMinutos);
+  const barsColabs = renderBreakdownBarsColaboradores(stats.topColaboradores, k.totalMinutos);
+  const barsDias = renderBreakdownBarsDiasSemana(stats.diasSemana, k.totalMinutos);
+  const barsCcs = renderBreakdownBarsCentrosCusto(stats.topCcs, k.totalMinutos);
+  const barsGestores = renderBreakdownBarsGestores(stats.topGestores, k.totalMinutos);
   const tabelaOcorrencias = renderTabelaMaioresOcorrenciasHe(stats.maioresOcorrencias);
 
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Dashboard de Horas Extras — Relatório Executivo</title>
+  <title>Dashboard de Gestão de Horas Extras — Relatório Executivo</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; padding: 28px; color: #0f172a; background: #fff; }
-    .header { border-bottom: 3px solid #1e3a8a; padding-bottom: 14px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .header h1 { font-size: 22px; color: #1e3a8a; font-weight: 800; }
-    .header p { font-size: 11px; color: #64748b; margin-top: 4px; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; padding: 24px; color: #0f172a; background: #fff; }
+    .header { border-bottom: 3px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .header h1 { font-size: 20px; color: #0f172a; font-weight: 800; }
+    .header p { font-size: 11px; color: #64748b; margin-top: 3px; }
     .header .meta { text-align: right; font-size: 11px; color: #475569; }
-    .section { margin-bottom: 22px; page-break-inside: avoid; }
-    .section-title { font-size: 14px; font-weight: 700; color: #1e3a8a; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #e2e8f0; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-    .kpi-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; background: #f8fafc; }
-    .kpi-card.he-total { border-color: #fde68a; background: #fffbeb; }
-    .kpi-card.sobreaviso { border-color: #ddd6fe; background: #f5f3ff; }
-    .kpi-card.justificativas { border-color: #bbf7d0; background: #f0fdf4; }
+    .section { margin-bottom: 20px; page-break-inside: avoid; }
+    .section-title { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 10px; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .kpi-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; background: #f8fafc; }
     .kpi-label { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
-    .kpi-value { font-size: 20px; font-weight: 800; margin-top: 4px; color: #0f172a; }
-    .kpi-card.he-total .kpi-value { color: #d97706; }
-    .kpi-card.sobreaviso .kpi-value { color: #7c3aed; }
-    .kpi-card.justificativas .kpi-value { color: #059669; }
-    .kpi-sub { font-size: 9px; color: #64748b; margin-top: 4px; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-    .dhe-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    .dhe-table th { background: #1e3a8a; color: #fff; padding: 6px 8px; text-align: left; font-size: 9px; text-transform: uppercase; }
-    .dhe-table td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
-    .dhe-table tbody tr:nth-child(even) { background: #f8fafc; }
-    .dhe-badge { display: inline-block; padding: 2px 6px; border-radius: 999px; font-size: 9px; font-weight: 700; }
-    .dhe-badge.sim { background: #ede9fe; color: #6d28d9; }
-    .dhe-badge.nao { background: #f1f5f9; color: #64748b; }
-    .dhe-badge.justificado { background: #d1fae5; color: #047857; }
-    .dhe-badge.pendente { background: #fee2e2; color: #b91c1c; }
-    @page { margin: 1.2cm; }
+    .kpi-value { font-size: 24px; font-weight: 300; margin-top: 4px; }
+    .kpi-sub { font-size: 10px; color: #64748b; margin-top: 4px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .os-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; background: #fff; }
+    .os-bar-stack { display: flex; flex-direction: column; gap: 10px; }
+    .os-bar-row { display: flex; align-items: center; gap: 10px; font-size: 11px; }
+    .os-bar-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .os-bar-label { width: 140px; flex-shrink: 0; color: #475569; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .os-bar-track { flex: 1; background: #f1f5f9; border-radius: 999px; height: 12px; overflow: hidden; }
+    .os-bar-fill { height: 12px; border-radius: 999px; }
+    .os-bar-val { width: 90px; text-align: right; flex-shrink: 0; color: #334155; font-weight: 600; font-size: 11px; }
+    .os-dash-table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+    .os-dash-table th { background: #0f172a; color: #fff; padding: 6px 8px; text-align: left; font-size: 9.5px; text-transform: uppercase; }
+    .os-dash-table td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
+    .os-badge { display: inline-block; padding: 2px 6px; border-radius: 999px; font-size: 9px; font-weight: 700; }
+    .os-badge.sim { background: #ede9fe; color: #6d28d9; }
+    .os-badge.nao { background: #f1f5f9; color: #64748b; }
+    .os-badge.justificado { background: #d1fae5; color: #047857; }
+    .os-badge.pendente { background: #fee2e2; color: #b91c1c; }
+    @page { margin: 1cm; }
     @media print { body { padding: 0; } .section { page-break-inside: avoid; } }
   </style>
 </head>
 <body>
   <div class="header">
     <div>
-      <h1>Dashboard de Horas Extras</h1>
+      <h1>Dashboard de Gestão de Horas Extras</h1>
       <p>Relatório Executivo Consolidado — Rubble / Tempo Fechado</p>
     </div>
     <div class="meta">
@@ -6512,73 +6403,67 @@ function exportarDashboardHorasExtrasPdf() {
 
   <div class="section">
     <div class="kpi-grid">
-      <div class="kpi-card he-total">
+      <div class="kpi-card">
         <div class="kpi-label">Total de H.E.</div>
-        <div class="kpi-value">${k.totalHorasFormatado}</div>
+        <div class="kpi-value" style="color:#d97706;">${k.totalHorasFormatado}</div>
         <div class="kpi-sub">${k.totalHorasDecimais}h decimais</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Colaboradores</div>
-        <div class="kpi-value">${k.totalColabs}</div>
+        <div class="kpi-value" style="color:#2563eb;">${k.totalColabs}</div>
         <div class="kpi-sub">Média: ${k.mediaHorasFormatado}</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Ocorrências</div>
-        <div class="kpi-value">${k.totalRegistros}</div>
-        <div class="kpi-sub">Lançamentos de HE</div>
-      </div>
-      <div class="kpi-card sobreaviso">
         <div class="kpi-label">Sobreaviso (Sim)</div>
-        <div class="kpi-value">${k.sobreavisoSimCount}</div>
+        <div class="kpi-value" style="color:#7c3aed;">${k.sobreavisoSimCount}</div>
         <div class="kpi-sub">${k.sobreavisoSimPct}% do total</div>
       </div>
-      <div class="kpi-card justificativas">
+      <div class="kpi-card">
         <div class="kpi-label">Justificativas</div>
-        <div class="kpi-value">${k.taxaJustificadas}%</div>
+        <div class="kpi-value" style="color:#059669;">${k.taxaJustificadas}%</div>
         <div class="kpi-sub">${k.justificadasCount} justif. / ${k.pendentesCount} pend.</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Gestores</div>
-        <div class="kpi-value">${k.totalGestores}</div>
-        <div class="kpi-sub">Mediatos ativos</div>
-      </div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-title">Evolução Diária de Horas Extras</div>
-    ${svgEvo}
-  </div>
-
-  <div class="section">
     <div class="two-col">
-      <div>
+      <div class="os-card">
         <div class="section-title">Top 10 Colaboradores com Mais Horas Extras</div>
-        ${svgTop}
+        <div class="os-bar-stack">${barsColabs}</div>
       </div>
-      <div>
+      <div class="os-card">
         <div class="section-title">Distribuição por Dia da Semana</div>
-        ${svgDias}
+        <div class="os-bar-stack">${barsDias}</div>
       </div>
     </div>
   </div>
 
   <div class="section">
     <div class="two-col">
-      <div>
+      <div class="os-card">
         <div class="section-title">Horas Extras por Centro de Custo</div>
-        ${svgCcs}
+        <div class="os-bar-stack">${barsCcs}</div>
       </div>
-      <div>
+      <div class="os-card">
         <div class="section-title">Horas Extras por Gestor Mediato</div>
-        ${svgGestores}
+        <div class="os-bar-stack">${barsGestores}</div>
       </div>
     </div>
   </div>
 
   <div class="section">
-    <div class="section-title">Maiores Ocorrências de Horas Extras no Período</div>
-    ${tabelaOcorrencias}
+    <div class="os-card">
+      <div class="section-title">Evolução Diária de Horas Extras</div>
+      ${svgEvo}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="os-card">
+      <div class="section-title">Maiores Ocorrências de Horas Extras no Período</div>
+      ${tabelaOcorrencias}
+    </div>
   </div>
 
   <script>
