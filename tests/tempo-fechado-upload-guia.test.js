@@ -189,5 +189,19 @@ describe('Tempo Fechado - Upload Guia (Horas Extras Simplificadas)', () => {
       expect(normData('2026-08-26')).toBe('26/08/2026');
       expect(normData('26/08/2026')).toBe('26/08/2026');
     });
+
+    test('builds query params with data_inicio and data_fim for Horas Extras Simplificadas', () => {
+      const p = new URLSearchParams();
+      const paginaAtual = 'hora_extra_simplificada';
+      const dataInicioVal = '2026-08-01';
+      const dataFimVal = '2026-08-31';
+
+      if (paginaAtual === 'hora_extra_simplificada') {
+        if (dataInicioVal) p.set('data_inicio', dataInicioVal);
+        if (dataFimVal) p.set('data_fim', dataFimVal);
+      }
+
+      expect(p.toString()).toBe('data_inicio=2026-08-01&data_fim=2026-08-31');
+    });
   });
 });

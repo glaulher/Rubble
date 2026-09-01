@@ -3636,6 +3636,8 @@ def api_consolidado():
     turno_filtro = request.args.get("turno", "").strip().lower()
     data = request.args.get("data", "").strip()
     datas = request.args.get("datas", "").strip()
+    data_inicio = request.args.get("data_inicio", "").strip() or request.args.get("date_from", "").strip()
+    data_fim = request.args.get("data_fim", "").strip() or request.args.get("date_to", "").strip()
     tipo = request.args.get("tipo", "").strip()
 
     if busca:
@@ -3651,11 +3653,18 @@ def api_consolidado():
     if turno_filtro:
         df = df[df["turno"].str.lower() == turno_filtro]
 
-    # v8.11.24: respeita também o filtro múltiplo de datas no Consolidado,
-    # Hora Extra e Inconsistências. Antes, a UI enviava ?datas=..., mas este
-    # endpoint ignorava o parâmetro e voltava registros demais, prejudicando a
-    # navegação e dando a sensação de filtro "travado".
-    if datas:
+    # v8.11.24 / v8.21.72: respeita filtro de data pontual, múltiplo e range (início e fim)
+    if data_inicio or data_fim:
+        data_dt = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.normalize()
+        if data_inicio:
+            dt_ini = pd.to_datetime(data_inicio, errors="coerce")
+            if pd.notna(dt_ini):
+                df = df[data_dt >= dt_ini.normalize()]
+        if data_fim:
+            dt_fim = pd.to_datetime(data_fim, errors="coerce")
+            if pd.notna(dt_fim):
+                df = df[data_dt <= dt_fim.normalize()]
+    elif datas:
         datas_lista = [d.strip() for d in datas.split(",") if d.strip()]
         if datas_lista:
             data_convertida = pd.to_datetime(df["data"], format="%d/%m/%Y", errors="coerce").dt.strftime("%Y-%m-%d")

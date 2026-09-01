@@ -40,6 +40,47 @@ aside{background:linear-gradient(180deg,var(--sidebar),var(--sidebar2));color:#f
   min-width: 190px;
 }
 
+.date-range-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 250px;
+}
+
+.date-range-control.hidden {
+  display: none !important;
+}
+
+.date-range-fields {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.date-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.date-field input[type="date"] {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 13px;
+  background: #fff;
+  width: 100%;
+}
+
 .multi-date-row {
   display: flex;
   gap: 6px;

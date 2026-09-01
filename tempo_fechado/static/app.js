@@ -552,6 +552,8 @@ function paramsConsolidado() {
   const filtroInc = qs("filtroInconsistencia");
   const tipo = qs("tipo");
   const dataEl = qs("data");
+  const dataInicioEl = qs("dataInicio");
+  const dataFimEl = qs("dataFim");
 
   if (cc && cc.value) p.set("cc", cc.value);
   if (nome && nome.value) p.set("nome", nome.value);
@@ -560,10 +562,15 @@ function paramsConsolidado() {
   if (filtroInc && filtroInc.value) p.set("filtroInconsistencia", filtroInc.value);
   if (tipo && tipo.value) p.set("tipo", tipo.value);
 
-  if (datasFiltro.length > 0) {
-    p.set("datas", datasFiltro.join(","));
-  } else if (dataEl && dataEl.value) {
-    p.set("data", dataEl.value);
+  if (paginaAtual === "hora_extra_simplificada") {
+    if (dataInicioEl && dataInicioEl.value) p.set("data_inicio", dataInicioEl.value);
+    if (dataFimEl && dataFimEl.value) p.set("data_fim", dataFimEl.value);
+  } else {
+    if (datasFiltro.length > 0) {
+      p.set("datas", datasFiltro.join(","));
+    } else if (dataEl && dataEl.value) {
+      p.set("data", dataEl.value);
+    }
   }
 
   return p.toString();
@@ -692,6 +699,7 @@ function setPaginaConsolidado() {
   ajustarControleOrdenacaoBancoHoras();
   renderizarCardsPorGuia();
   ajustarFiltroDataBancoHoras();
+  ajustarFiltroDataConsolidado();
   ajustarCardsBancoHoras();
   const ordemBox = qs("controleOrdenacaoBancoHoras");
   if (ordemBox) ordemBox.classList.add("hidden");
@@ -782,6 +790,21 @@ function ajustarFiltroDataBancoHoras() {
     if (typeof renderDatasDashboardSelecionadas === "function") {
       renderDatasDashboardSelecionadas();
     }
+  }
+}
+
+function ajustarFiltroDataConsolidado() {
+  const boxMulti = qs("boxMultiDateControl");
+  const boxRange = qs("boxDateRangeControl");
+  const isHes = paginaAtual === "hora_extra_simplificada";
+
+  if (boxMulti) {
+    boxMulti.classList.toggle("hidden", isHes);
+    boxMulti.style.display = isHes ? "none" : "";
+  }
+  if (boxRange) {
+    boxRange.classList.toggle("hidden", !isHes);
+    boxRange.style.display = isHes ? "flex" : "none";
   }
 }
 
@@ -4804,7 +4827,7 @@ function renderExtratoBancoHoras(rows) {
 }
 
 function limparFiltros() {
-  ["turno", "nome", "data", "tipoInconsistencia", "tipo", "filtroInconsistencia"].forEach(id => {
+  ["turno", "nome", "data", "dataInicio", "dataFim", "tipoInconsistencia", "tipo", "filtroInconsistencia"].forEach(id => {
     if (qs(id)) qs(id).value = "";
   });
   limparDatasFiltro();
@@ -4855,7 +4878,7 @@ async function carregarStatusBaseInicial() {
 
 
 document.addEventListener("DOMContentLoaded", () => {
-  ["turno", "nome", "data", "tipoInconsistencia", "tipo", "filtroInconsistencia"].forEach(id => {
+  ["turno", "nome", "data", "dataInicio", "dataFim", "tipoInconsistencia", "tipo", "filtroInconsistencia"].forEach(id => {
     const el = qs(id);
     if (el && !el.dataset.listenerPrincipalV81045) {
       el.dataset.listenerPrincipalV81045 = "1";

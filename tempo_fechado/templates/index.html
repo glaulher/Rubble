@@ -88,12 +88,24 @@
           <option value="">Todos os colaboradores</option>
         </select>
         <select id="turno"><option value="">Todos os turnos</option></select>
-        <div class="multi-date-control">
+        <div id="boxMultiDateControl" class="multi-date-control">
           <div class="multi-date-row">
             <input id="data" type="date" />
             <button type="button" class="btn secondary mini" onclick="adicionarDataFiltro()">+</button>
           </div>
           <div id="datasSelecionadas" class="date-chips"></div>
+        </div>
+        <div id="boxDateRangeControl" class="date-range-control hidden">
+          <div class="date-range-fields">
+            <div class="date-field">
+              <label for="dataInicio" class="date-label">Data Início</label>
+              <input id="dataInicio" type="date" />
+            </div>
+            <div class="date-field">
+              <label for="dataFim" class="date-label">Data Fim</label>
+              <input id="dataFim" type="date" />
+            </div>
+          </div>
         </div>
         <select id="filtroInconsistencia" style="display:none;">
           <option value="">Todas as inconsistências</option>
