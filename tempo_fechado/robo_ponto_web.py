@@ -3219,6 +3219,180 @@ def api_salvar_anotacoes_operacionais_lote_v82172():
     return jsonify({"ok": True, "atualizados": atualizados, "total": len(itens)})
 
 
+def _extrair_tabela_biff8_xls(ole_bytes):
+    import struct
+    if len(ole_bytes) < 512 or ole_bytes[:8] != b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1":
+        return []
+    try:
+        sec_size = 1 << struct.unpack_from("<H", ole_bytes, 30)[0]
+        short_sec_size = 1 << struct.unpack_from("<H", ole_bytes, 32)[0]
+        fat_count = struct.unpack_from("<I", ole_bytes, 44)[0]
+        dir_sec = struct.unpack_from("<I", ole_bytes, 48)[0]
+        ministream_cutoff = struct.unpack_from("<I", ole_bytes, 56)[0]
+        minifat_sec = struct.unpack_from("<I", ole_bytes, 60)[0]
+
+        fat_sectors = []
+        for i in range(min(fat_count, 109)):
+            sec = struct.unpack_from("<I", ole_bytes, 76 + i * 4)[0]
+            if sec < 0xFFFFFFFE:
+                fat_sectors.append(sec)
+
+        fat = []
+        for sec in fat_sectors:
+            offset = (sec + 1) * sec_size
+            entries = sec_size // 4
+            fat.extend(struct.unpack(f"<{entries}I", ole_bytes[offset:offset + sec_size]))
+
+        def get_chain(start_sec, fat_table, sector_size):
+            chain = []
+            curr = start_sec
+            while curr < 0xFFFFFFFE and curr < len(fat_table):
+                chain.append(curr)
+                curr = fat_table[curr]
+            data = bytearray()
+            for s in chain:
+                off = (s + 1) * sector_size
+                data.extend(ole_bytes[off:off + sector_size])
+            return bytes(data)
+
+        dir_data = get_chain(dir_sec, fat, sec_size)
+        root_entry = None
+        workbook_entry = None
+        for i in range(0, len(dir_data), 128):
+            entry = dir_data[i:i+128]
+            if len(entry) < 128:
+                break
+            name_len = struct.unpack_from("<H", entry, 64)[0]
+            if name_len == 0:
+                continue
+            name = entry[:name_len].decode("utf-16le", errors="ignore").rstrip("\x00")
+            entry_type = entry[66]
+            start_sec = struct.unpack_from("<I", entry, 116)[0]
+            size = struct.unpack_from("<I", entry, 120)[0]
+            if entry_type == 5:
+                root_entry = (start_sec, size)
+            elif name.lower() in ["workbook", "book"]:
+                workbook_entry = (start_sec, size)
+
+        if not workbook_entry:
+            return []
+
+        if workbook_entry[1] < ministream_cutoff and root_entry:
+            minifat_data = get_chain(minifat_sec, fat, sec_size)
+            minifat = list(struct.unpack(f"<{len(minifat_data)//4}I", minifat_data))
+            root_data = get_chain(root_entry[0], fat, sec_size)
+            chain = []
+            curr = workbook_entry[0]
+            while curr < 0xFFFFFFFE and curr < len(minifat):
+                chain.append(curr)
+                curr = minifat[curr]
+            wb_data = bytearray()
+            for s in chain:
+                off = s * short_sec_size
+                wb_data.extend(root_data[off:off + short_sec_size])
+            wb_stream = bytes(wb_data[:workbook_entry[1]])
+        else:
+            wb_data = get_chain(workbook_entry[0], fat, sec_size)
+            wb_stream = bytes(wb_data[:workbook_entry[1]])
+
+        pos = 0
+        sst = []
+        cells = {}
+        max_row = 0
+        max_col = 0
+        records = []
+
+        while pos < len(wb_stream) - 4:
+            rec_type, rec_len = struct.unpack_from("<HH", wb_stream, pos)
+            rec_data = wb_stream[pos+4:pos+4+rec_len]
+            pos += 4 + rec_len
+            records.append((rec_type, rec_data))
+
+        idx = 0
+        while idx < len(records):
+            rec_type, rec_data = records[idx]
+            idx += 1
+            if rec_type == 0x00FC: # SST
+                full_sst_data = bytearray(rec_data)
+                while idx < len(records) and records[idx][0] == 0x003C:
+                    full_sst_data.extend(records[idx][1])
+                    idx += 1
+                try:
+                    num_str, num_unique = struct.unpack_from("<II", full_sst_data, 0)
+                    spos = 8
+                    for _ in range(num_unique):
+                        if spos >= len(full_sst_data):
+                            break
+                        char_len = struct.unpack_from("<H", full_sst_data, spos)[0]
+                        flags = full_sst_data[spos+2]
+                        spos += 3
+                        is_utf16 = (flags & 0x01) != 0
+                        has_rich = (flags & 0x08) != 0
+                        has_ext = (flags & 0x04) != 0
+                        rich_runs = struct.unpack_from("<H", full_sst_data, spos)[0] if has_rich else 0
+                        if has_rich:
+                            spos += 2
+                        ext_len = struct.unpack_from("<I", full_sst_data, spos)[0] if has_ext else 0
+                        if has_ext:
+                            spos += 4
+                        byte_len = char_len * (2 if is_utf16 else 1)
+                        s_bytes = full_sst_data[spos:spos+byte_len]
+                        spos += byte_len
+                        s_text = s_bytes.decode("utf-16le" if is_utf16 else "latin-1", errors="ignore")
+                        if has_rich:
+                            spos += rich_runs * 4
+                        if has_ext:
+                            spos += ext_len
+                        sst.append(s_text)
+                except Exception:
+                    pass
+            elif rec_type == 0x00FD: # LABELSST
+                if len(rec_data) >= 10:
+                    row, col, xf, sst_idx = struct.unpack_from("<HHHI", rec_data, 0)
+                    val = sst[sst_idx] if sst_idx < len(sst) else ""
+                    cells[(row, col)] = val
+                    max_row = max(max_row, row)
+                    max_col = max(max_col, col)
+            elif rec_type == 0x0204: # LABEL
+                if len(rec_data) >= 8:
+                    row, col, xf, str_len = struct.unpack_from("<HHHH", rec_data, 0)
+                    flags = rec_data[8] if len(rec_data) > 8 else 0
+                    is_utf16 = (flags & 0x01) != 0
+                    s_bytes = rec_data[9:9 + str_len * (2 if is_utf16 else 1)]
+                    val = s_bytes.decode("utf-16le" if is_utf16 else "latin-1", errors="ignore")
+                    cells[(row, col)] = val
+                    max_row = max(max_row, row)
+                    max_col = max(max_col, col)
+            elif rec_type == 0x0203: # NUMBER
+                if len(rec_data) >= 14:
+                    row, col, xf = struct.unpack_from("<HHH", rec_data, 0)
+                    num = struct.unpack_from("<d", rec_data, 6)[0]
+                    cells[(row, col)] = str(int(num) if num.is_integer() else num)
+                    max_row = max(max_row, row)
+                    max_col = max(max_col, col)
+            elif rec_type == 0x027E: # RK
+                if len(rec_data) >= 10:
+                    row, col, xf, rk = struct.unpack_from("<HHHI", rec_data, 0)
+                    if rk & 0x02:
+                        val = rk >> 2
+                    else:
+                        val = struct.unpack("<d", struct.pack("<II", 0, rk & 0xFFFFFFFC))[0]
+                    if rk & 0x01:
+                        val /= 100.0
+                    cells[(row, col)] = str(int(val) if isinstance(val, float) and val.is_integer() else val)
+                    max_row = max(max_row, row)
+                    max_col = max(max_col, col)
+
+        rows = []
+        for r in range(max_row + 1):
+            row_vals = [cells.get((r, c), "") for c in range(max_col + 1)]
+            if any(str(v).strip() for v in row_vals):
+                rows.append(row_vals)
+        return rows
+    except Exception:
+        return []
+
+
 @app.route("/api/hora-extra-simplificada/upload-guia", methods=["POST"])
 @login_obrigatorio
 def api_upload_guia_hora_extra_simplificada_v82172():
@@ -3234,8 +3408,21 @@ def api_upload_guia_hora_extra_simplificada_v82172():
     linhas_tabela = []
 
     try:
-        # 1) OpenXML (.xlsx / .xlsm / PK zip header)
-        if conteudo_bytes[:4] == b"PK\x03\x04" or nome_arq.endswith(".xlsx") or nome_arq.endswith(".xlsm"):
+        # 1) Binary Excel 97-2003 (.xls BIFF8 / OLE2 header)
+        if conteudo_bytes[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" or (nome_arq.endswith(".xls") and not conteudo_bytes.startswith(b"PK") and not b"<" in conteudo_bytes[:50]):
+            linhas_tabela = _extrair_tabela_biff8_xls(conteudo_bytes)
+            if not linhas_tabela:
+                try:
+                    df_up = pd.read_excel(BytesIO(conteudo_bytes))
+                    linhas_tabela = [[str(c).strip() for c in df_up.columns.tolist()]] + [
+                        [str(v if v is not None and str(v).strip().lower() != "nan" else "").strip() for v in r]
+                        for r in df_up.fillna("").values.tolist()
+                    ]
+                except Exception:
+                    pass
+
+        # 2) OpenXML (.xlsx / .xlsm / PK zip header)
+        if not linhas_tabela and (conteudo_bytes[:4] == b"PK\x03\x04" or nome_arq.endswith(".xlsx") or nome_arq.endswith(".xlsm")):
             try:
                 if load_workbook is not None:
                     wb = load_workbook(BytesIO(conteudo_bytes), data_only=True)
@@ -3249,7 +3436,7 @@ def api_upload_guia_hora_extra_simplificada_v82172():
             except Exception:
                 pass
 
-        # 2) XML Spreadsheet 2003 (xmlns="urn:schemas-microsoft-com:office:spreadsheet" or <Workbook / <?xml)
+        # 3) XML Spreadsheet 2003 (xmlns="urn:schemas-microsoft-com:office:spreadsheet" or <Workbook / <?xml)
         if not linhas_tabela and (b"urn:schemas-microsoft-com:office:spreadsheet" in conteudo_bytes or b"<Workbook" in conteudo_bytes or b"<?xml" in conteudo_bytes):
             try:
                 import xml.etree.ElementTree as ET
@@ -3271,7 +3458,7 @@ def api_upload_guia_hora_extra_simplificada_v82172():
             except Exception:
                 pass
 
-        # 3) HTML Table (or text .xls containing <table>)
+        # 4) HTML Table (or text .xls containing <table>)
         texto = None
         if not linhas_tabela:
             for enc in ["utf-8-sig", "utf-8", "latin-1", "cp1252", "iso-8859-1"]:
@@ -3291,17 +3478,6 @@ def api_upload_guia_hora_extra_simplificada_v82172():
                         limpas = [html.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in celulas]
                         if any(limpas):
                             linhas_tabela.append(limpas)
-
-        # 4) Binary Excel 97-2003 (.xls BIFF8 / OLE2 header)
-        if not linhas_tabela and (conteudo_bytes[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" or nome_arq.endswith(".xls")):
-            try:
-                df_up = pd.read_excel(BytesIO(conteudo_bytes))
-                linhas_tabela = [[str(c).strip() for c in df_up.columns.tolist()]] + [
-                    [str(v if v is not None and str(v).strip().lower() != "nan" else "").strip() for v in r]
-                    for r in df_up.fillna("").values.tolist()
-                ]
-            except Exception:
-                pass
 
         # 5) CSV / TSV / Delimited text
         if not linhas_tabela:
