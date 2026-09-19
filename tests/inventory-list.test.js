@@ -541,7 +541,7 @@ describe("Inventory List — Controller & Logic (public/js/inventory/list.js)", 
       expect(downloadCsvCalls.length).toBe(1);
       var call = downloadCsvCalls[0];
       expect(call.filename).toBe("inventario_Strada.csv");
-      expect(call.header).toContain("ID;Categoria;Material / Descrição;Modelo;Serial / Placa;Técnico Responsável;Data de Retirada;Data de Devolução;Status;Observações");
+      expect(call.header).toContain("ID;Categoria;Material;Modelo;Serial ou Placa;Técnico Responsável;Data de Retirada;Data de Devolução;Status;Observações");
       expect(call.rows.length).toBe(1);
 
       var row = call.rows[0];
@@ -551,8 +551,8 @@ describe("Inventory List — Controller & Logic (public/js/inventory/list.js)", 
       expect(row[3]).toBe("1.4 Endurance");
       expect(row[4]).toBe("BRA2E19");
       expect(row[5]).toBe("Carlos Silva");
-      expect(row[6]).toBe("01/09/2026");
-      expect(row[7]).toBe("-");
+      expect(row[6]).toBe("2026-09-01");
+      expect(row[7]).toBe("");
       expect(row[8]).toBe("Em posse");
       expect(row[9]).toBe("Sem avarias");
     });

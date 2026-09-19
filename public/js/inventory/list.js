@@ -352,9 +352,9 @@ export async function exportInventoryCsv() {
     const header = [
       'ID',
       'Categoria',
-      'Material / Descrição',
+      'Material',
       'Modelo',
-      'Serial / Placa',
+      'Serial ou Placa',
       'Técnico Responsável',
       'Data de Retirada',
       'Data de Devolução',
@@ -365,7 +365,7 @@ export async function exportInventoryCsv() {
     const categoryLabels = {
       veiculo: 'Veículo',
       ferramenta: 'Ferramenta',
-      celular_ti: 'Celular / TI',
+      celular_ti: 'Celular TI',
       equipamento: 'Equipamento',
       outros: 'Outros',
     };
@@ -391,8 +391,8 @@ export async function exportInventoryCsv() {
           _sanitize(item.modelo || ''),
           _sanitize(item.serial || ''),
           _sanitize(item.tecnico_nome || ''),
-          _sanitize(formatDate(item.data_retirada) || ''),
-          _sanitize(formatDate(item.data_devolucao) || ''),
+          _sanitize(item.data_retirada || ''),
+          _sanitize(item.data_devolucao || ''),
           _sanitize(item.status === 'devolvido' ? 'Devolvido' : 'Em posse'),
           _sanitize(item.observacoes || ''),
         ]);
