@@ -207,16 +207,12 @@ describe('Inventory Integration — Router (public/js/router.js)', () => {
     expect(globalThis.loadInventoryForm).toHaveBeenCalled();
   });
 
-  it('routes #/inventario and #/inventarioForm Portuguese aliases correctly', async () => {
-    window.location.hash = '#/inventario';
+  it('routes #inventoryForm (without leading slash) to form view and executes loadInventoryForm', async () => {
+    window.location.hash = '#inventoryForm';
     await globalThis.router();
-    expect(fetchMock.mock.calls[0][0]).toContain('/app/Views/inventory/list.html');
-    expect(globalThis.initInventoryList).toHaveBeenCalled();
 
-    fetchMock.mockClear();
-    window.location.hash = '#/inventarioForm';
-    await globalThis.router();
-    expect(fetchMock.mock.calls[0][0]).toContain('/app/Views/inventory/form.html');
+    const calledUrl = fetchMock.mock.calls[0][0];
+    expect(calledUrl).toContain('/app/Views/inventory/form.html');
     expect(globalThis.loadInventoryForm).toHaveBeenCalled();
   });
 

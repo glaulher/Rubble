@@ -200,24 +200,14 @@ export async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/pdf-audit/audit.html?v=" + VIEW_VERSION);
-  } else if (
-    hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm") ||
-    hash.startsWith("#/inventarioForm") || hash.startsWith("#inventarioForm")
-  ) {
+  } else if (hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm")) {
     /*
     |--------------------------------------------------------------------------
     | INVENTORY FORM
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/inventory/form.html?v=" + VIEW_VERSION);
-  } else if (
-    hash === "#/inventory" || hash === "#inventory" ||
-    hash.startsWith("#/inventory?") || hash.startsWith("#inventory?") ||
-    hash === "#/inventory/" || hash === "#inventory/" ||
-    hash === "#/inventario" || hash === "#inventario" ||
-    hash.startsWith("#/inventario?") || hash.startsWith("#inventario?") ||
-    hash === "#/inventario/" || hash === "#inventario/"
-  ) {
+  } else if (hash === "#/inventory" || hash === "#inventory" || hash.startsWith("#/inventory?") || hash.startsWith("#inventory?")) {
     /*
     |--------------------------------------------------------------------------
     | INVENTORY LIST
@@ -288,19 +278,9 @@ export async function router() {
       initFilters();
     } else if (hash === "#/pdf-audit") {
       initPdfAudit();
-    } else if (
-      hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm") ||
-      hash.startsWith("#/inventarioForm") || hash.startsWith("#inventarioForm")
-    ) {
+    } else if (hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm")) {
       loadInventoryForm();
-    } else if (
-      hash === "#/inventory" || hash === "#inventory" ||
-      hash.startsWith("#/inventory?") || hash.startsWith("#inventory?") ||
-      hash === "#/inventory/" || hash === "#inventory/" ||
-      hash === "#/inventario" || hash === "#inventario" ||
-      hash.startsWith("#/inventario?") || hash.startsWith("#inventario?") ||
-      hash === "#/inventario/" || hash === "#inventario/"
-    ) {
+    } else if (hash === "#/inventory" || hash === "#inventory" || hash.startsWith("#/inventory?") || hash.startsWith("#inventory?")) {
       initInventoryList();
     } else if (hash === "#/login") {
       initLogin();
