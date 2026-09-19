@@ -21,10 +21,12 @@ class InventoryController
         $action = $_GET['action'] ?? null;
 
         if ($method === 'GET') {
-            if ($action === 'get' || (isset($_GET['id']) && $action !== 'technicians')) {
+            if ($action === 'get' || (isset($_GET['id']) && $action !== 'technicians' && $action !== 'export-csv')) {
                 $this->get();
             } elseif ($action === 'technicians') {
                 $this->technicians();
+            } elseif ($action === 'export-csv') {
+                $this->exportCsv();
             } else {
                 $this->list();
             }
@@ -67,6 +69,18 @@ class InventoryController
     public function technicians(): void
     {
         $res = $this->service->getTechnicians();
+        Response::json($res);
+    }
+
+    public function exportCsv(): void
+    {
+        $filters = [
+            'search' => $_GET['search'] ?? '',
+            'status' => $_GET['status'] ?? '',
+            'categoria' => $_GET['categoria'] ?? ''
+        ];
+        $limit = max(1, min(10000, (int)($_GET['limit'] ?? 10000)));
+        $res = $this->service->list($filters, $limit, 0);
         Response::json($res);
     }
 

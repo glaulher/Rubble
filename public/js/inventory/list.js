@@ -1,8 +1,9 @@
 import { createInfiniteScroll } from '/public/js/components/infinite-scroll.js';
 import { showToast, confirmDelete } from '/public/js/core/dom.js';
-import { escapeHtml } from '/public/js/core/utils.js';
+import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
 import { getUser } from '/public/js/core/auth.js';
 import { iconButtonHtml } from '/public/js/components/button.js';
+import { downloadCSV } from '/public/js/utils/csv.js';
 
 let inventoryList = [];
 let inventorySearch = '';
@@ -66,6 +67,9 @@ export async function initInventoryList() {
   const searchInput = document.getElementById('inventorySearchInput');
   if (searchInput) searchInput.value = '';
 
+  const statusSelect = document.getElementById('inventoryStatusFilter');
+  if (statusSelect) statusSelect.value = '';
+
   const categorySelect = document.getElementById('inventoryCategoryFilter');
   if (categorySelect) categorySelect.value = '';
 
@@ -86,6 +90,12 @@ export async function initInventoryList() {
   if (btnNew) {
     btnNew.removeEventListener('click', navigateInventoryForm);
     btnNew.addEventListener('click', navigateInventoryForm);
+  }
+
+  const csvBtn = document.querySelector('[data-action="generate-csv"]') || document.getElementById('btnInventoryCsv');
+  if (csvBtn) {
+    csvBtn.removeEventListener('click', exportInventoryCsv);
+    csvBtn.addEventListener('click', exportInventoryCsv);
   }
 
   const tbody = document.getElementById('inventoryTableBody');
@@ -255,6 +265,10 @@ export function setupInventorySearch() {
 
 export function setStatusFilter(status) {
   inventoryStatus = status;
+  const statusSelect = document.getElementById('inventoryStatusFilter');
+  if (statusSelect && statusSelect.value !== (status || '')) {
+    statusSelect.value = status || '';
+  }
   const pillGroup = document.getElementById('inventoryStatusPills');
   if (pillGroup) {
     const buttons = pillGroup.querySelectorAll('.status-pill');
@@ -286,6 +300,14 @@ export function setCategoryFilter(category) {
 }
 
 export function setupInventoryFilters() {
+  const statusSelect = document.getElementById('inventoryStatusFilter');
+  if (statusSelect && !statusSelect._filtersInitialized) {
+    statusSelect._filtersInitialized = true;
+    statusSelect.addEventListener('change', function () {
+      setStatusFilter(this.value);
+    });
+  }
+
   const pillGroup = document.getElementById('inventoryStatusPills');
   if (pillGroup && !pillGroup._filtersInitialized) {
     pillGroup._filtersInitialized = true;
@@ -302,6 +324,89 @@ export function setupInventoryFilters() {
     categorySelect.addEventListener('change', function () {
       setCategoryFilter(this.value);
     });
+  }
+}
+
+export async function exportInventoryCsv() {
+  try {
+    if (typeof showToast === 'function') {
+      showToast('Exportando CSV...', 'info');
+    }
+
+    let url = '/app/api/index.php?route=inventory&action=export-csv';
+    if (inventorySearch) url += '&search=' + encodeURIComponent(inventorySearch);
+    if (inventoryStatus) url += '&status=' + encodeURIComponent(inventoryStatus);
+    if (inventoryCategory) url += '&categoria=' + encodeURIComponent(inventoryCategory);
+
+    const resp = await fetch(url);
+    const result = await resp.json();
+    const items = (result && result.data) || [];
+
+    if (!items || items.length === 0) {
+      if (typeof showToast === 'function') {
+        showToast('Nenhum dado encontrado para exportar', 'error');
+      }
+      return;
+    }
+
+    const header = [
+      'ID',
+      'Categoria',
+      'Material / Descrição',
+      'Modelo',
+      'Serial / Placa',
+      'Técnico Responsável',
+      'Data de Retirada',
+      'Data de Devolução',
+      'Status',
+      'Observações',
+    ].join(';');
+
+    const categoryLabels = {
+      veiculo: 'Veículo',
+      ferramenta: 'Ferramenta',
+      celular_ti: 'Celular / TI',
+      equipamento: 'Equipamento',
+      outros: 'Outros',
+    };
+
+    const _sanitize = typeof sanitizeCSV === 'function' ? sanitizeCSV : (typeof globalThis !== 'undefined' && typeof globalThis.sanitizeCSV === 'function' ? globalThis.sanitizeCSV : (v => (v == null ? '' : String(v))));
+    const _download = typeof downloadCSV === 'function' ? downloadCSV : (typeof globalThis !== 'undefined' && typeof globalThis.downloadCSV === 'function' ? globalThis.downloadCSV : null);
+
+    if (typeof _download !== 'function') {
+      console.error('downloadCSV function not available');
+      return;
+    }
+
+    const fileName = inventorySearch && inventorySearch.trim() !== ''
+      ? 'inventario_' + _sanitize(inventorySearch.trim()).replace(/\s+/g, '_') + '.csv'
+      : 'inventario.csv';
+
+    _download(fileName, header, function (addRow) {
+      items.forEach(function (item) {
+        addRow([
+          _sanitize(item.id),
+          _sanitize(categoryLabels[item.categoria] || item.categoria || ''),
+          _sanitize(item.material_nome || ''),
+          _sanitize(item.modelo || ''),
+          _sanitize(item.serial || ''),
+          _sanitize(item.tecnico_nome || ''),
+          _sanitize(formatDate(item.data_retirada) || ''),
+          _sanitize(formatDate(item.data_devolucao) || ''),
+          _sanitize(item.status === 'devolvido' ? 'Devolvido' : 'Em posse'),
+          _sanitize(item.observacoes || ''),
+        ]);
+      });
+    });
+
+    if (typeof showToast === 'function') {
+      showToast('CSV exportado com sucesso: ' + items.length + ' registros', 'success');
+    }
+  } catch (e) {
+    console.error('Erro ao exportar CSV', e);
+    if (typeof showToast === 'function') {
+      showToast('Erro ao exportar CSV', 'error');
+    }
   }
 }
 
@@ -351,4 +456,5 @@ if (typeof globalThis !== 'undefined') {
     set: function (v) { inventoryCategory = v; },
     configurable: true,
   });
+  globalThis.exportInventoryCsv = exportInventoryCsv;
 }

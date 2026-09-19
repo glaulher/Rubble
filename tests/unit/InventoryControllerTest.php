@@ -509,4 +509,41 @@ class InventoryControllerTest extends TestCase
         $this->assertArrayHasKey('PUT', $limits['inventory']);
         $this->assertArrayHasKey('DELETE', $limits['inventory']);
     }
+
+    public function testExportCsvActionReturnsFilteredItems(): void
+    {
+        $_GET['action'] = 'export-csv';
+        $_GET['search'] = 'Strada';
+        $_GET['status'] = 'em_posse';
+        $_GET['categoria'] = 'veiculo';
+
+        $expectedFilters = [
+            'search' => 'Strada',
+            'status' => 'em_posse',
+            'categoria' => 'veiculo'
+        ];
+
+        $service = $this->createMockService();
+        $service->expects($this->once())
+            ->method('list')
+            ->with($expectedFilters, 10000, 0)
+            ->willReturn([
+                'success' => true,
+                'data' => [
+                    ['id' => 1, 'material_nome' => 'Fiat Strada', 'serial' => 'BRA2E19']
+                ],
+                'total' => 1
+            ]);
+
+        $controller = new InventoryController($service);
+
+        ob_start();
+        $controller->handle('GET');
+        $output = ob_get_clean();
+
+        $json = json_decode($output, true);
+        $this->assertTrue($json['success']);
+        $this->assertCount(1, $json['data']);
+        $this->assertEquals('Fiat Strada', $json['data'][0]['material_nome']);
+    }
 }

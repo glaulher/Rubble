@@ -75,6 +75,20 @@ globalThis.getUser = function () {
   return { id: 1, role: "admin", nome: "Admin" };
 };
 
+var downloadCsvCalls = [];
+globalThis.downloadCSV = function (filename, header, rowBuilder) {
+  var rows = [];
+  rowBuilder((cells) => {
+    rows.push(cells);
+  });
+  downloadCsvCalls.push({ filename, header, rows });
+};
+
+globalThis.sanitizeCSV = function (val) {
+  if (val === null || val === undefined) return "";
+  return String(val).replace(/;/g, ",").replace(/\n/g, " ").replace(/\r/g, " ").replace(/"/g, "'").trim();
+};
+
 describe("Inventory List — View (app/Views/inventory/list.html)", function () {
   beforeEach(function () {
     document.body.innerHTML = htmlContent;
@@ -124,6 +138,28 @@ describe("Inventory List — View (app/Views/inventory/list.html)", function () 
 
     var statuses = Array.from(pills).map((p) => p.dataset.status);
     expect(statuses).toEqual(["", "em_posse", "devolvido"]);
+  });
+
+  it("contains status filter select with expected options", function () {
+    var select = document.getElementById("inventoryStatusFilter");
+    expect(select).not.toBeNull();
+    var options = Array.from(select.options).map((o) => o.value);
+    expect(options).toEqual(["", "em_posse", "devolvido"]);
+  });
+
+  it("contains CSV download button with file SVG, tooltip, and pastel emerald palette", function () {
+    var csvBtn = document.querySelector('[data-action="generate-csv"]');
+    expect(csvBtn).not.toBeNull();
+    expect(csvBtn.className).toContain("bg-emerald-300");
+    expect(csvBtn.className).toContain("text-emerald-800");
+    expect(csvBtn.className).not.toContain("shadow-lg");
+
+    var svg = csvBtn.querySelector("svg");
+    expect(svg).not.toBeNull();
+
+    var tooltip = csvBtn.parentElement.querySelector("span");
+    expect(tooltip).not.toBeNull();
+    expect(tooltip.textContent.trim()).toBe("Gerar relatório CSV");
   });
 
   it("contains category filter select with expected categories", function () {
@@ -461,6 +497,79 @@ describe("Inventory List — Controller & Logic (public/js/inventory/list.js)", 
       expect(toastCalls.length).toBe(1);
       expect(toastCalls[0].type).toBe("error");
       expect(toastCalls[0].msg).toBe("Falha ao excluir item.");
+    });
+  });
+
+  describe("exportInventoryCsv", function () {
+    it("fetches filtered items and calls downloadCSV with formatted rows", async function () {
+      downloadCsvCalls = [];
+      globalThis.inventorySearch = "Strada";
+      globalThis.inventoryStatus = "em_posse";
+      globalThis.inventoryCategory = "veiculo";
+
+      var calledUrl = "";
+      globalThis.fetch = async function (url) {
+        calledUrl = url;
+        return {
+          json: async () => ({
+            success: true,
+            data: [
+              {
+                id: 1,
+                categoria: "veiculo",
+                material_nome: "Fiat Strada",
+                modelo: "1.4 Endurance",
+                serial: "BRA2E19",
+                tecnico_nome: "Carlos Silva",
+                data_retirada: "2026-09-01",
+                data_devolucao: null,
+                status: "em_posse",
+                observacoes: "Sem avarias",
+              },
+            ],
+          }),
+        };
+      };
+
+      await globalThis.exportInventoryCsv();
+
+      expect(calledUrl).toContain("action=export-csv");
+      expect(calledUrl).toContain("search=Strada");
+      expect(calledUrl).toContain("status=em_posse");
+      expect(calledUrl).toContain("categoria=veiculo");
+
+      expect(downloadCsvCalls.length).toBe(1);
+      var call = downloadCsvCalls[0];
+      expect(call.filename).toBe("inventario_Strada.csv");
+      expect(call.header).toContain("ID;Categoria;Material / Descrição;Modelo;Serial / Placa;Técnico Responsável;Data de Retirada;Data de Devolução;Status;Observações");
+      expect(call.rows.length).toBe(1);
+
+      var row = call.rows[0];
+      expect(row[0]).toBe("1");
+      expect(row[1]).toBe("Veículo");
+      expect(row[2]).toBe("Fiat Strada");
+      expect(row[3]).toBe("1.4 Endurance");
+      expect(row[4]).toBe("BRA2E19");
+      expect(row[5]).toBe("Carlos Silva");
+      expect(row[6]).toBe("01/09/2026");
+      expect(row[7]).toBe("-");
+      expect(row[8]).toBe("Em posse");
+      expect(row[9]).toBe("Sem avarias");
+    });
+
+    it("shows error toast if no items found to export", async function () {
+      downloadCsvCalls = [];
+      toastCalls = [];
+      globalThis.fetch = async function () {
+        return {
+          json: async () => ({ success: true, data: [] }),
+        };
+      };
+
+      await globalThis.exportInventoryCsv();
+
+      expect(downloadCsvCalls.length).toBe(0);
+      expect(toastCalls.some((t) => t.type === "error" && t.msg.includes("Nenhum dado"))).toBe(true);
     });
   });
 
