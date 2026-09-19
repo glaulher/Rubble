@@ -16,6 +16,7 @@ class RateLimitMiddleware
         'preventive-cycle'     => ['POST' => 10],
         'auth'                 => ['POST' => 5],
         'planned-activities'   => ['POST' => 10, 'DELETE' => 10],
+        'inventory'            => ['POST' => 10, 'PUT' => 10, 'DELETE' => 10],
     ];
 
     public function handle(string $route, string $method): void

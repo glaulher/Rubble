@@ -12,7 +12,7 @@ use App\Api\Controllers\{
     PvController, UserController, ScmController, PreventiveCycleController,
     UploadController, EmailController, ExportController, PdfAuditController,
     PlannedActivityController, PreventivaController, FilterExchangeController,
-    PendingTicketsController, PreventivaDashboardController
+    PendingTicketsController, PreventivaDashboardController, InventoryController
 };
 Env::load(__DIR__ . '/../../.env');
 
@@ -400,6 +400,29 @@ $router->addRoute('pdf-audit', 'GET', function () use ($auth) {
     } else {
         Response::error('Ação não encontrada', 404);
     }
+});
+
+// Inventory
+$router->addRoute('inventory', 'GET', function () use ($auth) {
+    $repo = new \App\Api\Repositories\InventoryRepository();
+    $service = new \App\Api\Services\InventoryService($repo);
+    $controller = new InventoryController($service);
+    $controller->handle('GET', $auth->getUser());
+})->addRoute('inventory', 'POST', function () use ($auth) {
+    $repo = new \App\Api\Repositories\InventoryRepository();
+    $service = new \App\Api\Services\InventoryService($repo);
+    $controller = new InventoryController($service);
+    $controller->handle('POST', $auth->getUser());
+})->addRoute('inventory', 'PUT', function () use ($auth) {
+    $repo = new \App\Api\Repositories\InventoryRepository();
+    $service = new \App\Api\Services\InventoryService($repo);
+    $controller = new InventoryController($service);
+    $controller->handle('PUT', $auth->getUser());
+})->addRoute('inventory', 'DELETE', function () use ($auth) {
+    $repo = new \App\Api\Repositories\InventoryRepository();
+    $service = new \App\Api\Services\InventoryService($repo);
+    $controller = new InventoryController($service);
+    $controller->handle('DELETE', $auth->getUser());
 });
 
 // Dispatch

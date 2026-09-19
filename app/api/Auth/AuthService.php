@@ -104,12 +104,12 @@ class AuthService
 
         $rolePermissions = [
             'supervisor' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'locals', 'notify', 'auth', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
-                'write' => ['equipment', 'tickets', 'pending-tickets', 'filter-exchanges'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'locals', 'notify', 'auth', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory'],
+                'write' => ['equipment', 'tickets', 'pending-tickets', 'filter-exchanges', 'inventory'],
             ],
             'coordenador' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
-                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities', 'preventiva', 'pending-tickets', 'filter-exchanges'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory'],
+                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities', 'preventiva', 'pending-tickets', 'filter-exchanges', 'inventory'],
             ],
             'administrativo' => [
                 'read' => ['pdf-audit', 'auth', 'os-dashboard', 'planned-activities', 'pending-tickets', 'filter-exchanges'],

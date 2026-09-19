@@ -10,8 +10,24 @@ class Request
     |--------------------------------------------------------------------------
     */
 
+    private static ?array $mockBody = null;
+
+    public static function setMockBody(?array $body): void
+    {
+        self::$mockBody = $body;
+    }
+
+    public static function getBody(): array
+    {
+        return self::body();
+    }
+
     public static function body(): array
     {
+        if (self::$mockBody !== null) {
+            return self::$mockBody;
+        }
+
         $json =
             file_get_contents('php://input');
 
