@@ -768,6 +768,29 @@ CREATE TABLE IF NOT EXISTS `email_processed` (
   `processed_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `uk_email_mailbox_uid` (`mailbox`, `uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- inventario — Custódia e controle de ferramentas, veículos e equipamentos
+CREATE TABLE IF NOT EXISTS `inventario` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `categoria` enum('veiculo','ferramenta','celular_ti','equipamento','outros') NOT NULL DEFAULT 'ferramenta',
+  `tecnico_nome` varchar(100) NOT NULL,
+  `material_nome` varchar(150) NOT NULL,
+  `modelo` varchar(100) NOT NULL,
+  `serial` varchar(100) NOT NULL,
+  `data_retirada` date NOT NULL,
+  `data_devolucao` date DEFAULT NULL,
+  `status` enum('em_posse','devolvido') NOT NULL DEFAULT 'em_posse',
+  `observacoes` text DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_inventario_status` (`status`),
+  KEY `idx_inventario_categoria` (`categoria`),
+  KEY `idx_inventario_tecnico` (`tecnico_nome`),
+  KEY `idx_inventario_serial` (`serial`),
+  CONSTRAINT `fk_inventario_created_by` FOREIGN KEY (`created_by`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
