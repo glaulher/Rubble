@@ -1,0 +1,114 @@
+<div class="min-h-screen dark-gradient" style="background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);">
+  <!-- SUB-HEADER -->
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-2 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]" id="inventoryFormTitle">Novo Registro de Inventário</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5" id="inventoryFormSubtitle">Cadastrar material, ferramenta, celular ou veículo sob custódia</p>
+      </div>
+      <div>
+        <button type="button" data-action="navigate-inventory" id="btnBackInventory"
+          class="inline-flex items-center gap-1.5 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 font-medium px-4 py-2.5 rounded-xl text-sm transition cursor-pointer">
+          ← Voltar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CARD FORM -->
+  <main class="max-w-2xl mx-auto p-6">
+    <div class="bg-white dark:bg-[#1a1f2e] rounded-3xl shadow-xl border border-slate-200 dark:border-[#2d3548] overflow-hidden">
+      <form id="inventoryForm" class="p-6 sm:p-8 space-y-6">
+        <input type="hidden" id="inventoryId" />
+
+        <!-- Categoria -->
+        <div>
+          <label for="inventoryCategoria" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Categoria *</label>
+          <select id="inventoryCategoria" required
+            class="w-full rounded-xl border border-slate-300 dark:border-[#3b4459] bg-white dark:bg-[#131824] text-slate-800 dark:text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            <option value="veiculo">Veículo</option>
+            <option value="ferramenta" selected>Ferramenta</option>
+            <option value="celular_ti">Celular / TI</option>
+            <option value="equipamento">Equipamento</option>
+            <option value="outros">Outros</option>
+          </select>
+        </div>
+
+        <!-- Técnico Responsável com Autocomplete -->
+        <div class="relative">
+          <label for="inventoryTecnicoNome" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Técnico Responsável *</label>
+          <div class="relative">
+            <input type="text" id="inventoryTecnicoNome" required autocomplete="off"
+              class="w-full rounded-xl border border-slate-300 dark:border-[#3b4459] bg-white dark:bg-[#131824] text-slate-800 dark:text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Digite o nome do técnico..." />
+            <div id="inventoryTecnicoDropdown"
+              class="autocomplete-dropdown hidden absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-[#1a1f2e] border border-slate-200 dark:border-[#2d3548] rounded-xl shadow-lg z-50 divide-y divide-slate-100 dark:divide-slate-800">
+            </div>
+          </div>
+          <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Selecione na lista ou digite um novo nome.</p>
+        </div>
+
+        <!-- Material / Veículo & Modelo -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="inventoryMaterialNome" id="labelMaterialNome" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Material / Veículo *</label>
+            <input type="text" id="inventoryMaterialNome" required
+              class="w-full rounded-xl border border-slate-300 dark:border-[#3b4459] bg-white dark:bg-[#131824] text-slate-800 dark:text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ex: Fiat Strada, Furadeira de Impacto" />
+          </div>
+
+          <div>
+            <label for="inventoryModelo" id="labelModelo" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Modelo *</label>
+            <input type="text" id="inventoryModelo" required
+              class="w-full rounded-xl border border-slate-300 dark:border-[#3b4459] bg-white dark:bg-[#131824] text-slate-800 dark:text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ex: 1.4 Endurance, GSB 13 RE" />
+          </div>
+        </div>
+
+        <!-- Serial / Placa -->
+        <div>
+          <label for="inventorySerial" id="labelSerial" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Serial / Placa *</label>
+          <input type="text" id="inventorySerial" required
+            class="w-full rounded-xl border border-slate-300 dark:border-[#3b4459] bg-white dark:bg-[#131824] text-slate-800 dark:text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+            placeholder="Ex: BRA-2E19 ou SN123456" />
+        </div>
+
+        <!-- Datas de Retirada e Devolução -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="inventoryDataRetirada" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Data de Retirada *</label>
+            <input type="date" id="inventoryDataRetirada" required
+              class="w-full rounded-xl border border-slate-300 dark:border-[#3b4459] bg-white dark:bg-[#131824] text-slate-800 dark:text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer" />
+          </div>
+
+          <div>
+            <label for="inventoryDataDevolucao" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Data de Devolução (Opcional)</label>
+            <input type="date" id="inventoryDataDevolucao"
+              class="w-full rounded-xl border border-slate-300 dark:border-[#3b4459] bg-white dark:bg-[#131824] text-slate-800 dark:text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer" />
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Deixe em branco se o item ainda estiver em posse.</p>
+          </div>
+        </div>
+
+        <!-- Observações -->
+        <div>
+          <label for="inventoryObservacoes" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Observações</label>
+          <textarea id="inventoryObservacoes" rows="3"
+            class="w-full rounded-xl border border-slate-300 dark:border-[#3b4459] bg-white dark:bg-[#131824] text-slate-800 dark:text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Estado de conservação, quilometragem, acessórios inclusos, etc."></textarea>
+        </div>
+
+        <!-- Ações do Formulário -->
+        <div class="flex gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <button type="button" data-action="navigate-inventory" id="inventoryFormCancel"
+            class="flex-1 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 py-3 rounded-xl font-medium transition cursor-pointer text-center">
+            Cancelar
+          </button>
+          <button type="submit" id="inventoryFormSubmit"
+            class="flex-1 bg-blue-300 hover:bg-blue-400 active:bg-blue-500 text-blue-800 py-3 rounded-xl font-medium transition cursor-pointer text-center">
+            Salvar Registro
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
