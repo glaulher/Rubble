@@ -20,10 +20,12 @@ import { initFilters } from '/public/js/filter-exchanges/list.js';
 import { initPdfAudit } from '/public/js/pdf-audit/audit.js';
 import { initEquipamentDashboard } from '/public/js/equipment/dashboard.js';
 import { initPreventivaDashboard } from '/public/js/preventiva/dashboard.js';
+import { initInventoryList } from '/public/js/inventory/list.js';
+import { loadInventoryForm } from '/public/js/inventory/form.js';
 
 const VIEW_VERSION = 38;
 
-async function loadPage(url) {
+export async function loadPage(url) {
   try {
     const response = await fetch(url);
 
@@ -39,7 +41,7 @@ async function loadPage(url) {
   }
 }
 
-async function router() {
+export async function router() {
   PollingManager.stopAll();
 
   const hash = window.location.hash;
@@ -198,6 +200,20 @@ async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/pdf-audit/audit.html?v=" + VIEW_VERSION);
+  } else if (hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm")) {
+    /*
+    |--------------------------------------------------------------------------
+    | INVENTORY FORM
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/inventory/form.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/inventory" || hash === "#inventory" || hash.startsWith("#/inventory?") || hash.startsWith("#inventory?")) {
+    /*
+    |--------------------------------------------------------------------------
+    | INVENTORY LIST
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/inventory/list.html?v=" + VIEW_VERSION);
   } else if (hash === "#/login") {
     html = await loadPage("/app/Views/auth/login.html?v=" + VIEW_VERSION);
   } else {
@@ -262,6 +278,10 @@ async function router() {
       initFilters();
     } else if (hash === "#/pdf-audit") {
       initPdfAudit();
+    } else if (hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm")) {
+      loadInventoryForm();
+    } else if (hash === "#/inventory" || hash === "#inventory" || hash.startsWith("#/inventory?") || hash.startsWith("#inventory?")) {
+      initInventoryList();
     } else if (hash === "#/login") {
       initLogin();
     } else {
