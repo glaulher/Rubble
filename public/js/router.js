@@ -23,7 +23,7 @@ import { initPreventivaDashboard } from '/public/js/preventiva/dashboard.js';
 import { initInventoryList } from '/public/js/inventory/list.js';
 import { loadInventoryForm } from '/public/js/inventory/form.js';
 
-const VIEW_VERSION = 38;
+const VIEW_VERSION = 39;
 
 export async function loadPage(url) {
   try {
@@ -200,14 +200,24 @@ export async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/pdf-audit/audit.html?v=" + VIEW_VERSION);
-  } else if (hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm")) {
+  } else if (
+    hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm") ||
+    hash.startsWith("#/inventarioForm") || hash.startsWith("#inventarioForm")
+  ) {
     /*
     |--------------------------------------------------------------------------
     | INVENTORY FORM
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/inventory/form.html?v=" + VIEW_VERSION);
-  } else if (hash === "#/inventory" || hash === "#inventory" || hash.startsWith("#/inventory?") || hash.startsWith("#inventory?")) {
+  } else if (
+    hash === "#/inventory" || hash === "#inventory" ||
+    hash.startsWith("#/inventory?") || hash.startsWith("#inventory?") ||
+    hash === "#/inventory/" || hash === "#inventory/" ||
+    hash === "#/inventario" || hash === "#inventario" ||
+    hash.startsWith("#/inventario?") || hash.startsWith("#inventario?") ||
+    hash === "#/inventario/" || hash === "#inventario/"
+  ) {
     /*
     |--------------------------------------------------------------------------
     | INVENTORY LIST
@@ -278,9 +288,19 @@ export async function router() {
       initFilters();
     } else if (hash === "#/pdf-audit") {
       initPdfAudit();
-    } else if (hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm")) {
+    } else if (
+      hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm") ||
+      hash.startsWith("#/inventarioForm") || hash.startsWith("#inventarioForm")
+    ) {
       loadInventoryForm();
-    } else if (hash === "#/inventory" || hash === "#inventory" || hash.startsWith("#/inventory?") || hash.startsWith("#inventory?")) {
+    } else if (
+      hash === "#/inventory" || hash === "#inventory" ||
+      hash.startsWith("#/inventory?") || hash.startsWith("#inventory?") ||
+      hash === "#/inventory/" || hash === "#inventory/" ||
+      hash === "#/inventario" || hash === "#inventario" ||
+      hash.startsWith("#/inventario?") || hash.startsWith("#inventario?") ||
+      hash === "#/inventario/" || hash === "#inventario/"
+    ) {
       initInventoryList();
     } else if (hash === "#/login") {
       initLogin();
