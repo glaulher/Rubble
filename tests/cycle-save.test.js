@@ -85,3 +85,37 @@ describe("preventive-cycle _cycleCollectSaveItems", function () {
       .toEqual({ equipamento_id: 3, checked: false, observacao: null, scm_number: null });
   });
 });
+
+describe("preventive-cycle _cycleRenderScmBadge", function () {
+  it("renders 'SCM em aberto' badge with amber color when SCM number is not found", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/preventive-cycle/list.js',
+      'globalThis.__renderScmBadge = _cycleRenderScmBadge;');
+
+    var badgeEl = document.createElement('span');
+    globalThis.__renderScmBadge({ found: false }, badgeEl);
+
+    expect(badgeEl.innerHTML).toContain('SCM em aberto');
+    expect(badgeEl.innerHTML).toContain('bg-amber-100');
+    expect(badgeEl.innerHTML).toContain('text-amber-700');
+    expect(badgeEl.innerHTML).not.toContain('SCM sem número correspondente');
+  });
+
+  it("renders status badge when SCM is found and valid", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/preventive-cycle/list.js',
+      'globalThis.__renderScmBadge = _cycleRenderScmBadge;');
+
+    var badgeEl = document.createElement('span');
+    globalThis.__renderScmBadge({
+      found: true,
+      status: 'SCM aprovado',
+      segmento: 'preventiva on going',
+      origem: 'varejo',
+      mercado_equipamento: 'varejo'
+    }, badgeEl);
+
+    expect(badgeEl.innerHTML).toContain('SCM aprovado');
+    expect(badgeEl.innerHTML).toContain('bg-emerald-100');
+  });
+});

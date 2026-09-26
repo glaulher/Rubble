@@ -18,6 +18,7 @@ var _cycleScmStatusColors = {
     'SCM negado': 'bg-red-100 text-red-700',
     'SCM verificado': 'bg-blue-100 text-blue-800',
     'SCM enviado': 'bg-purple-100 text-purple-700',
+    'SCM em aberto': 'bg-amber-100 text-amber-700',
 };
 var _cycleScmValidationCache = {};
 var _cycleSummaryData = null;
@@ -374,7 +375,7 @@ export function _cycleValidateScm(scmNumber, equipId, badgeEl) {
 
 export function _cycleRenderScmBadge(data, badgeEl) {
     if (!data.found) {
-        badgeEl.innerHTML = '<span class="inline-flex items-center bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">SCM sem n&uacute;mero correspondente</span>';
+        badgeEl.innerHTML = '<span class="inline-flex items-center bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full">SCM em aberto</span>';
         return;
     }
     var segmento = (data.segmento || '').toLowerCase();
