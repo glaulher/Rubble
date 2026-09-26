@@ -223,7 +223,14 @@ class PreventiveCycleRepository extends BaseRepository
                 WHERE e.equipamento != ? AND e.local != ?
                 {$obsFilter}
                 {$scmFilter}
-                {$scmStatusFilter}";
+                {$scmStatusFilter}
+                AND NOT EXISTS (
+                    SELECT 1 FROM scm s_neg
+                    WHERE pci.scm_number IS NOT NULL
+                      AND pci.scm_number != ''
+                      AND s_neg.scm = pci.scm_number
+                      AND LOWER(TRIM(s_neg.status)) = 'scm negado'
+                )";
         $params = array_merge([$ciclo, $excludedEquipment, $excludedLocation], $scmStatusParams);
         $types = 'sss' . str_repeat('s', count($scmStatusParams));
         $stmt = $this->safePrepare($sql);

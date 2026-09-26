@@ -67,6 +67,33 @@ class PreventiveCycleSaveBatchTest extends TestCase
         $this->assertSame('SCM-TEST', $row['scm_number']);
     }
 
+    public function testSummaryExcludesScmNegado(): void
+    {
+        $repo = new PreventiveCycleRepository();
+
+        $this->conn->query("DELETE FROM scm WHERE scm IN ('SCM-NEG', 'SCM-APR')");
+        $stmt = $this->conn->prepare("INSERT INTO scm (scm, status) VALUES (?, ?)");
+        $s1 = 'SCM-NEG';
+        $st1 = 'SCM negado';
+        $stmt->bind_param('ss', $s1, $st1);
+        $stmt->execute();
+        $s2 = 'SCM-APR';
+        $st2 = 'SCM aprovado';
+        $stmt->bind_param('ss', $s2, $st2);
+        $stmt->execute();
+        $stmt->close();
+
+        $repo->saveBatch(self::CICLO, [
+            ['equipamento_id' => 14, 'checked' => true, 'observacao' => '', 'scm_number' => 'SCM-NEG'],
+            ['equipamento_id' => 15, 'checked' => true, 'observacao' => '', 'scm_number' => 'SCM-APR'],
+        ]);
+
+        $summary = $repo->summary(self::CICLO);
+        $this->assertSame(1, $summary['checked_count']);
+
+        $this->conn->query("DELETE FROM scm WHERE scm IN ('SCM-NEG', 'SCM-APR')");
+    }
+
     private function fetch(string $ciclo, int $equipamentoId): ?array
     {
         $stmt = $this->conn->prepare(
