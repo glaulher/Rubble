@@ -200,9 +200,20 @@ export function buildPlannedCardHtml(item) {
     if (totalSla === 0 && feito > 0) {
       pct = (item.status === 'Concluído') ? 100 : 50;
     }
-    var barColor = (feito >= totalSla && totalSla > 0) || pct >= 100 ? 'bg-emerald-500' : (feito > 0 ? 'bg-amber-500' : 'bg-slate-300');
-    var text = totalSla ? feito + ' de ' + totalSla + ' (' + pct + '%) — faltam ' + restam : feito + ' preventivadas';
-    slaProgressHtml = '<div class="mt-2 text-xs text-slate-600 sla-progress-container"><div class="flex items-center gap-1 mb-1"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 16l3-3 3 3 5-5"/></svg><span class="sla-progress-text">Progresso SLA: ' + escapeHtml(text) + '</span></div><div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full sla-progress-bar ' + barColor + '" style="width:' + pct + '%"></div></div></div>';
+    var isDone = (feito >= totalSla && totalSla > 0) || pct >= 100 || item.status === 'Concluído';
+    var isStarted = feito > 0;
+    var barColor = isDone ? 'bg-emerald-500' : (isStarted ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600');
+    var progressColor = isDone
+      ? 'text-emerald-700 dark:text-emerald-400'
+      : (isStarted ? 'text-sky-700 dark:text-sky-300' : 'text-slate-500 dark:text-slate-400');
+    var iconColor = isDone
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : (isStarted ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400 dark:text-slate-500');
+
+    var text = totalSla
+      ? '<strong class="font-semibold">' + feito + ' de ' + totalSla + '</strong> (' + pct + '%) — faltam ' + restam
+      : '<strong class="font-semibold">' + feito + '</strong> preventivadas';
+    slaProgressHtml = '<div class="mt-2 text-xs sla-progress-container ' + progressColor + '"><div class="flex items-center gap-1.5 mb-1"><svg class="w-3.5 h-3.5 shrink-0 ' + iconColor + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 16l3-3 3 3 5-5"/></svg><span class="sla-progress-text">Progresso SLA: ' + text + '</span></div><div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full transition-all duration-300 sla-progress-bar ' + barColor + '" style="width:' + pct + '%"></div></div></div>';
   }
 
   var cardDateAttr = tipo === 'corretiva' ? ' data-date="' + safeDate + '"' : '';
@@ -549,6 +560,7 @@ export function _updateGroupSlaProgress(newItem) {
     if (c.getAttribute('data-id') === String(newItem.id)) return;
     c.setAttribute('data-sla-feito', newItem.sla_feito);
     c.setAttribute('data-sla-restam', newItem.sla_restam);
+    var container = c.querySelector('.sla-progress-container');
     var bar = c.querySelector('.sla-progress-bar');
     var txt = c.querySelector('.sla-progress-text');
     var totalM2 = parseInt(c.getAttribute('data-machine-count') || '0', 10) || parseInt(newItem.machine_count || '0', 10) || 0;
@@ -558,13 +570,32 @@ export function _updateGroupSlaProgress(newItem) {
     if (!pct && totalM2 === 0 && feito > 0) {
       pct = (newItem.status === 'Concluído') ? 100 : 50;
     }
+    var isDone = (feito >= totalM2 && totalM2 > 0) || pct >= 100 || newItem.status === 'Concluído';
+    var isStarted = feito > 0;
+    var barColor = isDone ? 'bg-emerald-500' : (isStarted ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600');
+    var progressColor = isDone
+      ? 'text-emerald-700 dark:text-emerald-400'
+      : (isStarted ? 'text-sky-700 dark:text-sky-300' : 'text-slate-500 dark:text-slate-400');
+    var iconColor = isDone
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : (isStarted ? 'text-sky-600 dark:text-sky-400' : 'text-slate-400 dark:text-slate-500');
+
+    if (container) {
+      container.className = 'mt-2 text-xs sla-progress-container ' + progressColor;
+      var icon = container.querySelector('svg');
+      if (icon) {
+        icon.setAttribute('class', 'w-3.5 h-3.5 shrink-0 ' + iconColor);
+      }
+    }
     if (bar) {
       bar.style.width = pct + '%';
-      bar.className = 'h-2 rounded-full sla-progress-bar ' + ((feito >= totalM2 && totalM2 > 0) || pct >= 100 || newItem.status === 'Concluído' ? 'bg-emerald-500' : (feito > 0 ? 'bg-amber-500' : 'bg-slate-300'));
+      bar.className = 'h-2 rounded-full transition-all duration-300 sla-progress-bar ' + barColor;
     }
     if (txt) {
-      var t = totalM2 ? feito + ' de ' + totalM2 + ' (' + pct + '%) — faltam ' + restam : feito + ' preventivadas';
-      txt.textContent = 'Progresso SLA: ' + t;
+      var t = totalM2
+        ? '<strong class="font-semibold">' + feito + ' de ' + totalM2 + '</strong> (' + pct + '%) — faltam ' + restam
+        : '<strong class="font-semibold">' + feito + '</strong> preventivadas';
+      txt.innerHTML = 'Progresso SLA: ' + t;
     }
     var pctSpan = c.querySelector('.sla-progress-container .font-medium');
     if (pctSpan) {

@@ -258,6 +258,10 @@ button:disabled { cursor: not-allowed; }
 .dark .text-amber-700 { color: #fcd34d !important; }
 .dark .text-blue-800 { color: #93c5fd !important; }
 .dark .text-slate-500 { color: #94a3b8 !important; }
+.dark .text-sky-700 { color: #38bdf8 !important; }
+.dark .text-sky-600 { color: #38bdf8 !important; }
+.dark .text-sky-400 { color: #38bdf8 !important; }
+.dark .text-sky-300 { color: #7dd3fc !important; }
 
 /* Buttons keep their light text color in dark mode (pastel bg + dark text) */
 .dark .bg-slate-300.text-slate-900 { color: #0f172a !important; }
