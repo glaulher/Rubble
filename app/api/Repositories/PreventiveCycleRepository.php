@@ -56,6 +56,10 @@ class PreventiveCycleRepository extends BaseRepository
             }
         }
 
+        if (empty($scmJoin)) {
+            $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
+        }
+
         if (empty($valorCaseSql)) {
             $valorCaseSql = "CASE
                 WHEN e.equipamento LIKE '%chiller%' AND e.local IN ('MCEBC','RJDQC91','TNGBR','CPSCL') THEN 3850.00
@@ -79,7 +83,12 @@ class PreventiveCycleRepository extends BaseRepository
                     pci.id AS item_id,
                     pci.observacao,
                     pci.scm_number,
-                    CASE WHEN pci.id IS NOT NULL THEN 1 ELSE 0 END AS checked
+                    CASE WHEN pci.id IS NOT NULL THEN 1 ELSE 0 END AS checked,
+                    CASE
+                        WHEN pci.scm_number IS NULL OR pci.scm_number = '' THEN ''
+                        WHEN s.scm IS NULL THEN 'SCM em aberto'
+                        ELSE COALESCE(s.status, '')
+                    END AS scm_status
                 FROM equipamentos e
                 LEFT JOIN preventive_cycle_items pci
                     ON pci.equipamento_id = e.id AND pci.ciclo = ?

@@ -193,3 +193,99 @@ describe("preventive-cycle cycle status dropdown", function () {
   });
 });
 
+describe("preventive-cycle _cycleExportCsv", function () {
+  it("exports CSV with header including STATUS and rows with scm_status", async function () {
+    (0, eval)(mockInfiniteScroll);
+
+    var downloaded = null;
+    globalThis.downloadCSV = function (filename, header, rowBuilder) {
+      var rows = [];
+      rowBuilder(function (cells) {
+        rows.push(cells);
+      });
+      downloaded = { filename: filename, header: header, rows: rows };
+    };
+    globalThis.sanitizeCSV = function (str) { return str; };
+    globalThis.showToast = function () {};
+    globalThis.dismissToast = function () {};
+
+    var mockData = [
+      {
+        local: 'SITE1',
+        local_scm: 'SITE1',
+        localidade: 'Cidade 1',
+        equipamento: 'AC-01',
+        tag_infratel: 'TAG-1',
+        capacidade: '5',
+        valor: '150.00',
+        checked: 1,
+        observacao: 'Obs ok',
+        scm_number: 'SCM123',
+        scm_status: 'SCM aprovado'
+      },
+      {
+        local: 'SITE2',
+        local_scm: 'SITE2',
+        localidade: 'Cidade 2',
+        equipamento: 'AC-02',
+        tag_infratel: 'TAG-2',
+        capacidade: '10',
+        valor: '200.00',
+        checked: 0,
+        observacao: '',
+        scm_number: 'SCM999',
+        scm_status: 'SCM em aberto'
+      },
+      {
+        local: 'SITE3',
+        local_scm: 'SITE3',
+        localidade: 'Cidade 3',
+        equipamento: 'AC-03',
+        tag_infratel: 'TAG-3',
+        capacidade: '7.5',
+        valor: '0',
+        checked: 0,
+        observacao: '',
+        scm_number: '',
+        scm_status: ''
+      }
+    ];
+
+    globalThis.apiFetch = function () {
+      return Promise.resolve({
+        json: function () {
+          return Promise.resolve({ success: true, data: mockData });
+        }
+      });
+    };
+
+    evalModule('../public/js/preventive-cycle/list.js',
+      'globalThis.__exportCsv = _cycleExportCsv;' +
+      '_cycleCurrent = "2026-09";');
+
+    await globalThis.__exportCsv();
+
+    expect(downloaded).not.toBeNull();
+    expect(downloaded.filename).toBe('preventiva_2026-09.csv');
+    expect(downloaded.header).toBe(
+      'LOCAL;LOCAL SCM;LOCALIDADE;EQUIPAMENTO;TAG INFRATEL;CAPACIDADE (TR);VALOR (R$);MARCADO;OBSERVACAO;SCM;STATUS'
+    );
+    expect(downloaded.rows.length).toBe(3);
+
+    // Row 1: SCM aprovado
+    expect(downloaded.rows[0].length).toBe(11);
+    expect(downloaded.rows[0][9]).toBe('SCM123');
+    expect(downloaded.rows[0][10]).toBe('SCM aprovado');
+
+    // Row 2: SCM em aberto
+    expect(downloaded.rows[1].length).toBe(11);
+    expect(downloaded.rows[1][9]).toBe('SCM999');
+    expect(downloaded.rows[1][10]).toBe('SCM em aberto');
+
+    // Row 3: empty status
+    expect(downloaded.rows[2].length).toBe(11);
+    expect(downloaded.rows[2][9]).toBe('');
+    expect(downloaded.rows[2][10]).toBe('');
+  });
+});
+

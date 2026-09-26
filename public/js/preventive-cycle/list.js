@@ -602,7 +602,7 @@ export function _cycleExportCsv() {
     });
   }
 
-  _fetchAll()
+  return _fetchAll()
     .then(function (items) {
       if (items.length === 0) {
         if (typeof dismissToast === 'function') dismissToast();
@@ -616,7 +616,7 @@ export function _cycleExportCsv() {
         return;
       }
 
-      var header = 'LOCAL;LOCAL SCM;LOCALIDADE;EQUIPAMENTO;TAG INFRATEL;CAPACIDADE (TR);VALOR (R$);MARCADO;OBSERVACAO;SCM';
+      var header = 'LOCAL;LOCAL SCM;LOCALIDADE;EQUIPAMENTO;TAG INFRATEL;CAPACIDADE (TR);VALOR (R$);MARCADO;OBSERVACAO;SCM;STATUS';
 
       downloadCSV(
         'preventiva_' + ciclo + '.csv',
@@ -635,6 +635,7 @@ export function _cycleExportCsv() {
               item.checked ? 'Sim' : 'N\u00e3o',
               sanitizeCSV(item.observacao || ''),
               sanitizeCSV(item.scm_number || ''),
+              sanitizeCSV(item.scm_status || ''),
             ]);
           });
         }
