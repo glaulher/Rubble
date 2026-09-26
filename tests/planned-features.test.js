@@ -9,6 +9,8 @@ import {
   buildPlannedCardHtml,
   openStatusPreventiva,
   submitStatusPreventiva,
+  openExtendSlaModal,
+  submitExtendSla,
 } from "../public/js/planned-activity/list.js";
 
 describe("Planned Activity - SLA Reversion & Replication Features", () => {
@@ -55,6 +57,17 @@ describe("Planned Activity - SLA Reversion & Replication Features", () => {
         </div>
         <form id="statusForm">
           <button type="submit">Confirmar</button>
+        </form>
+      </div>
+      <div id="modalExtendSla" class="hidden">
+        <p id="extendSlaInfo"></p>
+        <form id="extendSlaForm">
+          <input type="hidden" id="extendSlaId">
+          <input type="hidden" id="extendSlaTipo">
+          <input id="extendSlaDays" type="number">
+          <input id="extendSlaTargetDate" type="date">
+          <input type="radio" name="sla_justification" value="Condições climáticas" checked>
+          <button type="submit">Estender</button>
         </form>
       </div>
       <div id="plannedContent"></div>
@@ -356,6 +369,77 @@ describe("Planned Activity - SLA Reversion & Replication Features", () => {
       // Verify plannedContent was cleared by resetPlannedState to re-render updated cards
       const content = document.getElementById('plannedContent');
       expect(content.innerHTML).toBe('');
+    });
+  });
+
+  describe("extendSla: Custom Target Date", () => {
+    it("clears extendSlaTargetDate when openExtendSlaModal is opened", () => {
+      document.getElementById('extendSlaTargetDate').value = '2026-10-10';
+      openExtendSlaModal(60, 'preventiva');
+      expect(document.getElementById('extendSlaTargetDate').value).toBe('');
+    });
+
+    it("sends target_date when specified by the user to schedule additional day on specific date", async () => {
+      let extendPayload = null;
+      global.fetch = mock((url, opts) => {
+        extendPayload = JSON.parse(opts.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              action: 'extended',
+              extra_days: 1,
+              cards_created: 1
+            }
+          })
+        });
+      });
+
+      document.getElementById('extendSlaId').value = '60';
+      document.getElementById('extendSlaTipo').value = 'preventiva';
+      document.getElementById('extendSlaDays').value = '1';
+      document.getElementById('extendSlaTargetDate').value = '2026-10-10';
+
+      submitExtendSla();
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(extendPayload).not.toBeNull();
+      expect(extendPayload.id).toBe(60);
+      expect(extendPayload.extra_days).toBe(1);
+      expect(extendPayload.target_date).toBe('2026-10-10');
+      expect(extendPayload.justification).toBe('Condições climáticas');
+    });
+
+    it("sends target_date as null when not specified by the user", async () => {
+      let extendPayload = null;
+      global.fetch = mock((url, opts) => {
+        extendPayload = JSON.parse(opts.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              action: 'extended',
+              extra_days: 1,
+              cards_created: 1
+            }
+          })
+        });
+      });
+
+      document.getElementById('extendSlaId').value = '60';
+      document.getElementById('extendSlaTipo').value = 'preventiva';
+      document.getElementById('extendSlaDays').value = '1';
+      document.getElementById('extendSlaTargetDate').value = '';
+
+      submitExtendSla();
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(extendPayload).not.toBeNull();
+      expect(extendPayload.target_date).toBeNull();
     });
   });
 });

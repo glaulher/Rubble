@@ -1986,12 +1986,14 @@ export function openExtendSlaModal(id, tipo) {
   var idInput = document.getElementById('extendSlaId');
   var tipoInput = document.getElementById('extendSlaTipo');
   var daysInput = document.getElementById('extendSlaDays');
+  var targetDateInput = document.getElementById('extendSlaTargetDate');
   var radios = document.querySelectorAll('input[name="sla_justification"]');
   if (!modal) return;
   if (idInput) idInput.value = id;
   if (tipoInput) tipoInput.value = tipo;
   if (info) info.textContent = 'Estendendo SLA da atividade #' + id + ' (' + tipo + ')';
   if (daysInput) daysInput.value = '';
+  if (targetDateInput) targetDateInput.value = '';
   radios.forEach(function (r) { r.checked = false; });
   modal.classList.remove('hidden');
 }
@@ -2005,6 +2007,8 @@ export function submitExtendSla() {
   var id = document.getElementById('extendSlaId');
   var tipo = document.getElementById('extendSlaTipo');
   var days = document.getElementById('extendSlaDays');
+  var targetDateInput = document.getElementById('extendSlaTargetDate');
+  var targetDate = targetDateInput && targetDateInput.value ? targetDateInput.value : null;
   var selected = document.querySelector('input[name="sla_justification"]:checked');
   if (!id || !id.value) { showToast('ID inválido.', 'error'); return; }
   if (!days || !days.value || parseInt(days.value, 10) < 1) { showToast('Informe a quantidade de dias extras.', 'error'); if (days) days.focus(); return; }
@@ -2020,6 +2024,7 @@ export function submitExtendSla() {
       tipo: tipo ? tipo.value : 'corretiva',
       extra_days: parseInt(days.value, 10),
       justification: selected.value,
+      target_date: targetDate,
     }),
   })
     .then(function (r) { return r.json(); })
@@ -2028,7 +2033,7 @@ export function submitExtendSla() {
       if (result && result.success) {
         showToast('SLA estendido em ' + (result.data && result.data.extra_days ? result.data.extra_days : days.value) + ' dia(s)!', 'success');
         closeExtendSlaModal();
-        resetPlannedState('');
+        resetPlannedState(plannedSearch);
       } else {
         showToast(result && result.message ? result.message : 'Erro ao estender SLA.', 'error');
       }

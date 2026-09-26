@@ -279,7 +279,20 @@ class PlannedActivityService
             $targetParentId = $id;
         }
 
-        $slaDates = $this->generateSlaDatesForExtension($lastDate, $slaDays, $includeSat, $includeSun, $extraDays);
+        $targetDate = !empty($data['target_date']) ? trim($data['target_date']) : null;
+        if ($targetDate !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $targetDate)) {
+            $targetDate = null;
+        }
+
+        if ($targetDate !== null) {
+            if ($extraDays === 1) {
+                $slaDates = [[$targetDate, $slaDays + 1]];
+            } else {
+                $slaDates = $this->generateSlaDatesForExtension($targetDate, $slaDays, $includeSat, $includeSun, $extraDays, true);
+            }
+        } else {
+            $slaDates = $this->generateSlaDatesForExtension($lastDate, $slaDays, $includeSat, $includeSun, $extraDays, false);
+        }
 
         $this->repository->addSlaExtension($targetParentId, $tipo, $extraDays, $justification);
         $this->createSlaCards($targetParentId, $slaDates, $tipo, $targetParentId);
@@ -287,11 +300,13 @@ class PlannedActivityService
         return ['action' => 'extended', 'extra_days' => $extraDays, 'cards_created' => count($slaDates)];
     }
 
-    private function generateSlaDatesForExtension(string $lastDate, int $baseSlaDays, bool $includeSat, bool $includeSun, int $extraDays): array
+    private function generateSlaDatesForExtension(string $startDate, int $baseSlaDays, bool $includeSat, bool $includeSun, int $extraDays, bool $startFromDate = false): array
     {
         $dates = [];
-        $current = new \DateTime($lastDate);
-        $current->modify('+1 day');
+        $current = new \DateTime($startDate);
+        if (!$startFromDate) {
+            $current->modify('+1 day');
+        }
         $dayNum = $baseSlaDays + 1;
 
         while (count($dates) < $extraDays) {
