@@ -32,9 +32,14 @@ class PlannedActivityService
         }
         if (($item['tipo'] ?? '') === 'preventiva' && !empty($item['sla_days'])) {
             $groupId = !empty($item['sla_group_id']) ? (int) $item['sla_group_id'] : (int) $item['id'];
+            $dayNumber = (int) ($item['sla_day_number'] ?? 0);
             $sum = 0;
             try {
-                $sum = $this->preventivaRepository->sumQtdForGroup($groupId);
+                if ($dayNumber > 0) {
+                    $sum = $this->preventivaRepository->sumQtdForGroupUpToDay($groupId, $dayNumber);
+                } else {
+                    $sum = $this->preventivaRepository->sumQtdForGroup($groupId);
+                }
             } catch (\Throwable $e) {
                 $sum = 0;
             }

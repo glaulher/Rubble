@@ -31,8 +31,13 @@ class PreventivaService
         if ($groupId <= 0) {
             return $item;
         }
+        $dayNumber = (int) ($item['sla_day_number'] ?? 0);
         try {
-            $sum = $this->repository->sumQtdForGroup($groupId);
+            if ($dayNumber > 0) {
+                $sum = $this->repository->sumQtdForGroupUpToDay($groupId, $dayNumber);
+            } else {
+                $sum = $this->repository->sumQtdForGroup($groupId);
+            }
         } catch (\Throwable $e) {
             $sum = 0;
         }

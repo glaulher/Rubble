@@ -382,6 +382,61 @@ describe("Planned Activity - SLA Reversion & Replication Features", () => {
       expect(card.querySelector('.sla-progress-bar').classList.contains('bg-emerald-500')).toBe(false);
       expect(card.querySelector('.sla-progress-container').classList.contains('text-sky-700')).toBe(true);
     });
+
+    it("calculates cumulative SLA progress chronologically per card day", () => {
+      document.body.innerHTML += `
+        <div class="planned-card" data-id="101" data-sla-group-id="101" data-sla-day-number="1" data-machine-count="12" data-qtd-executada="4" data-sla-feito="4">
+          <div class="sla-progress-container text-sky-700">
+            <span class="sla-progress-text">Progresso SLA: <strong class="font-semibold">4 de 12</strong> (33%) — faltam 8</span>
+            <div class="sla-progress-bar bg-amber-500" style="width:33%"></div>
+          </div>
+        </div>
+        <div class="planned-card" data-id="102" data-sla-group-id="101" data-sla-day-number="2" data-machine-count="12" data-qtd-executada="0" data-sla-feito="4">
+          <div class="sla-progress-container text-sky-700">
+            <span class="sla-progress-text">Progresso SLA: <strong class="font-semibold">4 de 12</strong> (33%) — faltam 8</span>
+            <div class="sla-progress-bar bg-amber-500" style="width:33%"></div>
+          </div>
+        </div>
+        <div class="planned-card" data-id="103" data-sla-group-id="101" data-sla-day-number="3" data-machine-count="12" data-qtd-executada="0" data-sla-feito="4">
+          <div class="sla-progress-container text-sky-700">
+            <span class="sla-progress-text">Progresso SLA: <strong class="font-semibold">4 de 12</strong> (33%) — faltam 8</span>
+            <div class="sla-progress-bar bg-amber-500" style="width:33%"></div>
+          </div>
+        </div>
+      `;
+
+      // Update Card 102 (Day 2) with 1 machine executed (so cumulative: 4 + 1 = 5)
+      _updateGroupSlaProgress({
+        id: 102,
+        sla_group_id: 101,
+        sla_day_number: 2,
+        machine_count: 12,
+        qtd_executada: 1,
+        sla_feito: 5
+      });
+
+      const card1 = document.querySelector('.planned-card[data-id="101"]');
+      const card2 = document.querySelector('.planned-card[data-id="102"]');
+      const card3 = document.querySelector('.planned-card[data-id="103"]');
+
+      // Day 1 must keep 4 of 12 (33%) — faltam 8
+      expect(card1.getAttribute('data-sla-feito')).toBe('4');
+      expect(card1.getAttribute('data-sla-restam')).toBe('8');
+      expect(card1.querySelector('.sla-progress-text').textContent).toBe('Progresso SLA: 4 de 12 (33%) — faltam 8');
+      expect(card1.querySelector('.sla-progress-bar').style.width).toBe('33%');
+
+      // Day 2 reflects cumulative progress: 4 + 1 = 5 of 12 (42%) — faltam 7
+      expect(card2.getAttribute('data-sla-feito')).toBe('5');
+      expect(card2.getAttribute('data-sla-restam')).toBe('7');
+      expect(card2.querySelector('.sla-progress-text').textContent).toBe('Progresso SLA: 5 de 12 (42%) — faltam 7');
+      expect(card2.querySelector('.sla-progress-bar').style.width).toBe('42%');
+
+      // Day 3 reflects cumulative progress: 5 of 12 (42%) — faltam 7
+      expect(card3.getAttribute('data-sla-feito')).toBe('5');
+      expect(card3.getAttribute('data-sla-restam')).toBe('7');
+      expect(card3.querySelector('.sla-progress-text').textContent).toBe('Progresso SLA: 5 de 12 (42%) — faltam 7');
+      expect(card3.querySelector('.sla-progress-bar').style.width).toBe('42%');
+    });
   });
 
   describe("deletePlanned: SLA Decrement & Refresh", () => {

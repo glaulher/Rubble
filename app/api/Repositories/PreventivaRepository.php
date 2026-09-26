@@ -121,6 +121,17 @@ class PreventivaRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
+    public function sumQtdForGroupUpToDay(int $groupId, int $upToDayNumber): int
+    {
+        $sql = "SELECT COALESCE(SUM(qtd_executada),0) AS total FROM atividades_preventivas WHERE (sla_group_id = ? OR id = ?) AND sla_day_number <= ? AND qtd_executada IS NOT NULL";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('iii', $groupId, $groupId, $upToDayNumber);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return (int) ($row['total'] ?? 0);
+    }
+
     public function getSlaGroupProgress(int $groupId): array
     {
         $sql = "SELECT id, site, sla_days, sla_day_number, qtd_executada, status FROM atividades_preventivas WHERE sla_group_id = ? OR id = ? ORDER BY sla_day_number ASC, data_planejada ASC";

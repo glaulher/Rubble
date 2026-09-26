@@ -453,11 +453,19 @@ export function startQtdInlineEdit(btn) {
   if (currentVal.indexOf('de') !== -1) currentVal = currentVal.split(' ')[0];
   var currentNum = parseInt(currentVal, 10);
   if (isNaN(currentNum)) currentNum = 0;
-  var currentForMax = currentNum || 0;
-
   var maxAllowed = machineCount > 0 ? machineCount : 999;
-  if (!isNaN(slaFeito) && machineCount > 0) {
-    var sumOthers = slaFeito - currentForMax;
+  if (machineCount > 0) {
+    var gid = card.getAttribute('data-sla-group-id') || card.getAttribute('data-id');
+    var sumOthers = 0;
+    if (gid) {
+      var siblings = document.querySelectorAll('.planned-card[data-sla-group-id="' + gid + '"], .planned-card[data-id="' + gid + '"]');
+      siblings.forEach(function (sib) {
+        if (sib.getAttribute('data-id') === String(id)) return;
+        var q = sib.getAttribute('data-qtd-executada');
+        var val = (q !== null && q !== '' && q !== 'null') ? parseInt(q, 10) : 0;
+        if (!isNaN(val) && val > 0) sumOthers += val;
+      });
+    }
     maxAllowed = Math.max(1, machineCount - sumOthers);
   }
 
@@ -556,20 +564,36 @@ export function _updateGroupSlaProgress(newItem) {
   var gid = newItem.sla_group_id || newItem.id;
   if (!gid) return;
   var selector = '.planned-card[data-sla-group-id="' + gid + '"], .planned-card[data-id="' + gid + '"]';
-  document.querySelectorAll(selector).forEach(function (c) {
-    if (c.getAttribute('data-id') === String(newItem.id)) return;
-    c.setAttribute('data-sla-feito', newItem.sla_feito);
-    c.setAttribute('data-sla-restam', newItem.sla_restam);
+  var cards = Array.from(document.querySelectorAll(selector));
+  if (cards.length === 0) return;
+
+  var hasDayNumbers = cards.some(function (c) {
+    var d = c.getAttribute('data-sla-day-number');
+    return d !== null && d !== '' && parseInt(d, 10) > 0;
+  });
+
+  function applyProgressToCard(c, feito) {
+    var totalM2 = (newItem.sla_total_machines !== null && newItem.sla_total_machines !== undefined)
+      ? Number(newItem.sla_total_machines)
+      : (parseInt(c.getAttribute('data-machine-count') || '0', 10) || parseInt(newItem.machine_count || '0', 10) || 0);
+
+    feito = parseInt(feito, 10) || 0;
+    var restam = totalM2 ? Math.max(0, totalM2 - feito) : 0;
+    var pct = totalM2 > 0 ? Math.min(100, Math.round((feito / totalM2) * 100)) : 0;
+
+    c.setAttribute('data-sla-feito', String(feito));
+    c.setAttribute('data-sla-restam', String(restam));
+
     var container = c.querySelector('.sla-progress-container');
     var bar = c.querySelector('.sla-progress-bar');
     var txt = c.querySelector('.sla-progress-text');
-    var totalM2 = parseInt(c.getAttribute('data-machine-count') || '0', 10) || parseInt(newItem.machine_count || '0', 10) || 0;
-    var feito = parseInt(newItem.sla_feito, 10) || 0;
-    var restam = newItem.sla_restam !== undefined ? parseInt(newItem.sla_restam, 10) : (totalM2 ? Math.max(0, totalM2 - feito) : 0);
-    var pct = newItem.sla_pct !== undefined ? parseInt(newItem.sla_pct, 10) : (totalM2 ? Math.round(feito / totalM2 * 100) : 0);
+
     if (!pct && totalM2 === 0 && feito > 0) {
-      pct = (newItem.status === 'Concluído') ? 100 : 50;
+      var cardStatus = c.querySelector('.planned-badge-status');
+      var statusText = cardStatus ? cardStatus.textContent.trim() : (c.getAttribute('data-id') === String(newItem.id) ? newItem.status : '');
+      pct = (statusText === 'Concluído') ? 100 : 50;
     }
+
     var isDone = (totalM2 > 0 && feito >= totalM2) || pct >= 100;
     var isStarted = feito > 0;
     var barColor = isDone ? 'bg-emerald-500' : (isStarted ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600');
@@ -601,6 +625,37 @@ export function _updateGroupSlaProgress(newItem) {
     if (pctSpan) {
       pctSpan.textContent = pct + '%';
     }
+  }
+
+  if (!hasDayNumbers) {
+    cards.forEach(function (c) {
+      if (c.getAttribute('data-id') === String(newItem.id)) return;
+      applyProgressToCard(c, newItem.sla_feito);
+    });
+    return;
+  }
+
+  cards.sort(function (a, b) {
+    var da = parseInt(a.getAttribute('data-sla-day-number') || '0', 10);
+    var db = parseInt(b.getAttribute('data-sla-day-number') || '0', 10);
+    return da - db;
+  });
+
+  var runningSum = 0;
+  cards.forEach(function (c) {
+    var cardId = c.getAttribute('data-id');
+    var q;
+    if (String(newItem.id) === cardId && newItem.qtd_executada !== undefined && newItem.qtd_executada !== null) {
+      q = parseInt(newItem.qtd_executada, 10);
+      c.setAttribute('data-qtd-executada', String(q));
+    } else {
+      var raw = c.getAttribute('data-qtd-executada');
+      q = (raw !== null && raw !== '' && raw !== 'null') ? parseInt(raw, 10) : 0;
+    }
+    if (isNaN(q) || q < 0) q = 0;
+    runningSum += q;
+
+    applyProgressToCard(c, runningSum);
   });
 }
 
@@ -1941,18 +1996,24 @@ export function openStatusPreventiva(id, currentStatus, currentDate) {
     qtdInput.value = '';
     var card = document.querySelector('.planned-card[data-id="' + id + '"][data-tipo="preventiva"]');
     var mc = card ? parseInt(card.getAttribute('data-machine-count') || '0', 10) : 0;
-    var slaFeito = card ? parseInt(card.getAttribute('data-sla-feito') || '', 10) : NaN;
     var maxAllowed = mc > 0 ? mc : 999;
-    if (!isNaN(slaFeito) && mc > 0) {
-      var currentQtd = card ? parseInt(card.getAttribute('data-qtd-executada') || '0', 10) || 0 : 0;
-      var sumOthers = slaFeito - (isNaN(currentQtd) ? 0 : currentQtd);
-      maxAllowed = Math.max(1, mc - sumOthers);
-    }
+    var sumOthers = 0;
     if (mc > 0) {
+      var gid = card ? (card.getAttribute('data-sla-group-id') || card.getAttribute('data-id')) : null;
+      if (gid) {
+        var siblings = document.querySelectorAll('.planned-card[data-sla-group-id="' + gid + '"], .planned-card[data-id="' + gid + '"]');
+        siblings.forEach(function (sib) {
+          if (sib.getAttribute('data-id') === String(id)) return;
+          var q = sib.getAttribute('data-qtd-executada');
+          var val = (q !== null && q !== '' && q !== 'null') ? parseInt(q, 10) : 0;
+          if (!isNaN(val) && val > 0) sumOthers += val;
+        });
+      }
+      maxAllowed = Math.max(1, mc - sumOthers);
       qtdInput.max = String(maxAllowed);
       var hint = document.getElementById('statusQtdHint');
       if (hint) {
-        if (!isNaN(slaFeito) && maxAllowed !== mc) {
+        if (sumOthers > 0 && maxAllowed !== mc) {
           hint.textContent = 'Máximo: ' + maxAllowed + ' (restam ' + maxAllowed + ' de ' + mc + ' no SLA)';
         } else {
           hint.textContent = 'Máximo: ' + mc + ' máquinas deste site';
