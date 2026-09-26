@@ -22,11 +22,14 @@ class PreventiveCycleService
         $this->priceService = $priceService ?? new EquipmentPriceService();
     }
 
-    public function listAll(string $ciclo, int $limit = 20, int $offset = 0, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
+    public function listAll(string $ciclo, int $limit = 20, int $offset = 0, string $search = '', bool $checkedOnly = false, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false, array $scmStatuses = []): array
     {
+        if ($scmLancados && empty($scmStatuses)) {
+            $scmStatuses = self::SCM_LANCADOS_STATUSES;
+        }
         $valorCaseSql = $this->priceService->getValorCaseSql();
-        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados, $valorCaseSql, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, self::SCM_LANCADOS_STATUSES);
-        $total = $this->repository->count($ciclo, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, self::SCM_LANCADOS_STATUSES);
+        $items = $this->repository->listByCiclo($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados, $valorCaseSql, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, $scmStatuses);
+        $total = $this->repository->count($ciclo, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, $scmStatuses);
         return ['items' => $items, 'total' => $total];
     }
 
@@ -38,18 +41,24 @@ class PreventiveCycleService
         return $this->repository->saveBatch($ciclo, $items);
     }
 
-    public function summary(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
+    public function summary(string $ciclo, bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false, array $scmStatuses = []): array
     {
+        if ($scmLancados && empty($scmStatuses)) {
+            $scmStatuses = self::SCM_LANCADOS_STATUSES;
+        }
         $valorCaseSql = $this->priceService->getValorCaseSql();
-        return $this->repository->summary($ciclo, $hasObservacao, $noScm, $scmLancados, $valorCaseSql, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, self::SCM_LANCADOS_STATUSES);
+        return $this->repository->summary($ciclo, $hasObservacao, $noScm, $scmLancados, $valorCaseSql, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, $scmStatuses);
     }
 
-    public function listIds(string $ciclo, string $search = '', bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false): array
+    public function listIds(string $ciclo, string $search = '', bool $hasObservacao = false, bool $noScm = false, bool $scmLancados = false, array $scmStatuses = []): array
     {
         if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ciclo)) {
             throw new \InvalidArgumentException('Formato de ciclo inválido (use YYYY-MM)');
         }
-        return $this->repository->listIdsByCiclo($ciclo, $search, $hasObservacao, $noScm, $scmLancados, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, self::SCM_LANCADOS_STATUSES);
+        if ($scmLancados && empty($scmStatuses)) {
+            $scmStatuses = self::SCM_LANCADOS_STATUSES;
+        }
+        return $this->repository->listIdsByCiclo($ciclo, $search, $hasObservacao, $noScm, $scmLancados, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, $scmStatuses);
     }
 
     public function validateScm(string $scmNumber): array

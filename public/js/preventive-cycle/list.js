@@ -13,6 +13,15 @@ var _cycleScroll = null;
 var _cycleLimit = 20;
 var _cycleDirtyChecks = new Map();
 var _cycleFilter = 'all';
+export var CYCLE_STATUS_OPTIONS = [
+    'SCM aprovado',
+    'SCM verificado',
+    'SCM enviado',
+    'SCM negado',
+    'SCM em aberto',
+];
+var _cycleStatusFilter = new Set();
+var _cycleStatusTodosChecked = true;
 var _cycleScmStatusColors = {
     'SCM aprovado': 'bg-emerald-100 text-emerald-700',
     'SCM negado': 'bg-red-100 text-red-700',
@@ -41,6 +50,8 @@ export function initPreventiveCycle() {
   _cycleTotal = 0;
   _cycleDirtyChecks = new Map();
   _cycleFilter = 'all';
+  _cycleStatusFilter = new Set();
+  _cycleStatusTodosChecked = true;
   _cycleScmValidationCache = {};
   _cycleSummaryData = null;
   _cycleScmData = null;
@@ -109,6 +120,9 @@ export function _cycleSetupEvents() {
       if (_cycleFilter === 'observacao') url += '&has_observacao=1';
       if (_cycleFilter === 'sem_scm') url += '&no_scm=1';
       if (_cycleFilter === 'lancados') url += '&scm_lancados=1';
+      if (!_cycleStatusTodosChecked && _cycleStatusFilter.size > 0) {
+        url += '&scm_statuses=' + Array.from(_cycleStatusFilter).map(encodeURIComponent).join(',');
+      }
 
       apiFetch(url)
         .then(function (r) { return r.json(); })
@@ -165,6 +179,17 @@ export function _cycleSetupEvents() {
     });
   });
 
+  initCycleStatusMultiSelect();
+
+  document.addEventListener('click', function (e) {
+    var btn = document.getElementById('cycleStatusBtn');
+    var dropdown = document.getElementById('cycleStatusDropdown');
+    if (dropdown && !dropdown.classList.contains('hidden') &&
+        !btn?.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
+  });
+
   _cycleSetupScroll();
 
   if (window.PollingManager) {
@@ -206,6 +231,12 @@ export function _cycleSetupScroll() {
       if (_cycleFilter === 'observacao') url += '&has_observacao=1';
       if (_cycleFilter === 'sem_scm') url += '&no_scm=1';
       if (_cycleFilter === 'lancados') url += '&scm_lancados=1';
+      if (!_cycleStatusTodosChecked && _cycleStatusFilter.size > 0) {
+        url += '&scm_statuses=' + Array.from(_cycleStatusFilter).map(encodeURIComponent).join(',');
+      }
+      if (!_cycleStatusTodosChecked && _cycleStatusFilter.size === 0) {
+        return Promise.resolve({ data: [], total: 0 });
+      }
       return apiFetch(url, opts)
         .then(function (r) { return r.json(); })
         .then(function (result) {
@@ -223,7 +254,8 @@ export function _cycleSetupScroll() {
     },
     getFilterHash: function () {
       var searchEl = document.getElementById('cycleSearch');
-      return (_cycleCurrent || '') + '|' + (_cycleFilter || 'all') + '|' + (searchEl ? searchEl.value.trim() : '');
+      var statusPart = !_cycleStatusTodosChecked ? Array.from(_cycleStatusFilter).sort().join(',') : 'all';
+      return (_cycleCurrent || '') + '|' + (_cycleFilter || 'all') + '|' + (searchEl ? searchEl.value.trim() : '') + '|' + statusPart;
     },
     onError: function (err) {
       console.warn('[preventive-cycle]', err);
@@ -427,6 +459,9 @@ export function _cycleFetchSummary(ciclo) {
   if (_cycleFilter === 'observacao') url += '&has_observacao=1';
   if (_cycleFilter === 'sem_scm') url += '&no_scm=1';
   if (_cycleFilter === 'lancados') url += '&scm_lancados=1';
+  if (!_cycleStatusTodosChecked && _cycleStatusFilter.size > 0) {
+    url += '&scm_statuses=' + Array.from(_cycleStatusFilter).map(encodeURIComponent).join(',');
+  }
   apiFetch(url)
     .then(function (r) { return r.json(); })
     .then(function (result) {
@@ -543,6 +578,9 @@ export function _cycleExportCsv() {
     if (_cycleFilter === 'observacao') url += '&has_observacao=1';
     if (_cycleFilter === 'sem_scm') url += '&no_scm=1';
     if (_cycleFilter === 'lancados') url += '&scm_lancados=1';
+    if (!_cycleStatusTodosChecked && _cycleStatusFilter.size > 0) {
+      url += '&scm_statuses=' + Array.from(_cycleStatusFilter).map(encodeURIComponent).join(',');
+    }
 
     return apiFetch(url)
       .then(function (r) { return r.json(); })
@@ -613,3 +651,89 @@ export function _cycleExportCsv() {
 
 var _cycleEscape = escapeHtml;
 
+export function initCycleStatusMultiSelect() {
+  var btn = document.getElementById('cycleStatusBtn');
+  var dropdown = document.getElementById('cycleStatusDropdown');
+  if (!btn || !dropdown) return;
+
+  renderCycleStatusDropdown();
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    dropdown.classList.toggle('hidden');
+  });
+
+  updateCycleStatusLabel();
+}
+
+export function renderCycleStatusDropdown() {
+  var dropdown = document.getElementById('cycleStatusDropdown');
+  if (!dropdown) return;
+
+  if (!dropdown.dataset.delegated) {
+    dropdown.addEventListener('change', function (e) {
+      var cb = e.target.closest('.cycle-status-check');
+      if (!cb) return;
+      var val = cb.dataset.value;
+      if (val === '__all__') {
+        _cycleStatusTodosChecked = cb.checked;
+        _cycleStatusFilter.clear();
+      } else {
+        if (cb.checked) {
+          _cycleStatusFilter.add(val);
+        } else {
+          if (_cycleStatusFilter.size === 0) {
+            _cycleStatusFilter = new Set(CYCLE_STATUS_OPTIONS);
+          }
+          _cycleStatusFilter['delete'](val);
+        }
+        _cycleStatusTodosChecked = CYCLE_STATUS_OPTIONS.length > 0 &&
+          CYCLE_STATUS_OPTIONS.every(function (status) { return _cycleStatusFilter.has(status); });
+      }
+      renderCycleStatusDropdown();
+      updateCycleStatusLabel();
+      _cycleSummaryData = null;
+      _cycleScmData = null;
+      _cycleLoadList(_cycleCurrent);
+    });
+    dropdown.dataset.delegated = '1';
+  }
+
+  var html = '';
+  var statusAllChecked = _cycleStatusTodosChecked ? 'checked' : '';
+  html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer border-b border-slate-100">';
+  html += '<input type="checkbox" class="cycle-status-check rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" data-value="__all__" ' + statusAllChecked + '>';
+  html += '<span class="text-sm text-slate-700 font-medium">Todos</span>';
+  html += '</label>';
+
+  CYCLE_STATUS_OPTIONS.forEach(function (status) {
+    var checked = _cycleStatusTodosChecked || _cycleStatusFilter.has(status) ? 'checked' : '';
+    html += '<label class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">';
+    html += '<input type="checkbox" class="cycle-status-check rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" data-value="' + escapeHtml(status) + '" ' + checked + '>';
+    html += '<span class="text-sm text-slate-700">' + escapeHtml(status) + '</span>';
+    html += '</label>';
+  });
+
+  dropdown.innerHTML = html;
+}
+
+export function updateCycleStatusLabel() {
+  var label = document.getElementById('cycleStatusLabel');
+  if (!label) return;
+  if (_cycleStatusTodosChecked) {
+    label.textContent = 'Todos';
+    label.classList.remove('text-blue-600');
+  } else {
+    label.textContent = _cycleStatusFilter.size + ' selecionado(s)';
+    label.classList.add('text-blue-600');
+  }
+}
+
+export function _getCycleStatusFilter() {
+  return _cycleStatusFilter;
+}
+
+export function _setCycleStatusFilter(set, todos) {
+  _cycleStatusFilter = set;
+  _cycleStatusTodosChecked = todos;
+}

@@ -34,11 +34,26 @@ class PreventiveCycleRepository extends BaseRepository
         }
 
         $scmJoin = '';
-        if ($scmLancados && !empty($scmStatuses)) {
-            $placeholders = implode(',', array_fill(0, count($scmStatuses), '?'));
-            $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN ({$placeholders})";
-            $whereParams = array_merge($scmStatuses, $whereParams);
-            $whereTypes = str_repeat('s', count($scmStatuses)) . $whereTypes;
+        if (!empty($scmStatuses)) {
+            $hasEmAberto = in_array('SCM em aberto', $scmStatuses, true);
+            $dbStatuses = array_values(array_filter($scmStatuses, fn($s) => $s !== 'SCM em aberto'));
+
+            if ($hasEmAberto && empty($dbStatuses)) {
+                $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
+                $where .= " AND pci.id IS NOT NULL AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL";
+            } elseif ($hasEmAberto && !empty($dbStatuses)) {
+                $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
+                $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
+                $where .= " AND pci.id IS NOT NULL AND (s.status IN ({$placeholders}) OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))";
+                $whereParams = array_merge($whereParams, $dbStatuses);
+                $whereTypes .= str_repeat('s', count($dbStatuses));
+            } else {
+                $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
+                $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number";
+                $where .= " AND s.status IN ({$placeholders})";
+                $whereParams = array_merge($whereParams, $dbStatuses);
+                $whereTypes .= str_repeat('s', count($dbStatuses));
+            }
         }
 
         if (empty($valorCaseSql)) {
@@ -115,11 +130,26 @@ class PreventiveCycleRepository extends BaseRepository
         }
 
         $scmJoin = '';
-        if ($scmLancados && !empty($scmStatuses)) {
-            $placeholders = implode(',', array_fill(0, count($scmStatuses), '?'));
-            $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN ({$placeholders})";
-            $whereParams = array_merge($scmStatuses, $whereParams);
-            $whereTypes = str_repeat('s', count($scmStatuses)) . $whereTypes;
+        if (!empty($scmStatuses)) {
+            $hasEmAberto = in_array('SCM em aberto', $scmStatuses, true);
+            $dbStatuses = array_values(array_filter($scmStatuses, fn($s) => $s !== 'SCM em aberto'));
+
+            if ($hasEmAberto && empty($dbStatuses)) {
+                $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
+                $where .= " AND pci.id IS NOT NULL AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL";
+            } elseif ($hasEmAberto && !empty($dbStatuses)) {
+                $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
+                $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
+                $where .= " AND pci.id IS NOT NULL AND (s.status IN ({$placeholders}) OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))";
+                $whereParams = array_merge($whereParams, $dbStatuses);
+                $whereTypes .= str_repeat('s', count($dbStatuses));
+            } else {
+                $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
+                $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number";
+                $where .= " AND s.status IN ({$placeholders})";
+                $whereParams = array_merge($whereParams, $dbStatuses);
+                $whereTypes .= str_repeat('s', count($dbStatuses));
+            }
         }
 
         $sql = "SELECT COUNT(*) AS total
@@ -161,11 +191,26 @@ class PreventiveCycleRepository extends BaseRepository
         $params = [$ciclo];
         $types = 's';
         $scmJoin = '';
-        if ($scmLancados && !empty($scmStatuses)) {
-            $placeholders = implode(',', array_fill(0, count($scmStatuses), '?'));
-            $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number AND s.status IN ({$placeholders})";
-            array_push($params, ...$scmStatuses);
-            $types .= str_repeat('s', count($scmStatuses));
+        $scmStatusFilter = '';
+        $scmStatusParams = [];
+        if (!empty($scmStatuses)) {
+            $hasEmAberto = in_array('SCM em aberto', $scmStatuses, true);
+            $dbStatuses = array_values(array_filter($scmStatuses, fn($s) => $s !== 'SCM em aberto'));
+
+            if ($hasEmAberto && empty($dbStatuses)) {
+                $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
+                $scmStatusFilter = "AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL";
+            } elseif ($hasEmAberto && !empty($dbStatuses)) {
+                $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
+                $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
+                $scmStatusFilter = "AND (s.status IN ({$placeholders}) OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))";
+                $scmStatusParams = $dbStatuses;
+            } else {
+                $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
+                $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number";
+                $scmStatusFilter = "AND s.status IN ({$placeholders})";
+                $scmStatusParams = $dbStatuses;
+            }
         }
         $sql = "SELECT
                     COUNT(pci.id) AS checked_count,
@@ -177,10 +222,10 @@ class PreventiveCycleRepository extends BaseRepository
                 {$scmJoin}
                 WHERE e.equipamento != ? AND e.local != ?
                 {$obsFilter}
-                {$scmFilter}";
-        $params[] = $excludedEquipment;
-        $params[] = $excludedLocation;
-        $types .= 'ss';
+                {$scmFilter}
+                {$scmStatusFilter}";
+        $params = array_merge([$ciclo, $excludedEquipment, $excludedLocation], $scmStatusParams);
+        $types = 'sss' . str_repeat('s', count($scmStatusParams));
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param($types, ...$params);
         $stmt->execute();
@@ -229,17 +274,43 @@ class PreventiveCycleRepository extends BaseRepository
             $whereTypes .= 'ss';
         }
 
-        if ($scmLancados && !empty($scmStatuses)) {
-            $placeholders = implode(',', array_fill(0, count($scmStatuses), '?'));
-            $where .= " AND EXISTS (
-                SELECT 1 FROM preventive_cycle_items pci
-                INNER JOIN scm s ON s.scm = pci.scm_number
-                WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
-                AND s.status IN ({$placeholders})
-            )";
-            $whereParams[] = $ciclo;
-            $whereParams = array_merge($whereParams, $scmStatuses);
-            $whereTypes .= 's' . str_repeat('s', count($scmStatuses));
+        if (!empty($scmStatuses)) {
+            $hasEmAberto = in_array('SCM em aberto', $scmStatuses, true);
+            $dbStatuses = array_values(array_filter($scmStatuses, fn($s) => $s !== 'SCM em aberto'));
+
+            if ($hasEmAberto && empty($dbStatuses)) {
+                $where .= " AND EXISTS (
+                    SELECT 1 FROM preventive_cycle_items pci
+                    LEFT JOIN scm s ON s.scm = pci.scm_number
+                    WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
+                    AND pci.scm_number IS NOT NULL AND pci.scm_number != ''
+                    AND s.scm IS NULL
+                )";
+                $whereParams[] = $ciclo;
+                $whereTypes .= 's';
+            } elseif ($hasEmAberto && !empty($dbStatuses)) {
+                $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
+                $where .= " AND EXISTS (
+                    SELECT 1 FROM preventive_cycle_items pci
+                    LEFT JOIN scm s ON s.scm = pci.scm_number
+                    WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
+                    AND (s.status IN ({$placeholders}) OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))
+                )";
+                $whereParams[] = $ciclo;
+                $whereParams = array_merge($whereParams, $dbStatuses);
+                $whereTypes .= 's' . str_repeat('s', count($dbStatuses));
+            } else {
+                $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
+                $where .= " AND EXISTS (
+                    SELECT 1 FROM preventive_cycle_items pci
+                    INNER JOIN scm s ON s.scm = pci.scm_number
+                    WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
+                    AND s.status IN ({$placeholders})
+                )";
+                $whereParams[] = $ciclo;
+                $whereParams = array_merge($whereParams, $dbStatuses);
+                $whereTypes .= 's' . str_repeat('s', count($dbStatuses));
+            }
         }
 
         $sql = "SELECT e.id FROM equipamentos e WHERE {$where} ORDER BY e.local, e.equipamento";

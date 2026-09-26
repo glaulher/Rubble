@@ -39,13 +39,46 @@ class PreventiveCycleServiceTest extends TestCase
         $this->assertArrayHasKey('deleted', $result);
     }
 
-    public function testListAllMethodExists(): void
+    public function testListAllForwardsScmStatuses(): void
     {
-        $this->assertTrue(method_exists(PreventiveCycleService::class, 'listAll'));
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventiveCycleRepository::class);
+        $mockRepo->expects($this->once())
+            ->method('listByCiclo')
+            ->with('2026-06', 20, 0, '', false, false, false, false, $this->anything(), $this->anything(), $this->anything(), ['SCM aprovado', 'SCM negado'])
+            ->willReturn([]);
+        $mockRepo->expects($this->once())
+            ->method('count')
+            ->with('2026-06', '', false, false, false, false, $this->anything(), $this->anything(), ['SCM aprovado', 'SCM negado'])
+            ->willReturn(0);
+
+        $service = new PreventiveCycleService($mockRepo);
+        $result = $service->listAll('2026-06', 20, 0, '', false, false, false, false, ['SCM aprovado', 'SCM negado']);
+        $this->assertEquals(['items' => [], 'total' => 0], $result);
     }
 
-    public function testSummaryMethodExists(): void
+    public function testSummaryForwardsScmStatuses(): void
     {
-        $this->assertTrue(method_exists(PreventiveCycleService::class, 'summary'));
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventiveCycleRepository::class);
+        $mockRepo->expects($this->once())
+            ->method('summary')
+            ->with('2026-06', false, false, false, $this->anything(), $this->anything(), $this->anything(), ['SCM enviado'])
+            ->willReturn(['checked_count' => 5, 'total_valor' => 1000.0, 'site_count' => 2]);
+
+        $service = new PreventiveCycleService($mockRepo);
+        $result = $service->summary('2026-06', false, false, false, ['SCM enviado']);
+        $this->assertEquals(5, $result['checked_count']);
+    }
+
+    public function testListIdsForwardsScmStatuses(): void
+    {
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventiveCycleRepository::class);
+        $mockRepo->expects($this->once())
+            ->method('listIdsByCiclo')
+            ->with('2026-06', '', false, false, false, $this->anything(), $this->anything(), ['SCM verificado'])
+            ->willReturn([1, 2, 3]);
+
+        $service = new PreventiveCycleService($mockRepo);
+        $result = $service->listIds('2026-06', '', false, false, false, ['SCM verificado']);
+        $this->assertEquals([1, 2, 3], $result);
     }
 }

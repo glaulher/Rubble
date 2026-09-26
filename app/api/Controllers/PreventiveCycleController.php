@@ -25,8 +25,14 @@ class PreventiveCycleController
             $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
             $noScm = ($_GET['no_scm'] ?? '') === '1';
             $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
+            $scmStatuses = [];
+            if (!empty($_GET['scm_statuses'])) {
+                $scmStatuses = is_array($_GET['scm_statuses'])
+                    ? $_GET['scm_statuses']
+                    : array_filter(array_map('trim', explode(',', $_GET['scm_statuses'])));
+            }
 
-            $data = $this->service->listAll($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados);
+            $data = $this->service->listAll($ciclo, $limit, $offset, $search, $checkedOnly, $hasObservacao, $noScm, $scmLancados, $scmStatuses);
 
             Response::json([
                 'success' => true,
@@ -48,7 +54,13 @@ class PreventiveCycleController
             $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
             $noScm = ($_GET['no_scm'] ?? '') === '1';
             $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
-            $data = $this->service->summary($ciclo, $hasObservacao, $noScm, $scmLancados);
+            $scmStatuses = [];
+            if (!empty($_GET['scm_statuses'])) {
+                $scmStatuses = is_array($_GET['scm_statuses'])
+                    ? $_GET['scm_statuses']
+                    : array_filter(array_map('trim', explode(',', $_GET['scm_statuses'])));
+            }
+            $data = $this->service->summary($ciclo, $hasObservacao, $noScm, $scmLancados, $scmStatuses);
             Response::success('', $data);
         } catch (\Throwable $e) {
             Response::serverError($e);
@@ -92,7 +104,13 @@ class PreventiveCycleController
             $hasObservacao = ($_GET['has_observacao'] ?? '') === '1';
             $noScm = ($_GET['no_scm'] ?? '') === '1';
             $scmLancados = ($_GET['scm_lancados'] ?? '') === '1';
-            $ids = $this->service->listIds($ciclo, $search, $hasObservacao, $noScm, $scmLancados);
+            $scmStatuses = [];
+            if (!empty($_GET['scm_statuses'])) {
+                $scmStatuses = is_array($_GET['scm_statuses'])
+                    ? $_GET['scm_statuses']
+                    : array_filter(array_map('trim', explode(',', $_GET['scm_statuses'])));
+            }
+            $ids = $this->service->listIds($ciclo, $search, $hasObservacao, $noScm, $scmLancados, $scmStatuses);
             Response::success('', ['ids' => $ids]);
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);

@@ -119,3 +119,77 @@ describe("preventive-cycle _cycleRenderScmBadge", function () {
     expect(badgeEl.innerHTML).toContain('bg-emerald-100');
   });
 });
+
+describe("preventive-cycle cycle status dropdown", function () {
+  it("renders status dropdown with 'Todos' and all status options", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/preventive-cycle/list.js',
+      'globalThis.__renderDropdown = renderCycleStatusDropdown;' +
+      'globalThis.__setFilter = _setCycleStatusFilter;' +
+      'globalThis.__STATUS_OPTIONS = CYCLE_STATUS_OPTIONS;');
+
+    document.body.innerHTML = '<div id="cycleStatusDropdown"></div>';
+    globalThis.__setFilter(new Set(), true);
+    globalThis.__renderDropdown();
+
+    var dropdown = document.getElementById('cycleStatusDropdown');
+    var allCb = dropdown.querySelector('input[data-value="__all__"]');
+    expect(allCb).not.toBeNull();
+    expect(allCb.checked).toBe(true);
+
+    var optionChecks = dropdown.querySelectorAll('.cycle-status-check:not([data-value="__all__"])');
+    expect(optionChecks.length).toBe(globalThis.__STATUS_OPTIONS.length);
+    optionChecks.forEach(function (cb) {
+      expect(cb.checked).toBe(true);
+    });
+  });
+
+  it("updates cycle status label when filter is active vs Todos", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/preventive-cycle/list.js',
+      'globalThis.__updateLabel = updateCycleStatusLabel;' +
+      'globalThis.__setFilter = _setCycleStatusFilter;');
+
+    document.body.innerHTML = '<span id="cycleStatusLabel"></span>';
+    var label = document.getElementById('cycleStatusLabel');
+
+    globalThis.__setFilter(new Set(), true);
+    globalThis.__updateLabel();
+    expect(label.textContent).toBe('Todos');
+    expect(label.classList.contains('text-blue-600')).toBe(false);
+
+    globalThis.__setFilter(new Set(['SCM aprovado']), false);
+    globalThis.__updateLabel();
+    expect(label.textContent).toBe('1 selecionado(s)');
+    expect(label.classList.contains('text-blue-600')).toBe(true);
+
+    globalThis.__setFilter(new Set(['SCM aprovado', 'SCM negado']), false);
+    globalThis.__updateLabel();
+    expect(label.textContent).toBe('2 selecionado(s)');
+    expect(label.classList.contains('text-blue-600')).toBe(true);
+  });
+
+  it("initCycleStatusMultiSelect toggles dropdown visibility on button click", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/preventive-cycle/list.js',
+      'globalThis.__initDropdown = initCycleStatusMultiSelect;' +
+      'globalThis.__setFilter = _setCycleStatusFilter;');
+
+    document.body.innerHTML =
+      '<button id="cycleStatusBtn"><span id="cycleStatusLabel"></span></button>' +
+      '<div id="cycleStatusDropdown" class="hidden"></div>';
+
+    var btn = document.getElementById('cycleStatusBtn');
+    var dropdown = document.getElementById('cycleStatusDropdown');
+
+    globalThis.__initDropdown();
+    expect(dropdown.classList.contains('hidden')).toBe(true);
+
+    btn.click();
+    expect(dropdown.classList.contains('hidden')).toBe(false);
+
+    btn.click();
+    expect(dropdown.classList.contains('hidden')).toBe(true);
+  });
+});
+
