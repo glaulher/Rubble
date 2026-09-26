@@ -82,7 +82,7 @@ export function dismissToast() {
   if (labelEl) labelEl.textContent = "";
 }
 
-export function confirmAction(title, message, buttonText, variant) {
+export function confirmAction(title, message, buttonText, variant, cancelButtonText) {
   return new Promise((resolve) => {
     const titleEl = document.getElementById("modalConfirmTitle");
     const msgEl = document.getElementById("modalConfirmMessage");
@@ -92,6 +92,7 @@ export function confirmAction(title, message, buttonText, variant) {
     if (titleEl) titleEl.textContent = title || 'Confirmar ação';
     if (msgEl) msgEl.textContent = message || 'Deseja continuar?';
     if (btnOk) btnOk.textContent = buttonText || 'Excluir';
+    if (btnCancel) btnCancel.textContent = cancelButtonText || 'Cancelar';
 
     if (variant === 'confirm') {
       btnOk.className = 'flex-1 bg-blue-300 hover:bg-blue-400 active:bg-blue-500 text-blue-800 py-3 rounded-xl font-medium transition';

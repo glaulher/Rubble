@@ -73,7 +73,11 @@ class PreventivaRepository extends BaseRepository
             );
         }
         $stmt->execute();
-        return (int) $this->conn->insert_id;
+        $newId = (int) $this->conn->insert_id;
+        if ($hasSla && $groupId === null && $newId > 0) {
+            $this->setSlaGroupId($newId, $newId);
+        }
+        return $newId;
     }
 
     public function createSlaCard(int $originalId, string $targetDate, int $slaDayNumber): int
@@ -131,6 +135,45 @@ class PreventivaRepository extends BaseRepository
         return $rows;
     }
 
+    public function reconcilePreventivaSlaGroup(int $groupId, int $deletedId): array
+    {
+        $sql = "SELECT id, data_planejada FROM atividades_preventivas WHERE (sla_group_id = ? OR id = ?) AND id != ? ORDER BY data_planejada ASC, id ASC";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('iii', $groupId, $groupId, $deletedId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $remaining = [];
+        while ($row = $result->fetch_assoc()) {
+            $remaining[] = $row;
+        }
+
+        $count = count($remaining);
+        if ($count === 0) {
+            return ['count' => 0, 'new_group_id' => null];
+        }
+
+        // Se o card deletado era o próprio group_id, o primeiro card restante vira a nova referência do grupo
+        $newGroupId = ($deletedId === $groupId) ? (int) $remaining[0]['id'] : $groupId;
+
+        for ($i = 0; $i < $count; $i++) {
+            $dayNum = $i + 1;
+            $cardId = (int) $remaining[$i]['id'];
+            $upSql = "UPDATE atividades_preventivas SET sla_days = ?, sla_day_number = ?, sla_group_id = ? WHERE id = ?";
+            $upStmt = $this->safePrepare($upSql);
+            $upStmt->bind_param('iiii', $count, $dayNum, $newGroupId, $cardId);
+            $upStmt->execute();
+        }
+
+        if ($deletedId === $groupId) {
+            $extSql = "UPDATE sla_extensions SET preventiva_id = ? WHERE preventiva_id = ?";
+            $extStmt = $this->safePrepare($extSql);
+            $extStmt->bind_param('ii', $newGroupId, $deletedId);
+            $extStmt->execute();
+        }
+
+        return ['count' => $count, 'new_group_id' => $newGroupId];
+    }
+
     public function getById(int $id): ?array
     {
         $sql = "SELECT * FROM atividades_preventivas WHERE id = ? LIMIT 1";
@@ -146,9 +189,9 @@ class PreventivaRepository extends BaseRepository
         $sql = "
             SELECT ap.id, ap.site AS local, '' AS equipamento, '' AS capacidade, '' AS local_scm, '' AS localidade,
                    ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.qtd_executada, ap.obs, 'preventiva' AS tipo,
-                   (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count,
+                   (SELECT COUNT(*) FROM equipamentos WHERE TRIM(local) = TRIM(ap.site)) AS machine_count,
                    ap.sort_order,
-                   COALESCE((SELECT e.mercado FROM equipamentos e WHERE e.local = ap.site LIMIT 1), '') AS mercado,
+                   COALESCE((SELECT e.mercado FROM equipamentos e WHERE TRIM(e.local) = TRIM(ap.site) LIMIT 1), '') AS mercado,
                    ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number,
                    CASE WHEN ap.sla_days > 0 THEN COALESCE(ap.sla_group_id, ap.id) ELSE ap.sla_group_id END AS sla_group_id,
                    COALESCE((SELECT GROUP_CONCAT(se.justification SEPARATOR ' | ') FROM sla_extensions se WHERE se.preventiva_id = ap.id), '') AS sla_extensions
@@ -165,7 +208,7 @@ class PreventivaRepository extends BaseRepository
 
     public function countMachinesForSite(string $site): int
     {
-        $sql = "SELECT COUNT(*) AS cnt FROM equipamentos WHERE local = ?";
+        $sql = "SELECT COUNT(*) AS cnt FROM equipamentos WHERE TRIM(local) = TRIM(?)";
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $site);
         $stmt->execute();

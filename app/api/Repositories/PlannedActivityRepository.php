@@ -68,9 +68,9 @@ class PlannedActivityRepository extends BaseRepository
             FROM (
                 SELECT ap.id, ap.site AS local, '' AS equipamento, '' AS capacidade, '' AS local_scm, '' AS localidade,
                        ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.qtd_executada, ap.obs, 'preventiva' AS tipo,
-                       (SELECT COUNT(*) FROM equipamentos WHERE local = ap.site) AS machine_count,
+                       (SELECT COUNT(*) FROM equipamentos WHERE TRIM(local) = TRIM(ap.site)) AS machine_count,
                        ap.sort_order,
-                       COALESCE((SELECT e.mercado FROM equipamentos e WHERE e.local = ap.site LIMIT 1), '') AS mercado,
+                       COALESCE((SELECT e.mercado FROM equipamentos e WHERE TRIM(e.local) = TRIM(ap.site) LIMIT 1), '') AS mercado,
                        ap.sla_days, ap.sla_include_saturday, ap.sla_include_sunday, ap.sla_day_number,
                        CASE WHEN ap.sla_days > 0 THEN COALESCE(ap.sla_group_id, ap.id) ELSE ap.sla_group_id END AS sla_group_id,
                        COALESCE((SELECT GROUP_CONCAT(se.justification SEPARATOR ' | ') FROM sla_extensions se WHERE se.preventiva_id = ap.id), '') AS sla_extensions
@@ -477,6 +477,14 @@ class PlannedActivityRepository extends BaseRepository
         return $stmt->execute();
     }
 
+    public function updatePreventivaTeamForGroup(int $groupId, string $equipe): bool
+    {
+        $sql = "UPDATE atividades_preventivas SET equipe = ? WHERE sla_group_id = ? OR id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('sii', $equipe, $groupId, $groupId);
+        return $stmt->execute();
+    }
+
     public function updateObs(int $id, string $tipo, string $obs): bool
     {
         $table = $tipo === 'preventiva' ? 'atividades_preventivas' : 'registros';
@@ -646,6 +654,42 @@ class PlannedActivityRepository extends BaseRepository
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
         return $row ?: null;
+    }
+
+    public function getPlannedDatesByRegistro(int $registroId): array
+    {
+        $sql = "SELECT id, data_planejada, sla_day_number FROM planejamento_datas WHERE registro_id = ? ORDER BY data_planejada ASC, id ASC";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('i', $registroId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $rows = [];
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        return $rows;
+    }
+
+    public function renumberCorretivaSlaDays(int $registroId): int
+    {
+        $dates = $this->getPlannedDatesByRegistro($registroId);
+        $count = count($dates);
+        if ($count > 0) {
+            $sql = "UPDATE registros SET sla_days = ? WHERE id = ? AND (sla_days IS NOT NULL AND sla_days > 0)";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('ii', $count, $registroId);
+            $stmt->execute();
+
+            for ($i = 0; $i < $count; $i++) {
+                $dayNum = $i + 1;
+                $dateId = (int) $dates[$i]['id'];
+                $upSql = "UPDATE planejamento_datas SET sla_day_number = ? WHERE id = ?";
+                $upStmt = $this->safePrepare($upSql);
+                $upStmt->bind_param('ii', $dayNum, $dateId);
+                $upStmt->execute();
+            }
+        }
+        return $count;
     }
 
     public function decrementCorretivaSlaDays(int $registroId): void

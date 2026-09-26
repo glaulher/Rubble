@@ -39,8 +39,13 @@ class PlannedActivityService
                 $sum = 0;
             }
             $machineCount = (int) ($item['machine_count'] ?? 0);
+            if ($machineCount <= 0 && !empty($item['local'])) {
+                $machineCount = $this->preventivaRepository->countMachinesForSite($item['local']);
+            }
             $restam = $machineCount > 0 ? max(0, $machineCount - $sum) : 0;
-            $pct = $machineCount > 0 ? (int) round(($sum / $machineCount) * 100) : 0;
+            $pct = $machineCount > 0
+                ? (int) round(($sum / $machineCount) * 100)
+                : (($sum > 0 && ($item['status'] ?? '') === 'Concluído') ? 100 : ($sum > 0 ? 50 : 0));
             $item['sla_feito'] = $sum;
             $item['sla_restam'] = $restam;
             $item['sla_pct'] = $pct;
@@ -327,13 +332,20 @@ class PlannedActivityService
             throw new \RuntimeException('Nome da equipe muito longo (máx. 100 caracteres).');
         }
 
-        $this->repository->updateTeam($id, $tipo, $equipe);
+        $replicateSla = !empty($data['replicate_sla']);
+        if ($replicateSla && $tipo === 'preventiva') {
+            $prev = $this->repository->getPreventivaById($id);
+            $groupId = !empty($prev['sla_group_id']) ? (int) $prev['sla_group_id'] : $id;
+            $this->repository->updatePreventivaTeamForGroup($groupId, $equipe);
+        } else {
+            $this->repository->updateTeam($id, $tipo, $equipe);
+        }
 
         $dataPlanejada = isset($data['data_planejada']) && $data['data_planejada'] !== ''
             ? trim($data['data_planejada'])
             : null;
 
-        return ['action' => 'updated', 'id' => $id, 'item' => $this->getItem($id, $tipo, $dataPlanejada)];
+        return ['action' => 'updated', 'id' => $id, 'replicated' => $replicateSla, 'item' => $this->getItem($id, $tipo, $dataPlanejada)];
     }
 
     public function updateObs(int $id, string $tipo, string $obs, ?string $dataPlanejada = null): array
@@ -486,10 +498,6 @@ class PlannedActivityService
         }
 
         if ($dataPlanejada !== null) {
-            if ($slaDayNumber !== null && (int) ($existing->sla_days ?? 0) > 0 && (int) $existing->sla_days === $slaDayNumber) {
-                $this->repository->decrementCorretivaSlaDays($id);
-            }
-
             $this->repository->removePlannedDate($id, $dataPlanejada);
 
             $remaining = $this->repository->countPlannedDates($id);
@@ -500,6 +508,10 @@ class PlannedActivityService
                 }
                 $this->repository->unplan($id, self::UNPLAN_STATUS);
                 return ['action' => 'unplanned', 'id' => $id, 'tipo' => $tipo];
+            }
+
+            if (!empty($existing->sla_days) && (int) $existing->sla_days > 0) {
+                $this->repository->renumberCorretivaSlaDays($id);
             }
 
             return ['action' => 'date_removed', 'id' => $id, 'tipo' => $tipo, 'data_planejada' => $dataPlanejada];

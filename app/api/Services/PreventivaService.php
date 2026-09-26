@@ -14,7 +14,7 @@ class PreventivaService
         'Planejado' => ['Em Andamento', 'Cancelado', 'Planejado'],
         'Em Andamento' => ['Em Andamento', 'Concluído', 'Cancelado', 'Planejado'],
         'Cancelado' => ['Planejado'],
-        'Concluído' => ['Em Andamento'],
+        'Concluído' => ['Em Andamento', 'Planejado'],
     ];
 
     public function __construct(?PreventivaRepository $repository = null)
@@ -37,8 +37,13 @@ class PreventivaService
             $sum = 0;
         }
         $machineCount = (int) ($item['machine_count'] ?? $this->repository->countMachinesForSite($item['local'] ?? ''));
+        if ($machineCount <= 0) {
+            $machineCount = $this->repository->countMachinesForSite($item['local'] ?? '');
+        }
         $restam = $machineCount > 0 ? max(0, $machineCount - $sum) : 0;
-        $pct = $machineCount > 0 ? (int) round(($sum / $machineCount) * 100) : 0;
+        $pct = $machineCount > 0
+            ? (int) round(($sum / $machineCount) * 100)
+            : (($sum > 0 && ($item['status'] ?? '') === 'Concluído') ? 100 : ($sum > 0 ? 50 : 0));
         $item['sla_feito'] = $sum;
         $item['sla_restam'] = $restam;
         $item['sla_pct'] = $pct;
@@ -169,26 +174,32 @@ class PreventivaService
             if ($qtdExecutada === null) {
                 throw new \RuntimeException('Informe a quantidade de máquinas preventivadas.');
             }
-            if ($qtdExecutada < 1 || $qtdExecutada > 999) {
-                throw new \RuntimeException('Quantidade deve estar entre 1 e 999.');
+            if ($qtdExecutada < 0 || $qtdExecutada > 999) {
+                throw new \RuntimeException('Quantidade deve estar entre 0 e 999.');
             }
-            $site = $record['site'] ?? '';
-            $machineCount = $this->repository->countMachinesForSite($site);
-            if ($machineCount > 0 && $qtdExecutada > $machineCount) {
-                throw new \RuntimeException("Quantidade não pode exceder {$machineCount} máquinas do site.");
-            }
-            // Validação acumulada do SLA (não estourar total do site)
-            $groupId = !empty($record['sla_group_id']) ? (int) $record['sla_group_id'] : (int) $record['id'];
-            if ($groupId > 0 && $machineCount > 0) {
-                $sumOthers = $this->repository->sumQtdForGroup($groupId, $id);
-                $total = $sumOthers + $qtdExecutada;
-                if ($total > $machineCount) {
-                    $restam = $machineCount - $sumOthers;
-                    $restam = max(0, $restam);
-                    throw new \RuntimeException("Total do SLA ({$total}) excede {$machineCount} máquinas do site. Restam {$restam}.");
+            if ($qtdExecutada === 0) {
+                $novoStatus = 'Planejado';
+                $requiresQtd = false;
+                $qtdToPersist = null;
+            } else {
+                $site = $record['site'] ?? '';
+                $machineCount = $this->repository->countMachinesForSite($site);
+                if ($machineCount > 0 && $qtdExecutada > $machineCount) {
+                    throw new \RuntimeException("Quantidade não pode exceder {$machineCount} máquinas do site.");
                 }
+                // Validação acumulada do SLA (não estourar total do site)
+                $groupId = !empty($record['sla_group_id']) ? (int) $record['sla_group_id'] : (int) $record['id'];
+                if ($groupId > 0 && $machineCount > 0) {
+                    $sumOthers = $this->repository->sumQtdForGroup($groupId, $id);
+                    $total = $sumOthers + $qtdExecutada;
+                    if ($total > $machineCount) {
+                        $restam = $machineCount - $sumOthers;
+                        $restam = max(0, $restam);
+                        throw new \RuntimeException("Total do SLA ({$total}) excede {$machineCount} máquinas do site. Restam {$restam}.");
+                    }
+                }
+                $qtdToPersist = $qtdExecutada;
             }
-            $qtdToPersist = $qtdExecutada;
         } else {
             // Para Planejado/Cancelado limpa qtd (regra de negócio)
             $qtdToPersist = null;
@@ -218,19 +229,38 @@ class PreventivaService
         return ['action' => 'status_updated', 'id' => $id, 'status' => $novoStatus, 'obs' => $record['obs'] ?? '', 'item' => $this->enrichItem($this->repository->getPreventivaItemById($id))];
     }
 
-    public function updateQtd(int $id, int $qtdExecutada): array
+    public function updateQtd(int $id, int $qtdExecutada, array $currentUser = []): array
     {
         $record = $this->repository->getById($id);
         if (!$record) {
             throw new \RuntimeException('Registro não encontrado.');
         }
         $statusAtual = $record['status'] ?? '';
+        if ($qtdExecutada < 0 || $qtdExecutada > 999) {
+            throw new \RuntimeException('Quantidade deve estar entre 0 e 999.');
+        }
+
+        $userName = $currentUser['nome'] ?? $currentUser['username'] ?? 'Desconhecido';
+        $userRole = $currentUser['role'] ?? '';
+        $now = date('d/m/Y H:i');
+        $existingObs = $record['obs'] ?? '';
+
+        if ($qtdExecutada === 0) {
+            // Reverter para 0 máquinas: limpa qtd e altera status para Planejado
+            $entry = "[{$now}] {$userName} ({$userRole}): Quantidade revertida para 0. Status alterado para 'Planejado'";
+            $newObs = $existingObs !== '' ? $existingObs . "\n\n" . $entry : $entry;
+            $this->repository->updateStatus($id, 'Planejado', $newObs, null, null);
+            return ['action' => 'qtd_reverted', 'id' => $id, 'status' => 'Planejado', 'qtd_executada' => null, 'item' => $this->enrichItem($this->repository->getPreventivaItemById($id))];
+        }
+
         if (!in_array($statusAtual, self::STATUS_REQUIRE_QTD, true)) {
-            throw new \RuntimeException('Quantidade só pode ser editada quando status é Em Andamento ou Concluído.');
+            // Se estava Planejado e colocou > 0 máquinas, avança para Em Andamento
+            $entry = "[{$now}] {$userName} ({$userRole}): Status alterado para 'Em Andamento' ({$qtdExecutada} máquinas)";
+            $newObs = $existingObs !== '' ? $existingObs . "\n\n" . $entry : $entry;
+            $this->repository->updateStatus($id, 'Em Andamento', $newObs, null, $qtdExecutada);
+            return ['action' => 'qtd_updated', 'id' => $id, 'status' => 'Em Andamento', 'qtd_executada' => $qtdExecutada, 'item' => $this->enrichItem($this->repository->getPreventivaItemById($id))];
         }
-        if ($qtdExecutada < 1 || $qtdExecutada > 999) {
-            throw new \RuntimeException('Quantidade deve estar entre 1 e 999.');
-        }
+
         $site = $record['site'] ?? '';
         $machineCount = $this->repository->countMachinesForSite($site);
         if ($machineCount > 0 && $qtdExecutada > $machineCount) {
@@ -260,8 +290,21 @@ class PreventivaService
             throw new \RuntimeException('Registro não encontrado.');
         }
 
+        $hasSla = !empty($record['sla_days']) && (int) $record['sla_days'] > 0;
+        $groupId = !empty($record['sla_group_id']) ? (int) $record['sla_group_id'] : $id;
+
         $this->repository->delete($id);
 
-        return ['action' => 'deleted', 'id' => $id, 'tipo' => 'preventiva'];
+        $slaReconciled = null;
+        if ($hasSla) {
+            $slaReconciled = $this->repository->reconcilePreventivaSlaGroup($groupId, $id);
+        }
+
+        return [
+            'action' => 'deleted',
+            'id' => $id,
+            'tipo' => 'preventiva',
+            'sla_reconciled' => $slaReconciled,
+        ];
     }
 }

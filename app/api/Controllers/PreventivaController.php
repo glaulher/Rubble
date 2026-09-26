@@ -83,7 +83,7 @@ class PreventivaController
             Validator::integer($data, 'id');
             Validator::integer($data, 'qtd_executada');
 
-            $result = $this->service->updateQtd((int) $data['id'], (int) $data['qtd_executada']);
+            $result = $this->service->updateQtd((int) $data['id'], (int) $data['qtd_executada'], (array) $this->currentUser);
 
             Response::success('Quantidade atualizada com sucesso', $result);
 
@@ -104,7 +104,7 @@ class PreventivaController
 
             $result = $this->service->delete((int) $data['id']);
 
-            Response::success('Preventiva excluída com sucesso');
+            Response::success('Preventiva excluída com sucesso', $result);
 
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);

@@ -1,7 +1,7 @@
 import { createInfiniteScroll } from '/public/js/components/infinite-scroll.js';
 import { apiFetch, applyRoleVisibility, getUser } from '/public/js/core/auth.js';
 import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
-import { showToast, confirmDelete } from '/public/js/core/dom.js';
+import { showToast, confirmDelete, confirmAction } from '/public/js/core/dom.js';
 import { iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
 import { PlanModal } from '/public/js/components/plan-modal.js';
@@ -197,7 +197,10 @@ export function buildPlannedCardHtml(item) {
     var totalSla = machineCount > 0 ? machineCount : 0;
     var restam = item.sla_restam !== undefined ? parseInt(item.sla_restam, 10) : (totalSla ? Math.max(0, totalSla - feito) : 0);
     var pct = item.sla_pct !== undefined ? parseInt(item.sla_pct, 10) : (totalSla ? Math.round(feito/totalSla*100) : 0);
-    var barColor = feito >= totalSla && totalSla > 0 ? 'bg-emerald-500' : (feito > 0 ? 'bg-amber-500' : 'bg-slate-300');
+    if (totalSla === 0 && feito > 0) {
+      pct = (item.status === 'Concluído') ? 100 : 50;
+    }
+    var barColor = (feito >= totalSla && totalSla > 0) || pct >= 100 ? 'bg-emerald-500' : (feito > 0 ? 'bg-amber-500' : 'bg-slate-300');
     var text = totalSla ? feito + ' de ' + totalSla + ' (' + pct + '%) — faltam ' + restam : feito + ' preventivadas';
     slaProgressHtml = '<div class="mt-2 text-xs text-slate-600 sla-progress-container"><div class="flex items-center gap-1 mb-1"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 16l3-3 3 3 5-5"/></svg><span class="sla-progress-text">Progresso SLA: ' + escapeHtml(text) + '</span></div><div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full sla-progress-bar ' + barColor + '" style="width:' + pct + '%"></div></div></div>';
   }
@@ -294,11 +297,14 @@ export function startTeamInlineEdit(btn) {
   if (!card) return;
   var strong = card.querySelector('.team-name-text');
   if (!strong) return;
-  var currentValue = strong.textContent;
+  var rawValue = strong.textContent.trim();
+  var isADefinir = rawValue.toLowerCase() === 'a definir' || rawValue === '';
+  var currentValue = isADefinir ? '' : rawValue;
 
   var input = document.createElement('input');
   input.type = 'text';
   input.value = currentValue;
+  input.placeholder = isADefinir ? 'Nome do técnico' : '';
   input.className = 'team-edit-input text-slate-700 dark:text-slate-200 text-xs bg-transparent border border-blue-300 dark:border-blue-600 rounded px-1 py-0.5 w-32 focus:outline-none focus:border-blue-500';
   input.dataset.originalValue = currentValue;
   input.dataset.id = btn.dataset.id;
@@ -342,32 +348,70 @@ export function saveTeamInlineEdit(input, strong) {
   var originalValue = input.dataset.originalValue;
   var id = input.dataset.id;
   var tipo = input.dataset.tipo;
+  var card = input.closest('.planned-card');
 
-  if (newValue && newValue !== originalValue) {
-    apiFetch('/app/api/index.php?route=planned-activities', {
-      method: 'PUT',
-      body: JSON.stringify({ id: parseInt(id, 10), equipe: newValue, tipo: tipo }),
-    })
-    .then(function (res) { return res.json(); })
-    .then(function (result) {
-      if (result && result.success) {
-        if (result.data && result.data.item) {
-          _applyPlannedCardUpdate(result.data.item);
-        } else {
-          strong.textContent = newValue;
-        }
-      } else {
-        showToast(result && result.message ? result.message : 'Erro ao atualizar equipe.', 'error');
-      }
-      finishTeamEdit(input, strong);
-    })
-    .catch(function () {
-      showToast('Erro ao atualizar equipe.', 'error');
-      finishTeamEdit(input, strong);
+  var slaDays = card ? parseInt(card.getAttribute('data-sla-days') || '0', 10) : 0;
+  var slaDayNum = card ? parseInt(card.getAttribute('data-sla-day-number') || '0', 10) : 0;
+  var slaGroupId = card ? (card.getAttribute('data-sla-group-id') || card.getAttribute('data-id')) : null;
+
+  finishTeamEdit(input, strong);
+
+  if (!newValue || newValue === originalValue) {
+    return;
+  }
+
+  var isFirstSlaDay = slaDays > 1 && (slaDayNum <= 1);
+
+  if (isFirstSlaDay) {
+    confirmAction(
+      'Replicar Técnico',
+      'Deseja replicar o técnico "' + escapeHtml(newValue) + '" para todos os ' + slaDays + ' dias deste SLA?',
+      'Sim, replicar',
+      'confirm',
+      'Não, apenas este'
+    ).then(function (shouldReplicate) {
+      _doSaveTeam(id, tipo, newValue, strong, shouldReplicate, slaGroupId);
     });
   } else {
-    finishTeamEdit(input, strong);
+    _doSaveTeam(id, tipo, newValue, strong, false, slaGroupId);
   }
+}
+
+function _doSaveTeam(id, tipo, newValue, strong, replicateSla, slaGroupId) {
+  apiFetch('/app/api/index.php?route=planned-activities', {
+    method: 'PUT',
+    body: JSON.stringify({
+      id: parseInt(id, 10),
+      equipe: newValue,
+      tipo: tipo,
+      replicate_sla: !!replicateSla
+    }),
+  })
+  .then(function (res) { return res.json(); })
+  .then(function (result) {
+    if (result && result.success) {
+      if (result.data && result.data.item) {
+        _applyPlannedCardUpdate(result.data.item);
+      } else {
+        strong.textContent = newValue;
+      }
+      if (replicateSla && slaGroupId) {
+        var groupSelector = '.planned-card[data-sla-group-id="' + slaGroupId + '"], .planned-card[data-id="' + slaGroupId + '"]';
+        document.querySelectorAll(groupSelector).forEach(function (c) {
+          var s = c.querySelector('.team-name-text');
+          if (s) s.textContent = newValue;
+          var b = c.querySelector('.team-edit-btn');
+          if (b) b.dataset.equipe = newValue;
+        });
+      }
+      showToast('Equipe atualizada!', 'success');
+    } else {
+      showToast(result && result.message ? result.message : 'Erro ao atualizar equipe.', 'error');
+    }
+  })
+  .catch(function () {
+    showToast('Erro ao atualizar equipe.', 'error');
+  });
 }
 
 export function cancelTeamInlineEdit(input, strong) {
@@ -408,10 +452,11 @@ export function startQtdInlineEdit(btn) {
 
   var input = document.createElement('input');
   input.type = 'number';
-  input.min = '1';
+  input.min = '0';
   input.max = String(maxAllowed);
   input.step = '1';
   input.value = currentNum || '';
+  input.placeholder = '0';
   input.className = 'qtd-edit-input text-emerald-700 text-xs bg-transparent border border-blue-300 rounded px-1 py-0.5 w-16 focus:outline-none focus:border-blue-500';
   input.dataset.id = id;
   input.dataset.originalValue = String(currentNum || '');
@@ -453,13 +498,13 @@ export function saveQtdInlineEdit(input, span, btn) {
   var card = input.closest('.planned-card');
   var machineCount = card ? parseInt(card.getAttribute('data-machine-count') || '0', 10) : 0;
 
-  if (newValue === '' || newValue === originalValue) {
+  if (newValue === originalValue) {
     finishQtdEdit(input, span, btn);
     return;
   }
-  var num = parseInt(newValue, 10);
-  if (isNaN(num) || num < 1) {
-    showToast('Quantidade deve ser maior que zero.', 'error');
+  var num = newValue === '' ? 0 : parseInt(newValue, 10);
+  if (isNaN(num) || num < 0) {
+    showToast('Quantidade inválida.', 'error');
     input.focus();
     return;
   }
@@ -483,7 +528,7 @@ export function saveQtdInlineEdit(input, span, btn) {
         var totalM = machineCount > 0 ? ' de ' + machineCount : '';
         span.textContent = num + totalM + ' máquinas preventivadas';
       }
-      showToast('Quantidade atualizada!', 'success');
+      showToast(num === 0 ? 'Atividade revertida para planejado!' : 'Quantidade atualizada!', 'success');
     } else {
       showToast(result && result.message ? result.message : 'Erro ao atualizar quantidade.', 'error');
     }
@@ -510,13 +555,20 @@ export function _updateGroupSlaProgress(newItem) {
     var feito = parseInt(newItem.sla_feito, 10) || 0;
     var restam = newItem.sla_restam !== undefined ? parseInt(newItem.sla_restam, 10) : (totalM2 ? Math.max(0, totalM2 - feito) : 0);
     var pct = newItem.sla_pct !== undefined ? parseInt(newItem.sla_pct, 10) : (totalM2 ? Math.round(feito / totalM2 * 100) : 0);
+    if (!pct && totalM2 === 0 && feito > 0) {
+      pct = (newItem.status === 'Concluído') ? 100 : 50;
+    }
     if (bar) {
       bar.style.width = pct + '%';
-      bar.className = 'h-2 rounded-full sla-progress-bar ' + (feito >= totalM2 && totalM2 > 0 ? 'bg-emerald-500' : (feito > 0 ? 'bg-amber-500' : 'bg-slate-300'));
+      bar.className = 'h-2 rounded-full sla-progress-bar ' + ((feito >= totalM2 && totalM2 > 0) || pct >= 100 || newItem.status === 'Concluído' ? 'bg-emerald-500' : (feito > 0 ? 'bg-amber-500' : 'bg-slate-300'));
     }
     if (txt) {
       var t = totalM2 ? feito + ' de ' + totalM2 + ' (' + pct + '%) — faltam ' + restam : feito + ' preventivadas';
       txt.textContent = 'Progresso SLA: ' + t;
+    }
+    var pctSpan = c.querySelector('.sla-progress-container .font-medium');
+    if (pctSpan) {
+      pctSpan.textContent = pct + '%';
     }
   });
 }
@@ -1792,13 +1844,17 @@ export function deletePlanned(id, tipo, dataPlanejada, slaDayNumber) {
         .then(function (result) {
           showToast(result && result.message ? result.message : 'Atividade removida com sucesso!', 'success');
           if (result.data && result.data.id) {
-            _removePlannedCards(result.data.id, result.data.tipo || tipo);
-            var currentTotal = window._plannedTotal || 0;
-            if (currentTotal > 0) {
-              _updatePlannedCounter(currentTotal - 1);
+            if (result.data.sla_reconciled || result.data.action === 'date_removed' || slaDayNumber) {
+              resetPlannedState(plannedSearch);
+            } else {
+              _removePlannedCards(result.data.id, result.data.tipo || tipo);
+              var currentTotal = window._plannedTotal || 0;
+              if (currentTotal > 0) {
+                _updatePlannedCounter(currentTotal - 1);
+              }
             }
           } else {
-            resetPlannedState('');
+            resetPlannedState(plannedSearch);
           }
         })
         .catch(function (err) {
@@ -1812,7 +1868,7 @@ var STATUS_TRANSITIONS = {
   'Planejado': ['Em Andamento', 'Cancelado', 'Planejado'],
   'Em Andamento': ['Em Andamento', 'Conclu\u00eddo', 'Cancelado', 'Planejado'],
   'Cancelado': ['Planejado'],
-  'Conclu\u00eddo': ['Em Andamento'],
+  'Conclu\u00eddo': ['Em Andamento', 'Planejado'],
 };
 
 export function openStatusPreventiva(id, currentStatus, currentDate) {
@@ -2142,6 +2198,8 @@ export function submitStatusPreventiva() {
   if (status === 'Em Andamento' || status === 'Concluído') {
     var qi = document.getElementById('statusQtdExecutada');
     qtd_executada = qi && qi.value !== '' ? parseInt(qi.value, 10) : null;
+  } else if (status === 'Planejado') {
+    qtd_executada = 0;
   }
 
   apiFetch('/app/api/index.php?route=preventiva&action=update-status', {
