@@ -197,7 +197,7 @@ class PreventiveCycleRepository extends BaseRepository
         }
         $obsFilter = $hasObservacao
             ? "AND pci.observacao IS NOT NULL AND pci.observacao != ''"
-            : "";
+            : "AND (pci.observacao IS NULL OR pci.observacao = '')";
         $scmFilter = '';
         if ($noScm) {
             $scmFilter = "AND (pci.scm_number IS NULL OR pci.scm_number = '')";

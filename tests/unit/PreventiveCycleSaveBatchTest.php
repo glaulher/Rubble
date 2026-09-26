@@ -94,7 +94,7 @@ class PreventiveCycleSaveBatchTest extends TestCase
         $this->conn->query("DELETE FROM scm WHERE scm IN ('SCM-NEG', 'SCM-APR')");
     }
 
-    public function testSummaryIncludesItemsWithObservationWhenHasObservacaoIsFalse(): void
+    public function testSummaryExcludesItemsWithObservationWhenHasObservacaoIsFalse(): void
     {
         $repo = new PreventiveCycleRepository();
 
@@ -104,7 +104,7 @@ class PreventiveCycleSaveBatchTest extends TestCase
         ]);
 
         $summary = $repo->summary(self::CICLO, false);
-        $this->assertSame(2, $summary['checked_count'], 'summary() without observation filter must include all checked items, including those with observations');
+        $this->assertSame(1, $summary['checked_count'], 'summary() without observation filter deliberately excludes items with observations');
 
         $summaryWithObs = $repo->summary(self::CICLO, true);
         $this->assertSame(1, $summaryWithObs['checked_count'], 'summary() with hasObservacao=true must only include items with observations');
