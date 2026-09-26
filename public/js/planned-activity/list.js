@@ -200,7 +200,7 @@ export function buildPlannedCardHtml(item) {
     if (totalSla === 0 && feito > 0) {
       pct = (item.status === 'Concluído') ? 100 : 50;
     }
-    var isDone = (feito >= totalSla && totalSla > 0) || pct >= 100 || item.status === 'Concluído';
+    var isDone = (totalSla > 0 && feito >= totalSla) || pct >= 100;
     var isStarted = feito > 0;
     var barColor = isDone ? 'bg-emerald-500' : (isStarted ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600');
     var progressColor = isDone
@@ -570,7 +570,7 @@ export function _updateGroupSlaProgress(newItem) {
     if (!pct && totalM2 === 0 && feito > 0) {
       pct = (newItem.status === 'Concluído') ? 100 : 50;
     }
-    var isDone = (feito >= totalM2 && totalM2 > 0) || pct >= 100 || newItem.status === 'Concluído';
+    var isDone = (totalM2 > 0 && feito >= totalM2) || pct >= 100;
     var isStarted = feito > 0;
     var barColor = isDone ? 'bg-emerald-500' : (isStarted ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600');
     var progressColor = isDone

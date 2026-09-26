@@ -315,6 +315,73 @@ describe("Planned Activity - SLA Reversion & Replication Features", () => {
       expect(card.querySelector('.sla-progress-bar').classList.contains('bg-amber-500')).toBe(true);
       expect(card.querySelector('.font-medium').textContent).toBe('50%');
     });
+
+    it("keeps progress bar amber and text sky when card status is Concluído but SLA has remaining machines", () => {
+      const cardHtml = buildPlannedCardHtml({
+        id: 32,
+        tipo: 'preventiva',
+        status: 'Concluído',
+        site: 'Site Alpha',
+        local: 'Site Alpha',
+        machine_count: 16,
+        sla_days: 3,
+        sla_day_number: 1,
+        sla_group_id: 32,
+        sla_feito: 15,
+        sla_restam: 1
+      });
+
+      expect(cardHtml).toContain('width:94%');
+      expect(cardHtml).toContain('bg-amber-500');
+      expect(cardHtml).not.toContain('bg-emerald-500');
+      expect(cardHtml).toContain('sla-progress-container text-sky-700');
+      expect(cardHtml).not.toContain('sla-progress-container text-emerald-700');
+    });
+
+    it("turns progress bar emerald and text emerald when card status is Concluído and all SLA machines are done", () => {
+      const cardHtml = buildPlannedCardHtml({
+        id: 33,
+        tipo: 'preventiva',
+        status: 'Concluído',
+        site: 'Site Alpha',
+        local: 'Site Alpha',
+        machine_count: 16,
+        sla_days: 3,
+        sla_day_number: 2,
+        sla_group_id: 32,
+        sla_feito: 16,
+        sla_restam: 0
+      });
+
+      expect(cardHtml).toContain('width:100%');
+      expect(cardHtml).toContain('bg-emerald-500');
+      expect(cardHtml).toContain('text-emerald-700');
+    });
+
+    it("keeps sibling progress bar amber in _updateGroupSlaProgress when card is Concluído but machines remain", () => {
+      document.body.innerHTML += `
+        <div class="planned-card" data-id="45" data-sla-group-id="45" data-machine-count="16" data-sla-feito="0">
+          <div class="sla-progress-container">
+            <span class="sla-progress-text">Progresso SLA: 0 de 16 (0%) — faltam 16</span>
+            <div class="sla-progress-bar bg-slate-300" style="width:0%"></div>
+          </div>
+        </div>
+      `;
+
+      _updateGroupSlaProgress({
+        id: 46,
+        sla_group_id: 45,
+        machine_count: 16,
+        sla_feito: 15,
+        status: 'Concluído'
+      });
+
+      const card = document.querySelector('.planned-card[data-id="45"]');
+      expect(card.querySelector('.sla-progress-bar').style.width).toBe('94%');
+      expect(card.querySelector('.sla-progress-bar').classList.contains('bg-amber-500')).toBe(true);
+      expect(card.querySelector('.sla-progress-bar').classList.contains('bg-emerald-500')).toBe(false);
+      expect(card.querySelector('.sla-progress-container').classList.contains('text-sky-700')).toBe(true);
+    });
   });
 
   describe("deletePlanned: SLA Decrement & Refresh", () => {
