@@ -89,7 +89,11 @@ class PreventiveCycleSaveBatchTest extends TestCase
         ]);
 
         $summary = $repo->summary(self::CICLO);
-        $this->assertSame(1, $summary['checked_count']);
+        $this->assertSame(1, $summary['checked_count'], 'General summary must exclude SCM negado');
+
+        $summaryNeg = $repo->summary(self::CICLO, false, false, false, '', 'N/A', 'Fornecimento', ['SCM negado']);
+        $this->assertSame(1, $summaryNeg['checked_count'], 'Summary filtered by SCM negado must include SCM negado');
+        $this->assertSame(1, $summaryNeg['site_count'], 'Summary filtered by SCM negado must count sites');
 
         $this->conn->query("DELETE FROM scm WHERE scm IN ('SCM-NEG', 'SCM-APR')");
     }

@@ -195,9 +195,13 @@ class PreventiveCycleRepository extends BaseRepository
                 ELSE 0
             END";
         }
-        $obsFilter = $hasObservacao
-            ? "AND pci.observacao IS NOT NULL AND pci.observacao != ''"
-            : "AND (pci.observacao IS NULL OR pci.observacao = '')";
+        if ($hasObservacao) {
+            $obsFilter = "AND pci.observacao IS NOT NULL AND pci.observacao != ''";
+        } elseif (empty($scmStatuses)) {
+            $obsFilter = "AND (pci.observacao IS NULL OR pci.observacao = '')";
+        } else {
+            $obsFilter = "";
+        }
         $scmFilter = '';
         if ($noScm) {
             $scmFilter = "AND (pci.scm_number IS NULL OR pci.scm_number = '')";
@@ -228,6 +232,15 @@ class PreventiveCycleRepository extends BaseRepository
                 $scmStatusParams = $dbStatuses;
             }
         }
+        $excludeNegadoClause = (!in_array('SCM negado', $scmStatuses, true))
+            ? "AND NOT EXISTS (
+                    SELECT 1 FROM scm s_neg
+                    WHERE pci.scm_number IS NOT NULL
+                      AND pci.scm_number != ''
+                      AND s_neg.scm = pci.scm_number
+                      AND LOWER(TRIM(s_neg.status)) = 'scm negado'
+                )"
+            : "";
         $sql = "SELECT
                     COUNT(pci.id) AS checked_count,
                     COALESCE(SUM({$valorCaseSql}), 0) AS total_valor,
@@ -240,13 +253,7 @@ class PreventiveCycleRepository extends BaseRepository
                 {$obsFilter}
                 {$scmFilter}
                 {$scmStatusFilter}
-                AND NOT EXISTS (
-                    SELECT 1 FROM scm s_neg
-                    WHERE pci.scm_number IS NOT NULL
-                      AND pci.scm_number != ''
-                      AND s_neg.scm = pci.scm_number
-                      AND LOWER(TRIM(s_neg.status)) = 'scm negado'
-                )";
+                {$excludeNegadoClause}";
         $params = array_merge([$ciclo, $excludedEquipment, $excludedLocation], $scmStatusParams);
         $types = 'sss' . str_repeat('s', count($scmStatusParams));
         $stmt = $this->safePrepare($sql);
