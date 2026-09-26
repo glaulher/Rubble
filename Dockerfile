@@ -4,12 +4,8 @@ RUN composer install --no-interaction --working-dir=/app
 
 FROM php:8.4-fpm-alpine
 
-RUN apk add --no-cache --virtual .build-deps autoconf make g++ && \
-    docker-php-ext-install mysqli && \
-    docker-php-ext-enable mysqli && \
-    pecl install apcu && \
-    docker-php-ext-enable apcu && \
-    apk del .build-deps
+ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+RUN install-php-extensions mysqli apcu
 
 COPY config/php/zz-opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
 COPY config/php-fpm/zz-www.conf /usr/local/etc/php-fpm.d/zz-www.conf
