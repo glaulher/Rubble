@@ -505,6 +505,32 @@ class PreventiveCycleRepository extends BaseRepository
                             OR (s.atividade NOT LIKE '%CHILLER%' AND e.equipamento NOT LIKE '%chiller%')
                           )
                           AND COALESCE(DATE_FORMAT(s.data_validacao, '%Y-%m'), DATE_FORMAT(s.data_execucao, '%Y-%m'), DATE_FORMAT(s.data, '%Y-%m')) = ?
+                          AND (
+                            NOT EXISTS (SELECT 1 FROM scm_items si_chk WHERE si_chk.scm_id = s.id)
+                            OR EXISTS (
+                                SELECT 1 FROM scm_items si
+                                WHERE si.scm_id = s.id
+                                  AND (
+                                    si.servico LIKE CONCAT('%', e.equipamento, '%')
+                                    OR REPLACE(si.servico, ' ', '') LIKE CONCAT('%', REPLACE(e.equipamento, ' ', ''), '%')
+                                    OR (
+                                        e.localidade IS NOT NULL 
+                                        AND e.localidade != '' 
+                                        AND LENGTH(TRIM(e.localidade)) >= 3
+                                        AND si.servico LIKE CONCAT('%', TRIM(e.localidade), '%')
+                                    )
+                                    OR (
+                                        (SELECT COUNT(*) FROM equipamentos e_sub 
+                                         WHERE e_sub.local = e.local 
+                                           AND (
+                                             (e.equipamento LIKE '%chiller%' AND e_sub.equipamento LIKE '%chiller%')
+                                             OR (e.equipamento NOT LIKE '%chiller%' AND e_sub.equipamento NOT LIKE '%chiller%')
+                                           )
+                                        ) = 1
+                                    )
+                                  )
+                            )
+                          )
                     ) ranked
                     WHERE rn = 1
                 ) matched ON matched.equip_id = pci.equipamento_id AND pci.ciclo = ?
@@ -518,45 +544,8 @@ class PreventiveCycleRepository extends BaseRepository
             $updated = $stmtUpdate->affected_rows;
             $stmtUpdate->close();
 
-            $sqlInsert = "INSERT INTO preventive_cycle_items (ciclo, equipamento_id, scm_number)
-                SELECT ?, matched.equip_id, matched.scm
-                FROM (
-                    SELECT equip_id, scm, status
-                    FROM (
-                        SELECT e.id as equip_id, s.scm, s.status,
-                               ROW_NUMBER() OVER (
-                                   PARTITION BY e.id 
-                                   ORDER BY FIELD(s.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), s.id DESC
-                               ) as rn
-                        FROM equipamentos e
-                        JOIN scm s ON (
-                            e.local_scm = s.site 
-                            OR e.local = s.site 
-                            OR e.site_infratel = s.site
-                            OR e.id = s.equipamento_id
-                        )
-                        WHERE (s.segmento LIKE '%PREVENTIVA%' OR s.atividade LIKE '%PREVENTIVA%' OR s.atividade LIKE '%CHILLER%')
-                          AND (
-                            (s.atividade LIKE '%CHILLER%' AND e.equipamento LIKE '%chiller%')
-                            OR (s.atividade NOT LIKE '%CHILLER%' AND e.equipamento NOT LIKE '%chiller%')
-                          )
-                          AND COALESCE(DATE_FORMAT(s.data_validacao, '%Y-%m'), DATE_FORMAT(s.data_execucao, '%Y-%m'), DATE_FORMAT(s.data, '%Y-%m')) = ?
-                    ) ranked
-                    WHERE rn = 1
-                ) matched
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM preventive_cycle_items pci
-                    WHERE pci.ciclo = ? AND pci.equipamento_id = matched.equip_id
-                )";
-
-            $stmtInsert = $this->safePrepare($sqlInsert);
-            $stmtInsert->bind_param('sss', $ciclo, $ciclo, $ciclo);
-            $stmtInsert->execute();
-            $inserted = $stmtInsert->affected_rows;
-            $stmtInsert->close();
-
             $this->commit();
-            return $updated + $inserted;
+            return $updated;
         } catch (\Throwable $e) {
             $this->rollback();
             throw $e;

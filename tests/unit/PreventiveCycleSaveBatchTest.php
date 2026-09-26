@@ -115,6 +115,7 @@ class PreventiveCycleSaveBatchTest extends TestCase
         $repo = new PreventiveCycleRepository();
 
         $this->conn->query("DELETE FROM scm WHERE scm = 'SCM-AUTO-01'");
+        $this->conn->query("UPDATE equipamentos SET local = 'BMADTC', local_scm = 'BMADTC', equipamento = 'AR CONDICIONADO' WHERE id = 14");
         $stmt = $this->conn->prepare("INSERT INTO scm (scm, site, segmento, atividade, status, data_validacao) VALUES (?, ?, ?, ?, ?, ?)");
         $scm = 'SCM-AUTO-01';
         $site = 'BMADTC';
@@ -137,6 +138,57 @@ class PreventiveCycleSaveBatchTest extends TestCase
         $this->assertSame('SCM-AUTO-01', $row['scm_number']);
 
         $this->conn->query("DELETE FROM scm WHERE scm = 'SCM-AUTO-01'");
+    }
+
+    public function testAutoLinkScmsDistinguishesMachinesByServicoAndNeverInsertsUnlaunched(): void
+    {
+        $repo = new PreventiveCycleRepository();
+
+        $this->conn->query("DELETE FROM scm_items WHERE scm_id IN (SELECT id FROM scm WHERE scm = 'SCM-CHILLER-3')");
+        $this->conn->query("DELETE FROM scm WHERE scm = 'SCM-CHILLER-3'");
+
+        // Setup equipment 14 as CHILLER 1, equipment 15 as CHILLER 3 on same site
+        $this->conn->query("UPDATE equipamentos SET local = 'CRT-TEST', local_scm = 'CRT-TEST', equipamento = 'CHILLER 1' WHERE id = 14");
+        $this->conn->query("UPDATE equipamentos SET local = 'CRT-TEST', local_scm = 'CRT-TEST', equipamento = 'CHILLER 3' WHERE id = 15");
+
+        $stmt = $this->conn->prepare("INSERT INTO scm (scm, site, segmento, atividade, status, data_validacao) VALUES (?, ?, ?, ?, ?, ?)");
+        $scm = 'SCM-CHILLER-3';
+        $site = 'CRT-TEST';
+        $seg = 'PREVENTIVA ON GOING';
+        $ativ = 'PREDITIVA DE CHILLER';
+        $status = 'SCM aprovado';
+        $dt = '2099-03-10';
+        $stmt->bind_param('ssssss', $scm, $site, $seg, $ativ, $status, $dt);
+        $stmt->execute();
+        $scmId = $this->conn->insert_id;
+        $stmt->close();
+
+        // Insert item in scm_items explicitly specifying CHILLER 3
+        $stmtItem = $this->conn->prepare("INSERT INTO scm_items (scm_id, servico) VALUES (?, ?)");
+        $servico = '14 - CHILLER 3-3119B00469052-RJOCRT-CARRIER-30EVA1522';
+        $stmtItem->bind_param('is', $scmId, $servico);
+        $stmtItem->execute();
+        $stmtItem->close();
+
+        // Only launch CHILLER 3 (id 15). CHILLER 1 (id 14) is out of production / not launched!
+        $repo->saveBatch(self::CICLO, [
+            ['equipamento_id' => 15, 'checked' => true, 'observacao' => '', 'scm_number' => null],
+        ]);
+
+        $linked = $repo->autoLinkScms(self::CICLO);
+        $this->assertSame(1, $linked);
+
+        // CHILLER 3 received the SCM
+        $row15 = $this->fetch(self::CICLO, 15);
+        $this->assertSame('SCM-CHILLER-3', $row15['scm_number']);
+
+        // CHILLER 1 was NEVER launched, so it must not exist in preventive_cycle_items
+        $row14 = $this->fetch(self::CICLO, 14);
+        $this->assertNull($row14, 'Unlaunched equipment must NEVER be auto-inserted by autoLinkScms');
+
+        // Cleanup
+        $this->conn->query("DELETE FROM scm_items WHERE scm_id = {$scmId}");
+        $this->conn->query("DELETE FROM scm WHERE scm = 'SCM-CHILLER-3'");
     }
 
 
