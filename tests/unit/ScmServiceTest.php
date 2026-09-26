@@ -22,14 +22,23 @@ class ScmServiceTest extends TestCase
 
     // --- listAll ---
 
-    public function testListAllDelegatesToRepository(): void
+    public function testListAllDelegatesToRepositoryWithDefaultExcludedStatuses(): void
     {
         $repo = $this->createMockRepo();
-        $repo->method('listAll')->willReturn([
-            ['id' => 1, 'scm' => '522386', 'status' => 'SCM aprovado'],
-        ]);
-        $repo->method('count')->willReturn(1);
-        $repo->method('getTotalValue')->willReturn(5000.0);
+        $repo->expects($this->once())
+            ->method('listAll')
+            ->with(20, 0, '', null, null, [], null, [], null, ['SCM em aberto'])
+            ->willReturn([
+                ['id' => 1, 'scm' => '522386', 'status' => 'SCM aprovado'],
+            ]);
+        $repo->expects($this->once())
+            ->method('count')
+            ->with('', null, null, [], null, [], null, ['SCM em aberto'])
+            ->willReturn(1);
+        $repo->expects($this->once())
+            ->method('getTotalValue')
+            ->with('', null, null, [], null, [], null, ['SCM em aberto'])
+            ->willReturn(5000.0);
 
         $service = $this->createService($repo);
         $result = $service->listAll(20, 0);
@@ -40,6 +49,31 @@ class ScmServiceTest extends TestCase
         $this->assertCount(1, $result['items']);
         $this->assertSame(1, $result['total']);
         $this->assertSame(5000.0, $result['total_valor']);
+    }
+
+    public function testListAllIncludesScmEmAbertoWhenExplicitlyFiltered(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('listAll')
+            ->with(20, 0, '', null, null, [], 'SCM em aberto', [], null, [])
+            ->willReturn([
+                ['id' => 2, 'scm' => '599999', 'status' => 'SCM em aberto'],
+            ]);
+        $repo->expects($this->once())
+            ->method('count')
+            ->with('', null, null, [], 'SCM em aberto', [], null, [])
+            ->willReturn(1);
+        $repo->expects($this->once())
+            ->method('getTotalValue')
+            ->with('', null, null, [], 'SCM em aberto', [], null, [])
+            ->willReturn(2500.0);
+
+        $service = $this->createService($repo);
+        $result = $service->listAll(20, 0, '', null, null, [], 'SCM em aberto');
+
+        $this->assertSame(1, $result['total']);
+        $this->assertSame('SCM em aberto', $result['items'][0]['status']);
     }
 
     public function testListAllWithFilters(): void
@@ -199,9 +233,17 @@ class ScmServiceTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
-    public function testImportBatchSkipsAbertoStatus(): void
+    public function testImportBatchImportsAbertoStatusAsScmEmAberto(): void
     {
         $repo = $this->createMockRepo();
+        $repo->method('findByScmCode')->willReturnOnConsecutiveCalls(null, ['id' => 1]);
+        $repo->expects($this->once())
+            ->method('upsert')
+            ->with($this->callback(function ($data) {
+                return $data['scm'] === '522386' && $data['status'] === 'SCM em aberto';
+            }))
+            ->willReturn(true);
+        $repo->method('upsertItems')->willReturn(true);
 
         $rows = [
             [
@@ -229,14 +271,22 @@ class ScmServiceTest extends TestCase
         $service = $this->createService($repo);
         $result = $service->importBatch($rows);
 
-        $this->assertSame(0, $result['imported']);
+        $this->assertSame(1, $result['imported']);
         $this->assertSame(0, $result['updated']);
-        $this->assertSame(1, $result['skipped']);
+        $this->assertSame(0, $result['skipped']);
     }
 
-    public function testImportBatchSkipsAbertoVariants(): void
+    public function testImportBatchImportsAbertoVariants(): void
     {
         $repo = $this->createMockRepo();
+        $repo->method('findByScmCode')->willReturnOnConsecutiveCalls(null, ['id' => 2]);
+        $repo->expects($this->once())
+            ->method('upsert')
+            ->with($this->callback(function ($data) {
+                return $data['scm'] === '522387' && $data['status'] === 'SCM em aberto';
+            }))
+            ->willReturn(true);
+        $repo->method('upsertItems')->willReturn(true);
 
         $rows = [
             [
@@ -249,7 +299,8 @@ class ScmServiceTest extends TestCase
         $service = $this->createService($repo);
         $result = $service->importBatch($rows);
 
-        $this->assertSame(1, $result['skipped']);
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(0, $result['skipped']);
     }
 
     public function testImportBatchDropsEmptyScmCode(): void
@@ -551,4 +602,55 @@ class ScmServiceTest extends TestCase
         $this->assertNull($captured['data_execucao']);
         $this->assertNull($captured['data_validacao']);
     }
+
+    public function testDetermineCycleExtractsYearMonth(): void
+    {
+        $service = $this->createService();
+
+        $this->assertSame('2026-09', $service->determineCycle(['data_validacao' => '2026-09-15', 'data' => '2026-08-01']));
+        $this->assertSame('2026-08', $service->determineCycle(['data_execucao' => '2026-08-20', 'data' => '2026-08-01']));
+        $this->assertSame('2026-07', $service->determineCycle(['data' => '2026-07-05']));
+        $this->assertNull($service->determineCycle([]));
+    }
+
+    public function testImportBatchInvokesAutoLinkOnPreventiveCycle(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('findByScmCode')->willReturnOnConsecutiveCalls(null, ['id' => 1]);
+        $repo->method('upsert')->willReturn(true);
+        $repo->method('upsertItems')->willReturn(true);
+
+        $cycleService = $this->createMock(\App\Api\Services\PreventiveCycleService::class);
+        $cycleService->expects($this->once())
+            ->method('autoLinkScms')
+            ->with('2026-09')
+            ->willReturn(['ciclo' => '2026-09', 'linked' => 12]);
+
+        $service = new ScmService($repo, $cycleService);
+
+        $rows = [
+            [
+                'SCM' => '539250',
+                'DATA' => '01/09/2026',
+                'ATIVIDADE' => 'PREVENTIVA ON GOING',
+                'SITE' => 'RJOREC',
+                'CIDADE' => 'Rio de Janeiro',
+                'STATUS' => 'GERADO',
+                'DATA_VALIDAÇÃO' => '15/09/2026',
+                'SEGMENTO' => 'PREVENTIVA ON GOING',
+                'ORIGEM' => 'RESIDENCIAL',
+                'SERVIÇO' => 'Manutenção',
+                'UNIDADE' => 'UN',
+                'VALOR' => '100.00',
+                'QTDE_EXECUÇÃO' => '1',
+                'SUBTOTAL_EXECUÇÃO' => '100.00',
+            ],
+        ];
+
+        $result = $service->importBatch($rows);
+
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(12, $result['auto_linked']);
+    }
 }
+

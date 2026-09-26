@@ -289,3 +289,69 @@ describe("preventive-cycle _cycleExportCsv", function () {
   });
 });
 
+describe("preventive-cycle _cycleUpdateBadge with SCM em aberto", function () {
+  it("renders 'SCM em aberto' count in cycle badge when present in scm data", function () {
+    document.body.innerHTML = '<span id="cycleBadge"></span>';
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/preventive-cycle/list.js',
+      'globalThis.__updateBadge = _cycleUpdateBadge;' +
+      'globalThis.__setSummaryData = function (d) { _cycleSummaryData = d; };' +
+      'globalThis.__setScmData = function (d) { _cycleScmData = d; };');
+
+    globalThis.__setSummaryData({ total_valor: 150000, site_count: 25, checked_count: 100 });
+    globalThis.__setScmData({
+      'SCM em aberto': 4,
+      'SCM enviado': 2,
+      'SCM negado': 1,
+      'SCM aprovado': 20
+    });
+
+    globalThis.__updateBadge();
+
+    var badgeEl = document.getElementById('cycleBadge');
+    expect(badgeEl.textContent).toContain('SCM em aberto 4');
+    expect(badgeEl.textContent).toContain('SCM enviado 2');
+    expect(badgeEl.textContent).toContain('SCM negado 1');
+    expect(badgeEl.textContent).toContain('SCM aprovado 20');
+  });
+});
+
+describe("preventive-cycle _cycleSyncScms", function () {
+  it("calls auto-link-scm API and shows toast with linked count", async function () {
+    document.body.innerHTML = '<button id="syncScmCycleBtn">Puxar SCMs</button>';
+    var toastMsg = null;
+    globalThis.showToast = function (msg) { toastMsg = msg; };
+
+    var apiCalled = false;
+    var requestBody = null;
+    globalThis.apiFetch = function (url, opts) {
+      if (url.includes('auto-link-scm')) {
+        apiCalled = true;
+        requestBody = opts && opts.body ? JSON.parse(opts.body) : {};
+        return Promise.resolve({
+          json: function () {
+            return Promise.resolve({ success: true, data: { ciclo: '2026-09', linked: 15 } });
+          }
+        });
+      }
+      return Promise.resolve({
+        json: function () {
+          return Promise.resolve({ success: true, data: [], total: 0 });
+        }
+      });
+    };
+
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/preventive-cycle/list.js',
+      'globalThis.__syncScms = _cycleSyncScms;' +
+      '_cycleCurrent = "2026-09";');
+
+    await globalThis.__syncScms();
+
+    expect(apiCalled).toBe(true);
+    expect(requestBody.ciclo).toBe('2026-09');
+    expect(toastMsg).toBe('15 equipamento(s) vinculado(s) a SCMs');
+  });
+});
+
+

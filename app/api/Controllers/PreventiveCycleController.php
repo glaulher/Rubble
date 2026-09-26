@@ -146,4 +146,26 @@ class PreventiveCycleController
             Response::serverError($e);
         }
     }
+
+    public function autoLinkScm(): void
+    {
+        try {
+            $body = Request::body();
+            $ciclo = trim($body['ciclo'] ?? $_GET['ciclo'] ?? '');
+            if ($ciclo === '') {
+                Response::validation('ciclo é obrigatório');
+                return;
+            }
+            $force = !empty($body['force']) || ($_GET['force'] ?? '') === '1';
+            $result = $this->service->autoLinkScms($ciclo, $force);
+            Response::success("Sincronização concluída: {$result['linked']} equipamentos vinculados a SCMs", $result);
+        } catch (\InvalidArgumentException $e) {
+            Response::validation($e->getMessage());
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
 }
+

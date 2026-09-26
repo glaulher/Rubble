@@ -6,7 +6,7 @@ use App\Api\Repositories\ScmRepository;
 
 class ScmService
 {
-    private ScmRepository $repository;
+    public const DEFAULT_EXCLUDED_STATUSES = ['SCM em aberto'];
 
     private const STATUS_MAP = [
         'GERADO'    => 'SCM aprovado',
@@ -14,22 +14,29 @@ class ScmService
         'CONFERIDO' => 'SCM verificado',
         'VALIDADO'  => 'SCM verificado',
         'EXECUTADO' => 'SCM enviado',
+        'ABERTO'    => 'SCM em aberto',
+        'EM ABERTO' => 'SCM em aberto',
     ];
+
+    private ScmRepository $repository;
+    private PreventiveCycleService $preventiveCycleService;
 
     private const PV_SYNC_STATUSES = ['SCM aprovado', 'SCM negado', 'SCM enviado'];
 
-    public function __construct(?ScmRepository $repository = null)
+    public function __construct(?ScmRepository $repository = null, ?PreventiveCycleService $preventiveCycleService = null)
     {
         $this->repository = $repository ?? new ScmRepository();
+        $this->preventiveCycleService = $preventiveCycleService ?? new PreventiveCycleService();
     }
 
     public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = [], ?string $ciclo = null): array
     {
-        $items = $this->repository->listAll($limit, $offset, $search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo);
+        $excludeStatuses = ($status === null || $status === '') ? self::DEFAULT_EXCLUDED_STATUSES : [];
+        $items = $this->repository->listAll($limit, $offset, $search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo, $excludeStatuses);
         return [
             'items'       => $items,
-            'total'       => $this->repository->count($search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo),
-            'total_valor' => $this->repository->getTotalValue($search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo),
+            'total'       => $this->repository->count($search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo, $excludeStatuses),
+            'total_valor' => $this->repository->getTotalValue($search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo, $excludeStatuses),
         ];
     }
 
@@ -61,6 +68,7 @@ class ScmService
         $errors = [];
 
         $grouped = $this->groupByScm($rows);
+        $affectedCycles = [];
 
         foreach ($grouped as $scmCode => $group) {
             try {
@@ -69,11 +77,10 @@ class ScmService
 
                 $statusUpper = mb_strtoupper(trim($first['STATUS'] ?? ''));
                 if (str_contains($statusUpper, 'ABERTO')) {
-                    $skipped += count($items);
-                    continue;
+                    $mappedStatus = 'SCM em aberto';
+                } else {
+                    $mappedStatus = self::STATUS_MAP[$statusUpper] ?? ($first['STATUS'] ?? '');
                 }
-
-                $mappedStatus = self::STATUS_MAP[$statusUpper] ?? ($first['STATUS'] ?? '');
 
                 $site = trim($first['SITE'] ?? '');
                 $equipamentoId = $this->resolveEquipmentId($site);
@@ -123,6 +130,18 @@ class ScmService
                     $this->repository->updatePvItemStatusByScm($parentData['scm'], $mappedStatus);
                 }
 
+                $isPreventiva = str_contains(mb_strtoupper($parentData['segmento']), 'PREVENTIVA')
+                    || str_contains(mb_strtoupper($parentData['origem']), 'PREVENTIVA')
+                    || str_contains(mb_strtoupper($parentData['atividade']), 'PREVENTIVA')
+                    || str_contains(mb_strtoupper($parentData['atividade']), 'CHILLER');
+
+                if ($isPreventiva) {
+                    $cycle = $this->determineCycle($parentData);
+                    if ($cycle !== null) {
+                        $affectedCycles[$cycle] = true;
+                    }
+                }
+
                 if ($existing) {
                     $updated++;
                 } else {
@@ -133,12 +152,32 @@ class ScmService
             }
         }
 
+        $autoLinkedTotal = 0;
+        foreach (array_keys($affectedCycles) as $cycle) {
+            try {
+                $res = $this->preventiveCycleService->autoLinkScms($cycle);
+                $autoLinkedTotal += $res['linked'] ?? 0;
+            } catch (\Throwable $e) {
+                // Non-blocking for SCM import
+            }
+        }
+
         return [
-            'imported' => $imported,
-            'updated'  => $updated,
-            'skipped'  => $skipped,
-            'errors'   => $errors,
+            'imported'    => $imported,
+            'updated'     => $updated,
+            'skipped'     => $skipped,
+            'errors'      => $errors,
+            'auto_linked' => $autoLinkedTotal,
         ];
+    }
+
+    public function determineCycle(array $data): ?string
+    {
+        $dateStr = $data['data_validacao'] ?? $data['data_execucao'] ?? $data['data'] ?? null;
+        if (!empty($dateStr) && preg_match('/^(\d{4}-\d{2})/', $dateStr, $m)) {
+            return $m[1];
+        }
+        return null;
     }
 
     private function groupByScm(array $rows): array

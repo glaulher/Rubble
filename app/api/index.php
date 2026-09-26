@@ -235,13 +235,20 @@ $router->addRoute('preventive-cycle', 'GET', function () use ($auth) {
         $ctrl->scmStatusCount();
     } elseif ($action === 'list-ids') {
         $ctrl->listIds();
+    } elseif ($action === 'auto-link-scm') {
+        $ctrl->autoLinkScm();
     } else {
         $ctrl->listAll();
     }
 });
 $router->addRoute('preventive-cycle', 'POST', function () use ($auth) {
     $ctrl = new PreventiveCycleController();
-    $ctrl->save();
+    $action = $_GET['action'] ?? null;
+    if ($action === 'auto-link-scm') {
+        $ctrl->autoLinkScm();
+    } else {
+        $ctrl->save();
+    }
 });
 
 // SCM

@@ -94,6 +94,53 @@ class PreventiveCycleSaveBatchTest extends TestCase
         $this->conn->query("DELETE FROM scm WHERE scm IN ('SCM-NEG', 'SCM-APR')");
     }
 
+    public function testSummaryIncludesItemsWithObservationWhenHasObservacaoIsFalse(): void
+    {
+        $repo = new PreventiveCycleRepository();
+
+        $repo->saveBatch(self::CICLO, [
+            ['equipamento_id' => 14, 'checked' => true, 'observacao' => 'defeito no compressor', 'scm_number' => null],
+            ['equipamento_id' => 15, 'checked' => true, 'observacao' => '', 'scm_number' => null],
+        ]);
+
+        $summary = $repo->summary(self::CICLO, false);
+        $this->assertSame(2, $summary['checked_count'], 'summary() without observation filter must include all checked items, including those with observations');
+
+        $summaryWithObs = $repo->summary(self::CICLO, true);
+        $this->assertSame(1, $summaryWithObs['checked_count'], 'summary() with hasObservacao=true must only include items with observations');
+    }
+
+    public function testAutoLinkScmsMatchesEquipmentAndUpdatesScmNumber(): void
+    {
+        $repo = new PreventiveCycleRepository();
+
+        $this->conn->query("DELETE FROM scm WHERE scm = 'SCM-AUTO-01'");
+        $stmt = $this->conn->prepare("INSERT INTO scm (scm, site, segmento, atividade, status, data_validacao) VALUES (?, ?, ?, ?, ?, ?)");
+        $scm = 'SCM-AUTO-01';
+        $site = 'BMADTC';
+        $seg = 'PREVENTIVA ON GOING';
+        $ativ = 'MANUTENÇÃO PREVENTIVA';
+        $status = 'SCM aprovado';
+        $dt = '2099-03-10';
+        $stmt->bind_param('ssssss', $scm, $site, $seg, $ativ, $status, $dt);
+        $stmt->execute();
+        $stmt->close();
+
+        $repo->saveBatch(self::CICLO, [
+            ['equipamento_id' => 14, 'checked' => true, 'observacao' => '', 'scm_number' => null],
+        ]);
+
+        $linked = $repo->autoLinkScms(self::CICLO);
+        $this->assertGreaterThanOrEqual(1, $linked);
+
+        $row = $this->fetch(self::CICLO, 14);
+        $this->assertSame('SCM-AUTO-01', $row['scm_number']);
+
+        $this->conn->query("DELETE FROM scm WHERE scm = 'SCM-AUTO-01'");
+    }
+
+
+
     private function fetch(string $ciclo, int $equipamentoId): ?array
     {
         $stmt = $this->conn->prepare(

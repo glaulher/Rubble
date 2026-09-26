@@ -81,4 +81,45 @@ class PreventiveCycleServiceTest extends TestCase
         $result = $service->listIds('2026-06', '', false, false, false, ['SCM verificado']);
         $this->assertEquals([1, 2, 3], $result);
     }
+
+    public function testAutoLinkScmsValidatesCycleFormat(): void
+    {
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventiveCycleRepository::class);
+        $service = new PreventiveCycleService($mockRepo);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Formato de ciclo inválido');
+        $service->autoLinkScms('invalid-cycle');
+    }
+
+    public function testAutoLinkScmsCallsRepositoryAndReturnsLinkedCount(): void
+    {
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventiveCycleRepository::class);
+        $mockRepo->expects($this->once())
+            ->method('autoLinkScms')
+            ->with('2026-09', false)
+            ->willReturn(15);
+
+        $service = new PreventiveCycleService($mockRepo);
+        $result = $service->autoLinkScms('2026-09', false);
+
+        $this->assertSame('2026-09', $result['ciclo']);
+        $this->assertSame(15, $result['linked']);
+    }
+
+    public function testScmStatusCountIncludesScmEmAbertoInOrder(): void
+    {
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventiveCycleRepository::class);
+        $mockRepo->expects($this->once())
+            ->method('scmStatusCount')
+            ->with('2026-09', $this->anything(), $this->anything(), ['SCM em aberto', 'SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado'])
+            ->willReturn(['SCM em aberto' => 3, 'SCM aprovado' => 20]);
+
+        $service = new PreventiveCycleService($mockRepo);
+        $result = $service->scmStatusCount('2026-09');
+
+        $this->assertSame(3, $result['SCM em aberto']);
+        $this->assertSame(20, $result['SCM aprovado']);
+    }
 }
+

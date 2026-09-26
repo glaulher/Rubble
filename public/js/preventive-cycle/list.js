@@ -104,6 +104,9 @@ export function _cycleSetupEvents() {
   var saveBtn = document.getElementById('saveCycleBtn');
   if (saveBtn) saveBtn.addEventListener('click', _cycleSave);
 
+  var syncScmBtn = document.getElementById('syncScmCycleBtn');
+  if (syncScmBtn) syncScmBtn.addEventListener('click', _cycleSyncScms);
+
   var csvBtn = document.querySelector('[data-action="generate-csv"]');
   if (csvBtn) {
     csvBtn.removeEventListener('click', _cycleExportCsv);
@@ -438,7 +441,7 @@ export function _cycleUpdateBadge() {
         parts.push('R$ ' + val.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' \u00b7 ' + (d.site_count || 0) + ' sites \u00b7 ' + (d.checked_count || 0) + ' m\u00e1q.');
     }
     if (_cycleScmData) {
-        var statuses = ['SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado'];
+        var statuses = ['SCM em aberto', 'SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado'];
         var scmParts = [];
         statuses.forEach(function (status) {
             var count = _cycleScmData[status] || 0;
@@ -550,6 +553,52 @@ export function _cycleSave() {
         saveBtn.disabled = false;
         saveBtn.innerHTML =
           '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Salvar Ciclo';
+      }
+    });
+}
+
+export function _cycleSyncScms() {
+  var ciclo = _cycleCurrent;
+  if (!ciclo) {
+    if (typeof showToast === 'function') showToast('Selecione um ciclo primeiro', 'error');
+    return Promise.resolve();
+  }
+
+  var btn = document.getElementById('syncScmCycleBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="animate-pulse">Puxando SCMs...</span>';
+  }
+
+  return apiFetch('/app/api/index.php?route=preventive-cycle&action=auto-link-scm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ciclo: ciclo }),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (result) {
+      if (result.success) {
+        var count = result.data ? (result.data.linked || 0) : 0;
+        if (typeof showToast === 'function') {
+          showToast(count + ' equipamento(s) vinculado(s) a SCMs', 'success');
+        }
+        _cycleScmValidationCache = {};
+        _cycleLoadList(ciclo);
+      } else {
+        if (typeof showToast === 'function') {
+          showToast(result.message || 'Erro ao sincronizar SCMs', 'error');
+        }
+      }
+    })
+    .catch(function (e) {
+      console.warn('[preventive-cycle] sync SCM error:', e);
+      if (typeof showToast === 'function') showToast('Erro ao sincronizar SCMs', 'error');
+    })
+    .finally(function () {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML =
+          '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Puxar SCMs';
       }
     });
 }

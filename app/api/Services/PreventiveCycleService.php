@@ -14,7 +14,7 @@ class PreventiveCycleService
 
     public const SCM_LANCADOS_STATUSES = ['SCM aprovado', 'SCM verificado', 'SCM enviado'];
 
-    private const SCM_STATUS_ORDER = ['SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado'];
+    private const SCM_STATUS_ORDER = ['SCM em aberto', 'SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado'];
 
     public function __construct(?PreventiveCycleRepository $repository = null, ?EquipmentPriceService $priceService = null)
     {
@@ -80,4 +80,17 @@ class PreventiveCycleService
     {
         return $this->repository->scmStatusCount($ciclo, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, self::SCM_STATUS_ORDER);
     }
+
+    public function autoLinkScms(string $ciclo, bool $force = false): array
+    {
+        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ciclo)) {
+            throw new \InvalidArgumentException('Formato de ciclo inválido (use YYYY-MM)');
+        }
+        $linked = $this->repository->autoLinkScms($ciclo, $force);
+        return [
+            'ciclo' => $ciclo,
+            'linked' => $linked,
+        ];
+    }
 }
+
