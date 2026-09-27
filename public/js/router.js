@@ -23,7 +23,7 @@ import { initPreventivaDashboard } from '/public/js/preventiva/dashboard.js';
 import { initInventoryList } from '/public/js/inventory/list.js';
 import { loadInventoryForm } from '/public/js/inventory/form.js';
 
-const VIEW_VERSION = 42;
+const VIEW_VERSION = 43;
 
 export async function loadPage(url) {
   try {

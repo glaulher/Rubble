@@ -104,9 +104,6 @@ export function _cycleSetupEvents() {
   var saveBtn = document.getElementById('saveCycleBtn');
   if (saveBtn) saveBtn.addEventListener('click', _cycleSave);
 
-  var syncScmBtn = document.getElementById('syncScmCycleBtn');
-  if (syncScmBtn) syncScmBtn.addEventListener('click', _cycleSyncScms);
-
   var csvBtn = document.querySelector('[data-action="generate-csv"]');
   if (csvBtn) {
     csvBtn.removeEventListener('click', _cycleExportCsv);
