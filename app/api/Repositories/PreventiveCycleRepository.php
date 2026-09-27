@@ -89,7 +89,7 @@ class PreventiveCycleRepository extends BaseRepository
                     CASE WHEN pci.id IS NOT NULL THEN 1 ELSE 0 END AS checked,
                     CASE
                         WHEN pci.scm_number IS NULL OR pci.scm_number = '' THEN ''
-                        WHEN s.scm IS NULL THEN 'SCM em aberto'
+                        WHEN s.scm IS NULL OR {$resolvedStatusSql} IS NULL OR {$resolvedStatusSql} = '' THEN 'SCM em aberto'
                         ELSE {$resolvedStatusSql}
                     END AS scm_status
                 FROM equipamentos e
@@ -197,12 +197,13 @@ class PreventiveCycleRepository extends BaseRepository
                 ELSE 0
             END";
         }
+        $resolvedStatusSql = $this->getResolvedStatusSql();
         if ($hasObservacao) {
             $obsFilter = "AND pci.observacao IS NOT NULL AND pci.observacao != ''";
-        } elseif (empty($scmStatuses)) {
-            $obsFilter = "AND (pci.observacao IS NULL OR pci.observacao = '')";
+        } elseif (!empty($scmStatuses) && in_array('SCM negado', $scmStatuses, true)) {
+            $obsFilter = "AND ((pci.observacao IS NULL OR pci.observacao = '') OR {$resolvedStatusSql} = 'SCM negado')";
         } else {
-            $obsFilter = "";
+            $obsFilter = "AND (pci.observacao IS NULL OR pci.observacao = '')";
         }
         $scmFilter = '';
         if ($noScm) {
@@ -215,7 +216,6 @@ class PreventiveCycleRepository extends BaseRepository
         $scmJoin = '';
         $scmStatusFilter = '';
         $scmStatusParams = [];
-        $resolvedStatusSql = $this->getResolvedStatusSql();
         if (!empty($scmStatuses)) {
             $hasEmAberto = in_array('SCM em aberto', $scmStatuses, true);
             $dbStatuses = array_values(array_filter($scmStatuses, fn($s) => $s !== 'SCM em aberto'));
@@ -444,18 +444,21 @@ class PreventiveCycleRepository extends BaseRepository
     {
         $resolvedStatusSql = $this->getResolvedStatusSql();
         $sql = "SELECT s.scm, s.segmento, s.origem,
-                       CASE
-                           WHEN e.id IS NOT NULL THEN {$resolvedStatusSql}
-                           ELSE (
-                               SELECT si_fb.status
-                               FROM scm_items si_fb
-                               WHERE si_fb.scm_id = s.id
-                                 AND si_fb.status IS NOT NULL
-                                 AND si_fb.status != ''
-                               ORDER BY FIELD(si_fb.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), si_fb.id ASC
-                               LIMIT 1
-                           )
-                       END AS status,
+                       COALESCE(
+                           CASE
+                               WHEN e.id IS NOT NULL THEN {$resolvedStatusSql}
+                               ELSE (
+                                   SELECT si_fb.status
+                                   FROM scm_items si_fb
+                                   WHERE si_fb.scm_id = s.id
+                                     AND si_fb.status IS NOT NULL
+                                     AND si_fb.status != ''
+                                   ORDER BY FIELD(si_fb.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), si_fb.id ASC
+                                   LIMIT 1
+                               )
+                           END,
+                           'SCM em aberto'
+                       ) AS status,
                        COALESCE(e.equipamento, eq_s.equipamento) AS equipamento,
                        COALESCE(e.mercado, eq_s.mercado) AS mercado,
                        COALESCE(e.local, eq_s.local) AS local
@@ -482,7 +485,7 @@ class PreventiveCycleRepository extends BaseRepository
         $resolvedStatusSql = $this->getResolvedStatusSql();
         $sql = "SELECT
                     CASE
-                        WHEN s.scm IS NULL THEN 'SCM em aberto'
+                        WHEN s.scm IS NULL OR {$resolvedStatusSql} IS NULL OR {$resolvedStatusSql} = '' THEN 'SCM em aberto'
                         ELSE {$resolvedStatusSql}
                     END AS status_name,
                     COUNT(DISTINCT e.local) AS site_count
@@ -648,7 +651,7 @@ class PreventiveCycleRepository extends BaseRepository
                 ORDER BY FIELD(si_def.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), si_def.id ASC
                 LIMIT 1
             ),
-            ''
+            'SCM em aberto'
         )";
     }
 }

@@ -332,7 +332,13 @@ export function _cycleRenderCards(items, append) {
         html += '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-sm font-semibold" data-role="admin coordenador">R$ ' + valor.toFixed(2).replace('.', ',') + '</span>';
       }
       html += '<input type="text" class="cycle-scm-input flex-1 min-w-[120px] px-3 py-1.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-slate-50" data-equip-id="' + item.equipamento_id + '" placeholder="N&ordm; do SCM..." value="' + _cycleEscape(item.scm_number || '') + '">';
-      html += '<span class="cycle-scm-badge flex-shrink-0" data-equip-id="' + item.equipamento_id + '"></span>';
+      html += '<span class="cycle-scm-badge flex-shrink-0" data-equip-id="' + item.equipamento_id + '">';
+      if (item.scm_number) {
+        var initialStatus = item.scm_status || 'SCM em aberto';
+        var initialClass = _cycleScmStatusColors[initialStatus] || 'bg-amber-100 text-amber-700';
+        html += '<span class="inline-flex items-center ' + initialClass + ' text-xs px-2 py-0.5 rounded-full">' + _cycleEscape(initialStatus) + '</span>';
+      }
+      html += '</span>';
       html += '</div>';
       html += '</div>';
       html += '<div class="ml-8">';
@@ -390,6 +396,11 @@ export function _cycleRenderCards(items, append) {
       }
       _cycleValidateScm(val, equipId, badgeEl);
     });
+    cycleContent.addEventListener('keydown', function (e) {
+      if (e.target.matches('.cycle-scm-input') && e.key === 'Enter') {
+        e.target.blur();
+      }
+    });
   }
 }
 
@@ -430,8 +441,8 @@ export function _cycleRenderScmBadge(data, badgeEl) {
         badgeEl.innerHTML = '<span class="inline-flex items-center bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full">Erro no mercado</span>';
         return;
     }
-    var status = data.status || '';
-    var statusClass = _cycleScmStatusColors[status] || 'bg-slate-100 text-slate-700';
+    var status = data.status || 'SCM em aberto';
+    var statusClass = _cycleScmStatusColors[status] || 'bg-amber-100 text-amber-700';
     badgeEl.innerHTML = '<span class="inline-flex items-center ' + statusClass + ' text-xs px-2 py-0.5 rounded-full">' + _cycleEscape(status) + '</span>';
 }
 
