@@ -43,7 +43,7 @@ class PreventiveCycleRepository extends BaseRepository
 
             if ($hasEmAberto && empty($dbStatuses)) {
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
-                $where .= " AND pci.id IS NOT NULL AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND ({$resolvedStatusSql} = 'SCM em aberto' OR s.scm IS NULL)";
+                $where .= " AND pci.id IS NOT NULL AND ({$resolvedStatusSql} = 'SCM em aberto' OR s.scm IS NULL)";
             } elseif ($hasEmAberto && !empty($dbStatuses)) {
                 $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
@@ -88,7 +88,8 @@ class PreventiveCycleRepository extends BaseRepository
                     pci.scm_number,
                     CASE WHEN pci.id IS NOT NULL THEN 1 ELSE 0 END AS checked,
                     CASE
-                        WHEN pci.scm_number IS NULL OR pci.scm_number = '' THEN ''
+                        WHEN pci.id IS NULL THEN ''
+                        WHEN pci.scm_number IS NULL OR pci.scm_number = '' THEN 'SCM em aberto'
                         WHEN s.scm IS NULL OR {$resolvedStatusSql} IS NULL OR {$resolvedStatusSql} = '' THEN 'SCM em aberto'
                         ELSE {$resolvedStatusSql}
                     END AS scm_status
@@ -151,7 +152,7 @@ class PreventiveCycleRepository extends BaseRepository
 
             if ($hasEmAberto && empty($dbStatuses)) {
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
-                $where .= " AND pci.id IS NOT NULL AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND ({$resolvedStatusSql} = 'SCM em aberto' OR s.scm IS NULL)";
+                $where .= " AND pci.id IS NOT NULL AND ({$resolvedStatusSql} = 'SCM em aberto' OR s.scm IS NULL)";
             } elseif ($hasEmAberto && !empty($dbStatuses)) {
                 $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
@@ -222,7 +223,7 @@ class PreventiveCycleRepository extends BaseRepository
 
             if ($hasEmAberto && empty($dbStatuses)) {
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
-                $scmStatusFilter = "AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND ({$resolvedStatusSql} = 'SCM em aberto' OR s.scm IS NULL)";
+                $scmStatusFilter = "AND ({$resolvedStatusSql} = 'SCM em aberto' OR s.scm IS NULL)";
             } elseif ($hasEmAberto && !empty($dbStatuses)) {
                 $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
@@ -323,7 +324,6 @@ class PreventiveCycleRepository extends BaseRepository
                     SELECT 1 FROM preventive_cycle_items pci
                     LEFT JOIN scm s ON s.scm = pci.scm_number
                     WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
-                    AND pci.scm_number IS NOT NULL AND pci.scm_number != ''
                     AND ({$resolvedStatusSql} = 'SCM em aberto' OR s.scm IS NULL)
                 )";
                 $whereParams[] = $ciclo;
@@ -493,7 +493,6 @@ class PreventiveCycleRepository extends BaseRepository
                 INNER JOIN equipamentos e ON e.id = pci.equipamento_id
                 LEFT JOIN scm s ON s.scm = pci.scm_number
                 WHERE pci.ciclo = ?
-                  AND pci.scm_number IS NOT NULL AND pci.scm_number != ''
                   AND e.equipamento != ? AND e.local != ?
                 GROUP BY status_name
                 ORDER BY FIELD(status_name, {$fieldOrder})";

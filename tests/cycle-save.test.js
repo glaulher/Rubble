@@ -417,3 +417,106 @@ describe("preventive-cycle _cycleValidateScm", function () {
 
 
 
+
+function emAbertoItem(overrides) {
+  var item = {
+    equipamento_id: 1,
+    local: 'SITE1',
+    local_scm: 'SITE1',
+    localidade: 'Cidade 1',
+    equipamento: 'AC-01',
+    tag_infratel: '',
+    capacidade: '5',
+    valor: '0',
+    checked: 1,
+    observacao: '',
+    scm_number: '',
+    scm_status: ''
+  };
+  Object.keys(overrides || {}).forEach(function (k) { item[k] = overrides[k]; });
+  return item;
+}
+
+function renderCycleCards(items) {
+  document.body.innerHTML = '<div id="cycleContent"></div>';
+  globalThis.hubRecase = function (s) { return s || ''; };
+  globalThis.applyRoleVisibility = function () {};
+  globalThis.apiFetch = function () {
+    return Promise.resolve({ json: function () { return Promise.resolve({ success: false }); } });
+  };
+  evalModule('../public/js/preventive-cycle/list.js',
+    'globalThis.__renderCards = _cycleRenderCards;' +
+    'globalThis.__bindScmFocusout = function () { var c = document.getElementById("cycleContent"); return c && c._scmListenerAdded; };');
+  globalThis.__renderCards(items, false);
+  return document.getElementById('cycleContent');
+}
+
+function dispatchFocusout(container, equipId) {
+  var inp = container.querySelector('.cycle-scm-input[data-equip-id="' + equipId + '"]');
+  inp.dispatchEvent(new Event('focusout', { bubbles: true }));
+}
+
+describe("preventive-cycle card badge for items without SCM number", function () {
+  it("renders 'SCM em aberto' badge for a checked item whose scm_number is empty", function () {
+    var container = renderCycleCards([
+      emAbertoItem({ checked: 1, scm_number: '', scm_status: 'SCM em aberto' })
+    ]);
+
+    var badge = container.querySelector('.cycle-scm-badge[data-equip-id="1"]');
+    expect(badge).not.toBeNull();
+    expect(badge.innerHTML).toContain('SCM em aberto');
+    expect(badge.innerHTML).toContain('bg-amber-100');
+    expect(badge.innerHTML).toContain('text-amber-700');
+  });
+
+  it("keeps showing the resolved status for a checked item with a resolved SCM", function () {
+    var container = renderCycleCards([
+      emAbertoItem({ checked: 1, scm_number: 'SCM123', scm_status: 'SCM aprovado' })
+    ]);
+
+    var badge = container.querySelector('.cycle-scm-badge[data-equip-id="1"]');
+    expect(badge.innerHTML).toContain('SCM aprovado');
+    expect(badge.innerHTML).toContain('bg-emerald-100');
+  });
+
+  it("renders an empty badge for an unchecked item with empty scm_status", function () {
+    var container = renderCycleCards([
+      emAbertoItem({ checked: 0, scm_number: '', scm_status: '' })
+    ]);
+
+    var badge = container.querySelector('.cycle-scm-badge[data-equip-id="1"]');
+    expect(badge).not.toBeNull();
+    expect(badge.innerHTML).toBe('');
+  });
+});
+
+describe("preventive-cycle scm input focusout with cleared value", function () {
+  it("restores 'SCM em aberto' on a CHECKED card when the input is cleared", function () {
+    var container = renderCycleCards([
+      emAbertoItem({ checked: 1, scm_number: '', scm_status: 'SCM em aberto' })
+    ]);
+
+    var badge = container.querySelector('.cycle-scm-badge[data-equip-id="1"]');
+    expect(badge.innerHTML).toContain('SCM em aberto');
+
+    container.querySelector('.cycle-scm-input[data-equip-id="1"]').value = '';
+    dispatchFocusout(container, 1);
+
+    expect(badge.innerHTML).toContain('SCM em aberto');
+    expect(badge.innerHTML).toContain('bg-amber-100');
+  });
+
+  it("clears the badge on an UNCHECKED card when the input is cleared", function () {
+    var container = renderCycleCards([
+      emAbertoItem({ checked: 0, scm_number: '', scm_status: 'SCM em aberto' })
+    ]);
+
+    var badge = container.querySelector('.cycle-scm-badge[data-equip-id="1"]');
+    expect(badge.innerHTML).toContain('SCM em aberto');
+
+    container.querySelector('.cycle-scm-input[data-equip-id="1"]').value = '';
+    dispatchFocusout(container, 1);
+
+    expect(badge.innerHTML).toBe('');
+  });
+});

@@ -330,7 +330,7 @@ export function _cycleRenderCards(items, append) {
       }
       html += '<input type="text" class="cycle-scm-input flex-1 min-w-[120px] px-3 py-1.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-slate-50" data-equip-id="' + item.equipamento_id + '" placeholder="N&ordm; do SCM..." value="' + _cycleEscape(item.scm_number || '') + '">';
       html += '<span class="cycle-scm-badge flex-shrink-0" data-equip-id="' + item.equipamento_id + '">';
-      if (item.scm_number) {
+      if (item.scm_status) {
         var initialStatus = item.scm_status || 'SCM em aberto';
         var initialClass = _cycleScmStatusColors[initialStatus] || 'bg-amber-100 text-amber-700';
         html += '<span class="inline-flex items-center ' + initialClass + ' text-xs px-2 py-0.5 rounded-full">' + _cycleEscape(initialStatus) + '</span>';
@@ -388,7 +388,12 @@ export function _cycleRenderCards(items, append) {
       var badgeEl = cycleContent.querySelector('.cycle-scm-badge[data-equip-id="' + equipId + '"]');
       if (!badgeEl) return;
       if (!val) {
-        badgeEl.innerHTML = '';
+        var cb = cycleContent.querySelector('.cycle-checkbox[data-equip-id="' + equipId + '"]');
+        if (cb && cb.checked) {
+          _cycleRenderScmBadge({ found: false }, badgeEl);
+        } else {
+          badgeEl.innerHTML = '';
+        }
         return;
       }
       _cycleValidateScm(val, equipId, badgeEl);

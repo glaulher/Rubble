@@ -11,7 +11,7 @@ import { loadEquipmentForm } from '/public/js/equipment/form.js';
 import { initEquipmentManager } from '/public/js/equipment/list.js';
 import { initPriceForm } from '/public/js/equipment-prices/form.js';
 import { initPriceList } from '/public/js/equipment-prices/list.js';
-import { initPreventiveCycle } from '/public/js/preventive-cycle/list.js';
+import { initPreventiveCycle } from '/public/js/preventive-cycle/list.js?v=19';
 import { initScm } from '/public/js/scm/scm-list.js';
 import { initPlannedActivity } from '/public/js/planned-activity/list.js';
 import { initPendingTickets } from '/public/js/pending-tickets/list.js';
