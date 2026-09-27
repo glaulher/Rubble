@@ -36,23 +36,24 @@ class PreventiveCycleRepository extends BaseRepository
         }
 
         $scmJoin = '';
+        $resolvedStatusSql = $this->getResolvedStatusSql();
         if (!empty($scmStatuses)) {
             $hasEmAberto = in_array('SCM em aberto', $scmStatuses, true);
             $dbStatuses = array_values(array_filter($scmStatuses, fn($s) => $s !== 'SCM em aberto'));
 
             if ($hasEmAberto && empty($dbStatuses)) {
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
-                $where .= " AND pci.id IS NOT NULL AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND (s.status = 'SCM em aberto' OR s.scm IS NULL)";
+                $where .= " AND pci.id IS NOT NULL AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND ({$resolvedStatusSql} = 'SCM em aberto' OR s.scm IS NULL)";
             } elseif ($hasEmAberto && !empty($dbStatuses)) {
                 $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
-                $where .= " AND pci.id IS NOT NULL AND (s.status IN ({$placeholders}, 'SCM em aberto') OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))";
+                $where .= " AND pci.id IS NOT NULL AND ({$resolvedStatusSql} IN ({$placeholders}, 'SCM em aberto') OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))";
                 $whereParams = array_merge($whereParams, $dbStatuses);
                 $whereTypes .= str_repeat('s', count($dbStatuses));
             } else {
                 $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
                 $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number";
-                $where .= " AND s.status IN ({$placeholders})";
+                $where .= " AND {$resolvedStatusSql} IN ({$placeholders})";
                 $whereParams = array_merge($whereParams, $dbStatuses);
                 $whereTypes .= str_repeat('s', count($dbStatuses));
             }
@@ -89,7 +90,7 @@ class PreventiveCycleRepository extends BaseRepository
                     CASE
                         WHEN pci.scm_number IS NULL OR pci.scm_number = '' THEN ''
                         WHEN s.scm IS NULL THEN 'SCM em aberto'
-                        ELSE COALESCE(s.status, '')
+                        ELSE {$resolvedStatusSql}
                     END AS scm_status
                 FROM equipamentos e
                 LEFT JOIN preventive_cycle_items pci
@@ -143,23 +144,24 @@ class PreventiveCycleRepository extends BaseRepository
         }
 
         $scmJoin = '';
+        $resolvedStatusSql = $this->getResolvedStatusSql();
         if (!empty($scmStatuses)) {
             $hasEmAberto = in_array('SCM em aberto', $scmStatuses, true);
             $dbStatuses = array_values(array_filter($scmStatuses, fn($s) => $s !== 'SCM em aberto'));
 
             if ($hasEmAberto && empty($dbStatuses)) {
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
-                $where .= " AND pci.id IS NOT NULL AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND (s.status = 'SCM em aberto' OR s.scm IS NULL)";
+                $where .= " AND pci.id IS NOT NULL AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND ({$resolvedStatusSql} = 'SCM em aberto' OR s.scm IS NULL)";
             } elseif ($hasEmAberto && !empty($dbStatuses)) {
                 $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
-                $where .= " AND pci.id IS NOT NULL AND (s.status IN ({$placeholders}, 'SCM em aberto') OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))";
+                $where .= " AND pci.id IS NOT NULL AND ({$resolvedStatusSql} IN ({$placeholders}, 'SCM em aberto') OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))";
                 $whereParams = array_merge($whereParams, $dbStatuses);
                 $whereTypes .= str_repeat('s', count($dbStatuses));
             } else {
                 $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
                 $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number";
-                $where .= " AND s.status IN ({$placeholders})";
+                $where .= " AND {$resolvedStatusSql} IN ({$placeholders})";
                 $whereParams = array_merge($whereParams, $dbStatuses);
                 $whereTypes .= str_repeat('s', count($dbStatuses));
             }
@@ -213,33 +215,31 @@ class PreventiveCycleRepository extends BaseRepository
         $scmJoin = '';
         $scmStatusFilter = '';
         $scmStatusParams = [];
+        $resolvedStatusSql = $this->getResolvedStatusSql();
         if (!empty($scmStatuses)) {
             $hasEmAberto = in_array('SCM em aberto', $scmStatuses, true);
             $dbStatuses = array_values(array_filter($scmStatuses, fn($s) => $s !== 'SCM em aberto'));
 
             if ($hasEmAberto && empty($dbStatuses)) {
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
-                $scmStatusFilter = "AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND (s.status = 'SCM em aberto' OR s.scm IS NULL)";
+                $scmStatusFilter = "AND pci.scm_number IS NOT NULL AND pci.scm_number != '' AND ({$resolvedStatusSql} = 'SCM em aberto' OR s.scm IS NULL)";
             } elseif ($hasEmAberto && !empty($dbStatuses)) {
                 $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
                 $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
-                $scmStatusFilter = "AND (s.status IN ({$placeholders}, 'SCM em aberto') OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))";
+                $scmStatusFilter = "AND ({$resolvedStatusSql} IN ({$placeholders}, 'SCM em aberto') OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))";
                 $scmStatusParams = $dbStatuses;
             } else {
                 $placeholders = implode(',', array_fill(0, count($dbStatuses), '?'));
                 $scmJoin = " INNER JOIN scm s ON s.scm = pci.scm_number";
-                $scmStatusFilter = "AND s.status IN ({$placeholders})";
+                $scmStatusFilter = "AND {$resolvedStatusSql} IN ({$placeholders})";
                 $scmStatusParams = $dbStatuses;
             }
         }
+        if (empty($scmJoin)) {
+            $scmJoin = " LEFT JOIN scm s ON s.scm = pci.scm_number";
+        }
         $excludeNegadoClause = (!in_array('SCM negado', $scmStatuses, true))
-            ? "AND NOT EXISTS (
-                    SELECT 1 FROM scm s_neg
-                    WHERE pci.scm_number IS NOT NULL
-                      AND pci.scm_number != ''
-                      AND s_neg.scm = pci.scm_number
-                      AND LOWER(TRIM(s_neg.status)) = 'scm negado'
-                )"
+            ? "AND (s.scm IS NULL OR {$resolvedStatusSql} != 'SCM negado')"
             : "";
         $sql = "SELECT
                     COUNT(pci.id) AS checked_count,
@@ -313,6 +313,7 @@ class PreventiveCycleRepository extends BaseRepository
             $whereTypes .= 'ss';
         }
 
+        $resolvedStatusSql = $this->getResolvedStatusSql();
         if (!empty($scmStatuses)) {
             $hasEmAberto = in_array('SCM em aberto', $scmStatuses, true);
             $dbStatuses = array_values(array_filter($scmStatuses, fn($s) => $s !== 'SCM em aberto'));
@@ -323,7 +324,7 @@ class PreventiveCycleRepository extends BaseRepository
                     LEFT JOIN scm s ON s.scm = pci.scm_number
                     WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
                     AND pci.scm_number IS NOT NULL AND pci.scm_number != ''
-                    AND (s.status = 'SCM em aberto' OR s.scm IS NULL)
+                    AND ({$resolvedStatusSql} = 'SCM em aberto' OR s.scm IS NULL)
                 )";
                 $whereParams[] = $ciclo;
                 $whereTypes .= 's';
@@ -333,7 +334,7 @@ class PreventiveCycleRepository extends BaseRepository
                     SELECT 1 FROM preventive_cycle_items pci
                     LEFT JOIN scm s ON s.scm = pci.scm_number
                     WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
-                    AND (s.status IN ({$placeholders}, 'SCM em aberto') OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))
+                    AND ({$resolvedStatusSql} IN ({$placeholders}, 'SCM em aberto') OR (pci.scm_number IS NOT NULL AND pci.scm_number != '' AND s.scm IS NULL))
                 )";
                 $whereParams[] = $ciclo;
                 $whereParams = array_merge($whereParams, $dbStatuses);
@@ -344,7 +345,7 @@ class PreventiveCycleRepository extends BaseRepository
                     SELECT 1 FROM preventive_cycle_items pci
                     INNER JOIN scm s ON s.scm = pci.scm_number
                     WHERE pci.equipamento_id = e.id AND pci.ciclo = ?
-                    AND s.status IN ({$placeholders})
+                    AND {$resolvedStatusSql} IN ({$placeholders})
                 )";
                 $whereParams[] = $ciclo;
                 $whereParams = array_merge($whereParams, $dbStatuses);
@@ -439,15 +440,32 @@ class PreventiveCycleRepository extends BaseRepository
         return ['saved' => $saved, 'deleted' => $deleted];
     }
 
-    public function findScmWithEquipment(string $scmNumber): ?array
+    public function findScmWithEquipment(string $scmNumber, int $equipamentoId = 0): ?array
     {
-        $sql = "SELECT s.scm, s.segmento, s.origem, s.status,
-                       e.equipamento, e.mercado, e.local
+        $resolvedStatusSql = $this->getResolvedStatusSql();
+        $sql = "SELECT s.scm, s.segmento, s.origem,
+                       CASE
+                           WHEN e.id IS NOT NULL THEN {$resolvedStatusSql}
+                           ELSE (
+                               SELECT si_fb.status
+                               FROM scm_items si_fb
+                               WHERE si_fb.scm_id = s.id
+                                 AND si_fb.status IS NOT NULL
+                                 AND si_fb.status != ''
+                               ORDER BY FIELD(si_fb.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), si_fb.id ASC
+                               LIMIT 1
+                           )
+                       END AS status,
+                       COALESCE(e.equipamento, eq_s.equipamento) AS equipamento,
+                       COALESCE(e.mercado, eq_s.mercado) AS mercado,
+                       COALESCE(e.local, eq_s.local) AS local
                 FROM scm s
-                LEFT JOIN equipamentos e ON e.id = s.equipamento_id
-                WHERE s.scm = ?";
+                LEFT JOIN equipamentos e ON e.id = ?
+                LEFT JOIN equipamentos eq_s ON eq_s.id = s.equipamento_id
+                WHERE s.scm = ?
+                LIMIT 1";
         $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('s', $scmNumber);
+        $stmt->bind_param('is', $equipamentoId, $scmNumber);
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
@@ -461,7 +479,13 @@ class PreventiveCycleRepository extends BaseRepository
             ? implode(', ', array_map(fn($s) => "'{$s}'", $scmStatusOrder))
             : "'SCM em aberto', 'SCM enviado', 'SCM negado', 'SCM verificado', 'SCM aprovado'";
 
-        $sql = "SELECT COALESCE(s.status, 'SCM em aberto') AS status_name, COUNT(DISTINCT e.local) AS site_count
+        $resolvedStatusSql = $this->getResolvedStatusSql();
+        $sql = "SELECT
+                    CASE
+                        WHEN s.scm IS NULL THEN 'SCM em aberto'
+                        ELSE {$resolvedStatusSql}
+                    END AS status_name,
+                    COUNT(DISTINCT e.local) AS site_count
                 FROM preventive_cycle_items pci
                 INNER JOIN equipamentos e ON e.id = pci.equipamento_id
                 LEFT JOIN scm s ON s.scm = pci.scm_number
@@ -488,16 +512,26 @@ class PreventiveCycleRepository extends BaseRepository
         try {
             $whereClause = $force
                 ? "matched.scm IS NOT NULL AND (pci.scm_number IS NULL OR pci.scm_number != matched.scm)"
-                : "(pci.scm_number IS NULL OR pci.scm_number = '' OR cur_s.status = 'SCM negado' OR cur_s.scm IS NULL)";
+                : "(pci.scm_number IS NULL OR pci.scm_number = '' OR cur_s.scm IS NULL OR EXISTS (SELECT 1 FROM scm_items cur_si WHERE cur_si.scm_id = cur_s.id AND cur_si.status = 'SCM negado'))";
 
             $sqlUpdate = "UPDATE preventive_cycle_items pci
                 JOIN (
                     SELECT equip_id, scm, status
                     FROM (
-                        SELECT e.id as equip_id, s.scm, s.status,
+                        SELECT e.id as equip_id, s.scm,
+                               COALESCE(
+                                   (SELECT si_r.status FROM scm_items si_r WHERE si_r.scm_id = s.id AND si_r.status IS NOT NULL AND si_r.status != '' ORDER BY FIELD(si_r.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), si_r.id ASC LIMIT 1),
+                                   'SCM em aberto'
+                               ) as status,
                                ROW_NUMBER() OVER (
                                    PARTITION BY e.id 
-                                   ORDER BY FIELD(s.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), s.id DESC
+                                   ORDER BY FIELD(
+                                       COALESCE(
+                                           (SELECT si_r.status FROM scm_items si_r WHERE si_r.scm_id = s.id AND si_r.status IS NOT NULL AND si_r.status != '' ORDER BY FIELD(si_r.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), si_r.id ASC LIMIT 1),
+                                           'SCM em aberto'
+                                       ),
+                                       'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'
+                                   ), s.id DESC
                                ) as rn
                         FROM equipamentos e
                         JOIN scm s ON (
@@ -557,5 +591,64 @@ class PreventiveCycleRepository extends BaseRepository
             $this->rollback();
             throw $e;
         }
+    }
+
+    private function getResolvedStatusSql(): string
+    {
+        return "COALESCE(
+            (
+                SELECT si.status
+                FROM scm_items si
+                WHERE si.scm_id = s.id
+                  AND si.status IS NOT NULL
+                  AND si.status != ''
+                  AND (
+                      (e.localidade IS NOT NULL AND e.localidade != '' AND LENGTH(TRIM(e.localidade)) >= 3
+                       AND (
+                           si.servico LIKE CONCAT('%', TRIM(e.localidade), '%')
+                           OR (e.localidade LIKE '%/%' AND si.servico LIKE CONCAT('%', SUBSTRING_INDEX(e.localidade, '/', -1), '%'))
+                           OR (e.localidade LIKE '%/%' AND si.servico LIKE CONCAT('%', SUBSTRING_INDEX(e.localidade, '/', 1), '%'))
+                           OR (e.localidade LIKE '%EQUIPAMENTOS%' AND si.servico LIKE '%EQUIPAMENTOS%')
+                           OR (e.localidade LIKE '%BATERIAS%' AND si.servico LIKE '%BATERIAS%')
+                           OR (e.localidade LIKE '%SUBESTA%' AND si.servico LIKE '%SUBESTA%')
+                           OR (e.localidade LIKE '%NO-BREAK%' AND si.servico LIKE '%NO-BREAK%')
+                           OR (e.localidade LIKE '%CONTAINER%' AND si.servico LIKE CONCAT('%', TRIM(SUBSTRING_INDEX(e.localidade, '-', 1)), '%'))
+                       )
+                      )
+                      OR si.servico LIKE CONCAT('%', e.equipamento, '%')
+                      OR REPLACE(si.servico, ' ', '') LIKE CONCAT('%', REPLACE(e.equipamento, ' ', ''), '%')
+                      OR (e.equipamento LIKE '% 0%' AND si.servico LIKE CONCAT('%', REPLACE(e.equipamento, ' 0', ' '), '%'))
+                      OR (e.equipamento LIKE '%SELF SPLIT%' AND si.servico LIKE '%SELF SPLIT%')
+                      OR (e.equipamento NOT LIKE '%SELF SPLIT%' AND e.equipamento LIKE '%SELF%' AND si.servico LIKE '%SELF %' AND si.servico NOT LIKE '%SELF SPLIT%')
+                      OR (e.equipamento LIKE '%WM%' AND si.servico LIKE '%WM%')
+                      OR (e.equipamento LIKE '%CHILLER%' AND si.servico LIKE '%CHILLER%')
+                  )
+                ORDER BY
+                    (CASE WHEN e.localidade IS NOT NULL AND e.localidade != '' AND si.servico LIKE CONCAT('%', TRIM(e.localidade), '%') THEN 10 ELSE 0 END
+                     + CASE WHEN si.servico LIKE CONCAT('%', e.equipamento, '%') THEN 10 ELSE 0 END
+                     + CASE WHEN e.equipamento LIKE '% 0%' AND si.servico LIKE CONCAT('%', REPLACE(e.equipamento, ' 0', ' '), '%') THEN 8 ELSE 0 END
+                     + CASE WHEN e.localidade LIKE '%EQUIPAMENTOS%' AND si.servico LIKE '%EQUIPAMENTOS%' THEN 5 ELSE 0 END
+                     + CASE WHEN e.localidade LIKE '%SUBESTA%' AND si.servico LIKE '%SUBESTA%' THEN 5 ELSE 0 END
+                     + CASE WHEN e.localidade LIKE '%BATERIAS%' AND si.servico LIKE '%BATERIAS%' THEN 5 ELSE 0 END
+                     + CASE WHEN e.localidade LIKE '%CONTAINER%' AND si.servico LIKE CONCAT('%', TRIM(SUBSTRING_INDEX(e.localidade, '-', 1)), '%') THEN 5 ELSE 0 END
+                     + CASE WHEN e.equipamento LIKE '%SELF SPLIT%' AND si.servico LIKE '%SELF SPLIT%' THEN 4 ELSE 0 END
+                     + CASE WHEN e.equipamento NOT LIKE '%SELF SPLIT%' AND e.equipamento LIKE '%SELF%' AND si.servico LIKE '%SELF %' AND si.servico NOT LIKE '%SELF SPLIT%' THEN 4 ELSE 0 END
+                     + CASE WHEN e.equipamento LIKE '%CHILLER%' AND si.servico LIKE '%CHILLER%' THEN 3 ELSE 0 END
+                     + CASE WHEN e.equipamento LIKE '%WM%' AND si.servico LIKE '%WM%' THEN 3 ELSE 0 END
+                    ) DESC,
+                    si.id ASC
+                LIMIT 1
+            ),
+            (
+                SELECT si_def.status
+                FROM scm_items si_def
+                WHERE si_def.scm_id = s.id
+                  AND si_def.status IS NOT NULL
+                  AND si_def.status != ''
+                ORDER BY FIELD(si_def.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), si_def.id ASC
+                LIMIT 1
+            ),
+            ''
+        )";
     }
 }

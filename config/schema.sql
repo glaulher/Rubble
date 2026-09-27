@@ -288,7 +288,6 @@ CREATE TABLE `scm` (
   `origem` varchar(100) DEFAULT NULL,
   `segmento` varchar(100) DEFAULT NULL,
   `abertura` varchar(100) DEFAULT NULL,
-  `status` varchar(50) DEFAULT NULL,
   `obs` text DEFAULT NULL,
   `equipamento_id` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
@@ -308,7 +307,8 @@ CREATE TABLE `scm_items` (
   `unidade` varchar(50) DEFAULT NULL,
   `valor` decimal(12,2) DEFAULT NULL,
   `qtde_execucao` decimal(12,3) DEFAULT NULL,
-  `subtotal_execucao` decimal(12,2) DEFAULT NULL
+  `subtotal_execucao` decimal(12,2) DEFAULT NULL,
+  `status` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -478,7 +478,6 @@ ALTER TABLE `scm`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `idx_scm_code` (`scm`),
   ADD KEY `idx_scm_equipamento` (`equipamento_id`),
-  ADD KEY `idx_scm_status` (`status`),
   ADD KEY `idx_scm_site` (`site`);
 
 --
@@ -487,6 +486,7 @@ ALTER TABLE `scm`
 ALTER TABLE `scm_items`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_scm_items_scm_id` (`scm_id`),
+  ADD KEY `idx_scm_items_scm_status` (`scm_id`, `status`),
   ADD FULLTEXT KEY `ft_scm_items_servico` (`servico`);
 
 --

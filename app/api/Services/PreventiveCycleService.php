@@ -61,9 +61,9 @@ class PreventiveCycleService
         return $this->repository->listIdsByCiclo($ciclo, $search, $hasObservacao, $noScm, $scmLancados, self::EXCLUDED_EQUIPMENT, self::EXCLUDED_LOCATION, $scmStatuses);
     }
 
-    public function validateScm(string $scmNumber): array
+    public function validateScm(string $scmNumber, int $equipamentoId = 0): array
     {
-        $scm = $this->repository->findScmWithEquipment($scmNumber);
+        $scm = $this->repository->findScmWithEquipment($scmNumber, $equipamentoId);
         if (!$scm) {
             return ['found' => false];
         }

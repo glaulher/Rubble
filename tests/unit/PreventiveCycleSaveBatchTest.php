@@ -71,17 +71,27 @@ class PreventiveCycleSaveBatchTest extends TestCase
     {
         $repo = new PreventiveCycleRepository();
 
+        $this->conn->query("DELETE FROM scm_items WHERE scm_id IN (SELECT id FROM scm WHERE scm IN ('SCM-NEG', 'SCM-APR'))");
         $this->conn->query("DELETE FROM scm WHERE scm IN ('SCM-NEG', 'SCM-APR')");
-        $stmt = $this->conn->prepare("INSERT INTO scm (scm, status) VALUES (?, ?)");
+        $stmt = $this->conn->prepare("INSERT INTO scm (scm) VALUES (?)");
         $s1 = 'SCM-NEG';
-        $st1 = 'SCM negado';
-        $stmt->bind_param('ss', $s1, $st1);
+        $stmt->bind_param('s', $s1);
         $stmt->execute();
+        $id1 = $this->conn->insert_id;
         $s2 = 'SCM-APR';
-        $st2 = 'SCM aprovado';
-        $stmt->bind_param('ss', $s2, $st2);
+        $stmt->bind_param('s', $s2);
         $stmt->execute();
+        $id2 = $this->conn->insert_id;
         $stmt->close();
+
+        $stmtItem = $this->conn->prepare("INSERT INTO scm_items (scm_id, status) VALUES (?, ?)");
+        $st1 = 'SCM negado';
+        $stmtItem->bind_param('is', $id1, $st1);
+        $stmtItem->execute();
+        $st2 = 'SCM aprovado';
+        $stmtItem->bind_param('is', $id2, $st2);
+        $stmtItem->execute();
+        $stmtItem->close();
 
         $repo->saveBatch(self::CICLO, [
             ['equipamento_id' => 14, 'checked' => true, 'observacao' => '', 'scm_number' => 'SCM-NEG'],
@@ -95,6 +105,7 @@ class PreventiveCycleSaveBatchTest extends TestCase
         $this->assertSame(1, $summaryNeg['checked_count'], 'Summary filtered by SCM negado must include SCM negado');
         $this->assertSame(1, $summaryNeg['site_count'], 'Summary filtered by SCM negado must count sites');
 
+        $this->conn->query("DELETE FROM scm_items WHERE scm_id IN (SELECT id FROM scm WHERE scm IN ('SCM-NEG', 'SCM-APR'))");
         $this->conn->query("DELETE FROM scm WHERE scm IN ('SCM-NEG', 'SCM-APR')");
     }
 
@@ -118,18 +129,25 @@ class PreventiveCycleSaveBatchTest extends TestCase
     {
         $repo = new PreventiveCycleRepository();
 
+        $this->conn->query("DELETE FROM scm_items WHERE scm_id IN (SELECT id FROM scm WHERE scm = 'SCM-AUTO-01')");
         $this->conn->query("DELETE FROM scm WHERE scm = 'SCM-AUTO-01'");
         $this->conn->query("UPDATE equipamentos SET local = 'BMADTC', local_scm = 'BMADTC', equipamento = 'AR CONDICIONADO' WHERE id = 14");
-        $stmt = $this->conn->prepare("INSERT INTO scm (scm, site, segmento, atividade, status, data_validacao) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $this->conn->prepare("INSERT INTO scm (scm, site, segmento, atividade, data_validacao) VALUES (?, ?, ?, ?, ?)");
         $scm = 'SCM-AUTO-01';
         $site = 'BMADTC';
         $seg = 'PREVENTIVA ON GOING';
         $ativ = 'MANUTENÇÃO PREVENTIVA';
-        $status = 'SCM aprovado';
         $dt = '2099-03-10';
-        $stmt->bind_param('ssssss', $scm, $site, $seg, $ativ, $status, $dt);
+        $stmt->bind_param('sssss', $scm, $site, $seg, $ativ, $dt);
         $stmt->execute();
+        $scmId = $this->conn->insert_id;
         $stmt->close();
+
+        $stmtItem = $this->conn->prepare("INSERT INTO scm_items (scm_id, status) VALUES (?, ?)");
+        $status = 'SCM aprovado';
+        $stmtItem->bind_param('is', $scmId, $status);
+        $stmtItem->execute();
+        $stmtItem->close();
 
         $repo->saveBatch(self::CICLO, [
             ['equipamento_id' => 14, 'checked' => true, 'observacao' => '', 'scm_number' => null],
@@ -141,6 +159,7 @@ class PreventiveCycleSaveBatchTest extends TestCase
         $row = $this->fetch(self::CICLO, 14);
         $this->assertSame('SCM-AUTO-01', $row['scm_number']);
 
+        $this->conn->query("DELETE FROM scm_items WHERE scm_id IN (SELECT id FROM scm WHERE scm = 'SCM-AUTO-01')");
         $this->conn->query("DELETE FROM scm WHERE scm = 'SCM-AUTO-01'");
     }
 
@@ -155,22 +174,22 @@ class PreventiveCycleSaveBatchTest extends TestCase
         $this->conn->query("UPDATE equipamentos SET local = 'CRT-TEST', local_scm = 'CRT-TEST', equipamento = 'CHILLER 1' WHERE id = 14");
         $this->conn->query("UPDATE equipamentos SET local = 'CRT-TEST', local_scm = 'CRT-TEST', equipamento = 'CHILLER 3' WHERE id = 15");
 
-        $stmt = $this->conn->prepare("INSERT INTO scm (scm, site, segmento, atividade, status, data_validacao) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $this->conn->prepare("INSERT INTO scm (scm, site, segmento, atividade, data_validacao) VALUES (?, ?, ?, ?, ?)");
         $scm = 'SCM-CHILLER-3';
         $site = 'CRT-TEST';
         $seg = 'PREVENTIVA ON GOING';
         $ativ = 'PREDITIVA DE CHILLER';
-        $status = 'SCM aprovado';
         $dt = '2099-03-10';
-        $stmt->bind_param('ssssss', $scm, $site, $seg, $ativ, $status, $dt);
+        $stmt->bind_param('sssss', $scm, $site, $seg, $ativ, $dt);
         $stmt->execute();
         $scmId = $this->conn->insert_id;
         $stmt->close();
 
-        // Insert item in scm_items explicitly specifying CHILLER 3
-        $stmtItem = $this->conn->prepare("INSERT INTO scm_items (scm_id, servico) VALUES (?, ?)");
+        // Insert item in scm_items explicitly specifying CHILLER 3 and status
+        $stmtItem = $this->conn->prepare("INSERT INTO scm_items (scm_id, servico, status) VALUES (?, ?, ?)");
         $servico = '14 - CHILLER 3-3119B00469052-RJOCRT-CARRIER-30EVA1522';
-        $stmtItem->bind_param('is', $scmId, $servico);
+        $status = 'SCM aprovado';
+        $stmtItem->bind_param('iss', $scmId, $servico, $status);
         $stmtItem->execute();
         $stmtItem->close();
 

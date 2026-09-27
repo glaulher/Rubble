@@ -121,5 +121,28 @@ class PreventiveCycleServiceTest extends TestCase
         $this->assertSame(3, $result['SCM em aberto']);
         $this->assertSame(20, $result['SCM aprovado']);
     }
+
+    public function testValidateScmForwardsEquipamentoId(): void
+    {
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventiveCycleRepository::class);
+        $mockRepo->expects($this->once())
+            ->method('findScmWithEquipment')
+            ->with('531393', 47)
+            ->willReturn([
+                'scm' => '531393',
+                'status' => 'SCM negado',
+                'segmento' => 'PREVENTIVA ON GOING',
+                'origem' => 'Residencial',
+                'mercado' => 'Residencial',
+            ]);
+
+        $service = new PreventiveCycleService($mockRepo);
+        $result = $service->validateScm('531393', 47);
+
+        $this->assertTrue($result['found']);
+        $this->assertSame('SCM negado', $result['status']);
+        $this->assertSame('PREVENTIVA ON GOING', $result['segmento']);
+    }
 }
+
 

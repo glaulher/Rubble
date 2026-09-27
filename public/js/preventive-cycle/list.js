@@ -366,8 +366,9 @@ export function _cycleRenderCards(items, append) {
     var equipId = inp.dataset.equipId;
     var badgeEl = document.querySelector('.cycle-scm-badge[data-equip-id="' + equipId + '"]');
     if (!badgeEl) return;
-    if (_cycleScmValidationCache[val]) {
-      _cycleRenderScmBadge(_cycleScmValidationCache[val], badgeEl);
+    var cacheKey = val + '_' + (equipId || '');
+    if (_cycleScmValidationCache[cacheKey]) {
+      _cycleRenderScmBadge(_cycleScmValidationCache[cacheKey], badgeEl);
     } else {
       _cycleValidateScm(val, equipId, badgeEl);
     }
@@ -393,16 +394,20 @@ export function _cycleRenderCards(items, append) {
 }
 
 export function _cycleValidateScm(scmNumber, equipId, badgeEl) {
-    if (_cycleScmValidationCache[scmNumber]) {
-        _cycleRenderScmBadge(_cycleScmValidationCache[scmNumber], badgeEl);
+    var cacheKey = scmNumber + '_' + (equipId || '');
+    if (_cycleScmValidationCache[cacheKey]) {
+        _cycleRenderScmBadge(_cycleScmValidationCache[cacheKey], badgeEl);
         return;
     }
     var url = '/app/api/index.php?route=preventive-cycle&action=validate-scm&scm_number=' + encodeURIComponent(scmNumber);
+    if (equipId) {
+        url += '&equipamento_id=' + encodeURIComponent(equipId);
+    }
     apiFetch(url)
         .then(function (r) { return r.json(); })
         .then(function (result) {
             if (!result.success || !result.data) return;
-            _cycleScmValidationCache[scmNumber] = result.data;
+            _cycleScmValidationCache[cacheKey] = result.data;
             _cycleRenderScmBadge(result.data, badgeEl);
         })
         .catch(function (e) { console.warn('[preventive-cycle]', e); });

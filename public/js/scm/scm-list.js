@@ -691,11 +691,19 @@ export async function loadScmDetails(id) {
         }
 
         if (items.length > 0) {
+            const itemStatusColors = {
+                'SCM aprovado': 'bg-emerald-100 text-emerald-700',
+                'SCM negado': 'bg-red-100 text-red-700',
+                'SCM verificado': 'bg-blue-100 text-blue-800',
+                'SCM enviado': 'bg-purple-100 text-purple-700',
+                'SCM em aberto': 'bg-amber-100 text-amber-700',
+            };
             html += `<div class="bg-white rounded-xl border border-slate-200 overflow-hidden">`;
             html += `<div class="overflow-x-auto">`;
             html += `<table class="w-full">`;
             html += `<thead><tr class="bg-slate-50 border-b border-slate-200">`;
             html += `<th class="text-left px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Serviço</th>`;
+            html += `<th class="text-left px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Status</th>`;
             html += `<th class="text-left px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Unidade</th>`;
             html += `<th class="text-right px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Valor</th>`;
             html += `<th class="text-right px-4 py-2.5 text-xs font-semibold text-slate-600 uppercase tracking-wide">Qtd.</th>`;
@@ -706,8 +714,12 @@ export async function loadScmDetails(id) {
             items.forEach(item => {
                 const subtotal = parseFloat(item.subtotal_execucao) || 0;
                 totalGeral += subtotal;
+                const badge = item.status
+                    ? `<span class="text-xs px-2 py-0.5 rounded-xl ${itemStatusColors[item.status] || 'bg-slate-100 text-slate-700'}">${escapeHtml(item.status)}</span>`
+                    : '<span class="text-xs text-slate-400">-</span>';
                 html += `<tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">`;
                 html += `<td class="px-4 py-2.5 text-sm text-slate-700">${escapeHtml(item.servico || '')}</td>`;
+                html += `<td class="px-4 py-2.5 text-sm">${badge}</td>`;
                 html += `<td class="px-4 py-2.5 text-sm text-slate-700">${escapeHtml(item.unidade || '')}</td>`;
                 html += `<td class="px-4 py-2.5 text-sm text-right font-medium text-slate-900">${formatCurrency(item.valor)}</td>`;
                 html += `<td class="px-4 py-2.5 text-sm text-right text-slate-700">${parseFloat(item.qtde_execucao || 0).toFixed(3)}</td>`;
@@ -717,7 +729,7 @@ export async function loadScmDetails(id) {
 
             html += `</tbody>`;
             html += `<tfoot><tr class="border-t-2 border-slate-200 bg-slate-50">`;
-            html += `<td colspan="4" class="px-4 py-2.5 text-sm font-bold text-slate-900">Total</td>`;
+            html += `<td colspan="5" class="px-4 py-2.5 text-sm font-bold text-slate-900">Total</td>`;
             html += `<td class="px-4 py-2.5 text-sm text-right font-bold text-slate-900">${formatCurrency(totalGeral)}</td>`;
             html += `</tr></tfoot>`;
             html += `</table>`;

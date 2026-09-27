@@ -354,4 +354,66 @@ describe("preventive-cycle _cycleSyncScms", function () {
   });
 });
 
+describe("preventive-cycle _cycleValidateScm", function () {
+  it("includes equipamento_id in URL and caches per scmNumber_equipId", async function () {
+    var requestedUrls = [];
+    globalThis.apiFetch = function (url) {
+      requestedUrls.push(url);
+      if (url.includes('equipamento_id=47')) {
+        return Promise.resolve({
+          json: function () {
+            return Promise.resolve({
+              success: true,
+              data: { found: true, status: 'SCM negado', segmento: 'preventiva on going', origem: 'varejo', mercado_equipamento: 'varejo' }
+            });
+          }
+        });
+      }
+      return Promise.resolve({
+        json: function () {
+          return Promise.resolve({
+            success: true,
+            data: { found: true, status: 'SCM aprovado', segmento: 'preventiva on going', origem: 'varejo', mercado_equipamento: 'varejo' }
+          });
+        }
+      });
+    };
+
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/preventive-cycle/list.js',
+      'globalThis.__validateScm = _cycleValidateScm;' +
+      'globalThis.__cache = _cycleScmValidationCache;');
+
+    var badge47 = document.createElement('span');
+    var badge51 = document.createElement('span');
+
+    // First call for equipId 47
+    globalThis.__validateScm('531393', 47, badge47);
+    await new Promise(function (r) { setTimeout(r, 10); });
+
+    expect(requestedUrls[0]).toContain('scm_number=531393');
+    expect(requestedUrls[0]).toContain('equipamento_id=47');
+    expect(badge47.innerHTML).toContain('SCM negado');
+    expect(globalThis.__cache['531393_47']).toBeDefined();
+    expect(globalThis.__cache['531393_47'].status).toBe('SCM negado');
+
+    // Second call for same equipId uses cache (no new fetch)
+    var badge47_2 = document.createElement('span');
+    globalThis.__validateScm('531393', 47, badge47_2);
+    expect(requestedUrls.length).toBe(1);
+    expect(badge47_2.innerHTML).toContain('SCM negado');
+
+    // Call for equipId 51 on same SCM fetches with equipId 51 and gets distinct status
+    globalThis.__validateScm('531393', 51, badge51);
+    await new Promise(function (r) { setTimeout(r, 10); });
+
+    expect(requestedUrls.length).toBe(2);
+    expect(requestedUrls[1]).toContain('scm_number=531393');
+    expect(requestedUrls[1]).toContain('equipamento_id=51');
+    expect(badge51.innerHTML).toContain('SCM aprovado');
+    expect(globalThis.__cache['531393_51'].status).toBe('SCM aprovado');
+  });
+});
+
+
 

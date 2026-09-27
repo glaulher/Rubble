@@ -127,7 +127,8 @@ class PreventiveCycleController
                 Response::validation('scm_number é obrigatório');
                 return;
             }
-            $data = $this->service->validateScm($scmNumber);
+            $equipamentoId = (int) ($_GET['equipamento_id'] ?? 0);
+            $data = $this->service->validateScm($scmNumber, $equipamentoId);
             Response::success('', $data);
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);

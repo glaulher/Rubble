@@ -9,6 +9,10 @@ class ScmRepository extends BaseRepository
         [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo, $excludeStatuses);
 
         $sql = "SELECT s.*, 
+                       (SELECT si_res.status FROM scm_items si_res
+                        WHERE si_res.scm_id = s.id AND si_res.status IS NOT NULL AND si_res.status != ''
+                        ORDER BY FIELD(si_res.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), si_res.id ASC
+                        LIMIT 1) as status,
                        e.equipamento, e.capacidade, e.local, e.localidade, e.mercado,
                        pv.numero_pv,
                        (SELECT COALESCE(SUM(si.subtotal_execucao), 0) FROM scm_items si WHERE si.scm_id = s.id) as total_valor
@@ -58,14 +62,20 @@ class ScmRepository extends BaseRepository
     {
         [$where, $types, $params] = $this->buildFilterClause($search, $dateFrom, $dateTo, $segments, $status, $sites, $ciclo, $excludeStatuses);
 
+        $itemStatusJoin = ($status !== null && $status !== '')
+            ? " AND si.status = ?"
+            : "";
+
         $sql = "SELECT COALESCE(SUM(si.subtotal_execucao), 0) as total_valor 
                 FROM scm s
-                LEFT JOIN scm_items si ON si.scm_id = s.id
+                LEFT JOIN scm_items si ON si.scm_id = s.id{$itemStatusJoin}
                 LEFT JOIN equipamentos e ON e.id = s.equipamento_id
                 {$where}";
 
         $stmt = $this->safePrepare($sql);
-        if ($types) {
+        if ($itemStatusJoin !== '') {
+            $stmt->bind_param('s' . $types, $status, ...$params);
+        } elseif ($types) {
             $stmt->bind_param($types, ...$params);
         }
         $stmt->execute();
@@ -75,6 +85,10 @@ class ScmRepository extends BaseRepository
     public function getById(int $id): ?array
     {
         $sql = "SELECT s.*, 
+                       (SELECT si_res.status FROM scm_items si_res
+                        WHERE si_res.scm_id = s.id AND si_res.status IS NOT NULL AND si_res.status != ''
+                        ORDER BY FIELD(si_res.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), si_res.id ASC
+                        LIMIT 1) as status,
                        e.equipamento, e.capacidade, e.local, e.localidade, e.mercado
                 FROM scm s
                 LEFT JOIN equipamentos e ON e.id = s.equipamento_id
@@ -117,16 +131,15 @@ class ScmRepository extends BaseRepository
 
     public function upsert(array $data): bool
     {
-        $sql = "INSERT INTO scm (scm, data, atividade, site, cidade, abertura, status,
+        $sql = "INSERT INTO scm (scm, data, atividade, site, cidade, abertura,
                     data_execucao, data_validacao, medicao, origem, segmento, obs, equipamento_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     data = COALESCE(VALUES(data), data),
                     atividade = VALUES(atividade),
                     site = VALUES(site),
                     cidade = VALUES(cidade),
                     abertura = VALUES(abertura),
-                    status = VALUES(status),
                     data_execucao = COALESCE(VALUES(data_execucao), data_execucao),
                     data_validacao = COALESCE(VALUES(data_validacao), data_validacao),
                     medicao = VALUES(medicao),
@@ -136,9 +149,9 @@ class ScmRepository extends BaseRepository
                     equipamento_id = VALUES(equipamento_id)";
 
         $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('sssssssssssssi',
+        $stmt->bind_param('ssssssssssssi',
             $data['scm'], $data['data'], $data['atividade'], $data['site'],
-            $data['cidade'], $data['abertura'], $data['status'],
+            $data['cidade'], $data['abertura'],
             $data['data_execucao'], $data['data_validacao'], $data['medicao'],
             $data['origem'], $data['segmento'], $data['obs'], $data['equipamento_id']
         );
@@ -159,8 +172,8 @@ class ScmRepository extends BaseRepository
                 return true;
             }
 
-            $sql = "INSERT INTO scm_items (scm_id, servico, unidade, valor, qtde_execucao, subtotal_execucao)
-                    VALUES (?, ?, ?, ?, ?, ?)";
+            $sql = "INSERT INTO scm_items (scm_id, servico, unidade, valor, qtde_execucao, subtotal_execucao, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)";
             $stmt = $this->safePrepare($sql);
 
             foreach ($items as $item) {
@@ -169,7 +182,8 @@ class ScmRepository extends BaseRepository
                 $valor = $item['valor'];
                 $qtde = $item['qtde_execucao'];
                 $subtotal = $item['subtotal_execucao'];
-                $stmt->bind_param('issddd', $scmId, $servico, $unidade, $valor, $qtde, $subtotal);
+                $status = $item['status'] ?? null;
+                $stmt->bind_param('issddds', $scmId, $servico, $unidade, $valor, $qtde, $subtotal, $status);
                 if (!$stmt->execute()) {
                     $this->rollback();
                     return false;
@@ -312,7 +326,7 @@ class ScmRepository extends BaseRepository
         }
 
         if ($status !== null && $status !== '') {
-            $conditions[] = 's.status = ?';
+            $conditions[] = 'EXISTS (SELECT 1 FROM scm_items si_flt WHERE si_flt.scm_id = s.id AND si_flt.status = ?)';
             $params[] = $status;
             $types .= 's';
         }
@@ -327,7 +341,7 @@ class ScmRepository extends BaseRepository
 
         if (!empty($excludeStatuses)) {
             $placeholders = implode(',', array_fill(0, count($excludeStatuses), '?'));
-            $conditions[] = "s.status NOT IN ({$placeholders})";
+            $conditions[] = "EXISTS (SELECT 1 FROM scm_items si_ex WHERE si_ex.scm_id = s.id AND si_ex.status NOT IN ({$placeholders}))";
             $params = array_merge($params, array_values($excludeStatuses));
             $types .= str_repeat('s', count($excludeStatuses));
         }

@@ -240,10 +240,15 @@ class ScmServiceTest extends TestCase
         $repo->expects($this->once())
             ->method('upsert')
             ->with($this->callback(function ($data) {
-                return $data['scm'] === '522386' && $data['status'] === 'SCM em aberto';
+                return $data['scm'] === '522386';
             }))
             ->willReturn(true);
-        $repo->method('upsertItems')->willReturn(true);
+        $repo->expects($this->once())
+            ->method('upsertItems')
+            ->with(1, $this->callback(function ($items) {
+                return isset($items[0]['status']) && $items[0]['status'] === 'SCM em aberto';
+            }))
+            ->willReturn(true);
 
         $rows = [
             [
@@ -283,10 +288,15 @@ class ScmServiceTest extends TestCase
         $repo->expects($this->once())
             ->method('upsert')
             ->with($this->callback(function ($data) {
-                return $data['scm'] === '522387' && $data['status'] === 'SCM em aberto';
+                return $data['scm'] === '522387';
             }))
             ->willReturn(true);
-        $repo->method('upsertItems')->willReturn(true);
+        $repo->expects($this->once())
+            ->method('upsertItems')
+            ->with(2, $this->callback(function ($items) {
+                return isset($items[0]['status']) && $items[0]['status'] === 'SCM em aberto';
+            }))
+            ->willReturn(true);
 
         $rows = [
             [

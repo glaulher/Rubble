@@ -75,12 +75,33 @@ class ScmService
                 $first = $group['first'];
                 $items = $group['items'];
 
-                $statusUpper = mb_strtoupper(trim($first['STATUS'] ?? ''));
-                if (str_contains($statusUpper, 'ABERTO')) {
-                    $mappedStatus = 'SCM em aberto';
-                } else {
-                    $mappedStatus = self::STATUS_MAP[$statusUpper] ?? ($first['STATUS'] ?? '');
+                $itemRows = [];
+                $itemStatuses = [];
+                foreach ($items as $row) {
+                    $rowStatusUpper = mb_strtoupper(trim($row['STATUS'] ?? ''));
+                    if (str_contains($rowStatusUpper, 'ABERTO')) {
+                        $rowMappedStatus = 'SCM em aberto';
+                    } else {
+                        $rowMappedStatus = self::STATUS_MAP[$rowStatusUpper] ?? ($row['STATUS'] ?? '');
+                    }
+                    if ($rowMappedStatus !== '') {
+                        $itemStatuses[] = $rowMappedStatus;
+                    }
+                    $itemRows[] = [
+                        'servico'           => trim($row['SERVIÇO'] ?? ''),
+                        'unidade'           => trim($row['UNIDADE'] ?? ''),
+                        'valor'             => $this->parseValue($row['VALOR'] ?? 0),
+                        'qtde_execucao'     => $this->parseValue($row['QTDE_EXECUÇÃO'] ?? 0),
+                        'subtotal_execucao' => $this->parseValue($row['SUBTOTAL_EXECUÇÃO'] ?? 0),
+                        'status'            => $rowMappedStatus,
+                    ];
                 }
+
+                $firstStatusUpper = mb_strtoupper(trim($first['STATUS'] ?? ''));
+                $defaultStatus = str_contains($firstStatusUpper, 'ABERTO')
+                    ? 'SCM em aberto'
+                    : (self::STATUS_MAP[$firstStatusUpper] ?? ($first['STATUS'] ?? ''));
+                $mappedStatus = $this->resolveParentStatus($itemStatuses, $defaultStatus);
 
                 $site = trim($first['SITE'] ?? '');
                 $equipamentoId = $this->resolveEquipmentId($site);
@@ -92,7 +113,6 @@ class ScmService
                     'site'             => $site,
                     'cidade'           => trim($first['CIDADE'] ?? ''),
                     'abertura'         => trim($first['ABERTURA'] ?? ''),
-                    'status'           => $mappedStatus,
                     'data_execucao'    => $this->parseDate($first['DATA_EXECUÇÃO'] ?? null),
                     'data_validacao'   => $this->parseDate($first['DATA_VALIDAÇÃO'] ?? null),
                     'medicao'          => trim($first['MEDIÇÃO'] ?? ''),
@@ -112,17 +132,6 @@ class ScmService
 
                 $scmRecord = $this->repository->findByScmCode($parentData['scm']);
                 $scmId = $scmRecord['id'];
-
-                $itemRows = [];
-                foreach ($items as $row) {
-                    $itemRows[] = [
-                        'servico'           => trim($row['SERVIÇO'] ?? ''),
-                        'unidade'           => trim($row['UNIDADE'] ?? ''),
-                        'valor'             => $this->parseValue($row['VALOR'] ?? 0),
-                        'qtde_execucao'     => $this->parseValue($row['QTDE_EXECUÇÃO'] ?? 0),
-                        'subtotal_execucao' => $this->parseValue($row['SUBTOTAL_EXECUÇÃO'] ?? 0),
-                    ];
-                }
 
                 $this->repository->upsertItems($scmId, $itemRows);
 
@@ -178,6 +187,20 @@ class ScmService
             return $m[1];
         }
         return null;
+    }
+
+    public function resolveParentStatus(array $itemStatuses, string $defaultStatus): string
+    {
+        if (empty($itemStatuses)) {
+            return $defaultStatus;
+        }
+        $priorityOrder = ['SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'];
+        foreach ($priorityOrder as $pStatus) {
+            if (in_array($pStatus, $itemStatuses, true)) {
+                return $pStatus;
+            }
+        }
+        return $itemStatuses[0] ?? $defaultStatus;
     }
 
     private function groupByScm(array $rows): array
