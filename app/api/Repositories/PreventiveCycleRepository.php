@@ -514,7 +514,7 @@ class PreventiveCycleRepository extends BaseRepository
         try {
             $whereClause = $force
                 ? "matched.scm IS NOT NULL AND (pci.scm_number IS NULL OR pci.scm_number != matched.scm)"
-                : "(pci.scm_number IS NULL OR pci.scm_number = '' OR cur_s.scm IS NULL OR EXISTS (SELECT 1 FROM scm_items cur_si WHERE cur_si.scm_id = cur_s.id AND cur_si.status = 'SCM negado'))";
+                : "(pci.observacao IS NULL OR pci.observacao = '') AND (pci.scm_number IS NULL OR pci.scm_number = '' OR cur_s.scm IS NULL OR EXISTS (SELECT 1 FROM scm_items cur_si WHERE cur_si.scm_id = cur_s.id AND cur_si.status = 'SCM negado'))";
 
             $sqlUpdate = "UPDATE preventive_cycle_items pci
                 JOIN (
@@ -624,6 +624,16 @@ class PreventiveCycleRepository extends BaseRepository
                       OR (e.equipamento NOT LIKE '%SELF SPLIT%' AND e.equipamento LIKE '%SELF%' AND si.servico LIKE '%SELF %' AND si.servico NOT LIKE '%SELF SPLIT%')
                       OR (e.equipamento LIKE '%WM%' AND si.servico LIKE '%WM%')
                       OR (e.equipamento LIKE '%CHILLER%' AND si.servico LIKE '%CHILLER%')
+                      OR (
+                          -- Match pelo prefixo do tipo (ex: 'WM-', 'ACJ-', 'SELF-') + parte da localidade
+                          -- Cobre servicos no formato: 'N - TIPO-SITE-MARCA-MODELO-CONTAINER X - LOCAL'
+                          LENGTH(SUBSTRING_INDEX(e.equipamento, ' ', 1)) >= 2
+                          AND si.servico LIKE CONCAT('%', SUBSTRING_INDEX(e.equipamento, ' ', 1), '-%')
+                          AND (
+                              e.localidade IS NULL OR e.localidade = '' OR LENGTH(TRIM(e.localidade)) < 3
+                              OR si.servico LIKE CONCAT('%', SUBSTRING_INDEX(TRIM(e.localidade), ' -', 1), '%')
+                          )
+                      )
                   )
                 ORDER BY
                     (CASE WHEN e.localidade IS NOT NULL AND e.localidade != '' AND si.servico LIKE CONCAT('%', TRIM(e.localidade), '%') THEN 10 ELSE 0 END
@@ -637,16 +647,23 @@ class PreventiveCycleRepository extends BaseRepository
                      + CASE WHEN e.equipamento NOT LIKE '%SELF SPLIT%' AND e.equipamento LIKE '%SELF%' AND si.servico LIKE '%SELF %' AND si.servico NOT LIKE '%SELF SPLIT%' THEN 4 ELSE 0 END
                      + CASE WHEN e.equipamento LIKE '%CHILLER%' AND si.servico LIKE '%CHILLER%' THEN 3 ELSE 0 END
                      + CASE WHEN e.equipamento LIKE '%WM%' AND si.servico LIKE '%WM%' THEN 3 ELSE 0 END
+                     + CASE WHEN LENGTH(SUBSTRING_INDEX(e.equipamento, ' ', 1)) >= 2
+                              AND si.servico LIKE CONCAT('%', SUBSTRING_INDEX(e.equipamento, ' ', 1), '-%')
+                              AND (e.localidade IS NULL OR e.localidade = '' OR si.servico LIKE CONCAT('%', SUBSTRING_INDEX(TRIM(e.localidade), ' -', 1), '%'))
+                              THEN 6 ELSE 0 END
                     ) DESC,
                     si.id ASC
                 LIMIT 1
             ),
             (
+                -- Fallback restrito: apenas quando o SCM tem itens sem descricao de servico.
+                -- Evita atribuir status de outro equipamento quando ha multiplos equipamentos no site.
                 SELECT si_def.status
                 FROM scm_items si_def
                 WHERE si_def.scm_id = s.id
                   AND si_def.status IS NOT NULL
                   AND si_def.status != ''
+                  AND (si_def.servico IS NULL OR si_def.servico = '')
                 ORDER BY FIELD(si_def.status, 'SCM aprovado', 'SCM verificado', 'SCM enviado', 'SCM em aberto', 'SCM negado'), si_def.id ASC
                 LIMIT 1
             ),
