@@ -1,5 +1,5 @@
 import { PollingManager } from '/public/js/core/polling.js';
-import { authGuard, updateUserDisplay, applyRoleVisibility, destroyTurnstile, initLogin } from '/public/js/core/auth.js';
+import { authGuard, updateUserDisplay, applyRoleVisibility, destroyTurnstile, initLogin, getUser } from '/public/js/core/auth.js';
 import { initHome } from '/public/js/home/home-ui.js';
 import { loadHomeForm } from '/public/js/home/form.js';
 import { loadPvForm } from '/public/js/pv/form.js';
@@ -66,6 +66,11 @@ export async function router() {
   |--------------------------------------------------------------------------
   */
   if (hash === "" || hash === "#/" || hash === "#/home") {
+    const _homeUser = getUser();
+    if (_homeUser && _homeUser.role === 'administrativo') {
+      window.location.hash = '#/pdf-audit';
+      return;
+    }
     html = await loadPage("/app/Views/home/index.html?v=" + VIEW_VERSION);
   } else if (hash.startsWith("#/equipament-dashboard")) {
     /*
