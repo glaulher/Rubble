@@ -68,10 +68,10 @@ export async function router() {
   if (hash === "" || hash === "#/" || hash === "#/home") {
     const _homeUser = getUser();
     if (_homeUser && _homeUser.role === 'administrativo') {
-      window.location.hash = '#/pdf-audit';
-      return;
+      html = await loadPage("/app/Views/welcome.html?v=" + VIEW_VERSION);
+    } else {
+      html = await loadPage("/app/Views/home/index.html?v=" + VIEW_VERSION);
     }
-    html = await loadPage("/app/Views/home/index.html?v=" + VIEW_VERSION);
   } else if (hash.startsWith("#/equipament-dashboard")) {
     /*
   |--------------------------------------------------------------------------
@@ -290,7 +290,10 @@ export async function router() {
     } else if (hash === "#/login") {
       initLogin();
     } else {
-      initHome();
+      const _rUser = getUser();
+      if (!_rUser || _rUser.role !== 'administrativo') {
+        initHome();
+      }
     }
   });
 }
