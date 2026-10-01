@@ -45,66 +45,23 @@ export default function Signup() {
               <Fuel className="h-7 w-7" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Criar Conta</CardTitle>
+          <CardTitle className="text-2xl font-bold">Acesso Centralizado</CardTitle>
           <CardDescription>
-            Cadastre-se para acessar o sistema de controle de combustível
+            O cadastro e controle de acesso são gerenciados exclusivamente pelo Rubble.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-9"
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Senha</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input
-                  type="password"
-                  placeholder="Mínimo 8 caracteres"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9"
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Confirmar Senha</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-9"
-                  required
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Cadastrar
-            </Button>
-            <p className="text-center text-sm text-slate-500">
-              Já tem conta?{' '}
-              <Link to="/login" className="text-primary font-medium hover:underline">
-                Faça login
-              </Link>
-            </p>
-          </form>
+        <CardContent className="space-y-4 text-center">
+          <p className="text-sm text-slate-600">
+            Para utilizar o Controle de Combustível, faça login na sua conta do Rubble e acesse pelo menu lateral em <strong>Ferramentas &gt; Controle de Combustível</strong>.
+          </p>
+          <Button asChild className="w-full">
+            <a href="/#/login">Ir para o Rubble</a>
+          </Button>
+          <p className="text-center text-sm text-slate-500 pt-2">
+            <Link to="/login" className="text-primary font-medium hover:underline">
+              Voltar ao login direto
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </div>

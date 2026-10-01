@@ -73,17 +73,11 @@ export default function Login() {
               Entrar
             </Button>
             <div className="flex flex-col gap-2 text-center text-sm">
-              <Link
-                to="/recuperar-senha"
-                className="text-slate-500 hover:text-primary transition-colors"
-              >
-                Esqueceu a senha?
-              </Link>
               <span className="text-slate-500">
-                Não tem conta?{' '}
-                <Link to="/signup" className="text-primary font-medium hover:underline">
-                  Cadastre-se
-                </Link>
+                Acesso integrado ao Rubble:{' '}
+                <a href="/#/login" className="text-primary font-medium hover:underline">
+                  Entrar via Rubble
+                </a>
               </span>
             </div>
           </form>

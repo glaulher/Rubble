@@ -62,7 +62,7 @@ routerAdd('POST', '/backend/v1/auth/sso', (e) => {
   const username = payload.username || ''
   const nome = payload.nome || username || 'Usuário Rubble'
   const role = payload.role || ''
-  const isAdmin = role === 'admin' || role === 'coordenador'
+  const isAdmin = role === 'admin'
 
   if (!username) {
     return e.badRequestError('Usuário não identificado no token')
