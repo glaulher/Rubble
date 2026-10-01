@@ -1,0 +1,125 @@
+<div
+  class="min-h-screen dark-gradient"
+  style="background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);"
+>
+  <!-- SUB-HEADER -->
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-2 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 items-center">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Resumo de Atividades</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Visão consolidada das atividades planejadas</p>
+      </div>
+      <div class="text-center self-center">
+        <span class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold">
+          <span id="summaryBadge">0</span>
+          <span class="ml-1">atividades</span>
+        </span>
+      </div>
+      <div class="flex items-center gap-4 justify-self-end self-start">
+        <!-- CSV -->
+        <div class="relative group">
+          <button
+            id="summaryCsvBtn"
+            class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-2 py-2 rounded-xl font-semibold transition"
+            aria-label="Exportar CSV"
+          >
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="8" y1="13" x2="16" y2="13" />
+              <line x1="8" y1="17" x2="16" y2="17" />
+              <line x1="8" y1="9" x2="10" y2="9" />
+            </svg>
+          </button>
+          <span
+            class="absolute right-0 top-[54px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+          >
+            Exportar CSV
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="px-4 py-3 flex flex-wrap gap-3 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 mt-4">
+    <div class="flex flex-col shrink-0">
+      <label for="summaryDateFrom" class="text-xs text-slate-500 mb-1">Data Início</label>
+      <input
+        type="date"
+        id="summaryDateFrom"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36"
+      >
+    </div>
+    <div class="flex flex-col shrink-0">
+      <label for="summaryDateTo" class="text-xs text-slate-500 mb-1">Data Fim</label>
+      <input
+        type="date"
+        id="summaryDateTo"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36"
+      >
+    </div>
+    <div class="flex flex-col shrink-0">
+      <label for="summaryStatusFilter" class="text-xs text-slate-500 mb-1">Status</label>
+      <select
+        id="summaryStatusFilter"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40"
+      >
+        <option value="">Todos</option>
+        <option value="Planejado">Planejado</option>
+        <option value="Concluído">Concluído</option>
+        <option value="Pendente">Pendente</option>
+        <option value="Em Andamento">Em Andamento</option>
+        <option value="Projeto Clean Up">Projeto Clean Up</option>
+      </select>
+    </div>
+    <div class="flex flex-col shrink-0">
+      <label for="summarySearchInput" class="text-xs text-slate-500 mb-1">Buscar</label>
+      <div class="relative">
+        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          id="summarySearchInput"
+          placeholder="Buscar"
+          class="bg-white text-sm rounded-lg pl-8 pr-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-64"
+        >
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <main class="p-6 space-y-6">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <div id="summaryScrollContainer" class="max-h-[70vh] overflow-y-auto">
+          <table id="summaryTable" class="w-full">
+            <thead class="sticky top-0 z-10">
+              <tr class="bg-slate-800 text-slate-100 text-left">
+                <th data-sort="local" class="px-4 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">
+                  Site <span class="sort-icon text-slate-400"></span>
+                </th>
+                <th data-sort="equipe" class="px-4 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">
+                  Nome do Técnico <span class="sort-icon text-slate-400"></span>
+                </th>
+                <th data-sort="data_planejada" class="px-4 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">
+                  Data <span class="sort-icon text-slate-400"></span>
+                </th>
+                <th class="px-4 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap select-none">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody id="summaryTableBody"></tbody>
+          </table>
+          <div id="summarySentinel" class="h-10"></div>
+        </div>
+      </div>
+      <div id="summaryEmpty" class="hidden text-center py-20 text-slate-500">
+        <p class="text-lg">Nenhuma atividade encontrada.</p>
+      </div>
+    </div>
+  </main>
+</div>

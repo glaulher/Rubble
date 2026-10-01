@@ -14,6 +14,7 @@ import { initPriceList } from '/public/js/equipment-prices/list.js';
 import { initPreventiveCycle } from '/public/js/preventive-cycle/list.js?v=19';
 import { initScm } from '/public/js/scm/scm-list.js';
 import { initPlannedActivity } from '/public/js/planned-activity/list.js';
+import { initPlannedSummary } from '/public/js/planned-activity/summary.js';
 import { initPendingTickets } from '/public/js/pending-tickets/list.js';
 import { initOsDashboard } from '/public/js/os/dashboard.js';
 import { initFilters } from '/public/js/filter-exchanges/list.js';
@@ -170,6 +171,13 @@ export async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/planned-activity/list.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/planned-summary") {
+    /*
+    |--------------------------------------------------------------------------
+    | PLANNED SUMMARY (Resumo de Atividades)
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/planned-activity/summary.html?v=" + VIEW_VERSION);
   } else if (hash === "#/pending-tickets") {
     /*
     |--------------------------------------------------------------------------
@@ -273,6 +281,8 @@ export async function router() {
       initScm();
     } else if (hash === "#/planned-activity") {
       initPlannedActivity();
+    } else if (hash === "#/planned-summary") {
+      initPlannedSummary();
     } else if (hash === "#/pending-tickets") {
       initPendingTickets();
     } else if (hash === "#/os-dashboard") {
