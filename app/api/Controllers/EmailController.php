@@ -49,6 +49,7 @@ class EmailController
             );
 
             if ($result['success']) {
+                $this->service->recordEmailSubject((int) $data['id'], $data['subject']);
                 Response::success($result['message']);
                 return;
             }
@@ -107,6 +108,7 @@ class EmailController
             if ($result['success']) {
                 $targetStatus = 'E-mail de lib. aquisição/serviço';
                 $this->service->updateItemsByWorstStatusBatch($ids, $targetStatus);
+                $this->service->recordEmailSubjectBatch($ids, $data['subject']);
                 Response::success($result['message']);
                 return;
             }

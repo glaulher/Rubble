@@ -167,7 +167,8 @@ CREATE TABLE `pv` (
   `ral` varchar(100) DEFAULT NULL,
   `equipamento_id` int(11) DEFAULT NULL,
   `created_at` datetime NULL DEFAULT current_timestamp(),
-  `updated_at` datetime NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` datetime NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `ultimo_assunto_email` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------

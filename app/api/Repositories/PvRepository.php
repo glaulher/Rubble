@@ -238,6 +238,49 @@ class PvRepository extends BaseRepository
         return $pvs;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE ULTIMO ASSUNTO EMAIL
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Grava (ou sobrescreve) o assunto do último e-mail enviado para uma PV.
+     * Chamado após envio bem-sucedido de e-mail individual ou em lote.
+     *
+     * @param int    $pvId       ID da PV
+     * @param string $subjectKey 'materiais' | 'servicos' | 'contratacao'
+     */
+    public function updateUltimoAssunto(int $pvId, string $subjectKey): void
+    {
+        $sql = 'UPDATE pv SET ultimo_assunto_email = ? WHERE id = ?';
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('si', $subjectKey, $pvId);
+        $stmt->execute();
+    }
+
+    /**
+     * Idem para múltiplas PVs de uma vez (envio em lote).
+     *
+     * @param int[]  $pvIds
+     * @param string $subjectKey
+     */
+    public function updateUltimoAssuntoBatch(array $pvIds, string $subjectKey): void
+    {
+        if (empty($pvIds)) {
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($pvIds), '?'));
+        $types        = 's' . str_repeat('i', count($pvIds));
+        $params       = array_merge([$subjectKey], $pvIds);
+
+        $sql  = "UPDATE pv SET ultimo_assunto_email = ? WHERE id IN ({$placeholders})";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+    }
+
     public function getByNumberPv(string $numberPv): ?Pv
     {
         $sql = "

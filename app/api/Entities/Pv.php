@@ -25,6 +25,7 @@ class Pv
     public ?float $totalValue = null;
     public ?int $itemsCount = null;
     public ?string $worstStatus = null;
+    public ?string $ultimoAssuntoEmail = null;
 
     public function __construct(array $data)
     {
@@ -41,6 +42,7 @@ class Pv
         $this->locality = $data['localidade'] ?? null;
         $this->localDoEndereco = $data['local_do_endereco'] ?? null;
         $this->computedOs = $data['os'] ?? null;
+        $this->ultimoAssuntoEmail = $data['ultimo_assunto_email'] ?? null;
 
         $this->createdAt = $data['created_at'] ?? null;
         $this->updatedAt = $data['updated_at'] ?? null;
@@ -73,6 +75,7 @@ class Pv
             'localidade' => $this->locality,
             'local_do_endereco' => $this->localDoEndereco,
             'tickets' => $this->tickets,
+            'ultimo_assunto_email' => $this->ultimoAssuntoEmail,
 
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,

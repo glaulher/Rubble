@@ -86,6 +86,16 @@ class PvService
         return $this->repository->getListByIds($ids);
     }
 
+    public function recordEmailSubject(int $pvId, string $subjectKey): void
+    {
+        $this->repository->updateUltimoAssunto($pvId, $subjectKey);
+    }
+
+    public function recordEmailSubjectBatch(array $pvIds, string $subjectKey): void
+    {
+        $this->repository->updateUltimoAssuntoBatch($pvIds, $subjectKey);
+    }
+
     public function generateNumberPv(): string
     {
         $prefix = date('y');

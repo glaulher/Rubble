@@ -80,6 +80,20 @@ export function fallbackCopy(text) {
   document.body.removeChild(textarea);
 }
 
+export function getAssuntoEmailBadge(assuntoKey) {
+  if (!assuntoKey) return '<span class="text-slate-400">-</span>';
+  switch (assuntoKey) {
+    case 'materiais':
+      return '<span class="inline-block bg-sky-100 text-sky-700 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Aquisição de materiais</span>';
+    case 'servicos':
+      return '<span class="inline-block bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Execução de serviços</span>';
+    case 'contratacao':
+      return '<span class="inline-block bg-purple-100 text-purple-700 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Contratação de serviços</span>';
+    default:
+      return `<span class="inline-block bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">${escapeHtml(assuntoKey)}</span>`;
+  }
+}
+
 export function buildPvRowHtml(pv) {
   const itensCount = pv.itens_count || 0;
   const valorTotal =
@@ -103,6 +117,7 @@ export function buildPvRowHtml(pv) {
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${escapeHtml(pv.local)}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${escapeHtml(pv.equipamento || '-')}</td>
     <td class="px-4 py-4 text-sm">${getStatusBadge(pv.worst_status)}</td>
+    <td class="hidden md:table-cell px-4 py-4 text-sm">${getAssuntoEmailBadge(pv.ultimo_assunto_email)}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${itensCount} ite${itensCount !== 1 ? 'ns' : 'm'}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm font-medium text-slate-900">${valorTotal}</td>
     <td class="px-4 py-4 text-sm text-right">

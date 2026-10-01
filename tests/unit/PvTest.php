@@ -103,6 +103,7 @@ class PvTest extends TestCase
             'localidade' => null,
             'local_do_endereco' => null,
             'tickets' => [],
+            'ultimo_assunto_email' => null,
             'created_at' => null,
             'updated_at' => null,
         ];
