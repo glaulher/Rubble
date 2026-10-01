@@ -120,7 +120,7 @@ export function buildPvRowHtml(pv) {
     <td class="hidden md:table-cell px-4 py-4 text-sm">${getAssuntoEmailBadge(pv.ultimo_assunto_email)}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${itensCount} ite${itensCount !== 1 ? 'ns' : 'm'}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm font-medium text-slate-900">${valorTotal}</td>
-    <td class="px-4 py-4 text-sm text-right">
+    <td class="px-4 py-4 text-sm text-right whitespace-nowrap">
       <div class="flex items-center justify-end gap-2">
         ${iconButtonHtml('copy', 'Duplicar', { 'data-action': 'duplicate', 'data-pv-id': pv.id })}
         ${iconButtonHtml('edit', 'Editar', { 'data-action': 'edit', 'data-pv-id': pv.id })}
