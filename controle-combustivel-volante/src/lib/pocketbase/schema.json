@@ -1,0 +1,567 @@
+{
+  "generatedAt": "2026-09-09T13:18:48.413Z",
+  "collections": [
+    {
+      "name": "users",
+      "type": "auth",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "",
+        "update": "@request.auth.admin = true || id = @request.auth.id",
+        "delete": "@request.auth.admin = true || id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "admin",
+          "type": "bool",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
+        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "vehicles",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.admin = true || user = @request.auth.id",
+        "view": "@request.auth.admin = true || user = @request.auth.id",
+        "create": "@request.auth.admin = true || user = @request.auth.id",
+        "update": "@request.auth.admin = true || user = @request.auth.id",
+        "delete": "@request.auth.admin = true || user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "plate",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "cost_center",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "driver",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "drivers"
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_vehicles_plate ON vehicles (plate)"]
+    },
+    {
+      "name": "fuel_requests",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.admin = true || user = @request.auth.id",
+        "view": "@request.auth.admin = true || user = @request.auth.id",
+        "create": "@request.auth.admin = true || (user = @request.auth.id && @request.body.status:isset = false) || (user = @request.auth.id && (@request.body.status = 'Aberto' || @request.body.status = 'Em Andamento' || @request.body.status = 'Concluído'))",
+        "update": "@request.auth.admin = true || (user = @request.auth.id && status != 'Aprovado' && status != 'Reprovado' && (@request.body.status:isset = false || (@request.body.status != 'Aprovado' && @request.body.status != 'Reprovado')))",
+        "delete": "@request.auth.admin = true || user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "request_date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "vehicle",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "vehicles"
+        },
+        {
+          "name": "destination",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "current_odometer",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_refuel_odometer",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_refuel_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "photo",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "driver",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "drivers"
+        },
+        {
+          "name": "cost_center",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Aberto", "Em Andamento", "Concluído", "Aprovado", "Reprovado"]
+        },
+        {
+          "name": "rejection_reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_fuel_requests_request_date ON fuel_requests (request_date)",
+        "CREATE INDEX idx_fuel_requests_vehicle ON fuel_requests (vehicle)",
+        "CREATE INDEX `idx_fuel_requests_cost_center` ON `fuel_requests` (cost_center)"
+      ]
+    },
+    {
+      "name": "recharges",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.admin = true || user = @request.auth.id",
+        "view": "@request.auth.admin = true || user = @request.auth.id",
+        "create": "@request.auth.admin = true || user = @request.auth.id",
+        "update": "@request.auth.admin = true || user = @request.auth.id",
+        "delete": "@request.auth.admin = true || user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "recharge_date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "vehicle",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "vehicles"
+        },
+        {
+          "name": "liters",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cost",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "odometer",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "km_per_liter",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "driver",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "drivers"
+        },
+        {
+          "name": "cost_center",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_recharges_recharge_date ON recharges (recharge_date)",
+        "CREATE INDEX idx_recharges_vehicle ON recharges (vehicle)",
+        "CREATE INDEX `idx_recharges_cost_center` ON `recharges` (cost_center)"
+      ]
+    },
+    {
+      "name": "maintenance_intervals",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.admin = true || user = @request.auth.id",
+        "view": "@request.auth.admin = true || user = @request.auth.id",
+        "create": "@request.auth.admin = true || user = @request.auth.id",
+        "update": "@request.auth.admin = true || user = @request.auth.id",
+        "delete": "@request.auth.admin = true || user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "vehicle",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "vehicles"
+        },
+        {
+          "name": "task_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "interval_km",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "last_maintenance_km",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_maintenance_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "cost_center",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_maintenance_intervals_vehicle ON maintenance_intervals (vehicle)",
+        "CREATE INDEX `idx_maintenance_intervals_cost_center` ON `maintenance_intervals` (cost_center)"
+      ]
+    },
+    {
+      "name": "drivers",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.admin = true || user = @request.auth.id",
+        "view": "@request.auth.admin = true || user = @request.auth.id",
+        "create": "@request.auth.admin = true || user = @request.auth.id",
+        "update": "@request.auth.admin = true || user = @request.auth.id",
+        "delete": "@request.auth.admin = true || user = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "audit_logs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.admin = true",
+        "view": "@request.auth.admin = true",
+        "create": "@request.auth.id != '' && user = @request.auth.id",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "collection_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "record_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "details",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_audit_logs_collection_name ON audit_logs (collection_name)",
+        "CREATE INDEX idx_audit_logs_action ON audit_logs (action)",
+        "CREATE INDEX idx_audit_logs_created ON audit_logs (created)"
+      ]
+    },
+    {
+      "name": "smtp_settings",
+      "type": "base",
+      "apiRules": {
+        "list": null,
+        "view": null,
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "host",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "port",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "username",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "password",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sender_address",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "sender_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tls",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "auth_method",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["PLAIN", "LOGIN"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    }
+  ]
+}

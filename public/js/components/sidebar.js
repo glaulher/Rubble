@@ -46,38 +46,93 @@ export function initSidebar() {
       }
     });
 
-  // Dashboard submenu toggle (click only — hover via CSS group-hover)
-  const dashToggle = document.getElementById('dashboardMenuToggle');
-  const dashSubmenu = document.getElementById('dashboardSubmenu');
+  // Helper para submenus da sidebar (hover no mouse, click no desktop e toque touch no celular)
+  function setupSubmenu(containerId, toggleId, submenuId) {
+    const container = document.getElementById(containerId);
+    const toggle = document.getElementById(toggleId);
+    const submenu = document.getElementById(submenuId);
+    if (!container || !toggle || !submenu) return;
 
-  if (dashToggle && dashSubmenu) {
-    dashToggle.addEventListener('click', function (e) {
+    let touchHandled = false;
+    let touchMoved = false;
+
+    function handleToggle(e) {
+      if (e.type === 'touchend') {
+        touchHandled = true;
+        setTimeout(() => {
+          touchHandled = false;
+        }, 600);
+      } else if (e.type === 'click') {
+        if (touchHandled) {
+          e.preventDefault();
+          return;
+        }
+      }
       e.preventDefault();
-      dashSubmenu.classList.toggle('hidden');
+      e.stopPropagation();
+
+      const willOpen = submenu.classList.contains('hidden');
+
+      // Fecha outros submenus para evitar sobreposição
+      document
+        .querySelectorAll(
+          '#dashboardSubmenu, #equipSubmenu, #plannedSubmenu, #toolsSubmenu'
+        )
+        .forEach((sm) => {
+          if (sm !== submenu) {
+            sm.classList.add('hidden');
+          }
+        });
+
+      if (willOpen) {
+        submenu.classList.remove('hidden');
+        toggle.setAttribute('aria-expanded', 'true');
+      } else {
+        submenu.classList.add('hidden');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    // Touch no celular (evita disparo acidental durante scroll)
+    toggle.addEventListener(
+      'touchstart',
+      function () {
+        touchMoved = false;
+      },
+      { passive: true }
+    );
+    toggle.addEventListener(
+      'touchmove',
+      function () {
+        touchMoved = true;
+      },
+      { passive: true }
+    );
+    toggle.addEventListener('touchend', function (e) {
+      if (touchMoved) return;
+      handleToggle(e);
     });
+
+    // Click com mouse no desktop
+    toggle.addEventListener('click', handleToggle);
+
+    // Hover do mouse no desktop (dispositivos com suporte a hover contínuo)
+    if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+      container.addEventListener('mouseenter', function () {
+        submenu.classList.remove('hidden');
+        toggle.setAttribute('aria-expanded', 'true');
+      });
+      container.addEventListener('mouseleave', function () {
+        submenu.classList.add('hidden');
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+    }
   }
 
-  // Equip submenu toggle
-  const equipToggle = document.getElementById('equipMenuToggle');
-  const equipSubmenu = document.getElementById('equipSubmenu');
-
-  if (equipToggle && equipSubmenu) {
-    equipToggle.addEventListener('click', function (e) {
-      e.preventDefault();
-      equipSubmenu.classList.toggle('hidden');
-    });
-  }
-
-  // Planejamento submenu toggle
-  const plannedToggle = document.getElementById('plannedMenuToggle');
-  const plannedSubmenu = document.getElementById('plannedSubmenu');
-
-  if (plannedToggle && plannedSubmenu) {
-    plannedToggle.addEventListener('click', function (e) {
-      e.preventDefault();
-      plannedSubmenu.classList.toggle('hidden');
-    });
-  }
+  setupSubmenu('dashboardMenuContainer', 'dashboardMenuToggle', 'dashboardSubmenu');
+  setupSubmenu('equipMenuContainer', 'equipMenuToggle', 'equipSubmenu');
+  setupSubmenu('plannedMenuContainer', 'plannedMenuToggle', 'plannedSubmenu');
+  setupSubmenu('toolsMenuContainer', 'toolsMenuToggle', 'toolsSubmenu');
 
   // Tempo Fechado link (nova aba com SSO via JWT Rubble)
   const tfLink = document.getElementById('tempoFechadoLink');
@@ -132,21 +187,81 @@ export function initSidebar() {
     });
   }
 
-  // Fechar submenus ao clicar fora
-  document.addEventListener('click', function (e) {
-    const dashContainer = document.getElementById('dashboardMenuContainer');
-    if (dashSubmenu && dashContainer && !dashContainer.contains(e.target)) {
-      dashSubmenu.classList.add('hidden');
+  // Controle de Combustivel link (nova aba com SSO via JWT Rubble)
+  const combustivelLink = document.getElementById('combustivelLink');
+  if (combustivelLink) {
+    function prepareCombustivelHref() {
+      const token = sessionStorage.getItem('rubble_token');
+      if (token) {
+        combustivelLink.href = '/combustivel/?token=' + encodeURIComponent(token);
+        combustivelLink.target = '_blank';
+        combustivelLink.rel = 'noopener';
+      } else {
+        combustivelLink.href = '#/login';
+        combustivelLink.removeAttribute('target');
+      }
     }
-    const equipContainer = document.getElementById('equipMenuContainer');
-    if (equipSubmenu && equipContainer && !equipContainer.contains(e.target)) {
-      equipSubmenu.classList.add('hidden');
+
+    prepareCombustivelHref();
+    combustivelLink.addEventListener('pointerdown', prepareCombustivelHref);
+    combustivelLink.addEventListener('touchstart', prepareCombustivelHref, { passive: true });
+    combustivelLink.addEventListener('mouseenter', prepareCombustivelHref);
+    combustivelLink.addEventListener('focus', prepareCombustivelHref);
+
+    combustivelLink.addEventListener('click', function (e) {
+      prepareCombustivelHref();
+      const token = sessionStorage.getItem('rubble_token');
+      if (!token) {
+        e.preventDefault();
+        window.location.hash = '#/login';
+        return;
+      }
+
+      const url = '/combustivel/?token=' + encodeURIComponent(token);
+      combustivelLink.href = url;
+      combustivelLink.target = '_blank';
+      combustivelLink.rel = 'noopener';
+
+      if (/Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent) || ('ontouchstart' in window)) {
+        try {
+          const w = window.open(url, '_blank');
+          if (!w || w.closed || typeof w.closed === 'undefined') {
+            window.location.href = url;
+          }
+        } catch (_) {
+          window.location.href = url;
+        }
+        e.preventDefault();
+      }
+    });
+  }
+
+  // Fechar submenus ao clicar ou tocar fora
+  function closeSubmenusOutside(e) {
+    const containers = [
+      document.getElementById('dashboardMenuContainer'),
+      document.getElementById('equipMenuContainer'),
+      document.getElementById('plannedMenuContainer'),
+      document.getElementById('toolsMenuContainer'),
+    ];
+
+    const clickedInsideAny = containers.some((c) => c && c.contains(e.target));
+    if (!clickedInsideAny) {
+      document
+        .querySelectorAll(
+          '#dashboardSubmenu, #equipSubmenu, #plannedSubmenu, #toolsSubmenu'
+        )
+        .forEach((sm) => sm.classList.add('hidden'));
+      document
+        .querySelectorAll(
+          '#dashboardMenuToggle, #equipMenuToggle, #plannedMenuToggle, #toolsMenuToggle'
+        )
+        .forEach((tg) => tg.setAttribute('aria-expanded', 'false'));
     }
-    const plannedContainer = document.getElementById('plannedMenuContainer');
-    if (plannedSubmenu && plannedContainer && !plannedContainer.contains(e.target)) {
-      plannedSubmenu.classList.add('hidden');
-    }
-  });
+  }
+
+  document.addEventListener('click', closeSubmenusOutside);
+  document.addEventListener('touchend', closeSubmenusOutside);
 }
 
 initSidebar();

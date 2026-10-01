@@ -74,6 +74,7 @@ services:
     depends_on:
       - app
       - tempo-fechado
+      - controle-combustivel
     deploy:
       resources:
         limits:
@@ -214,6 +215,25 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  controle-combustivel:
+    build:
+      context: ./controle-combustivel-volante
+      dockerfile: Dockerfile
+    container_name: rubble-controle-combustivel
+    env_file: .env
+    environment:
+      RUBBLE_JWT_SECRET: ${JWT_SECRET}
+    expose:
+      - "8090"
+    volumes:
+      - combustivel-data:/pb/pb_data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    restart: unless-stopped
+
 volumes:
   db-data:
   os-data:
@@ -223,4 +243,5 @@ volumes:
   mail-data:
   tempo-fechado-data:
   tempo-fechado-ponto:
+  combustivel-data:
 
