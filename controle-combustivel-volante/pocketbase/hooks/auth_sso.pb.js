@@ -36,7 +36,17 @@ routerAdd('POST', '/backend/v1/auth/sso', (e) => {
     return e.badRequestError('Usuário não identificado no token')
   }
 
-  const email = (payload.email || username + '@rubble.local').toLowerCase()
+  // Extrai o nome de usuário limpo removendo domínio interno incompleto (ex: "glaulher@admin" -> "glaulher")
+  let cleanUser = (username || 'user').split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase() || 'user'
+  if (cleanUser.length < 3) cleanUser = cleanUser + '_user'
+
+  // Garante um formato de email RFC válido e aceito pelo PocketBase
+  let email = (payload.email || '').trim().toLowerCase()
+  const validEmailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  if (!validEmailRegex.test(email)) {
+    email = cleanUser + '@rubbleapp.com'
+  }
+
   console.log('[SSO Hook] Autenticando usuário:', username, 'email:', email, 'role:', role, 'admin:', isAdmin)
 
   const usersCol = $app.findCollectionByNameOrId('_pb_users_auth_')
@@ -45,6 +55,12 @@ routerAdd('POST', '/backend/v1/auth/sso', (e) => {
   try {
     userRecord = $app.findFirstRecordByFilter('_pb_users_auth_', 'email = {:email}', { email: email })
   } catch (_) {}
+
+  if (!userRecord) {
+    try {
+      userRecord = $app.findFirstRecordByFilter('_pb_users_auth_', 'username = {:username}', { username: cleanUser })
+    } catch (_) {}
+  }
 
   if (!userRecord) {
     try {
