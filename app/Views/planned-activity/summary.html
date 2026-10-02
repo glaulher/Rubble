@@ -60,6 +60,17 @@
       >
     </div>
     <div class="flex flex-col shrink-0">
+      <label for="summaryTipoFilter" class="text-xs text-slate-500 mb-1">Tipo</label>
+      <select
+        id="summaryTipoFilter"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36"
+      >
+        <option value="">Todos</option>
+        <option value="preventiva">Preventiva</option>
+        <option value="corretiva">Corretiva</option>
+      </select>
+    </div>
+    <div class="flex flex-col shrink-0">
       <label for="summaryStatusFilter" class="text-xs text-slate-500 mb-1">Status</label>
       <select
         id="summaryStatusFilter"
@@ -106,6 +117,9 @@
                 </th>
                 <th data-sort="data_planejada" class="px-4 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">
                   Data <span class="sort-icon text-slate-400"></span>
+                </th>
+                <th class="px-4 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap select-none">
+                  Tipo
                 </th>
                 <th class="px-4 py-2.5 text-xs font-semibold tracking-wider whitespace-nowrap select-none">
                   Status

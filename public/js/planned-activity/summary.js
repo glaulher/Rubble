@@ -8,6 +8,7 @@ var _summaryScroll = null;
 var summarySearch = '';
 var summaryDateFrom = '';
 var summaryDateTo = '';
+var summaryTipoFilter = '';
 var summaryStatusFilter = '';
 var summarySortBy = 'data_planejada';
 var summarySortDir = 'DESC';
@@ -22,12 +23,28 @@ var SUMMARY_STATUS_BADGES = {
   'projeto clean up': 'bg-purple-100 text-purple-700',
 };
 
-var SUMMARY_CSV_HEADER = ['SITE', 'TECNICO', 'DATA', 'STATUS'];
+var SUMMARY_TIPO_BADGES = {
+  'preventiva': 'bg-blue-100 text-blue-700',
+  'corretiva':  'bg-amber-100 text-amber-700',
+};
+
+var SUMMARY_CSV_HEADER = ['SITE', 'TECNICO', 'DATA', 'TIPO', 'STATUS'];
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
 export function summaryStatusBadgeClass(status) {
   return SUMMARY_STATUS_BADGES[(status || '').toLowerCase().trim()] || 'bg-slate-100 text-slate-700';
+}
+
+export function summaryTipoBadgeClass(tipo) {
+  return SUMMARY_TIPO_BADGES[(tipo || '').toLowerCase().trim()] || 'bg-slate-100 text-slate-700';
+}
+
+export function summaryFormatTipo(tipo) {
+  var t = (tipo || '').toLowerCase().trim();
+  if (t === 'preventiva') return 'Preventiva';
+  if (t === 'corretiva') return 'Corretiva';
+  return tipo || '-';
 }
 
 export function summaryFormatDate(value) {
@@ -63,11 +80,16 @@ export function renderSummaryTable(list, append) {
     var item = list[i];
     var status = item.status || '';
     var badgeClass = summaryStatusBadgeClass(status);
+    var tipo = item.tipo || '';
+    var tipoBadgeClass = summaryTipoBadgeClass(tipo);
 
     html += '<tr class="border-b border-slate-200 hover:bg-slate-50">'
       + '<td class="px-4 py-2.5 text-sm text-slate-700">' + escapeHtml(item.local || '-') + '</td>'
       + '<td class="px-4 py-2.5 text-sm text-slate-700">' + escapeHtml(item.equipe || 'A definir') + '</td>'
       + '<td class="px-4 py-2.5 text-sm text-slate-600 whitespace-nowrap">' + summaryFormatDate(item.data_planejada) + '</td>'
+      + '<td class="px-4 py-2.5 text-sm whitespace-nowrap">'
+      +   '<span class="px-2 py-0.5 rounded-full text-xs font-medium ' + tipoBadgeClass + '">' + escapeHtml(summaryFormatTipo(tipo)) + '</span>'
+      + '</td>'
       + '<td class="px-4 py-2.5 text-sm">'
       +   '<span class="px-2 py-0.5 rounded-full text-xs font-medium ' + badgeClass + '">' + escapeHtml(status || '-') + '</span>'
       + '</td>'
@@ -95,6 +117,7 @@ export function buildSummaryQuery() {
     + '&status=' + encodeURIComponent(summaryStatusFilter)
     + '&sort_by=' + encodeURIComponent(summarySortBy)
     + '&sort_dir=' + encodeURIComponent(summarySortDir);
+  if (summaryTipoFilter) q += '&tipo=' + encodeURIComponent(summaryTipoFilter);
   if (summaryDateFrom) q += '&date_from=' + encodeURIComponent(summaryDateFrom);
   if (summaryDateTo)   q += '&date_to='   + encodeURIComponent(summaryDateTo);
   return q;
@@ -123,6 +146,7 @@ export async function exportSummaryCsv() {
           sanitizeCSV(it.local || ''),
           sanitizeCSV(it.equipe || ''),
           summaryFormatDate(it.data_planejada),
+          sanitizeCSV(summaryFormatTipo(it.tipo)),
           sanitizeCSV(it.status || ''),
         ]);
       }
@@ -190,6 +214,7 @@ export function initPlannedSummary() {
   summarySearch       = '';
   summaryDateFrom     = '';
   summaryDateTo       = '';
+  summaryTipoFilter   = '';
   summaryStatusFilter = '';
   summarySortBy       = 'data_planejada';
   summarySortDir      = 'DESC';
@@ -211,6 +236,16 @@ export function initPlannedSummary() {
     elDateTo.value = '';
     elDateTo.addEventListener('change', function () {
       summaryDateTo = this.value;
+      _summaryReset();
+    });
+  }
+
+  // ── tipo filter ────────────────────────────────────────────────────────
+  var elTipo = document.getElementById('summaryTipoFilter');
+  if (elTipo) {
+    elTipo.value = '';
+    elTipo.addEventListener('change', function () {
+      summaryTipoFilter = this.value;
       _summaryReset();
     });
   }
@@ -270,7 +305,7 @@ export function initPlannedSummary() {
       }
     },
     getFilterHash: function () {
-      return summarySearch + '|' + summaryDateFrom + '|' + summaryDateTo + '|' + summaryStatusFilter + '|' + summarySortBy + '|' + summarySortDir;
+      return summarySearch + '|' + summaryDateFrom + '|' + summaryDateTo + '|' + summaryTipoFilter + '|' + summaryStatusFilter + '|' + summarySortBy + '|' + summarySortDir;
     },
     sentinelId: 'summarySentinel',
     scrollContainerId: 'summaryScrollContainer',
