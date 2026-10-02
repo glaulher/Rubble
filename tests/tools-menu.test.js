@@ -54,17 +54,18 @@ describe('Tools Menu (Ferramentas) and Submenu Interactivity', () => {
     expect(migration).toContain("@request.auth.admin = true");
   });
 
-  it('controle de combustivel transfers SSO token securely via localStorage without token in URL', () => {
+  it('controle de combustivel transfers SSO token securely via ephemeral bridge without token in URL', () => {
     const sidebarJs = readFileSync(resolve(import.meta.dir, '../public/js/components/sidebar.js'), 'utf-8');
     expect(sidebarJs).toContain("localStorage.setItem('rubble_sso_token', token)");
     expect(sidebarJs).toContain("combustivelLink.href = '/combustivel/'");
     expect(sidebarJs).not.toContain("combustivelLink.href = '/combustivel/?token='");
 
     const authJs = readFileSync(resolve(import.meta.dir, '../public/js/core/auth.js'), 'utf-8');
-    expect(authJs).toContain("localStorage.setItem('rubble_sso_token', token)");
+    expect(authJs).toContain("sessionStorage.getItem(AUTH_TOKEN_KEY)");
+    expect(authJs).not.toContain("localStorage.setItem(AUTH_TOKEN_KEY, token)");
 
     const useAuth = readFileSync(resolve(import.meta.dir, '../controle-combustivel-volante/src/hooks/use-auth.tsx'), 'utf-8');
     expect(useAuth).toContain("localStorage.getItem('rubble_sso_token')");
-    expect(useAuth).toContain("localStorage.getItem('rubble_token')");
+    expect(useAuth).toContain("localStorage.removeItem('rubble_sso_token')");
   });
 });

@@ -38,20 +38,15 @@ function isApiUrl(url) {
 })();
 
 export function getToken() {
-  return sessionStorage.getItem(AUTH_TOKEN_KEY) || localStorage.getItem(AUTH_TOKEN_KEY);
+  return sessionStorage.getItem(AUTH_TOKEN_KEY);
 }
 
 export function setToken(token) {
   if (token) {
     sessionStorage.setItem(AUTH_TOKEN_KEY, token);
-    try {
-      localStorage.setItem(AUTH_TOKEN_KEY, token);
-      localStorage.setItem('rubble_sso_token', token);
-    } catch (_) {}
   } else {
     sessionStorage.removeItem(AUTH_TOKEN_KEY);
     try {
-      localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem('rubble_sso_token');
     } catch (_) {}
   }
@@ -66,7 +61,7 @@ export function setUser(user) {
 }
 
 export function getUser() {
-  const raw = sessionStorage.getItem(AUTH_USER_KEY) || localStorage.getItem(AUTH_USER_KEY);
+  const raw = sessionStorage.getItem(AUTH_USER_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -100,11 +95,6 @@ export function parseJwtPayload(token) {
 export function storeAuth(token, user) {
   sessionStorage.setItem(AUTH_TOKEN_KEY, token);
   sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-  try {
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
-    localStorage.setItem('rubble_sso_token', token);
-    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-  } catch (_) {}
 }
 
 export function clearAuth() {

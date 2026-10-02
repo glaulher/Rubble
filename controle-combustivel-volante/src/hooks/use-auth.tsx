@@ -58,6 +58,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let ssoToken: string | null = null
     try {
       ssoToken = localStorage.getItem('rubble_sso_token') || localStorage.getItem('rubble_token')
+      if (ssoToken) {
+        // Ponte efêmera: remove imediatamente do disco/localStorage
+        localStorage.removeItem('rubble_sso_token')
+        localStorage.removeItem('rubble_token')
+      }
     } catch (_) {}
 
     if (!ssoToken) {

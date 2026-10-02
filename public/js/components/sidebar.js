@@ -187,15 +187,12 @@ export function initSidebar() {
     });
   }
 
-  // Controle de Combustivel link (nova aba com SSO seguro via localStorage, sem expor token na URL)
+  // Controle de Combustivel link (nova aba com SSO seguro efêmero via localStorage, sem expor token na URL)
   const combustivelLink = document.getElementById('combustivelLink');
   if (combustivelLink) {
     function prepareCombustivelHref() {
       const token = sessionStorage.getItem('rubble_token');
       if (token) {
-        try {
-          localStorage.setItem('rubble_sso_token', token);
-        } catch (_) {}
         combustivelLink.href = '/combustivel/';
         combustivelLink.target = '_blank';
         combustivelLink.rel = 'noopener';
@@ -206,8 +203,6 @@ export function initSidebar() {
     }
 
     prepareCombustivelHref();
-    combustivelLink.addEventListener('pointerdown', prepareCombustivelHref);
-    combustivelLink.addEventListener('touchstart', prepareCombustivelHref, { passive: true });
     combustivelLink.addEventListener('mouseenter', prepareCombustivelHref);
     combustivelLink.addEventListener('focus', prepareCombustivelHref);
 
@@ -219,8 +214,15 @@ export function initSidebar() {
         return;
       }
 
+      // Ponte efêmera: grava no localStorage no momento do clique
       try {
         localStorage.setItem('rubble_sso_token', token);
+        // Timeout de segurança: se a aba não consumir em 30s, limpa automaticamente
+        setTimeout(function () {
+          try {
+            localStorage.removeItem('rubble_sso_token');
+          } catch (_) {}
+        }, 30000);
       } catch (_) {}
 
       combustivelLink.href = '/combustivel/';
