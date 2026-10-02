@@ -54,8 +54,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       prevUserId = newUserId
     })
 
-    const searchParams = new URLSearchParams(window.location.search)
-    const ssoToken = searchParams.get('token')
+    let ssoToken: string | null = null
+    try {
+      ssoToken = localStorage.getItem('rubble_sso_token')
+      if (ssoToken) {
+        localStorage.removeItem('rubble_sso_token')
+      }
+    } catch (_) {}
+
+    if (!ssoToken) {
+      const searchParams = new URLSearchParams(window.location.search)
+      ssoToken = searchParams.get('token')
+      if (ssoToken) {
+        searchParams.delete('token')
+        const newSearch = searchParams.toString()
+        const cleanUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash
+        window.history.replaceState({}, '', cleanUrl)
+      }
+    }
 
     if (ssoToken) {
       pb.send('/backend/v1/auth/sso', {
@@ -65,10 +81,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .then((res: any) => {
           if (res && res.token && res.record) {
             pb.authStore.save(res.token, res.record)
-            searchParams.delete('token')
-            const newSearch = searchParams.toString()
-            const cleanUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash
-            window.history.replaceState({}, '', cleanUrl)
+            setUser(res.record)
+            setIsAuthenticated(true)
           }
         })
         .catch((err) => {

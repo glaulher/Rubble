@@ -187,13 +187,16 @@ export function initSidebar() {
     });
   }
 
-  // Controle de Combustivel link (nova aba com SSO via JWT Rubble)
+  // Controle de Combustivel link (nova aba com SSO seguro via localStorage, sem expor token na URL)
   const combustivelLink = document.getElementById('combustivelLink');
   if (combustivelLink) {
     function prepareCombustivelHref() {
       const token = sessionStorage.getItem('rubble_token');
       if (token) {
-        combustivelLink.href = '/combustivel/?token=' + encodeURIComponent(token);
+        try {
+          localStorage.setItem('rubble_sso_token', token);
+        } catch (_) {}
+        combustivelLink.href = '/combustivel/';
         combustivelLink.target = '_blank';
         combustivelLink.rel = 'noopener';
       } else {
@@ -209,7 +212,6 @@ export function initSidebar() {
     combustivelLink.addEventListener('focus', prepareCombustivelHref);
 
     combustivelLink.addEventListener('click', function (e) {
-      prepareCombustivelHref();
       const token = sessionStorage.getItem('rubble_token');
       if (!token) {
         e.preventDefault();
@@ -217,19 +219,22 @@ export function initSidebar() {
         return;
       }
 
-      const url = '/combustivel/?token=' + encodeURIComponent(token);
-      combustivelLink.href = url;
+      try {
+        localStorage.setItem('rubble_sso_token', token);
+      } catch (_) {}
+
+      combustivelLink.href = '/combustivel/';
       combustivelLink.target = '_blank';
       combustivelLink.rel = 'noopener';
 
       if (/Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent) || ('ontouchstart' in window)) {
         try {
-          const w = window.open(url, '_blank');
+          const w = window.open('/combustivel/', '_blank');
           if (!w || w.closed || typeof w.closed === 'undefined') {
-            window.location.href = url;
+            window.location.href = '/combustivel/';
           }
         } catch (_) {
-          window.location.href = url;
+          window.location.href = '/combustivel/';
         }
         e.preventDefault();
       }

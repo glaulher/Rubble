@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
@@ -8,11 +8,17 @@ import { Fuel, Loader2, Mail, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function Login() {
-  const { signIn } = useAuth()
+  const { signIn, isAuthenticated, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/', { replace: true })
+    }
+  }, [isAuthenticated, authLoading, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
