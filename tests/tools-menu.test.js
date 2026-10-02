@@ -38,13 +38,13 @@ describe('Tools Menu (Ferramentas) and Submenu Interactivity', () => {
   });
 
   it('controle de combustivel SSO restricts admin strictly to Rubble admin role', () => {
-    const ssoHook = readFileSync(resolve(import.meta.dir, '../controle-combustivel-volante/pocketbase/hooks/auth_sso.js'), 'utf-8');
+    const ssoHook = readFileSync(resolve(import.meta.dir, '../controle-combustivel-volante/pocketbase/hooks/auth_sso.pb.js'), 'utf-8');
     expect(ssoHook).toContain("const isAdmin = role === 'admin'");
     expect(ssoHook).not.toContain("role === 'admin' || role === 'coordenador'");
   });
 
   it('pocketbase has protect_admin_field hook and hardening migration', () => {
-    const hook = readFileSync(resolve(import.meta.dir, '../controle-combustivel-volante/pocketbase/hooks/protect_admin_field.js'), 'utf-8');
+    const hook = readFileSync(resolve(import.meta.dir, '../controle-combustivel-volante/pocketbase/hooks/protect_admin_field.pb.js'), 'utf-8');
     expect(hook).toContain("onRecordUpdateRequest");
     expect(hook).toContain("isOriginalAdmin !== isNextAdmin");
     expect(hook).toContain("ForbiddenError");
