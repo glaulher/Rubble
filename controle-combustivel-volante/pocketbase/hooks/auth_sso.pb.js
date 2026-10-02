@@ -7,11 +7,13 @@ routerAdd('POST', '/backend/v1/auth/sso', (e) => {
 
   const token = (body.token || '').trim()
   if (!token) {
+    console.warn('[SSO Hook] Token JWT ausente na requisição')
     return e.badRequestError('Token JWT do Rubble é obrigatório')
   }
 
   const jwtSecret = $os.getenv('RUBBLE_JWT_SECRET') || $os.getenv('JWT_SECRET') || ''
   if (!jwtSecret) {
+    console.error('[SSO Hook] Configuração RUBBLE_JWT_SECRET/JWT_SECRET ausente no servidor')
     return e.badRequestError('Configuração de segurança JWT ausente no servidor')
   }
 
@@ -19,6 +21,7 @@ routerAdd('POST', '/backend/v1/auth/sso', (e) => {
   try {
     payload = $security.parseJWT(token, jwtSecret)
   } catch (err) {
+    console.error('[SSO Hook] Erro ao validar JWT:', err.message || String(err))
     return e.badRequestError('Token Rubble inválido ou expirado: ' + (err.message || String(err)))
   }
 
@@ -29,10 +32,12 @@ routerAdd('POST', '/backend/v1/auth/sso', (e) => {
   const isAdmin = role === 'admin'
 
   if (!username) {
+    console.warn('[SSO Hook] Usuário não identificado no payload JWT')
     return e.badRequestError('Usuário não identificado no token')
   }
 
   const email = (payload.email || username + '@rubble.local').toLowerCase()
+  console.log('[SSO Hook] Autenticando usuário:', username, 'email:', email, 'role:', role, 'admin:', isAdmin)
 
   const usersCol = $app.findCollectionByNameOrId('_pb_users_auth_')
   let userRecord = null
@@ -50,7 +55,9 @@ routerAdd('POST', '/backend/v1/auth/sso', (e) => {
       userRecord.set('name', nome)
       userRecord.set('admin', isAdmin)
       $app.save(userRecord)
+      console.log('[SSO Hook] Novo usuário local criado:', email)
     } catch (saveErr) {
+      console.error('[SSO Hook] Falha ao criar usuário local:', saveErr.message)
       return e.badRequestError('Falha ao criar usuário local: ' + saveErr.message)
     }
   } else {
@@ -67,12 +74,16 @@ routerAdd('POST', '/backend/v1/auth/sso', (e) => {
     if (changed) {
       try {
         $app.save(userRecord)
-      } catch (_) {}
+        console.log('[SSO Hook] Dados do usuário atualizados:', email)
+      } catch (saveErr) {
+        console.warn('[SSO Hook] Aviso ao salvar usuário:', saveErr.message)
+      }
     }
   }
 
   // Gera token de autenticação oficial do PocketBase para o registro
   const pbToken = userRecord.newAuthToken()
+  console.log('[SSO Hook] Sucesso na autenticação SSO para:', email)
 
   return e.json(200, {
     token: pbToken,

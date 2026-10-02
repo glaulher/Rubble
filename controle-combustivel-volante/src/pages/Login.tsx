@@ -20,6 +20,17 @@ export default function Login() {
     }
   }, [isAuthenticated, authLoading, navigate])
 
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-slate-500 font-medium">Validando sessão com o Rubble...</p>
+        </div>
+      </div>
+    )
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)

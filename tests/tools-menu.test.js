@@ -60,8 +60,11 @@ describe('Tools Menu (Ferramentas) and Submenu Interactivity', () => {
     expect(sidebarJs).toContain("combustivelLink.href = '/combustivel/'");
     expect(sidebarJs).not.toContain("combustivelLink.href = '/combustivel/?token='");
 
+    const authJs = readFileSync(resolve(import.meta.dir, '../public/js/core/auth.js'), 'utf-8');
+    expect(authJs).toContain("localStorage.setItem('rubble_sso_token', token)");
+
     const useAuth = readFileSync(resolve(import.meta.dir, '../controle-combustivel-volante/src/hooks/use-auth.tsx'), 'utf-8');
     expect(useAuth).toContain("localStorage.getItem('rubble_sso_token')");
-    expect(useAuth).toContain("localStorage.removeItem('rubble_sso_token')");
+    expect(useAuth).toContain("localStorage.getItem('rubble_token')");
   });
 });

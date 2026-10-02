@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { setViewModeContext } from '@/lib/view-mode'
+import { toast } from 'sonner'
 
 interface AuthContextType {
   user: any
@@ -56,10 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     let ssoToken: string | null = null
     try {
-      ssoToken = localStorage.getItem('rubble_sso_token')
-      if (ssoToken) {
-        localStorage.removeItem('rubble_sso_token')
-      }
+      ssoToken = localStorage.getItem('rubble_sso_token') || localStorage.getItem('rubble_token')
     } catch (_) {}
 
     if (!ssoToken) {
@@ -74,19 +72,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (ssoToken) {
+      console.log('[SSO Frontend] Token encontrado. Iniciando autenticação...')
       pb.send('/backend/v1/auth/sso', {
         method: 'POST',
         body: { token: ssoToken },
       })
         .then((res: any) => {
           if (res && res.token && res.record) {
+            console.log('[SSO Frontend] Autenticação realizada com sucesso para:', res.record.email)
             pb.authStore.save(res.token, res.record)
             setUser(res.record)
             setIsAuthenticated(true)
           }
         })
         .catch((err) => {
-          console.error('SSO failure:', err)
+          console.error('[SSO Frontend] Falha na requisição SSO:', err)
+          const errorMsg =
+            err?.data?.message || err?.message || 'Falha ao validar credenciais do Rubble'
+          toast.error('Erro de autenticação SSO: ' + errorMsg)
         })
         .finally(() => {
           setLoading(false)
@@ -97,6 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .catch(() => pb.authStore.clear())
         .finally(() => setLoading(false))
     } else {
+      console.warn('[SSO Frontend] Nenhum token SSO encontrado em localStorage ou URL.')
       if (pb.authStore.record) pb.authStore.clear()
       setLoading(false)
     }
