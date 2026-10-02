@@ -537,7 +537,7 @@ export function fallbackCopy(text) {
 export function pendingPlanActionHtml(item) {
   if (typeof getUser !== 'function') return '<td class="px-3 py-2.5 text-sm"></td>';
   var role = (getUser().role || '').toLowerCase();
-  if (role !== 'admin' && role !== 'coordenador') return '<td class="px-3 py-2.5 text-sm"></td>';
+  if (role !== 'admin' && role !== 'coordenador' && role !== 'gerente') return '<td class="px-3 py-2.5 text-sm"></td>';
   if (typeof iconButtonHtml !== 'function') return '<td class="px-3 py-2.5 text-sm"></td>';
   return '<td class="px-3 py-2.5 text-sm">'
     + iconButtonHtml('plan', 'Planejar', { 'data-action': 'plan', 'data-plan-id': item.id }, 'below-left')

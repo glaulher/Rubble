@@ -71,7 +71,7 @@ describe('Inventory Integration — Sidebar (index.html)', () => {
     document.body.innerHTML = indexHtml;
     const inventoryLink = document.querySelector('a[href="#/inventory"]');
     expect(inventoryLink).not.toBeNull();
-    expect(inventoryLink.getAttribute('data-role')).toBe('admin coordenador supervisor');
+    expect(inventoryLink.getAttribute('data-role')).toBe('admin coordenador gerente supervisor');
     expect(inventoryLink.classList.contains('sidebar-link')).toBe(true);
 
     const label = inventoryLink.querySelector('.sidebar-label');

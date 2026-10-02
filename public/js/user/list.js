@@ -103,6 +103,7 @@ export function getRoleBadge(role) {
     'admin': 'bg-red-100 text-red-700',
     'supervisor': 'bg-yellow-100 text-yellow-700',
     'coordenador': 'bg-blue-100 text-blue-700',
+    'gerente': 'bg-indigo-100 text-indigo-700',
     'administrativo': 'bg-purple-100 text-purple-700',
     'cliente': 'bg-slate-100 text-slate-600',
   };

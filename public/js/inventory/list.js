@@ -204,7 +204,7 @@ export function renderInventory() {
 
   const currentUser = getUser();
   const userRole = currentUser ? currentUser.role : '';
-  const canDelete = !userRole || ['admin', 'coordenador', 'supervisor'].includes(userRole);
+  const canDelete = !userRole || ['admin', 'coordenador', 'gerente', 'supervisor'].includes(userRole);
 
   tbody.innerHTML = inventoryList
     .map(function (item) {

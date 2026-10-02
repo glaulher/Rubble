@@ -1,10 +1,10 @@
 onRecordUpdateRequest((e) => {
-  // If not superuser or admin user, prevent setting status to Aprovado or Reprovado
-  let isAdmin = false
+  // If not role gerente, prevent setting status to Aprovado or Reprovado
+  let isGerente = false
   if (e.auth) {
     try {
-      if (e.auth.getBool('admin') === true) {
-        isAdmin = true
+      if (e.auth.getString('role') === 'gerente') {
+        isGerente = true
       }
     } catch (_) {}
   }
@@ -12,11 +12,11 @@ onRecordUpdateRequest((e) => {
   const nextStatus = e.record.getString('status')
   const originalStatus = e.record.original() ? e.record.original().getString('status') : ''
 
-  if (!isAdmin) {
+  if (!isGerente) {
     if (nextStatus === 'Aprovado' || nextStatus === 'Reprovado') {
       if (originalStatus !== nextStatus) {
         throw new ForbiddenError(
-          'Apenas administradores podem aprovar ou reprovar solicitações de combustível.',
+          'Apenas usuários com perfil Gerente podem aprovar ou reprovar solicitações de combustível.',
         )
       }
     }

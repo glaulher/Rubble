@@ -28,7 +28,7 @@ describe('Tools Menu (Ferramentas) and Submenu Interactivity', () => {
     const containerMatch = indexHtml.match(/<div[^>]*id="toolsMenuContainer"[^>]*>/);
     expect(containerMatch).toBeTruthy();
     const tag = containerMatch[0];
-    expect(tag).toContain('data-role="admin coordenador administrativo"');
+    expect(tag).toContain('data-role="admin coordenador gerente administrativo"');
   });
   it('nginx blocks pocketbase admin dashboard /combustivel/_/', () => {
     const nginxConf = readFileSync(resolve(import.meta.dir, '../config/nginx/site.conf'), 'utf-8');

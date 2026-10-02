@@ -46,7 +46,7 @@ class AuthMiddleware
         $action = $_GET['action'] ?? null;
 
         if ($route === 'inventory') {
-            $allowedRoles = ['admin', 'coordenador', 'supervisor'];
+            $allowedRoles = ['admin', 'coordenador', 'gerente', 'supervisor'];
             if (!in_array($user->role ?? '', $allowedRoles, true)) {
                 Response::error('Permissão negada', 403);
             }

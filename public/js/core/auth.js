@@ -392,6 +392,7 @@ export function updateUserDisplay() {
         admin: 'Admin',
         supervisor: 'Supervisor',
         coordenador: 'Coordenador',
+        gerente: 'Gerente',
         administrativo: 'Administrativo',
         cliente: 'Cliente',
       };

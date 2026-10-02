@@ -32,9 +32,9 @@ class InventoryAcceptanceTest extends TestCase
         $content = file_get_contents($indexPath);
 
         $this->assertMatchesRegularExpression(
-            '/<a\s+[^>]*href="#\/inventory"[^>]*data-role="admin coordenador supervisor"[^>]*>/',
+            '/<a\s+[^>]*href="#\/inventory"[^>]*data-role="admin coordenador (?:gerente )?supervisor"[^>]*>/',
             $content,
-            'Sidebar link must have href="#/inventory" and data-role="admin coordenador supervisor"'
+            'Sidebar link must have href="#/inventory" and data-role including admin, coordenador, supervisor'
         );
 
         $this->assertStringContainsString('Inventário', $content);

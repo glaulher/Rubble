@@ -12,7 +12,7 @@
       </div>
       <div class="text-right flex items-center justify-end gap-2">
         <div class="relative group">
-          <button id="aiToggleBtn" data-role="admin coordenador administrativo"
+          <button id="aiToggleBtn" data-role="admin coordenador gerente administrativo"
             class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors bg-emerald-500/20 text-emerald-300">
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"></circle>
@@ -23,7 +23,7 @@
           <span id="aiToggleTooltip" class="absolute top-full mt-2 right-0 origin-top-right scale-0 group-hover:scale-100 transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Análise por IA: ligada</span>
         </div>
 
-        <div id="clearReferenceBtn" class="hidden relative group" data-role="admin coordenador administrativo">
+        <div id="clearReferenceBtn" class="hidden relative group" data-role="admin coordenador gerente administrativo">
           <button id="clearReferenceBtnInner" class="bg-amber-100 hover:bg-amber-200 text-amber-600 p-2 rounded-xl transition">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="12" y1="2" x2="12" y2="18"></line>
@@ -91,7 +91,7 @@
           <input type="file" id="auditInput" accept=".pdf" multiple class="hidden">
         </label>
         <span id="auditFilenames" class="text-sm text-slate-400"></span>
-        <button id="runAuditBtn" data-role="admin coordenador administrativo" class="hidden bg-blue-300 hover:bg-blue-400 active:bg-blue-500 text-blue-800 px-4 py-2 rounded-xl transition-colors">
+        <button id="runAuditBtn" data-role="admin coordenador gerente administrativo" class="hidden bg-blue-300 hover:bg-blue-400 active:bg-blue-500 text-blue-800 px-4 py-2 rounded-xl transition-colors">
           Auditar
         </button>
       </div>
@@ -108,7 +108,7 @@
         <h2 class="text-xl font-light tracking-[0.05em] text-slate-800">3. Resultados</h2>
         <div class="flex gap-2">
           <span id="resultsSummary" class="text-sm text-slate-500 self-center"></span>
-          <button id="downloadCsvBtn" class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-4 py-2 rounded-xl transition-colors text-sm hidden" data-role="admin coordenador administrativo">
+          <button id="downloadCsvBtn" class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-4 py-2 rounded-xl transition-colors text-sm hidden" data-role="admin coordenador gerente administrativo">
             Baixar CSV
           </button>
         </div>

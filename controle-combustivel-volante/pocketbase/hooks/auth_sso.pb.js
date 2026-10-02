@@ -70,6 +70,7 @@ routerAdd('POST', '/backend/v1/auth/sso', (e) => {
       userRecord.setVerified(true)
       userRecord.set('name', nome)
       userRecord.set('admin', isAdmin)
+      userRecord.set('role', role)
       $app.save(userRecord)
       console.log('[SSO Hook] Novo usuário local criado:', email)
     } catch (saveErr) {
@@ -77,7 +78,7 @@ routerAdd('POST', '/backend/v1/auth/sso', (e) => {
       return e.badRequestError('Falha ao criar usuário local: ' + saveErr.message)
     }
   } else {
-    // Sincroniza nome e flag de admin estritamente com base no Rubble
+    // Sincroniza nome, role e flag de admin estritamente com base no Rubble
     let changed = false
     if (userRecord.getString('name') !== nome) {
       userRecord.set('name', nome)
@@ -85,6 +86,10 @@ routerAdd('POST', '/backend/v1/auth/sso', (e) => {
     }
     if (userRecord.getBool('admin') !== isAdmin) {
       userRecord.set('admin', isAdmin)
+      changed = true
+    }
+    if (userRecord.getString('role') !== role) {
+      userRecord.set('role', role)
       changed = true
     }
     if (changed) {

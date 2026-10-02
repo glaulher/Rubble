@@ -63,7 +63,7 @@ export function plannedStatusBadgeHtml(status) {
 export function canEditPlanned() {
   if (typeof getUser !== 'function') return false;
   var user = getUser();
-  return user && (user.role === 'admin' || user.role === 'coordenador');
+  return user && (user.role === 'admin' || user.role === 'coordenador' || user.role === 'gerente');
 }
 
 export function buildPlannedCardHtml(item) {
@@ -99,7 +99,7 @@ export function buildPlannedCardHtml(item) {
   var canEdit = false;
   if (typeof getUser === 'function') {
     var user = getUser();
-    if (user && (user.role === 'admin' || user.role === 'coordenador')) {
+    if (user && (user.role === 'admin' || user.role === 'coordenador' || user.role === 'gerente')) {
       canEdit = true;
     }
   }
@@ -681,6 +681,7 @@ const PLANNED_ROLE_LABELS = {
   admin: 'admin',
   supervisor: 'supervisor',
   coordenador: 'coordenador',
+  gerente: 'gerente',
   administrativo: 'administrativo',
   cliente: 'cliente',
 };

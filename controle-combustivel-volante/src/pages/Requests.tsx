@@ -57,7 +57,7 @@ export default function Requests() {
     approveFuelRequest,
     rejectFuelRequest,
   } = useFuelStore()
-  const { isAdmin } = useAuth()
+  const { isGerente } = useAuth()
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [editingRequest, setEditingRequest] = useState<FuelRequest | null>(null)
   const [deletingRequest, setDeletingRequest] = useState<FuelRequest | null>(null)
@@ -123,7 +123,7 @@ export default function Requests() {
         <RequestFormDialog />
       </div>
 
-      {isAdmin && (
+      {isGerente && (
         <PendingRequestsPanel
           pendingRequests={fuelRequests.filter((req) => req.status === 'Aberto')}
           vehicles={vehicles}
@@ -249,7 +249,7 @@ export default function Requests() {
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                            {isAdmin && req.status === 'Aberto' && (
+                            {isGerente && req.status === 'Aberto' && (
                               <>
                                 <Button
                                   size="sm"

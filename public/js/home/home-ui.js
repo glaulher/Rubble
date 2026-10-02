@@ -1,4 +1,4 @@
-﻿import { debounce } from '/public/js/components/infinite-scroll.js';
+import { debounce } from '/public/js/components/infinite-scroll.js';
 import { escapeHtml, titleCase, formatAddress } from '/public/js/core/utils.js';
 import { getUser, applyRoleVisibility } from '/public/js/core/auth.js';
 import { showToast } from '/public/js/core/dom.js';
@@ -66,7 +66,7 @@ export function buildEquipmentCardHtml(e, canEdit) {
               ${
                 e.valor_tr
                   ? `<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-sm font-semibold"
-                       data-role="admin coordenador">
+                       data-role="admin coordenador gerente">
                       R$ ${e.valor_tr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>`
                   : ''
@@ -191,7 +191,7 @@ export function render(list, append = false) {
 
       if (valueEl) {
         const isAdminOrCoord =
-          userRole === 'admin' || userRole === 'coordenador';
+          userRole === 'admin' || userRole === 'coordenador' || userRole === 'gerente';
         if (isAdminOrCoord && globalThis.totalValor > 0) {
           valueEl.textContent = `\u2014 R$ ${globalThis.totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
           valueEl.style.display = '';
@@ -316,7 +316,7 @@ function updateCardInPlace(card, e, canEdit) {
   var html = capBadge ? capBadge.outerHTML : '';
 
   if (e.valor_tr) {
-    html += '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-sm font-semibold" data-role="admin coordenador">' +
+    html += '<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-sm font-semibold" data-role="admin coordenador gerente">' +
       'R$ ' + e.valor_tr.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) +
       '</span>';
   }
@@ -385,7 +385,7 @@ export function syncHomeCards(newEquipment) {
 
       if (valueEl) {
         const isAdminOrCoord =
-          userRole === 'admin' || userRole === 'coordenador';
+          userRole === 'admin' || userRole === 'coordenador' || userRole === 'gerente';
         if (isAdminOrCoord && globalThis.totalValor > 0) {
           valueEl.textContent = `\u2014 R$ ${globalThis.totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
           valueEl.style.display = '';
@@ -677,7 +677,7 @@ export async function loadEquipmentSummary() {
         const currentUser = getUser();
         const userRole = currentUser ? currentUser.role : '';
         const isAdminOrCoord =
-          userRole === 'admin' || userRole === 'coordenador';
+          userRole === 'admin' || userRole === 'coordenador' || userRole === 'gerente';
         if (isAdminOrCoord && globalThis.totalValor > 0) {
           valueEl.textContent = `\u2014 R$ ${globalThis.totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
           valueEl.style.display = '';

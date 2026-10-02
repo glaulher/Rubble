@@ -7,9 +7,8 @@ export function setViewModeContext(mode: 'admin' | 'user', userId: string | null
 }
 
 export function getViewModeFilter(): string | undefined {
-  if (currentViewMode === 'user' && currentUserId) {
-    return `user = "${currentUserId}"`
-  }
+  // Compartilhamento de dados da frota entre todos os usuários autenticados.
+  // Não filtra registros por usuário para garantir visualização e atualização em tempo real.
   return undefined
 }
 

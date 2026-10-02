@@ -79,7 +79,7 @@ class UserController
                 return;
             }
 
-            $allowedRoles = ['admin', 'supervisor', 'coordenador', 'administrativo', 'cliente'];
+            $allowedRoles = ['admin', 'supervisor', 'coordenador', 'gerente', 'administrativo', 'cliente'];
             if (!in_array($data['role'], $allowedRoles, true)) {
                 Response::error('Role inválida', 400);
                 return;
@@ -108,7 +108,7 @@ class UserController
                 return;
             }
 
-            $allowedRoles = ['admin', 'supervisor', 'coordenador', 'administrativo', 'cliente'];
+            $allowedRoles = ['admin', 'supervisor', 'coordenador', 'gerente', 'administrativo', 'cliente'];
             if (!in_array($data['role'], $allowedRoles, true)) {
                 Response::error('Role inválida', 400);
                 return;

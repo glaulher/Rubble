@@ -7,6 +7,7 @@ interface AuthContextType {
   user: any
   isAuthenticated: boolean
   isAdmin: boolean
+  isGerente: boolean
   viewMode: 'admin' | 'user'
   setViewMode: (mode: 'admin' | 'user') => void
   signUp: (email: string, password: string) => Promise<{ error: any }>
@@ -120,6 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [viewMode, user])
 
   const isAdmin = !!user?.admin
+  const isGerente = user?.role === 'gerente'
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -168,6 +170,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         isAuthenticated,
         isAdmin,
+        isGerente,
         viewMode,
         setViewMode,
         signUp,

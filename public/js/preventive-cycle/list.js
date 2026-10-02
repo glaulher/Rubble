@@ -326,7 +326,7 @@ export function _cycleRenderCards(items, append) {
         html += '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-sm font-semibold">' + parseFloat(item.capacidade) + ' TR</span>';
       }
       if (valor > 0) {
-        html += '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-sm font-semibold" data-role="admin coordenador">R$ ' + valor.toFixed(2).replace('.', ',') + '</span>';
+        html += '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-sm font-semibold" data-role="admin coordenador gerente">R$ ' + valor.toFixed(2).replace('.', ',') + '</span>';
       }
       html += '<input type="text" class="cycle-scm-input flex-1 min-w-[120px] px-3 py-1.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-slate-50" data-equip-id="' + item.equipamento_id + '" placeholder="N&ordm; do SCM..." value="' + _cycleEscape(item.scm_number || '') + '">';
       html += '<span class="cycle-scm-badge flex-shrink-0" data-equip-id="' + item.equipamento_id + '">';

@@ -5,8 +5,8 @@ routerAdd(
     const userId = e.auth && e.auth.id ? e.auth.id : ''
     if (!userId) return e.unauthorizedError('auth required')
 
-    if (!e.auth.getBool('admin')) {
-      return e.forbiddenError('admin access required')
+    if (e.auth.getString('role') !== 'gerente') {
+      return e.forbiddenError('Apenas usuários com perfil Gerente podem aprovar solicitações.')
     }
 
     const id = e.request.pathValue('id')
