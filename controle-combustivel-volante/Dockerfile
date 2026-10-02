@@ -12,7 +12,7 @@ RUN npm run build
 # 2. Runtime PocketBase + arquivos estáticos do React
 FROM alpine:3.20
 
-ARG PB_VERSION=0.22.20
+ARG PB_VERSION=0.40.4
 
 RUN apk add --no-cache \
     unzip \
