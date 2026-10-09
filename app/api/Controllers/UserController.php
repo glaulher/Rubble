@@ -6,6 +6,7 @@ use App\Api\Services\UserService;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
+use App\Api\Services\AuditService;
 
 class UserController
 {
@@ -87,6 +88,16 @@ class UserController
 
             $id = $this->service->save($data);
 
+            AuditService::logChange(
+                $this->currentUser,
+                'usuarios',
+                "Usuário #{$id}",
+                'create',
+                "Cadastrou o usuário '{$data['nome']}' ({$data['username']}) com perfil '{$data['role']}'",
+                null,
+                ['id' => $id, 'username' => $data['username'], 'nome' => $data['nome'], 'role' => $data['role']]
+            );
+
             Response::success('Usuário cadastrado com sucesso', ['id' => $id], 201);
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);
@@ -122,7 +133,29 @@ class UserController
                 }
             }
 
+            $oldUser = $this->service->getById((int)$data['id']);
+
             $this->service->update((int)$data['id'], $data);
+
+            $newSummary = [
+                'id' => (int)$data['id'],
+                'username' => $data['username'],
+                'nome' => $data['nome'],
+                'role' => $data['role'],
+            ];
+            if (!empty($data['password'])) {
+                $newSummary['senha_alterada'] = true;
+            }
+
+            AuditService::logChange(
+                $this->currentUser,
+                'usuarios',
+                "Usuário #{$data['id']}",
+                'update',
+                "Atualizou o usuário '{$data['nome']}' ({$data['username']})",
+                $oldUser,
+                $newSummary
+            );
 
             Response::success('Usuário atualizado com sucesso');
         } catch (\Exception $e) {
@@ -141,8 +174,19 @@ class UserController
             Validator::integer($data, 'id');
 
             $currentUserId = $this->currentUser->user_id ?? 0;
+            $oldUser = $this->service->getById((int)$data['id']);
 
             $this->service->delete((int)$data['id'], $currentUserId);
+
+            AuditService::logChange(
+                $this->currentUser,
+                'usuarios',
+                "Usuário #{$data['id']}",
+                'delete',
+                "Excluiu o usuário '" . ($oldUser['nome'] ?? $data['id']) . "' (" . ($oldUser['username'] ?? '') . ")",
+                $oldUser,
+                null
+            );
 
             Response::success('Usuário excluído com sucesso');
         } catch (\Exception $e) {

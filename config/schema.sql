@@ -792,6 +792,46 @@ CREATE TABLE IF NOT EXISTS `inventario` (
   KEY `idx_inventario_serial` (`serial`),
   CONSTRAINT `fk_inventario_created_by` FOREIGN KEY (`created_by`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- access_logs — Registro de acessos e logins (migration 063)
+CREATE TABLE IF NOT EXISTS `access_logs` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NULL,
+  `username` VARCHAR(100) NOT NULL,
+  `nome` VARCHAR(100) NULL,
+  `role` VARCHAR(50) NULL,
+  `event_type` ENUM('login_success', 'login_failed', 'logout') NOT NULL,
+  `ip_address` VARCHAR(45) NOT NULL,
+  `user_agent` VARCHAR(255) NULL,
+  `failure_reason` VARCHAR(255) NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_access_logs_created` (`created_at`),
+  INDEX `idx_access_logs_user` (`user_id`),
+  INDEX `idx_access_logs_ip` (`ip_address`),
+  INDEX `idx_access_logs_event` (`event_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- audit_logs — Trilha de auditoria e controle de alterações (migration 063)
+CREATE TABLE IF NOT EXISTS `audit_logs` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NULL,
+  `username` VARCHAR(100) NOT NULL,
+  `nome` VARCHAR(100) NULL,
+  `role` VARCHAR(50) NULL,
+  `module` VARCHAR(50) NOT NULL,
+  `action` ENUM('create', 'update', 'delete', 'status_change', 'import', 'email') NOT NULL,
+  `record_id` VARCHAR(50) NULL,
+  `summary` VARCHAR(255) NOT NULL,
+  `old_values` LONGTEXT NULL,
+  `new_values` LONGTEXT NULL,
+  `ip_address` VARCHAR(45) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_audit_logs_created` (`created_at`),
+  INDEX `idx_audit_logs_user` (`user_id`),
+  INDEX `idx_audit_logs_module` (`module`),
+  INDEX `idx_audit_logs_action` (`action`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

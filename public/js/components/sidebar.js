@@ -76,7 +76,7 @@ export function initSidebar() {
       // Fecha outros submenus para evitar sobreposição
       document
         .querySelectorAll(
-          '#dashboardSubmenu, #equipSubmenu, #plannedSubmenu, #toolsSubmenu'
+          '#dashboardSubmenu, #equipSubmenu, #plannedSubmenu, #toolsSubmenu, #adminSubmenu'
         )
         .forEach((sm) => {
           if (sm !== submenu) {
@@ -133,6 +133,7 @@ export function initSidebar() {
   setupSubmenu('equipMenuContainer', 'equipMenuToggle', 'equipSubmenu');
   setupSubmenu('plannedMenuContainer', 'plannedMenuToggle', 'plannedSubmenu');
   setupSubmenu('toolsMenuContainer', 'toolsMenuToggle', 'toolsSubmenu');
+  setupSubmenu('adminMenuContainer', 'adminMenuToggle', 'adminSubmenu');
 
   // Tempo Fechado link (nova aba com SSO via JWT Rubble)
   const tfLink = document.getElementById('tempoFechadoLink');

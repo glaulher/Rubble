@@ -7,6 +7,7 @@ use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
 use App\Api\Helpers\Cache;
+use App\Api\Services\AuditService;
 
 class EquipmentManagementController
 {
@@ -83,6 +84,16 @@ class EquipmentManagementController
 
             Cache::invalidateGroup('equipment_list:', 'equipment_sum:');
 
+            AuditService::logChange(
+                null,
+                'equipamentos',
+                "Equipamento #{$id}",
+                'create',
+                "Cadastrou o equipamento '{$data['equipamento']}' no local '{$data['local']}' ({$data['uf']})",
+                null,
+                ['id' => $id, 'equipamento' => $data['equipamento'], 'local' => $data['local'], 'uf' => $data['uf']]
+            );
+
             Response::success('Equipamento cadastrado com sucesso', ['id' => $id], 201);
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);
@@ -111,6 +122,16 @@ class EquipmentManagementController
 
             Cache::invalidateGroup('equipment_list:', 'equipment_sum:');
 
+            AuditService::logChange(
+                null,
+                'equipamentos',
+                "Equipamento #{$data['id']}",
+                'update',
+                "Atualizou o equipamento '{$data['equipamento']}' no local '{$data['local']}'",
+                null,
+                ['id' => $data['id'], 'equipamento' => $data['equipamento'], 'local' => $data['local'], 'uf' => $data['uf']]
+            );
+
             Response::success('Equipamento atualizado com sucesso');
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);
@@ -130,6 +151,16 @@ class EquipmentManagementController
             $this->service->delete((int)$data['id']);
 
             Cache::invalidateGroup('equipment_list:', 'equipment_sum:');
+
+            AuditService::logChange(
+                null,
+                'equipamentos',
+                "Equipamento #{$data['id']}",
+                'delete',
+                "Excluiu o equipamento #{$data['id']}",
+                null,
+                ['id' => (int)$data['id']]
+            );
 
             Response::success('Equipamento excluído com sucesso');
         } catch (\Exception $e) {

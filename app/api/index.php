@@ -12,7 +12,8 @@ use App\Api\Controllers\{
     PvController, UserController, ScmController, PreventiveCycleController,
     UploadController, EmailController, ExportController, PdfAuditController,
     PlannedActivityController, PreventivaController, FilterExchangeController,
-    PendingTicketsController, PreventivaDashboardController, InventoryController
+    PendingTicketsController, PreventivaDashboardController, InventoryController,
+    AdminAuditController
 };
 Env::load(__DIR__ . '/../../.env');
 
@@ -430,6 +431,26 @@ $router->addRoute('inventory', 'GET', function () use ($auth) {
     $service = new \App\Api\Services\InventoryService($repo);
     $controller = new InventoryController($service);
     $controller->handle('DELETE', $auth->getUser());
+});
+
+// Admin Audit & Access Control
+$router->addRoute('admin-audit', 'GET', function () use ($auth) {
+    $ctrl = new AdminAuditController($auth->getUser());
+    $action = $_GET['action'] ?? 'audit-logs';
+
+    if ($action === 'stats') {
+        $ctrl->stats();
+    } elseif ($action === 'audit-logs') {
+        $ctrl->auditLogs();
+    } elseif ($action === 'access-logs') {
+        $ctrl->accessLogs();
+    } elseif ($action === 'active-sessions') {
+        $ctrl->activeSessions();
+    } elseif ($action === 'detail') {
+        $ctrl->detail();
+    } else {
+        Response::error('Ação não encontrada', 404);
+    }
 });
 
 // Dispatch

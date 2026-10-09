@@ -23,6 +23,7 @@ import { initEquipamentDashboard } from '/public/js/equipment/dashboard.js';
 import { initPreventivaDashboard } from '/public/js/preventiva/dashboard.js';
 import { initInventoryList } from '/public/js/inventory/list.js';
 import { loadInventoryForm } from '/public/js/inventory/form.js';
+import { initAdminAudit } from '/public/js/admin/audit.js';
 
 const VIEW_VERSION = 45;
 
@@ -227,6 +228,18 @@ export async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/inventory/list.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/admin-audit" || hash === "#/administrativo" || hash.startsWith("#/admin-audit?") || hash.startsWith("#/administrativo?")) {
+    /*
+    |--------------------------------------------------------------------------
+    | ADMIN AUDIT & ACCESS CONTROL
+    |--------------------------------------------------------------------------
+    */
+    const _currentUser = getUser();
+    if (!_currentUser || _currentUser.role !== 'admin') {
+      window.location.hash = '#/';
+      return;
+    }
+    html = await loadPage("/app/Views/admin/audit.html?v=" + VIEW_VERSION);
   } else if (hash === "#/login") {
     html = await loadPage("/app/Views/auth/login.html?v=" + VIEW_VERSION);
   } else {
@@ -297,6 +310,8 @@ export async function router() {
       loadInventoryForm();
     } else if (hash === "#/inventory" || hash === "#inventory" || hash.startsWith("#/inventory?") || hash.startsWith("#inventory?")) {
       initInventoryList();
+    } else if (hash.startsWith("#/admin-audit") || hash.startsWith("#/administrativo")) {
+      initAdminAudit();
     } else if (hash === "#/login") {
       initLogin();
     } else {

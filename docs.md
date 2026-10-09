@@ -352,6 +352,10 @@ O Rubble disponibiliza 4 dashboards interativos focados em métricas operacionai
 3. **Tabela de Preços (`#/equipment-prices`):**
    - Cadastro de regras de precificação por TR (fórmulas `capacidade × valor`) ou valor fixo (Chillers).
    - Filtros de aplicação por mercado e locais especiais.
+4. **Painel Administrativo & Auditoria (`#/admin-audit`):**
+   - Trilha de auditoria operacional: quem alterou o quê, módulo, ação, data/hora, IP e comparativo detalhado de campos antes vs. depois (*diff*).
+   - Controle de acessos: histórico de logins com sucesso, tentativas incorretas com motivo detalhado, logouts e sessões ativas.
+   - KPIs em tempo real e exportação de relatórios em CSV.
 
 ---
 
@@ -405,6 +409,7 @@ Em caso de erro:
 | `?route=equipment-management` | GET, POST, PUT, DELETE | CRUD de equipamentos (Admin/Coordenador) |
 | `?route=equipment-prices` | GET, POST, PUT, DELETE | CRUD de regras de preço (Admin) |
 | `?route=users` | GET, POST, PUT, DELETE | CRUD de usuários (Admin) |
+| `?route=admin-audit` | GET | Painel administrativo, KPIs, logs de acesso e trilha de auditoria (Admin) |
 
 ---
 
@@ -424,6 +429,8 @@ Em caso de erro:
 - **`equipamento_precos`:** Regras de cálculo de valor de manutenção.
 - **`usuarios`:** Contas de acesso, senhas com hash e roles.
 - **`user_activity`:** Rastreamento de última atividade e IP dos usuários logados.
+- **`access_logs`:** Registro de acessos e tentativas de login/logout com IP, dispositivo e status.
+- **`audit_logs`:** Trilha completa de auditoria de alterações com resumo e comparativo antes/depois.
 - **`token_blacklist`:** Tokens JWT revogados por logout.
 - **`email_processed`:** UIDs de e-mails processados pelo watcher para evitar duplicidade.
 - **`rate_limits` & `login_attempts`:** Controle de rate limiting e proteção de força bruta.

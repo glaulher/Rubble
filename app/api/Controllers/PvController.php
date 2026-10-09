@@ -7,6 +7,7 @@ use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
 use App\Api\Helpers\Cache;
+use App\Api\Services\AuditService;
 
 class PvController
 {
@@ -182,6 +183,17 @@ class PvController
                     $data
                 );
 
+            $itensCount = is_array($data['items'] ?? null) ? count($data['items']) : 0;
+            AuditService::logChange(
+                null,
+                'pv',
+                "PV #{$id}",
+                'create',
+                "Cadastrou a PV #{$id} para o local '" . ($data['local'] ?? '') . "' com {$itensCount} itens",
+                null,
+                ['id' => $id, 'local' => $data['local'] ?? '', 'total_itens' => $itensCount, 'os' => $data['os'] ?? '']
+            );
+
             Response::success(
                 'PV salva com sucesso',
                 ['id' => $id],
@@ -268,6 +280,16 @@ class PvController
                 $data
             );
 
+            AuditService::logChange(
+                null,
+                'pv',
+                "PV #{$data['id']}",
+                'update',
+                "Atualizou a PV #{$data['id']} (Local: " . ($data['local'] ?? '') . ")",
+                null,
+                ['id' => $data['id'], 'local' => $data['local'] ?? '', 'os' => $data['os'] ?? '']
+            );
+
             Response::success(
                 'PV atualizada com sucesso'
             );
@@ -307,6 +329,16 @@ class PvController
             $this->service->updateItemsByWorstStatus(
                 (int) $data['pv_id'],
                 $data['status']
+            );
+
+            AuditService::logChange(
+                null,
+                'pv',
+                "PV #{$data['pv_id']}",
+                'status_change',
+                "Alterou status dos itens da PV #{$data['pv_id']} para '" . $data['status'] . "'",
+                null,
+                ['pv_id' => (int) $data['pv_id'], 'novo_status' => $data['status']]
             );
 
             Response::success(
@@ -374,6 +406,16 @@ class PvController
 
             Cache::invalidateGroup('pv_list:');
 
+            AuditService::logChange(
+                null,
+                'pv',
+                "PV #{$data['id']}",
+                'delete',
+                "Excluiu a PV #{$data['id']}",
+                null,
+                ['id' => (int) $data['id']]
+            );
+
             Response::success(
                 'PV excluída com sucesso'
             );
@@ -402,6 +444,16 @@ class PvController
             }
 
             Cache::invalidateGroup('pv_list:');
+
+            AuditService::logChange(
+                null,
+                'pv',
+                "Item #{$data['item_id']}",
+                'delete',
+                "Excluiu o item #{$data['item_id']} da PV #{$result['pvId']}" . ($result['autoDeletedPv'] ? ' (PV foi removida automaticamente por ficar sem itens)' : ''),
+                null,
+                ['item_id' => (int) $data['item_id'], 'pv_id' => $result['pvId'], 'auto_deleted_pv' => $result['autoDeletedPv']]
+            );
 
             if ($result['autoDeletedPv']) {
                 Response::success('Item excluído. PV sem itens foi removida automaticamente.', [

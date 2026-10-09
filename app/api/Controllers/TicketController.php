@@ -7,6 +7,7 @@ use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
 use App\Api\Helpers\Cache;
+use App\Api\Services\AuditService;
 
 class TicketController
 {
@@ -93,6 +94,16 @@ class TicketController
 
             Cache::invalidateGroup('equipment_list:');
 
+            AuditService::logChange(
+                null,
+                'chamados',
+                "OS #{$data['os']}",
+                'create',
+                "Cadastrou o chamado OS {$data['os']} (Status: {$data['status']}, Equipe: {$data['equipe']})",
+                null,
+                ['id' => $id, 'os' => $data['os'], 'status' => $data['status'], 'equipamento_id' => $data['equipamento_id'], 'data' => $data['data']]
+            );
+
             Response::success(
                 'Registro salvo com sucesso',
                 ['id' => $id],
@@ -140,6 +151,16 @@ class TicketController
             );
 
             Cache::invalidateGroup('equipment_list:');
+
+            AuditService::logChange(
+                null,
+                'chamados',
+                "OS #{$data['os']}",
+                'update',
+                "Atualizou o chamado OS {$data['os']} (Status: {$data['status']}, Equipe: {$data['equipe']})",
+                null,
+                ['id' => $data['id'], 'os' => $data['os'], 'status' => $data['status'], 'equipamento_id' => $data['equipamento_id'], 'data' => $data['data']]
+            );
 
             Response::success(
                 'Registro atualizado com sucesso'
@@ -297,6 +318,16 @@ class TicketController
             );
 
             Cache::invalidateGroup('equipment_list:');
+
+            AuditService::logChange(
+                null,
+                'chamados',
+                "Registro #{$data['id']}",
+                'delete',
+                "Excluiu o chamado/registro #{$data['id']}",
+                null,
+                ['id' => (int) $data['id']]
+            );
 
             Response::success(
                 'Registro excluído com sucesso'

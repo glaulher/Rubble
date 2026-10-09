@@ -7,6 +7,7 @@ use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\TurnstileHelper;
 use App\Api\Helpers\RateLimiter;
+use App\Api\Services\AuditService;
 use App\Config\Env;
 
 class AuthController
@@ -27,6 +28,7 @@ class AuthController
             $ip = RateLimiter::getClientIp();
 
             if (RateLimiter::isLimited($ip, 'auth:login', 5, 300)) {
+                AuditService::logAccess('login_failed', null, $username, null, null, 'Bloqueado por excesso de tentativas (Rate Limit)');
                 Response::error('Muitas tentativas. Tente novamente em 5 minutos.', 429);
                 return;
             }
@@ -39,6 +41,7 @@ class AuthController
                 }
                 $turnstileToken = $data['turnstile_token'] ?? '';
                 if (empty($turnstileToken) || !TurnstileHelper::verify($turnstileToken, $secretKey)) {
+                    AuditService::logAccess('login_failed', null, $username, null, null, 'Falha de verificação de segurança (Turnstile)');
                     Response::error('Falha na verificação de segurança', 403);
                     return;
                 }
@@ -54,10 +57,20 @@ class AuthController
 
             if (!$result) {
                 RateLimiter::hit($ip, 'auth:login');
+                AuditService::logAccess('login_failed', null, $username, null, null, 'Usuário ou senha inválidos');
                 sleep(1);
                 Response::unauthorized('Usuário ou senha inválidos');
                 return;
             }
+
+            $loggedInUser = $result['user'] ?? [];
+            AuditService::logAccess(
+                'login_success',
+                $loggedInUser['id'] ?? null,
+                $loggedInUser['username'] ?? $username,
+                $loggedInUser['nome'] ?? null,
+                $loggedInUser['role'] ?? null
+            );
 
             Response::success('Login realizado com sucesso', $result);
         } catch (\Throwable $e) {
@@ -162,6 +175,13 @@ class AuthController
                     $payload = AuthService::validateToken($parts[1], $jwtSecret);
                     if ($payload) {
                         AuthService::blacklistToken($payload);
+                        AuditService::logAccess(
+                            'logout',
+                            $payload->user_id ?? null,
+                            $payload->username ?? 'desconhecido',
+                            $payload->nome ?? null,
+                            $payload->role ?? null
+                        );
                     }
                 }
             }

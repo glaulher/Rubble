@@ -176,4 +176,20 @@ class AuthServiceTest extends TestCase
         $result = AuthService::requireRole($user, 'preventiva-dashboard', 'GET', null);
         $this->assertFalse($result);
     }
+
+    public function testRequireRoleAdminAllowsAdminAudit(): void
+    {
+        $user = (object)['role' => 'admin'];
+        $result = AuthService::requireRole($user, 'admin-audit', 'GET', null);
+        $this->assertTrue($result);
+    }
+
+    public function testRequireRoleNonAdminDeniesAdminAudit(): void
+    {
+        foreach (['supervisor', 'coordenador', 'gerente', 'administrativo', 'cliente'] as $role) {
+            $user = (object)['role' => $role];
+            $result = AuthService::requireRole($user, 'admin-audit', 'GET', null);
+            $this->assertFalse($result, "Role '{$role}' não deve ter acesso a admin-audit");
+        }
+    }
 }
