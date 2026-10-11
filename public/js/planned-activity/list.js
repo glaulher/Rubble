@@ -1095,7 +1095,7 @@ export function setupPlannedScroll() {
   _plannedScroll = createInfiniteScroll({
     sentinelId: 'plannedSentinel',
     limit: PLANNED_LIMIT,
-    pollingInterval: 30000,
+    pollingInterval: 10000,
     timeout: 15000,
     fetchFn: function (params, opts) {
       var urlParams = new URLSearchParams();
@@ -1838,11 +1838,19 @@ export function _appendPlannedToGroup(item) {
   applyRoleVisibility();
 }
 
-export function _removePlannedCards(id, tipo) {
+export function _removePlannedCards(id, tipo, dataPlanejada) {
   var content = document.getElementById('plannedContent');
   if (!content) return;
   var key = (tipo || 'preventiva') + ':' + id;
-  var card = content.querySelector('.planned-card[data-key="' + key + '"]');
+  var card;
+  if (dataPlanejada) {
+    // Corretiva com date_removed: remove apenas o card da data específica
+    var group = content.querySelector('.timeline-group[data-date="' + dataPlanejada + '"]');
+    card = group ? group.querySelector('.planned-card[data-key="' + key + '"]') : null;
+    if (!card) card = content.querySelector('.planned-card[data-key="' + key + '"][data-date="' + dataPlanejada + '"]');
+  } else {
+    card = content.querySelector('.planned-card[data-key="' + key + '"]');
+  }
   if (!card) return;
   var group = card.closest('.timeline-group');
   var wrapper = card.closest('.planned-card-wrapper');
@@ -1937,14 +1945,44 @@ export function deletePlanned(id, tipo, dataPlanejada, slaDayNumber) {
         .then(function (result) {
           showToast(result && result.message ? result.message : 'Atividade removida com sucesso!', 'success');
           if (result.data && result.data.id) {
-            if (result.data.sla_reconciled || result.data.action === 'date_removed' || slaDayNumber) {
-              resetPlannedState(plannedSearch);
-            } else {
-              _removePlannedCards(result.data.id, result.data.tipo || tipo);
-              var currentTotal = window._plannedTotal || 0;
-              if (currentTotal > 0) {
-                _updatePlannedCounter(currentTotal - 1);
+            var deletedId = result.data.id;
+            var deletedTipo = result.data.tipo || tipo;
+
+            if (result.data.sla_reconciled && deletedTipo === 'preventiva') {
+              // Remove o card deletado e renumera os atributos dos cards restantes do grupo SLA no DOM
+              var slaRec = result.data.sla_reconciled;
+              var newGroupId = slaRec.new_group_id;
+              var newCount = slaRec.count;
+              _removePlannedCards(deletedId, deletedTipo);
+              if (newGroupId && newCount > 0) {
+                // Reúne os cards restantes do grupo (pelo antigo ou novo group_id)
+                var groupSel = '.planned-card[data-sla-group-id="' + (newGroupId || id) + '"],' +
+                               '.planned-card[data-id="' + (newGroupId || id) + '"]';
+                var groupCards = Array.from(document.querySelectorAll(groupSel));
+                // Ordena pela data do grupo pai
+                groupCards.sort(function (a, b) {
+                  var ga = a.closest('.timeline-group');
+                  var gb = b.closest('.timeline-group');
+                  var da = ga ? ga.getAttribute('data-date') : '';
+                  var db = gb ? gb.getAttribute('data-date') : '';
+                  return da < db ? -1 : da > db ? 1 : 0;
+                });
+                groupCards.forEach(function (c, i) {
+                  c.setAttribute('data-sla-days', String(newCount));
+                  c.setAttribute('data-sla-day-number', String(i + 1));
+                  c.setAttribute('data-sla-group-id', String(newGroupId));
+                });
               }
+            } else {
+              // Corretiva (date_removed / deleted / unplanned) — remove apenas o card do DOM
+              var removedDate = (result.data.action === 'date_removed' && result.data.data_planejada)
+                ? result.data.data_planejada : null;
+              _removePlannedCards(deletedId, deletedTipo, removedDate);
+            }
+
+            var currentTotal = window._plannedTotal || 0;
+            if (currentTotal > 0) {
+              _updatePlannedCounter(currentTotal - 1);
             }
           } else {
             resetPlannedState(plannedSearch);

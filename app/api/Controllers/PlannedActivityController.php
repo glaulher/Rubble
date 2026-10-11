@@ -396,11 +396,11 @@ class PlannedActivityController
             Cache::invalidateGroup('equipment_list:');
 
             if ($result['action'] === 'deleted') {
-                Response::success('Atividade excluída permanentemente');
+                Response::success('Atividade excluída permanentemente', $result);
             } elseif ($result['action'] === 'date_removed') {
-                Response::success('Agendamento removido desta data');
+                Response::success('Agendamento removido desta data', $result);
             } else {
-                Response::success('Atividade desmarcada — registro voltou para Pendente na home');
+                Response::success('Atividade desmarcada — registro voltou para Pendente na home', $result);
             }
 
         } catch (\Exception $e) {
