@@ -371,9 +371,15 @@ export function saveTeamInlineEdit(input, strong) {
     return;
   }
 
-  var isFirstSlaDay = slaDays > 1 && (slaDayNum <= 1);
+  // Verifica se existem outros cards do mesmo grupo SLA visíveis na tela
+  var hasSlaGroup = slaDays > 1 && slaGroupId != null;
+  if (hasSlaGroup) {
+    var groupSelector = '.planned-card[data-sla-group-id="' + slaGroupId + '"], .planned-card[data-id="' + slaGroupId + '"]';
+    var groupCards = document.querySelectorAll(groupSelector);
+    hasSlaGroup = groupCards.length > 1;
+  }
 
-  if (isFirstSlaDay) {
+  if (hasSlaGroup) {
     confirmAction(
       'Replicar Técnico',
       'Deseja replicar o técnico "' + escapeHtml(newValue) + '" para todos os ' + slaDays + ' dias deste SLA?',
