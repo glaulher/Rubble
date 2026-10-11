@@ -1796,7 +1796,35 @@ export function _updatePlannedCounter(total) {
   if (counter) counter.textContent = total + ' atividades';
 }
 
+/**
+ * Retorna true se o item passa pelos filtros ativos (data, tipo, status, busca).
+ * Usado antes de inserir/mover cards no DOM para não exibir itens fora do filtro.
+ */
+export function _isWithinActiveFilter(item) {
+  if (!item) return false;
+  var date = (item.data_planejada || '').substring(0, 10);
+  if ((plannedDateFrom || plannedDateTo) && (!date || date === 'sem_data')) {
+    return false;
+  }
+  if (plannedDateFrom && date < plannedDateFrom) return false;
+  if (plannedDateTo   && date > plannedDateTo)   return false;
+  if (plannedTipoFilter && item.tipo !== plannedTipoFilter) return false;
+  if (plannedStatusFilter) {
+    var st = (item.status || '').toLowerCase().trim();
+    var sf = plannedStatusFilter.toLowerCase().trim();
+    if (st !== sf) return false;
+  }
+  if (plannedSearch) {
+    var q = plannedSearch.toLowerCase();
+    var haystack = [item.local, item.equipamento, item.os, item.equipe, item.localidade, item.local_scm]
+      .filter(Boolean).join(' ').toLowerCase();
+    if (haystack.indexOf(q) === -1) return false;
+  }
+  return true;
+}
+
 export function _appendPlannedToGroup(item) {
+  if (!_isWithinActiveFilter(item)) return;
   var content = document.getElementById('plannedContent');
   if (!content) return;
   var dateKey = item.data_planejada || 'sem_data';
@@ -1876,6 +1904,21 @@ export function _applyPlannedCardUpdate(item) {
   var currentDate = currentGroup ? currentGroup.getAttribute('data-date') : null;
   var targetDate = item.data_planejada || 'sem_data';
 
+  if (!_isWithinActiveFilter(item)) {
+    var wrapper = card.closest('.planned-card-wrapper');
+    if (wrapper) wrapper.remove();
+    else card.remove();
+    if (currentGroup && currentGroup.querySelectorAll('.planned-card').length === 0) {
+      currentGroup.remove();
+    }
+    var currentTotal = window._plannedTotal || 0;
+    if (currentTotal > 0) {
+      _updatePlannedCounter(currentTotal - 1);
+    }
+    applyRoleVisibility();
+    return;
+  }
+
   if (currentDate === targetDate) {
     var wrapper = card.closest('.planned-card-wrapper');
     if (wrapper) {
@@ -1902,15 +1945,20 @@ export function handlePlannedCreated(data) {
   if (!data) return;
   if (data.action === 'updated') {
     showToast('Atividade adicionada ao novo dia!', 'success');
-    resetPlannedState('');
-  } else if (data.item) {
+  } else {
     showToast('Atividade registrada com sucesso!', 'success');
+  }
+
+  if (data.item && _isWithinActiveFilter(data.item)) {
     _appendPlannedToGroup(data.item);
     var currentTotal = window._plannedTotal || 0;
     _updatePlannedCounter(currentTotal + 1);
+  }
+
+  if (_plannedScroll && typeof _plannedScroll.load === 'function') {
+    _plannedScroll.load(true);
   } else {
-    showToast('Atividade registrada com sucesso!', 'success');
-    resetPlannedState('');
+    resetPlannedState(plannedSearch);
   }
 }
 

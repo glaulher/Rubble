@@ -11,6 +11,11 @@ import {
   submitStatusPreventiva,
   openExtendSlaModal,
   submitExtendSla,
+  _isWithinActiveFilter,
+  _appendPlannedToGroup,
+  _applyPlannedCardUpdate,
+  handlePlannedCreated,
+  setupPlannedFilters,
 } from "../public/js/planned-activity/list.js";
 
 describe("Planned Activity - SLA Reversion & Replication Features", () => {
@@ -562,6 +567,113 @@ describe("Planned Activity - SLA Reversion & Replication Features", () => {
 
       expect(extendPayload).not.toBeNull();
       expect(extendPayload.target_date).toBeNull();
+    });
+  });
+
+  describe("Active Filter Respect (Dates & Status)", () => {
+    beforeEach(() => {
+      document.body.innerHTML += `
+        <input type="date" id="plannedDateFrom" value="">
+        <input type="date" id="plannedDateTo" value="">
+        <select id="plannedTipoFilter"><option value=""></option><option value="preventiva">preventiva</option><option value="corretiva">corretiva</option></select>
+        <select id="plannedStatusFilter"><option value=""></option><option value="Planejado">Planejado</option><option value="Concluído">Concluído</option></select>
+        <input type="text" id="plannedSearchFilter" value="">
+        <div id="plannedContent"></div>
+        <span id="plannedCounter">0 atividades</span>
+      `;
+    });
+
+    it("rejects items outside the date range filter in _isWithinActiveFilter", () => {
+      setupPlannedFilters();
+      const dateFrom = document.getElementById('plannedDateFrom');
+      const dateTo = document.getElementById('plannedDateTo');
+      dateFrom.value = '2026-10-16';
+      dateFrom.dispatchEvent(new Event('change'));
+      dateTo.value = '2026-10-16';
+      dateTo.dispatchEvent(new Event('change'));
+
+      // Card for 2026-10-19 should be rejected
+      const cardOct19 = { id: 1, data_planejada: '2026-10-19', tipo: 'preventiva', status: 'Planejado' };
+      expect(_isWithinActiveFilter(cardOct19)).toBe(false);
+
+      // Card for 2026-10-16 should be accepted
+      const cardOct16 = { id: 2, data_planejada: '2026-10-16', tipo: 'preventiva', status: 'Planejado' };
+      expect(_isWithinActiveFilter(cardOct16)).toBe(true);
+
+      // Card with no date should be rejected when date filter is active
+      const cardNoDate = { id: 3, data_planejada: '', tipo: 'preventiva', status: 'Planejado' };
+      expect(_isWithinActiveFilter(cardNoDate)).toBe(false);
+    });
+
+    it("does not insert card into DOM in _appendPlannedToGroup if item violates active date filter", () => {
+      setupPlannedFilters();
+      const dateFrom = document.getElementById('plannedDateFrom');
+      const dateTo = document.getElementById('plannedDateTo');
+      dateFrom.value = '2026-10-16';
+      dateFrom.dispatchEvent(new Event('change'));
+      dateTo.value = '2026-10-16';
+      dateTo.dispatchEvent(new Event('change'));
+
+      const content = document.getElementById('plannedContent');
+      content.innerHTML = '';
+
+      const cardOct19 = { id: 10, local: 'Site A', data_planejada: '2026-10-19', tipo: 'preventiva', status: 'Planejado' };
+      _appendPlannedToGroup(cardOct19);
+
+      // The group for 2026-10-19 should NOT be in the DOM
+      expect(content.querySelector('.timeline-group[data-date="2026-10-19"]')).toBeNull();
+      expect(content.children.length).toBe(0);
+
+      const cardOct16 = { id: 11, local: 'Site A', data_planejada: '2026-10-16', tipo: 'preventiva', status: 'Planejado' };
+      _appendPlannedToGroup(cardOct16);
+
+      // The group for 2026-10-16 should be created in the DOM
+      expect(content.querySelector('.timeline-group[data-date="2026-10-16"]')).not.toBeNull();
+    });
+
+    it("removes card from DOM in _applyPlannedCardUpdate if updated item no longer matches filter", () => {
+      setupPlannedFilters();
+      const statusSelect = document.getElementById('plannedStatusFilter');
+      statusSelect.value = 'Planejado';
+      statusSelect.dispatchEvent(new Event('change'));
+
+      const content = document.getElementById('plannedContent');
+      const itemInitial = { id: 20, local: 'Site B', data_planejada: '2026-10-16', tipo: 'preventiva', status: 'Planejado' };
+      _appendPlannedToGroup(itemInitial);
+
+      expect(content.querySelector('.planned-card[data-id="20"]')).not.toBeNull();
+
+      // Card updated to Concluído
+      const itemUpdated = { ...itemInitial, status: 'Concluído' };
+      _applyPlannedCardUpdate(itemUpdated);
+
+      // Card should be removed from DOM because it no longer matches status filter 'Planejado'
+      expect(content.querySelector('.planned-card[data-id="20"]')).toBeNull();
+    });
+
+    it("does not append to DOM in handlePlannedCreated when item is outside date filter", () => {
+      setupPlannedFilters();
+      const dateFrom = document.getElementById('plannedDateFrom');
+      const dateTo = document.getElementById('plannedDateTo');
+      dateFrom.value = '2026-10-16';
+      dateFrom.dispatchEvent(new Event('change'));
+      dateTo.value = '2026-10-16';
+      dateTo.dispatchEvent(new Event('change'));
+
+      const content = document.getElementById('plannedContent');
+      content.innerHTML = '';
+
+      const createResponse = {
+        action: 'created',
+        id: 30,
+        item: { id: 30, local: 'Site C', data_planejada: '2026-10-19', tipo: 'preventiva', status: 'Planejado' }
+      };
+
+      handlePlannedCreated(createResponse);
+
+      // Card should not appear in DOM because 2026-10-19 is outside 2026-10-16
+      expect(content.querySelector('.planned-card[data-id="30"]')).toBeNull();
+      expect(content.querySelector('.timeline-group[data-date="2026-10-19"]')).toBeNull();
     });
   });
 });
