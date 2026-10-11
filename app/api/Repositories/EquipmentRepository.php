@@ -171,22 +171,6 @@ class EquipmentRepository extends BaseRepository
         return $equipments;
     }
 
-    public function loadAddress(int $equipmentId): ?array
-    {
-        $sql = "
-            SELECT en.local_do_endereco, en.endereco, en.uf
-            FROM equipamentos e
-            LEFT JOIN enderecos en ON en.id = e.endereco_id
-            WHERE e.id = ?
-            LIMIT 1
-        ";
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('i', $equipmentId);
-        $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc();
-        return $row ?: null;
-    }
-
     public function hasChiller(string $location): bool
     {
         $sql = "

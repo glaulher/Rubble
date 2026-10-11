@@ -294,28 +294,6 @@ class PlannedActivityRepository extends BaseRepository
         return $row['data_planejada'] ?? date('Y-m-d');
     }
 
-    public function updateToPlanned(int $id, string $dataPlanejada, string $equipe, string $auditLog, string $tipo = 'preventiva', string $status = 'Planejado'): bool
-    {
-        $sql = "
-            UPDATE registros
-            SET status = ?, data_planejada = ?, equipe = ?, obs = ?, tipo = ?,
-                notificacao_enviada = 0
-            WHERE id = ?
-        ";
-
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param(
-            'sssssi',
-            $status,
-            $dataPlanejada,
-            $equipe,
-            $auditLog,
-            $tipo,
-            $id
-        );
-        return $stmt->execute();
-    }
-
     public function updatePlanningFields(int $id, string $equipe, string $auditLog, string $tipo, string $status): bool
     {
         $sql = "
@@ -362,18 +340,6 @@ class PlannedActivityRepository extends BaseRepository
         return (int) $this->conn->insert_id;
     }
 
-    public function getSlaExtensionsTotal(int $parentId, string $tipo): int
-    {
-        $idCol = $tipo === 'preventiva' ? 'preventiva_id' : 'registro_id';
-        $sql = "SELECT COALESCE(SUM(extra_days), 0) AS total FROM sla_extensions WHERE {$idCol} = ?";
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('i', $parentId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        return (int) ($row['total'] ?? 0);
-    }
-
     public function getPreventivaById(int $id): ?array
     {
         $sql = "SELECT * FROM atividades_preventivas WHERE id = ? LIMIT 1";
@@ -394,14 +360,6 @@ class PlannedActivityRepository extends BaseRepository
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
         return $row['data_planejada'] ?? date('Y-m-d');
-    }
-
-    public function updatePreventivaSlaFields(int $id, int $slaDays, int $includeSat, int $includeSun): void
-    {
-        $sql = "UPDATE atividades_preventivas SET sla_days = ?, sla_include_saturday = ?, sla_include_sunday = ?, sla_group_id = COALESCE(sla_group_id, id) WHERE id = ?";
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('iiii', $slaDays, $includeSat, $includeSun, $id);
-        $stmt->execute();
     }
 
     public function removePlannedDate(int $registroId, string $data): bool
@@ -630,32 +588,6 @@ class PlannedActivityRepository extends BaseRepository
         return $id;
     }
 
-    public function isDateFree(string $date, int $id, string $tipo): bool
-    {
-        if ($tipo === 'preventiva') {
-            $sql = "SELECT COUNT(*) AS cnt FROM atividades_preventivas WHERE data_planejada = ? AND id = ?";
-        } else {
-            $sql = "SELECT COUNT(*) AS cnt FROM planejamento_datas WHERE data_planejada = ? AND registro_id = ?";
-        }
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('si', $date, $id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        return ($row['cnt'] ?? 0) > 0;
-    }
-
-    public function getPlannedDateInfo(int $registroId, string $data): ?array
-    {
-        $sql = "SELECT sla_day_number FROM planejamento_datas WHERE registro_id = ? AND data_planejada = ? LIMIT 1";
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('is', $registroId, $data);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $row = $result->fetch_assoc();
-        return $row ?: null;
-    }
-
     public function getPlannedDatesByRegistro(int $registroId): array
     {
         $sql = "SELECT id, data_planejada, sla_day_number FROM planejamento_datas WHERE registro_id = ? ORDER BY data_planejada ASC, id ASC";
@@ -690,22 +622,6 @@ class PlannedActivityRepository extends BaseRepository
             }
         }
         return $count;
-    }
-
-    public function decrementCorretivaSlaDays(int $registroId): void
-    {
-        $sql = "UPDATE registros SET sla_days = GREATEST(COALESCE(sla_days, 0) - 1, 0) WHERE id = ? AND sla_days > 0";
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('i', $registroId);
-        $stmt->execute();
-    }
-
-    public function decrementPreventivaSlaDays(int $id): void
-    {
-        $sql = "UPDATE atividades_preventivas SET sla_days = GREATEST(COALESCE(sla_days, 0) - 1, 0) WHERE id = ? AND sla_days > 0";
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
     }
 
     public function setSlaFields(int $id, string $tipo, int $slaDays, int $includeSat, int $includeSun): void

@@ -2,8 +2,6 @@
 
 namespace App\Api\Repositories;
 
-use RuntimeException;
-
 class DashboardRepository extends BaseRepository
 {
 

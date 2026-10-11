@@ -132,20 +132,6 @@ class PreventivaRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
-    public function getSlaGroupProgress(int $groupId): array
-    {
-        $sql = "SELECT id, site, sla_days, sla_day_number, qtd_executada, status FROM atividades_preventivas WHERE sla_group_id = ? OR id = ? ORDER BY sla_day_number ASC, data_planejada ASC";
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('ii', $groupId, $groupId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $rows = [];
-        while ($row = $result->fetch_assoc()) {
-            $rows[] = $row;
-        }
-        return $rows;
-    }
-
     public function reconcilePreventivaSlaGroup(int $groupId, int $deletedId): array
     {
         $sql = "SELECT id, data_planejada FROM atividades_preventivas WHERE (sla_group_id = ? OR id = ?) AND id != ? ORDER BY data_planejada ASC, id ASC";

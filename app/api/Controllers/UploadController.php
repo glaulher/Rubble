@@ -4,7 +4,6 @@ namespace App\Api\Controllers;
 
 use App\Api\Repositories\PvRepository;
 use App\Api\Helpers\Response;
-use App\Api\Helpers\Request;
 
 class UploadController
 {

@@ -120,12 +120,6 @@ class PvService
         return $prefix . str_pad($next, 4, '0', STR_PAD_LEFT);
     }
 
-    public function getByNumberPv(string $numberPv): ?array
-    {
-        $pv = $this->repository->getByNumberPv($numberPv);
-        return $pv?->toArray();
-    }
-
     public function duplicate(int $id): int
     {
         $pv = $this->repository->getById($id);

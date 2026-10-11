@@ -9,11 +9,9 @@ use App\Api\Helpers\Request;
 class ScmController
 {
     private ScmService $service;
-    private object $user;
 
-    public function __construct(object $user)
+    public function __construct()
     {
-        $this->user = $user;
         $this->service = new ScmService();
     }
 

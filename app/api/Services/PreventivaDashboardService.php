@@ -8,15 +8,6 @@ class PreventivaDashboardService
 {
     private PreventivaDashboardRepository $repository;
 
-    private const STATUS_COLORS = [
-        'concluído' => '#10B981',
-        'concluido' => '#10B981',
-        'em andamento' => '#F59E0B',
-        'planejado' => '#EF4444',
-        'pendente' => '#EF4444',
-        'projeto clean up' => '#EF4444',
-    ];
-
     public function __construct(?PreventivaDashboardRepository $repository = null)
     {
         $this->repository = $repository ?? new PreventivaDashboardRepository();
@@ -223,16 +214,5 @@ class PreventivaDashboardService
             'treemap' => $treemap,
             'allRows' => $allRows,
         ];
-    }
-
-    public static function statusColors(): array
-    {
-        return self::STATUS_COLORS;
-    }
-
-    public static function treemapColor(string $status): string
-    {
-        $key = mb_strtolower(trim($status), 'UTF-8');
-        return self::STATUS_COLORS[$key] ?? '#EF4444';
     }
 }

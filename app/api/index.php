@@ -253,8 +253,8 @@ $router->addRoute('preventive-cycle', 'POST', function () use ($auth) {
 });
 
 // SCM
-$router->addRoute('scm', 'GET', function () use ($auth) {
-    $ctrl = new ScmController($auth->getUser());
+$router->addRoute('scm', 'GET', function () {
+    $ctrl = new ScmController();
     $action = $_GET['action'] ?? null;
 
     if ($action === 'getById') {
@@ -269,11 +269,11 @@ $router->addRoute('scm', 'GET', function () use ($auth) {
         $ctrl->listAll();
     }
 });
-$router->addRoute('scm', 'POST', function () use ($auth) {
-    (new ScmController($auth->getUser()))->import();
+$router->addRoute('scm', 'POST', function () {
+    (new ScmController())->import();
 });
-$router->addRoute('scm', 'DELETE', function () use ($auth) {
-    (new ScmController($auth->getUser()))->delete();
+$router->addRoute('scm', 'DELETE', function () {
+    (new ScmController())->delete();
 });
 
 // Planned Activities

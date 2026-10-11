@@ -112,15 +112,6 @@ class FilterExchangeService
         ];
     }
 
-    public function count(string $search = '', string $status = ''): int
-    {
-        if ($status !== '' && !in_array($status, self::ALLOWED_STATUSES, true)) {
-            throw new \InvalidArgumentException('Status inválido: ' . $status);
-        }
-
-        return $this->repository->count($search, $status);
-    }
-
     public function create(string $local, string $equipamento, string $uf, string $regiao, string $tamanho, int $qtd): bool
     {
         if (trim($local) === '' || trim($equipamento) === '') {
