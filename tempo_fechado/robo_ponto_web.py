@@ -9065,7 +9065,7 @@ def _contar_pdfs_pasta_v8190(pasta):
         p = Path(pasta)
         if not p.exists():
             return 0
-        return len([x for x in p.glob("*.pdf") if x.is_file()])
+        return len([x for x in p.iterdir() if x.is_file() and x.suffix.lower() == ".pdf"])
     except Exception:
         return 0
 
@@ -11006,7 +11006,7 @@ def api_processamento_manual_robo_status_v81737():
     entrada = base / "entrada"
     excel = _excel_robo_padrao_v81737()
     excel_detectado, resultado_robo = _excel_gerado_por_resultado_v82127(excel)
-    pdfs = sorted(entrada.glob("*.pdf"))
+    pdfs = sorted([p for p in entrada.iterdir() if p.is_file() and p.suffix.lower() == ".pdf"]) if entrada.exists() else []
     return jsonify({"ok": True, "erro": "", "base": str(base), "entrada": str(entrada), "saida": str(base / "saida"), "script_robo": str(script), "script_existe": script.exists(), "script_candidatos": _candidatos_script_robo_v82122(), "qtd_pdfs_entrada": len(pdfs), "pdfs_entrada": [p.name for p in pdfs[:50]], "excel_gerado": str(excel_detectado), "excel_existe": excel_detectado.exists(), "resultado_robo": resultado_robo, "trava_operacional": _trava_operacional_atual_v82140(), "historico_fila": _ler_historico_fila_v82141(12)})
 
 @app.route("/api/processamento-manual-robo/abrir-entrada", methods=["POST"])
@@ -11052,21 +11052,25 @@ def api_processamento_manual_robo_upload_pdfs_v82138():
         if not nome_original:
             ignorados.append({"arquivo": "", "motivo": "nome vazio"})
             continue
-        if not nome_original.lower().endswith(".pdf"):
-            ignorados.append({"arquivo": nome_original, "motivo": "extensão diferente de .pdf"})
+        nome_original_base = os.path.basename(nome_original)
+        if not nome_original_base.lower().endswith(".pdf"):
+            ignorados.append({"arquivo": nome_original_base, "motivo": "extensão diferente de .pdf"})
             continue
 
-        nome_seguro = secure_filename(nome_original) or f"upload_{uuid.uuid4().hex}.pdf"
-        if not nome_seguro.lower().endswith(".pdf"):
-            nome_seguro += ".pdf"
+        nome_seguro = secure_filename(nome_original_base) or f"upload_{uuid.uuid4().hex}.pdf"
+        stem = Path(nome_seguro).stem
+        if not stem or stem.replace(".", "").strip() == "":
+            stem = f"folha_ponto_{uuid.uuid4().hex[:8]}"
+        nome_seguro = f"{stem}.pdf"
+
         destino = entrada / nome_seguro
         if destino.exists():
-            destino = entrada / f"{destino.stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}{destino.suffix}"
+            destino = entrada / f"{destino.stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.pdf"
         try:
             arquivo.save(str(destino))
             salvos.append(destino.name)
         except Exception as e:
-            ignorados.append({"arquivo": nome_original, "motivo": str(e)})
+            ignorados.append({"arquivo": nome_original_base, "motivo": str(e)})
 
     if not salvos:
         return jsonify({"ok": False, "erro": "Nenhum PDF válido foi salvo.", "ignorados": ignorados, "entrada": str(entrada)}), 400
@@ -11131,7 +11135,7 @@ def api_processamento_manual_robo_executar_v81737():
     script = _localizar_script_robo_v81737()
     if not script.exists():
         return jsonify({"ok": False, "erro": f"Script_Robo_Ponto_v7_PRO.py nao encontrado: {script}", "script_candidatos": _candidatos_script_robo_v82122()}), 404
-    pdfs = sorted(entrada.glob("*.pdf"))
+    pdfs = sorted([p for p in entrada.iterdir() if p.is_file() and p.suffix.lower() == ".pdf"]) if entrada.exists() else []
     if not pdfs:
         return jsonify({"ok": False, "erro": f"Nenhum PDF encontrado na pasta de entrada: {entrada}"}), 400
     comando, env_exec = _montar_execucao_script_robo_manual_v82124(script)

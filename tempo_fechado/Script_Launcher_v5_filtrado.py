@@ -400,7 +400,7 @@ def main():
         total_baixados = baixar_anexos_outlook()
 
         if total_baixados == 0:
-            pdfs_existentes = list(PASTA_ENTRADA.glob("*.pdf"))
+            pdfs_existentes = [p for p in PASTA_ENTRADA.iterdir() if p.is_file() and p.suffix.lower() == ".pdf"] if PASTA_ENTRADA.exists() else []
             if pdfs_existentes:
                 logger.warning(f"Nenhum PDF novo foi baixado do Outlook, mas ha {len(pdfs_existentes)} PDF(s) na pasta entrada. O robo sera executado mesmo assim.")
             else:

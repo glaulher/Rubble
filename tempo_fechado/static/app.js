@@ -7687,22 +7687,78 @@ function renderProcessamentoManualRoboV81737(status) {
 async function uploadPdfsRoboManualV82138() {
   const input = document.getElementById("manualRoboPdfUpload");
   const status = document.getElementById("manualRoboUploadStatus");
+  const btn = document.querySelector("#manualRoboPdfUpload ~ .manual-robo-actions button") || document.querySelector("button[onclick*='uploadPdfsRoboManual']");
   const arquivos = input && input.files ? Array.from(input.files) : [];
   if (!arquivos.length) { alert("Selecione ao menos um PDF."); return; }
-  const form = new FormData();
-  arquivos.forEach(arquivo => form.append("pdfs", arquivo));
+
+  const LOTE_TAMANHO = 15;
+  const totalLotes = Math.ceil(arquivos.length / LOTE_TAMANHO);
+  let totalSalvos = 0;
+  let totalIgnorados = 0;
+  const todosIgnorados = [];
+
+  const textoBotaoOriginal = btn ? btn.textContent : "Enviar PDFs";
+  if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
+  if (input) input.disabled = true;
+
   try {
-    if (status) status.textContent = "Enviando PDFs...";
-    const resp = await fetch("/tempo-fechado/api/processamento-manual-robo/upload-pdfs", { method: "POST", body: form });
-    const json = await resp.json().catch(() => ({}));
-    if (!resp.ok || json.ok === false) throw new Error(json.erro || `Erro HTTP ${resp.status}`);
-    const ignorados = json.qtd_ignorados ? ` Ignorados: ${json.qtd_ignorados}.` : "";
-    if (status) status.textContent = `${json.qtd_salvos || 0} PDF(s) enviados.${ignorados}`;
-    alert(json.mensagem || "PDFs enviados para a entrada do robô.");
+    for (let i = 0; i < arquivos.length; i += LOTE_TAMANHO) {
+      const loteArquivos = arquivos.slice(i, i + LOTE_TAMANHO);
+      const loteNum = Math.floor(i / LOTE_TAMANHO) + 1;
+      const enviadosAteAgora = i;
+      const pct = Math.round((enviadosAteAgora / arquivos.length) * 100);
+
+      if (status) {
+        status.textContent = totalLotes > 1
+          ? `Enviando lote ${loteNum} de ${totalLotes} (${enviadosAteAgora}/${arquivos.length} PDFs — ${pct}%)...`
+          : "Enviando PDFs...";
+      }
+
+      const form = new FormData();
+      loteArquivos.forEach(arquivo => form.append("pdfs", arquivo));
+
+      const resp = await fetch("/tempo-fechado/api/processamento-manual-robo/upload-pdfs", {
+        method: "POST",
+        body: form
+      });
+
+      if (resp.status === 413) {
+        throw new Error("Lote excedeu o limite do servidor (HTTP 413).");
+      }
+
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || json.ok === false) {
+        throw new Error(json.erro || `Erro HTTP ${resp.status}`);
+      }
+
+      totalSalvos += (json.qtd_salvos || 0);
+      totalIgnorados += (json.qtd_ignorados || 0);
+      if (Array.isArray(json.ignorados)) {
+        todosIgnorados.push(...json.ignorados);
+      }
+    }
+
+    if (input) { input.value = ""; }
+    const ignoradosMsg = totalIgnorados ? ` (${totalIgnorados} ignorado(s))` : "";
+    if (status) {
+      status.textContent = `${totalSalvos} PDF(s) enviados.${ignoradosMsg}`;
+    }
+    alert(`${totalSalvos} PDF(s) enviados para a entrada do robô.${ignoradosMsg}`);
     abrirProcessamentoManualRoboV81737();
   } catch (e) {
-    if (status) status.textContent = "Falha no upload.";
-    alert("Erro ao enviar PDFs: " + (e && e.message ? e.message : e));
+    if (status) {
+      status.textContent = totalSalvos > 0
+        ? `Envio parcial: ${totalSalvos} PDF(s) salvos antes da falha.`
+        : "Falha no upload.";
+    }
+    const msgErro = e && e.message ? e.message : String(e);
+    alert(`Erro ao enviar PDFs: ${msgErro}${totalSalvos > 0 ? `\n\n(${totalSalvos} PDF(s) foram salvos com sucesso antes do erro).` : ""}`);
+    if (totalSalvos > 0) {
+      abrirProcessamentoManualRoboV81737();
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = textoBotaoOriginal; }
+    if (input) { input.disabled = false; }
   }
 }
 async function abrirPastaEntradaRoboV81740() {

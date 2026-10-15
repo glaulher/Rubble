@@ -1275,7 +1275,10 @@ def processar_pdf(caminho_pdf):
 
 
 def listar_pdfs_da_pasta(pasta):
-    return sorted(Path(pasta).glob("*.pdf"))
+    p = Path(pasta)
+    if not p.exists():
+        return []
+    return sorted([f for f in p.iterdir() if f.is_file() and f.suffix.lower() == ".pdf"])
 
 
 def processar_pasta(pasta_pdf):
