@@ -832,6 +832,13 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
   INDEX `idx_audit_logs_action` (`action`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- token_blacklist — Tokens JWT revogados por logout
+CREATE TABLE IF NOT EXISTS `token_blacklist` (
+  `jti` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `expires_at` DATETIME NOT NULL,
+  INDEX `idx_token_blacklist_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
