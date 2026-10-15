@@ -42,7 +42,7 @@ class PvEmailService
         }
         $orcamentoPaths = self::resolveOrcamentoPaths($items);
 
-        $body = $this->buildBody($pv, $items, $subjectKey, false);
+        $body = $this->buildBody($pv, $items, $subjectKey, false, $uf);
         return self::configureMailer($pdfPaths, $reportPaths, $orcamentoPaths, $subjects[$subjectKey], $body, $envKey);
     }
 
@@ -93,13 +93,17 @@ class PvEmailService
         }
         $orcamentoPaths = self::resolveOrcamentoPaths($items);
 
-        $body = $this->buildBatchBody($pvs, $subjectKey);
+        $body = $this->buildBatchBody($pvs, $subjectKey, $uf);
         return self::configureMailer($pdfPaths, $reportPaths, $orcamentoPaths, $subjects[$subjectKey], $body, $envKey);
     }
 
-    private function buildBatchBody(array $pvs, string $subjectKey): string
+    private function buildBatchBody(array $pvs, string $subjectKey, string $uf = ''): string
     {
         $e = fn(?string $v): string => htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8');
+
+        $responsavelEnvKey = $uf === 'ES' ? 'RESPONSAVEL_ES' : 'RESPONSAVEL_RJ';
+        $responsavel = Env::get($responsavelEnvKey, '');
+        $saudacao = $responsavel !== '' ? "Olá, {$responsavel} e equipe," : 'Olá, pessoal,';
 
         if ($subjectKey === 'servicos') {
             $intro = "Solicitamos, por favor, a aprovação para o faturamento dos itens tabelados abaixo.";
@@ -118,7 +122,7 @@ class PvEmailService
 
         return "
             <div style='font-family:Arial,sans-serif;padding:20px;max-width:800px;'>
-                <p>Olá, pessoal,</p>
+                <p>{$saudacao}</p>
                 <p>{$intro}</p>
                 <p>{$closing}</p>
                 {$tablesHtml}
@@ -407,9 +411,13 @@ class PvEmailService
         }
     }
 
-    private function buildBody(array $pv, array $items, string $subjectKey = '', bool $isBatch = false): string
+    private function buildBody(array $pv, array $items, string $subjectKey = '', bool $isBatch = false, string $uf = ''): string
     {
         $e = fn(?string $v): string => htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8');
+
+        $responsavelEnvKey = $uf === 'ES' ? 'RESPONSAVEL_ES' : 'RESPONSAVEL_RJ';
+        $responsavel = Env::get($responsavelEnvKey, '');
+        $saudacao = $responsavel !== '' ? "Olá, {$responsavel} e equipe," : 'Olá, pessoal,';
 
         $hasLaudo = false;
         foreach ($items as $item) {
@@ -578,7 +586,7 @@ class PvEmailService
 
         return "
             <div style='font-family:Arial,sans-serif;padding:20px;max-width:800px;'>
-                <p>Olá, pessoal,</p>
+                <p>{$saudacao}</p>
                 <p>{$intro}</p>
                 <p>{$closing}</p>
                 {$memorialHtml}
