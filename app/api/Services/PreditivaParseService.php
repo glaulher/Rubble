@@ -9,11 +9,27 @@ class PreditivaParseService
 
     public function __construct()
     {
-        $baseDir = dirname(__DIR__, 2);
-        $this->defaultTemplatePath = $baseDir . '/storage/templates/Preditiva_parse.xlsx';
-        if (!file_exists($this->defaultTemplatePath)) {
-            $this->defaultTemplatePath = $baseDir . '/Preditiva_parse.xlsx';
+        $candidates = [
+            dirname(__DIR__, 3) . '/storage/templates/Preditiva_parse.xlsx',
+            dirname(__DIR__, 3) . '/Preditiva_parse.xlsx',
+            __DIR__ . '/templates/Preditiva_parse.xlsx',
+            dirname(__DIR__, 2) . '/storage/templates/Preditiva_parse.xlsx',
+            '/var/www/html/storage/templates/Preditiva_parse.xlsx',
+            '/var/www/html/Preditiva_parse.xlsx',
+        ];
+
+        $this->defaultTemplatePath = '';
+        foreach ($candidates as $candidate) {
+            if (file_exists($candidate) && is_readable($candidate)) {
+                $this->defaultTemplatePath = $candidate;
+                break;
+            }
         }
+
+        if (empty($this->defaultTemplatePath)) {
+            $this->defaultTemplatePath = dirname(__DIR__, 3) . '/storage/templates/Preditiva_parse.xlsx';
+        }
+
         $this->pythonScriptPath = __DIR__ . '/preditiva_parser.py';
     }
 

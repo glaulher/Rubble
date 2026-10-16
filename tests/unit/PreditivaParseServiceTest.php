@@ -41,4 +41,18 @@ class PreditivaParseServiceTest extends TestCase
             unlink($result['output_path']);
         }
     }
+
+    public function testProcessWithDefaultTemplateUsesBuiltinTemplate(): void
+    {
+        $service = new PreditivaParseService();
+        $result = $service->process($this->climaPath); // Sem segundo parâmetro
+
+        $this->assertTrue($result['success'], $result['message'] ?? 'Erro no processamento');
+        $this->assertFileExists($result['output_path']);
+        $this->assertEquals(304, $result['stats']['total_rows']);
+
+        if (file_exists($result['output_path'])) {
+            unlink($result['output_path']);
+        }
+    }
 }
