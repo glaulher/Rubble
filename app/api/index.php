@@ -13,7 +13,7 @@ use App\Api\Controllers\{
     UploadController, EmailController, ExportController, PdfAuditController,
     PlannedActivityController, PreventivaController, FilterExchangeController,
     PendingTicketsController, PreventivaDashboardController, InventoryController,
-    AdminAuditController
+    AdminAuditController, PreditivaParseController
 };
 Env::load(__DIR__ . '/../../.env');
 
@@ -455,7 +455,7 @@ $router->addRoute('admin-audit', 'GET', function () use ($auth) {
 
 // Preditiva Parse (Infratel CLIMA -> Preditiva Parse)
 $router->addRoute('preditiva-parse', 'POST', function () {
-    (new PreditivaParseController())->parse();
+    (new \App\Api\Controllers\PreditivaParseController())->parse();
 });
 
 // Dispatch
