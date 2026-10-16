@@ -63,20 +63,48 @@ class PreditivaParseService
             @mkdir($tempOutputDir, 0777, true);
         }
 
+        // Garante que o arquivo CLIMA temporário tenha extensão .xlsx para evitar rejeição de openpyxl
+        $climaToUse = $climaPath;
+        $tempClimaCopy = null;
+        if (!str_ends_with(strtolower($climaPath), '.xlsx')) {
+            $tempClimaCopy = $tempOutputDir . '/clima_tmp_' . uniqid() . '.xlsx';
+            if (@copy($climaPath, $tempClimaCopy)) {
+                $climaToUse = $tempClimaCopy;
+            }
+        }
+
+        // Garante extensão .xlsx para template se tiver vindo de upload
+        $templateArg = $templateToUse;
+        $tempTemplateCopy = null;
+        if (!str_ends_with(strtolower($templateToUse), '.xlsx')) {
+            $tempTemplateCopy = $tempOutputDir . '/template_tmp_' . uniqid() . '.xlsx';
+            if (@copy($templateToUse, $tempTemplateCopy)) {
+                $templateArg = $tempTemplateCopy;
+            }
+        }
+
         $outputPath = $tempOutputDir . '/Preditiva_preenchida_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.xlsx';
 
         // Escapar argumentos para shell
         $cmd = sprintf(
             'python3 %s --clima %s --template %s --output %s 2>&1',
             escapeshellarg($this->pythonScriptPath),
-            escapeshellarg($climaPath),
-            escapeshellarg($templateToUse),
+            escapeshellarg($climaToUse),
+            escapeshellarg($templateArg),
             escapeshellarg($outputPath)
         );
 
         $outputLines = [];
         $returnCode = 0;
         exec($cmd, $outputLines, $returnCode);
+
+        // Limpa cópias temporárias criadas
+        if ($tempClimaCopy && file_exists($tempClimaCopy)) {
+            @unlink($tempClimaCopy);
+        }
+        if ($tempTemplateCopy && file_exists($tempTemplateCopy)) {
+            @unlink($tempTemplateCopy);
+        }
 
         $outputStr = trim(implode("\n", $outputLines));
 

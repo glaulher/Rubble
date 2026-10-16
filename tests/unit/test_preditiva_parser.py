@@ -65,6 +65,17 @@ class TestPreditivaParser(unittest.TestCase):
         self.assertIn('FEV', wb.sheetnames)
         self.assertIn('MAR', wb.sheetnames)
 
+    def test_process_preditiva_with_unextended_temp_file(self):
+        # Simula arquivo temporário do PHP sem extensão .xlsx
+        import shutil
+        unextended_clima = os.path.join(self.temp_dir.name, 'phpUploadTemp12345')
+        shutil.copy(self.clima_file, unextended_clima)
+
+        out = os.path.join(self.temp_dir.name, 'out_unextended.xlsx')
+        stats = process_preditiva_excel(unextended_clima, self.template_file, out)
+        self.assertTrue(stats["success"])
+        self.assertEqual(stats["total_rows"], 304)
+
 
 if __name__ == '__main__':
     unittest.main()

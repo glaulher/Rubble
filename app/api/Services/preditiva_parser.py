@@ -62,6 +62,21 @@ def format_date_value(val):
     return s
 
 
+def load_excel_safe(path: str, data_only: bool = False):
+    """
+    Carrega planilha Excel com segurança mesmo que o caminho temporário
+    não possua extensão .xlsx (ex: arquivos temporários do PHP /tmp/phpXXXXXX).
+    """
+    try:
+        if str(path).lower().endswith(('.xlsx', '.xlsm', '.xltx', '.xltm')):
+            return openpyxl.load_workbook(path, data_only=data_only)
+    except Exception:
+        pass
+
+    with open(path, 'rb') as f:
+        return openpyxl.load_workbook(f, data_only=data_only)
+
+
 def process_preditiva_excel(clima_path: str, template_path: str, output_path: str) -> dict:
     if not os.path.exists(clima_path):
         raise FileNotFoundError(f"Arquivo CLIMA não encontrado: {clima_path}")
@@ -69,7 +84,7 @@ def process_preditiva_excel(clima_path: str, template_path: str, output_path: st
         raise FileNotFoundError(f"Arquivo Template não encontrado: {template_path}")
 
     # 1. Carrega a planilha CLIMA e constrói o dicionário de busca
-    wb_clima = openpyxl.load_workbook(clima_path, data_only=True)
+    wb_clima = load_excel_safe(clima_path, data_only=True)
     ws_clima = wb_clima.active
     
     clima_dict = {}
@@ -100,7 +115,7 @@ def process_preditiva_excel(clima_path: str, template_path: str, output_path: st
         }
 
     # 2. Carrega a planilha Template (preserva todas as abas e formatações)
-    wb_template = openpyxl.load_workbook(template_path)
+    wb_template = load_excel_safe(template_path)
     
     sheet_name = 'PREVENTIVAS_PARSE' if 'PREVENTIVAS_PARSE' in wb_template.sheetnames else wb_template.sheetnames[0]
     ws_dest = wb_template[sheet_name]
