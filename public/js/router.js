@@ -24,6 +24,7 @@ import { initPreventivaDashboard } from '/public/js/preventiva/dashboard.js';
 import { initInventoryList } from '/public/js/inventory/list.js';
 import { loadInventoryForm } from '/public/js/inventory/form.js';
 import { initAdminAudit } from '/public/js/admin/audit.js';
+import { initPreditivaParse } from '/public/js/preditiva-parse/preditiva-parse.js';
 
 const VIEW_VERSION = 45;
 
@@ -213,7 +214,13 @@ export async function router() {
     | PDF AUDIT
     |--------------------------------------------------------------------------
     */
-    html = await loadPage("/app/Views/pdf-audit/audit.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/preditiva-parse" || hash.startsWith("#/preditiva-parse?") || hash.startsWith("#/preditiva-parse")) {
+    /*
+    |--------------------------------------------------------------------------
+    | PREDITIVA PARSE (INFRATEL -> PREDITIVA)
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/preditiva-parse/index.html?v=" + VIEW_VERSION);
   } else if (hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm")) {
     /*
     |--------------------------------------------------------------------------
@@ -306,6 +313,8 @@ export async function router() {
       initFilters();
     } else if (hash === "#/pdf-audit") {
       initPdfAudit();
+    } else if (hash === "#/preditiva-parse" || hash.startsWith("#/preditiva-parse")) {
+      initPreditivaParse();
     } else if (hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm")) {
       loadInventoryForm();
     } else if (hash === "#/inventory" || hash === "#inventory" || hash.startsWith("#/inventory?") || hash.startsWith("#inventory?")) {

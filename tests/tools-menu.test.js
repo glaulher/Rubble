@@ -11,9 +11,12 @@ describe('Tools Menu (Ferramentas) and Submenu Interactivity', () => {
     expect(indexHtml).toContain('id="toolsSubmenu"');
     expect(indexHtml).toContain('id="tempoFechadoLink"');
     expect(indexHtml).toContain('id="combustivelLink"');
+    expect(indexHtml).toContain('id="preditivaParseLink"');
+    expect(indexHtml).toContain('href="#/preditiva-parse"');
     expect(indexHtml).toContain('Ferramentas');
     expect(indexHtml).toContain('Tempo Fechado');
     expect(indexHtml).toContain('Controle de Combust\u00edvel');
+    expect(indexHtml).toContain('Parser Preditiva');
   });
 
   it('toolsMenuToggle has accessibility attributes role=button and aria-haspopup', () => {

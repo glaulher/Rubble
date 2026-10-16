@@ -1,0 +1,173 @@
+<div
+  class="min-h-screen dark-gradient"
+  style="background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);"
+>
+  <!-- Sub-Header Padrão Rubble -->
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Parser Preditiva</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Cruzamento de Planilha Infratel CLIMA com Modelo Preditiva</p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 bg-blue-500/20 text-blue-300 px-3 py-1.5 rounded-xl text-xs font-medium">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          Infratel &rarr; Preditiva
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container Principal -->
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 md:p-8">
+      
+      <!-- Instruções -->
+      <div class="mb-6 pb-6 border-b border-slate-100 dark:border-slate-700">
+        <h2 class="text-lg font-medium text-slate-800 dark:text-slate-100 mb-2">Instruções de Uso</h2>
+        <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          Selecione a planilha de acompanhamento <code class="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-xs font-mono">CLIMA_*.xlsx</code> baixada do Infratel. 
+          O sistema fará o cruzamento automático pelo <strong>Site Infratel</strong> e <strong>Equipamento</strong>, preenchendo as colunas de execução no modelo da preditiva.
+        </p>
+      </div>
+
+      <form id="preditivaParseForm" class="space-y-6">
+        
+        <!-- Upload Arquivo CLIMA (Obrigatório) -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+            Planilha CLIMA Infratel (.xlsx) <span class="text-red-500">*</span>
+          </label>
+          <div
+            id="climaDropzone"
+            class="border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-400 rounded-2xl p-6 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-900/30"
+          >
+            <input
+              type="file"
+              id="climaFileInput"
+              name="clima_file"
+              accept=".xlsx"
+              class="hidden"
+            />
+            <div id="climaPlaceholder" class="space-y-2">
+              <svg class="mx-auto h-10 w-10 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <div class="text-sm text-slate-600 dark:text-slate-300">
+                <span class="font-medium text-blue-600 dark:text-blue-400 hover:underline">Clique para enviar</span> ou arraste a planilha aqui
+              </div>
+              <p class="text-xs text-slate-400">Apenas arquivos Excel (.xlsx)</p>
+            </div>
+            
+            <div id="climaFileInfo" class="hidden flex items-center justify-center gap-3 text-slate-700 dark:text-slate-200">
+              <svg class="w-8 h-8 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <div class="text-left">
+                <p id="climaFileName" class="text-sm font-semibold truncate max-w-xs md:max-w-md"></p>
+                <p id="climaFileSize" class="text-xs text-slate-400"></p>
+              </div>
+              <button
+                type="button"
+                id="removeClimaFileBtn"
+                class="ml-2 text-slate-400 hover:text-red-500 transition-colors p-1"
+                title="Remover arquivo"
+              >
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Template Opcional (Accordion) -->
+        <div class="pt-2">
+          <button
+            type="button"
+            id="toggleTemplateAccordionBtn"
+            class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+          >
+            <span id="accordionArrow">&#9656;</span> Deseja usar um template alternativo? (Opcional)
+          </button>
+          
+          <div id="templateAccordionContent" class="hidden mt-3 p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-700">
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
+              Por padrão, o Rubble já utiliza o modelo interno <code class="font-mono">Preditiva_parse.xlsx</code>. Só envie um arquivo se precisar usar uma estrutura diferente.
+            </p>
+            <input
+              type="file"
+              id="templateFileInput"
+              name="template_file"
+              accept=".xlsx"
+              class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
+            />
+          </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+          <button
+            type="submit"
+            id="processBtn"
+            class="flex items-center gap-2 bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 font-semibold px-6 py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg id="processBtnIcon" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span id="processBtnText">Processar e Gerar Planilha</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Painel de Resultados (Oculto inicialmente) -->
+      <div id="resultsPanel" class="hidden mt-8 pt-6 border-t border-slate-100 dark:border-slate-700">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            Processamento Concluído com Sucesso!
+          </h3>
+          <button
+            type="button"
+            id="downloadGeneratedBtn"
+            class="flex items-center gap-2 bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 font-medium px-4 py-2 rounded-xl text-sm transition-colors"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Baixar Novamente
+          </button>
+        </div>
+
+        <!-- Grid de Estatísticas -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-blue-50 dark:bg-slate-700/50 border border-blue-100 dark:border-slate-600 rounded-xl p-4 text-center">
+            <p class="text-xs text-blue-600 dark:text-blue-300 font-medium uppercase tracking-wider">Total de Linhas</p>
+            <p id="statTotalRows" class="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">0</p>
+          </div>
+          <div class="bg-emerald-50 dark:bg-slate-700/50 border border-emerald-100 dark:border-slate-600 rounded-xl p-4 text-center">
+            <p class="text-xs text-emerald-600 dark:text-emerald-300 font-medium uppercase tracking-wider">Preenchidos (Matches)</p>
+            <p id="statMatchedRows" class="text-2xl font-bold text-emerald-900 dark:text-emerald-100 mt-1">0</p>
+          </div>
+          <div class="bg-amber-50 dark:bg-slate-700/50 border border-amber-100 dark:border-slate-600 rounded-xl p-4 text-center">
+            <p class="text-xs text-amber-600 dark:text-amber-300 font-medium uppercase tracking-wider">Não Encontrados</p>
+            <p id="statUnmatchedRows" class="text-2xl font-bold text-amber-900 dark:text-amber-100 mt-1">0</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

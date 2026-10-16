@@ -5,7 +5,7 @@ RUN composer install --no-interaction --working-dir=/app
 FROM php:8.4-fpm-alpine
 
 ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-RUN install-php-extensions mysqli apcu
+RUN install-php-extensions mysqli apcu && apk add --no-cache python3 py3-openpyxl
 
 COPY config/php/zz-opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
 COPY config/php-fpm/zz-www.conf /usr/local/etc/php-fpm.d/zz-www.conf

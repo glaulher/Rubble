@@ -453,6 +453,11 @@ $router->addRoute('admin-audit', 'GET', function () use ($auth) {
     }
 });
 
+// Preditiva Parse (Infratel CLIMA -> Preditiva Parse)
+$router->addRoute('preditiva-parse', 'POST', function () {
+    (new PreditivaParseController())->parse();
+});
+
 // Dispatch
 try {
     $router->dispatch($route, $method);

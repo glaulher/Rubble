@@ -20,6 +20,8 @@ vendor/
 *.phar
 .phpunit.result.cache
 *.csv
+CLIMA_*.xlsx
+/Preditiva_parse.xlsx
 pv_reconcile.php
 specs.md
 __pycache__/
