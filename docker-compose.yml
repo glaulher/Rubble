@@ -144,6 +144,11 @@ services:
     restart: unless-stopped
 
   mail:
+    # Legado: caixa de aprovacao migrou para Gmail (PV_REPLY_TO/IMAP_USER).
+    # Porta 25 fica fechada por padrao; habilitar sob demanda com:
+    #   docker compose --profile legacy up -d mail
+    profiles:
+      - legacy
     build:
       context: .
       dockerfile: Dockerfile.mail

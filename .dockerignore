@@ -18,3 +18,29 @@ pv_reconcile.php
 specs.md
 tailwind.config.js
 .prettierrc
+
+# Dados sensiveis e artefatos que NAO devem entrar nas camadas da imagem
+OS/
+LAUDO/
+storage/
+cache/
+docs/
+tests/
+vendor/
+*.sql
+*.csv
+*.xlsx
+*.xls
+*.phar
+.phpunit.result.cache
+docker-compose.override.yml
+.vscode/
+.opencode/
+.superpowers/
+.playwright-mcp/
+.worktrees/
+controle-combustivel-volante/
+# Nao excluir tempo_fechado/ nem rubble-pdf-checker/: os builds deles usam
+# o mesmo build context (COPY tempo_fechado/ e COPY rubble-pdf-checker/).
+AGENTS.md
+contexto.md
