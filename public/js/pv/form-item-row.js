@@ -145,16 +145,16 @@ export function getItemRowHtml(index, data, lpuOptions) {
 export function getFilterResultHtml(filtro, index) {
   if (!filtro) return '';
   const tamanho = escapeHtml(filtro.tamanho || '');
-  const qtd = filtro.qtd_pecas || 0;
-  const areaPlaca = (filtro.area_placa || 0).toLocaleString('pt-BR', {
+  const qtd = escapeHtml(String(filtro.qtd_pecas || 0));
+  const areaPlaca = escapeHtml((filtro.area_placa || 0).toLocaleString('pt-BR', {
     minimumFractionDigits: 4,
     maximumFractionDigits: 4,
-  });
-  const areaPlana = (filtro.area_plana_total || 0).toLocaleString('pt-BR', {
+  }));
+  const areaPlana = escapeHtml((filtro.area_plana_total || 0).toLocaleString('pt-BR', {
     minimumFractionDigits: 4,
     maximumFractionDigits: 4,
-  });
-  const qtdCobrar = filtro.qtd_cobrar || 0;
+  }));
+  const qtdCobrar = escapeHtml(String(filtro.qtd_cobrar || 0));
 
   return `
     <div class="bg-slate-50 rounded-xl border border-slate-300 p-3">

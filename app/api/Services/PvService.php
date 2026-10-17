@@ -219,6 +219,7 @@ class PvService
                 foreach ($data['itens'] as $item) {
                     $item['pv_id'] = $pvId;
                     $item['status'] = $item['status'] ?? self::DEFAULT_ITEM_STATUS;
+                    $item['filtro_data'] = self::sanitizeFilterData($item['filtro_data'] ?? null);
                     $item['valor_total'] = $this->calculateItemTotalValue($item);
                     $this->repository->saveItem($item);
                 }
@@ -264,6 +265,7 @@ class PvService
                 foreach ($data['itens'] as $item) {
                     $item['pv_id'] = (int) $data['id'];
                     $item['status'] = $item['status'] ?? self::DEFAULT_ITEM_STATUS;
+                    $item['filtro_data'] = self::sanitizeFilterData($item['filtro_data'] ?? null);
                     $item['valor_total'] = $this->calculateItemTotalValue($item);
                     $this->repository->saveItem($item);
                 }
@@ -348,6 +350,33 @@ class PvService
             'pvId' => $pvId,
             'remainingCount' => $remaining,
         ];
+    }
+
+    /**
+     * Sanitiza filtro_data antes de persistir (anti stored XSS).
+     * Campos numericos viram float (payload vira 0.0); tamanho vira string
+     * sem marcadores HTML, max 64 chars; JSON invalido vira null.
+     */
+    public static function sanitizeFilterData(?string $filtroData): ?string
+    {
+        if ($filtroData === null || $filtroData === '') {
+            return null;
+        }
+
+        $decoded = json_decode($filtroData, true);
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $tamanho = preg_replace('/[<>"\']/', '', (string) ($decoded['tamanho'] ?? ''));
+
+        return json_encode([
+            'tamanho' => substr($tamanho, 0, 64),
+            'qtd_pecas' => (float) ($decoded['qtd_pecas'] ?? 0),
+            'area_placa' => (float) ($decoded['area_placa'] ?? 0),
+            'area_plana_total' => (float) ($decoded['area_plana_total'] ?? 0),
+            'qtd_cobrar' => (float) ($decoded['qtd_cobrar'] ?? 0),
+        ], JSON_PRESERVE_ZERO_FRACTION);
     }
 
     private function validateLpuItems(array $items): void

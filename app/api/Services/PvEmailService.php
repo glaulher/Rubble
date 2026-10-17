@@ -223,10 +223,10 @@ class PvEmailService
                 $itemNum = $e($item['numero_item'] ?? '-');
                 $desc = $e($item['descricao'] ?? '-');
                 $tamanho = $e($fd['tamanho'] ?? '-');
-                $pecas = $fd['qtd_pecas'] ?? 0;
+                $pecas = $e((string) ($fd['qtd_pecas'] ?? 0));
                 $areaPlaca = isset($fd['area_placa']) ? number_format((float)$fd['area_placa'], 4, ',', '.') : '-';
                 $areaTotal = isset($fd['area_plana_total']) ? number_format((float)$fd['area_plana_total'], 4, ',', '.') : '-';
-                $qtdCobrar = $fd['qtd_cobrar'] ?? 0;
+                $qtdCobrar = $e((string) ($fd['qtd_cobrar'] ?? 0));
                 $memorialRows .= "
                     <tr>
                         <td style='padding:8px;border:1px solid #ddd;'>{$itemNum}</td>
@@ -520,10 +520,10 @@ class PvEmailService
                 $itemNum = $e($item['numero_item'] ?? '-');
                 $desc = $e($item['descricao'] ?? '-');
                 $tamanho = $e($fd['tamanho'] ?? '-');
-                $pecas = $fd['qtd_pecas'] ?? 0;
+                $pecas = $e((string) ($fd['qtd_pecas'] ?? 0));
                 $areaPlaca = isset($fd['area_placa']) ? number_format((float)$fd['area_placa'], 4, ',', '.') : '-';
                 $areaTotal = isset($fd['area_plana_total']) ? number_format((float)$fd['area_plana_total'], 4, ',', '.') : '-';
-                $qtdCobrar = $fd['qtd_cobrar'] ?? 0;
+                $qtdCobrar = $e((string) ($fd['qtd_cobrar'] ?? 0));
                 $memorialRows .= "
                     <tr>
                         <td style='padding:8px;border:1px solid #ddd;'>{$itemNum}</td>
