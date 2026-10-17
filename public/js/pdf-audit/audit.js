@@ -215,7 +215,7 @@ export function showReferencePreview(data) {
     ];
 
     fieldsEl.innerHTML = info.map(i =>
-      `<div><span class="text-slate-400">${i.label}:</span> <span class="text-slate-700 font-medium">${i.value || '-'}</span></div>`
+      `<div><span class="text-slate-400">${i.label}:</span> <span class="text-slate-700 font-medium">${escapeHtml(i.value || '-')}</span></div>`
     ).join('');
   }
 
@@ -512,7 +512,7 @@ export function buildAuditCardHtml(result) {
       <div class="mt-3 bg-red-50 border border-red-200 rounded-xl p-3">
         <p class="text-sm font-semibold text-red-700 mb-1">Itens NOK (${nokItems.length}):</p>
         <ul class="text-xs text-red-600 space-y-0.5">
-          ${nokItems.map(i => `<li>• [${i.secao}] ${i.numero} - ${escapeHtml(i.descricao)}</li>`).join('')}
+          ${nokItems.map(i => `<li>• [${escapeHtml(String(i.secao ?? ''))}] ${escapeHtml(String(i.numero ?? ''))} - ${escapeHtml(i.descricao)}</li>`).join('')}
         </ul>
       </div>
     `;

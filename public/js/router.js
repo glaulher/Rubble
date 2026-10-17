@@ -26,7 +26,7 @@ import { loadInventoryForm } from '/public/js/inventory/form.js';
 import { initAdminAudit } from '/public/js/admin/audit.js';
 import { initPreditivaParse } from '/public/js/preditiva-parse/preditiva-parse.js';
 
-const VIEW_VERSION = 45;
+const VIEW_VERSION = 46;
 
 export async function loadPage(url) {
   try {
@@ -214,6 +214,7 @@ export async function router() {
     | PDF AUDIT
     |--------------------------------------------------------------------------
     */
+    html = await loadPage("/app/Views/pdf-audit/audit.html?v=" + VIEW_VERSION);
   } else if (hash === "#/preditiva-parse" || hash.startsWith("#/preditiva-parse?") || hash.startsWith("#/preditiva-parse")) {
     /*
     |--------------------------------------------------------------------------

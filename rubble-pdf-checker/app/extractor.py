@@ -75,6 +75,18 @@ def run_pdfimages(pdf_path: str, output_dir: str) -> list[dict]:
     return images
 
 
+def _sanitize_field(value):
+    """Remove caracteres de markup de valores extraidos de PDFs de terceiros.
+
+    Defesa em profundidade contra stored XSS: os consumidores da API
+    (Rubble pdf-audit) tambem escapam no render, mas a origem ja limpa.
+    """
+    if not isinstance(value, str):
+        return value
+    cleaned = re.sub(r'[<>"\']', "", value)
+    return cleaned[:255]
+
+
 def extract_fields(text: str) -> dict:
     fields = {}
 
@@ -154,7 +166,7 @@ def extract_fields(text: str) -> dict:
     if realizada_por:
         fields["realizada_por"] = realizada_por.group(1).strip()
 
-    return fields
+    return {key: _sanitize_field(value) for key, value in fields.items()}
 
 
 def parse_checklists(text: str) -> list[dict]:
