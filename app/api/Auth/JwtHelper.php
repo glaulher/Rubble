@@ -7,9 +7,12 @@ use App\Config\Database;
 
 class JwtHelper
 {
+    public const ISSUER = 'rubble';
+
     public static function encode(array $payload, string $secret, int $ttl = 43200): string
     {
         $header = ['typ' => 'JWT', 'alg' => 'HS256'];
+        $payload['iss'] = self::ISSUER;
         $payload['jti'] = bin2hex(random_bytes(16));
         $payload['iat'] = time();
         $payload['exp'] = time() + $ttl;
@@ -64,6 +67,10 @@ class JwtHelper
             return null;
         }
 
+        if (!self::isValidIssuer($payload)) {
+            return null;
+        }
+
         if (isset($payload->jti)) {
             if (Cache::has('revoked:' . $payload->jti)) {
                 return null;
@@ -87,6 +94,30 @@ class JwtHelper
         }
 
         return $payload;
+    }
+
+    /**
+     * O JWT_SECRET e compartilhado com Tempo Fechado/Combustivel; sem iss,
+     * um token de outro emissoor passaria na assinatura. Regra espelhada do
+     * validar_jwt_rubble do Tempo Fechado: iss='rubble' aceito; legado sem
+     * iss aceito apenas com shape Rubble (username+role+user_id); demais
+     * emissores rejeitados.
+     */
+    private static function isValidIssuer(object $payload): bool
+    {
+        $iss = strtolower(trim((string) ($payload->iss ?? '')));
+
+        if ($iss === self::ISSUER) {
+            return true;
+        }
+
+        if ($iss !== '') {
+            return false;
+        }
+
+        return !empty($payload->username)
+            && !empty($payload->role)
+            && isset($payload->user_id);
     }
 
     public static function base64urlEncode(string $data): string

@@ -109,9 +109,10 @@ class PreditivaParseService
         $outputStr = trim(implode("\n", $outputLines));
 
         if ($returnCode !== 0 || !file_exists($outputPath)) {
+            error_log('PreditivaParse stderr/stdout: ' . $outputStr);
             return [
                 'success' => false,
-                'message' => 'Erro ao processar planilha: ' . ($outputStr ?: 'Falha na execução do parser Python')
+                'message' => 'Erro ao processar planilha: ' . self::sanitizeParserError($outputStr)
             ];
         }
 
@@ -142,5 +143,52 @@ class PreditivaParseService
             'stats' => $stats,
             'message' => 'Planilha processada com sucesso'
         ];
+    }
+
+    /**
+     * Converte a saida crua do parser (stdout+stderr com 2>&1) em uma
+     * mensagem segura para o cliente. O log completo vai para error_log.
+     * Prioriza o JSON de erro controlado do preditiva_parser.py; sem JSON,
+     * retorna mensagem generica (nunca traceback nem paths absolutos).
+     */
+    public static function sanitizeParserError(string $rawOutput): string
+    {
+        $message = null;
+
+        $lines = array_reverse(explode("\n", $rawOutput));
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || !str_starts_with($line, '{') || !str_ends_with($line, '}')) {
+                continue;
+            }
+            $decoded = json_decode($line, true);
+            if (is_array($decoded) && ($decoded['success'] ?? true) === false && isset($decoded['error'])) {
+                $message = (string) $decoded['error'];
+                break;
+            }
+        }
+
+        if ($message === null || trim($message) === '') {
+            return 'Falha na execução do parser Python';
+        }
+
+        // Remove controle/ANSI, colapsa whitespace.
+        $message = preg_replace('/[\x00-\x1F\x7F]/', ' ', $message);
+        $message = preg_replace('/\s+/', ' ', $message);
+        $message = trim($message);
+
+        // Paths absolutos viram apenas o basename (mantém o nome do arquivo
+        // para o usuário reconhecer o problema, sem vender a estrutura do servidor).
+        $message = preg_replace_callback(
+            '#(?:[A-Za-z]:)?(?:/[\w.\-]+){2,}#',
+            static fn(array $m): string => basename($m[0]),
+            $message
+        );
+
+        if (strlen($message) > 300) {
+            $message = substr($message, 0, 300) . '…';
+        }
+
+        return $message !== '' ? $message : 'Falha na execução do parser Python';
     }
 }

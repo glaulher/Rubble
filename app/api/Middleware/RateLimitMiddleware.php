@@ -17,6 +17,14 @@ class RateLimitMiddleware
         'auth'                 => ['POST' => 5],
         'planned-activities'   => ['POST' => 10, 'DELETE' => 10],
         'inventory'            => ['POST' => 10, 'PUT' => 10, 'DELETE' => 10],
+        // Auditoria 2026-10-16 — 7 rotas que faltavam:
+        'filter-exchanges'     => ['POST' => 10, 'PATCH' => 10, 'DELETE' => 10],
+        'pending-tickets'      => ['POST' => 10, 'PATCH' => 10, 'DELETE' => 10],
+        'preventiva'           => ['POST' => 10, 'DELETE' => 10],
+        'equipment-prices'     => ['POST' => 10, 'PUT' => 10, 'DELETE' => 10],
+        'pdf-audit'            => ['POST' => 5],
+        'preditiva-parse'      => ['POST' => 5],
+        'notify'               => ['GET' => 5],
     ];
 
     public function handle(string $route, string $method): void
