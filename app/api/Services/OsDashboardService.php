@@ -140,12 +140,7 @@ class OsDashboardService
                 if ($firstDate === null || $data < $firstDate) {
                     $firstDate = $data;
                 }
-                $activeCount = &$dailyActive[$data] ?? null;
-                if ($activeCount === null) {
-                    $dailyActive[$data] = 1;
-                } else {
-                    $dailyActive[$data]++;
-                }
+                $dailyActive[$data] = ($dailyActive[$data] ?? 0) + 1;
 
                 if ($isCompleted && $dataConcluido !== null && $dataConcluido !== '') {
                     $dailyActive[$dataConcluido] = ($dailyActive[$dataConcluido] ?? 0) - 1;
