@@ -459,7 +459,7 @@ export function obsDisplayHtml(value) {
 export function refreshPendingObs(wrap, value) {
   var raw = pendingValueRaw(value);
   wrap.removeAttribute('data-prev-raw');
-  wrap.innerHTML = '<span class="obs-value text-slate-700" data-raw="' + escapeHtml(raw) + '">' + obsDisplayHtml(value) + '</span>'
+  wrap.innerHTML = '<span class="obs-value text-slate-700 break-words flex-1 min-w-0" data-raw="' + escapeHtml(raw) + '">' + obsDisplayHtml(value) + '</span>'
     + pendingEditBtn('obs');
 }
 
@@ -469,8 +469,8 @@ export function enterPendingObsEdit(wrap) {
   var raw = valueEl ? valueEl.getAttribute('data-raw') : '';
   wrap.setAttribute('data-prev-raw', raw);
   wrap.innerHTML = '<textarea rows="3" class="pending-edit-input obs-input flex-1 min-w-0 px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 resize-y" placeholder="Observa\u00e7\u00e3o">' + escapeHtml(raw) + '</textarea>'
-    + '<button type="button" class="pending-save ml-1 px-1.5 py-1 rounded-lg bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
-    + '<button type="button" class="pending-cancel ml-1 px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+    + '<button type="button" class="pending-save ml-1 px-1.5 py-1 rounded-lg bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 shrink-0" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
+    + '<button type="button" class="pending-cancel ml-1 px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 shrink-0" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
 }
 
 export async function savePendingObs(wrap) {
@@ -662,9 +662,9 @@ export function renderPendingTable(list, append) {
 
     html += '<tr class="pending-details hidden" data-detail-for="' + item.id + '">'
       + '<td colspan="' + pendingColspan() + '" class="px-3 py-2.5 bg-slate-50">'
-      + '<div class="text-sm"><span class="text-slate-500">Observa\u00e7\u00e3o:</span> '
-      + '<span class="obs-wrap flex items-center gap-1" data-obs-for="' + item.id + '">'
-      + '<span class="obs-value text-slate-700" data-raw="' + escapeHtml(item.obs || '') + '">' + obsDisplayHtml(item.obs) + '</span>'
+      + '<div class="text-sm sticky left-3 max-w-2xl"><span class="text-slate-500 font-medium">Observa\u00e7\u00e3o:</span> '
+      + '<span class="obs-wrap flex items-start gap-1.5 mt-1" data-obs-for="' + item.id + '">'
+      + '<span class="obs-value text-slate-700 break-words flex-1 min-w-0" data-raw="' + escapeHtml(item.obs || '') + '">' + obsDisplayHtml(item.obs) + '</span>'
       + pendingEditBtn('obs')
       + '</span></div>'
       + '</td></tr>';
