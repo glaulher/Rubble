@@ -222,7 +222,7 @@ describe("diario/list.js unit & integration", function () {
     expect(globalThis.formatEquipamentoDisplay('N/A', null)).toBe('-');
   });
 
-  it("extracts unique sites, localidades and prioritizes equipments for site", function () {
+  it("extracts unique sites, localidades and strictly filters equipments for site", function () {
     (0, eval)(mockInfiniteScroll);
     evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
 
@@ -236,14 +236,22 @@ describe("diario/list.js unit & integration", function () {
     expect(sites).toEqual(['BMA', 'VIX']);
 
     const localidades = globalThis.getDiarioLocalidades(mockEquipments, 'BMA');
-    expect(localidades[0]).toBe('Container 1');
-    expect(localidades[1]).toBe('Container 2');
-    expect(localidades[2]).toBe('Sala Técnica');
+    expect(localidades).toEqual(['Container 1', 'Container 2']);
 
     const equipmentsForBma = globalThis.getDiarioEquipmentsForSite(mockEquipments, 'BMA');
-    expect(equipmentsForBma[0].local).toBe('BMA');
-    expect(equipmentsForBma[1].local).toBe('BMA');
-    expect(equipmentsForBma[2].local).toBe('VIX');
+    expect(equipmentsForBma.length).toBe(2);
+    expect(equipmentsForBma[0].equipamento).toBe('WM 01');
+    expect(equipmentsForBma[1].equipamento).toBe('AC 01');
+
+    // Without site, returns all
+    const allEquipments = globalThis.getDiarioEquipmentsForSite(mockEquipments, null);
+    expect(allEquipments.length).toBe(3);
+
+    // formatPvEquipmentLabel formats like PV without site name
+    expect(globalThis.formatPvEquipmentLabel('WM 01', '5.0', 'Container 1')).toBe('WM 01 \u2014 5 TR - Container 1');
+    expect(globalThis.formatPvEquipmentLabel('WM 01', '5.0', null)).toBe('WM 01 \u2014 5 TR');
+    expect(globalThis.formatPvEquipmentLabel('WM 01', null, 'Container 1')).toBe('WM 01 \u2014 Container 1');
+    expect(globalThis.formatPvEquipmentLabel('WM 01', null, null)).toBe('WM 01');
   });
 
   it("enters inline edit for site, equipamento_id and localidade with autocomplete wrap", function () {

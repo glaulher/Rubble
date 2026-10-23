@@ -254,6 +254,20 @@ export function getDiarioSites(equipments) {
   return Array.from(set).sort(function (a, b) { return a.localeCompare(b); });
 }
 
+export function formatPvEquipmentLabel(equipamento, capacidade, localidade) {
+  var parts = [];
+  if (capacidade !== null && capacidade !== undefined && capacidade !== '') {
+    var cap = parseFloat(capacidade);
+    if (!isNaN(cap)) {
+      parts.push(cap + ' TR');
+    }
+  }
+  if (localidade && String(localidade).trim() && String(localidade).trim() !== '-' && String(localidade).trim().toUpperCase() !== 'N/A') {
+    parts.push(String(localidade).trim());
+  }
+  return parts.length > 0 ? equipamento + ' \u2014 ' + parts.join(' - ') : equipamento;
+}
+
 export function getDiarioEquipmentsForSite(equipments, currentSite) {
   if (!Array.isArray(equipments)) return [];
   if (!currentSite || currentSite === 'N/A' || currentSite === '-') {
@@ -261,16 +275,13 @@ export function getDiarioEquipmentsForSite(equipments, currentSite) {
   }
   var siteLower = String(currentSite).toLowerCase().trim();
   var matching = [];
-  var others = [];
   for (var i = 0; i < equipments.length; i++) {
     var eq = equipments[i];
     if (eq && eq.local && String(eq.local).toLowerCase().trim() === siteLower) {
       matching.push(eq);
-    } else {
-      others.push(eq);
     }
   }
-  return matching.concat(others);
+  return matching;
 }
 
 export function getDiarioLocalidades(equipments, currentSite) {
@@ -291,6 +302,9 @@ export function getDiarioLocalidades(equipments, currentSite) {
     }
   }
   var list1 = Array.from(siteLocs).sort(function (a, b) { return a.localeCompare(b); });
+  if (siteLower && list1.length > 0) {
+    return list1;
+  }
   var list2 = Array.from(otherLocs)
     .filter(function (l) { return !siteLocs.has(l); })
     .sort(function (a, b) { return a.localeCompare(b); });
@@ -323,17 +337,14 @@ export function initDiarioCellAutocomplete(td, field, item) {
       for (var e = 0; e < rawEquips.length; e++) {
         var eq = rawEquips[e];
         var display = formatEquipamentoDisplay(eq.equipamento, eq.capacidade);
-        var subParts = [];
-        if (eq.localidade) subParts.push(eq.localidade);
-        if (eq.local) subParts.push(eq.local);
-        var sub = subParts.length > 0 ? ' (' + subParts.join(' · ') + ')' : '';
+        var label = formatPvEquipmentLabel(eq.equipamento, eq.capacidade, eq.localidade);
         allOptions.push({
-          label: display + sub,
+          label: label,
           display: display,
           value: eq.id,
           isNa: false,
           eq: eq,
-          search: (eq.equipamento + ' ' + (eq.capacidade || '') + ' ' + (eq.localidade || '') + ' ' + (eq.local || '')).toLowerCase(),
+          search: (eq.equipamento + ' ' + (eq.capacidade || '') + ' ' + (eq.localidade || '')).toLowerCase(),
         });
       }
     }
