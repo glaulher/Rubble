@@ -10,6 +10,7 @@ class DiarioAtividade
     public ?string $site;
     public ?int $equipamentoId;
     public ?string $equipamentoNome;
+    public ?string $equipamentoCapacidade;
     public ?string $localidade;
     public ?string $os;
     public ?string $data;
@@ -31,6 +32,9 @@ class DiarioAtividade
             : null;
         $this->equipamentoNome = isset($data['equipamento_nome']) && $data['equipamento_nome'] !== null
             ? trim((string) $data['equipamento_nome'])
+            : null;
+        $this->equipamentoCapacidade = isset($data['equipamento_capacidade']) && $data['equipamento_capacidade'] !== null && $data['equipamento_capacidade'] !== ''
+            ? (string) (float) $data['equipamento_capacidade']
             : null;
         $this->localidade = isset($data['localidade']) && trim((string) $data['localidade']) !== '' ? trim((string) $data['localidade']) : null;
         $this->os = isset($data['os']) && trim((string) $data['os']) !== '' ? trim((string) $data['os']) : null;
@@ -56,6 +60,7 @@ class DiarioAtividade
             'site' => $this->site,
             'equipamento_id' => $this->equipamentoId,
             'equipamento_nome' => $this->equipamentoNome,
+            'equipamento_capacidade' => $this->equipamentoCapacidade,
             'localidade' => $this->localidade,
             'os' => $this->os,
             'data' => $this->data,

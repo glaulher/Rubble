@@ -30,6 +30,7 @@ var diarioSortBy = 'd.data';
 var diarioSortDir = 'DESC';
 var _diarioItemsById = {};
 var _localsCache = null;
+var _equipmentsCache = null;
 
 export function getDiarioStatusBadgeClass(status) {
   var s = (status || '').toLowerCase().trim();
@@ -54,6 +55,17 @@ export function diarioValueRaw(value) {
   return String(value);
 }
 
+export function formatEquipamentoDisplay(nome, capacidade) {
+  if (!nome || nome === '-' || nome === 'N/A') return '-';
+  if (capacidade !== null && capacidade !== undefined && capacidade !== '') {
+    var cap = parseFloat(capacidade);
+    if (!isNaN(cap)) {
+      return nome + ' \u2014 ' + cap + ' TR';
+    }
+  }
+  return nome;
+}
+
 export function formatDiarioObsDisplay(obs) {
   if (!obs || !obs.trim()) {
     return '<span class="text-slate-400 italic">Adicionar observação...</span>';
@@ -71,7 +83,7 @@ export function renderDiarioRow(item) {
   var user = getUser() || {};
   var canDelete = user.role === 'admin' || (user.id && item.created_by && parseInt(item.created_by, 10) === parseInt(user.id, 10));
 
-  var equipDisplay = item.equipamento_nome || item.equipamento || '-';
+  var equipDisplay = formatEquipamentoDisplay(item.equipamento_nome || item.equipamento, item.equipamento_capacidade);
   var dateDisplay = formatDate(item.data) || '-';
 
   var deleteBtnHtml = canDelete
@@ -216,6 +228,278 @@ export async function loadLocalsList() {
   }
 }
 
+export async function loadDiarioEquipments() {
+  if (_equipmentsCache) return _equipmentsCache;
+  try {
+    var res = await apiFetch('/app/api/index.php?route=equipment&limit=9999');
+    var json = await res.json();
+    _equipmentsCache = json.data || [];
+    return _equipmentsCache;
+  } catch (e) {
+    console.error('Erro ao carregar equipamentos:', e);
+    return [];
+  }
+}
+
+export function getDiarioSites(equipments) {
+  if (!Array.isArray(equipments)) return [];
+  var set = new Set();
+  for (var i = 0; i < equipments.length; i++) {
+    var eq = equipments[i];
+    var s = eq && eq.local ? String(eq.local).trim() : '';
+    if (s && s !== '-' && s.toUpperCase() !== 'N/A') {
+      set.add(s);
+    }
+  }
+  return Array.from(set).sort(function (a, b) { return a.localeCompare(b); });
+}
+
+export function getDiarioEquipmentsForSite(equipments, currentSite) {
+  if (!Array.isArray(equipments)) return [];
+  if (!currentSite || currentSite === 'N/A' || currentSite === '-') {
+    return equipments.slice();
+  }
+  var siteLower = String(currentSite).toLowerCase().trim();
+  var matching = [];
+  var others = [];
+  for (var i = 0; i < equipments.length; i++) {
+    var eq = equipments[i];
+    if (eq && eq.local && String(eq.local).toLowerCase().trim() === siteLower) {
+      matching.push(eq);
+    } else {
+      others.push(eq);
+    }
+  }
+  return matching.concat(others);
+}
+
+export function getDiarioLocalidades(equipments, currentSite) {
+  if (!Array.isArray(equipments)) return [];
+  var siteLower = (currentSite && currentSite !== 'N/A' && currentSite !== '-')
+    ? String(currentSite).toLowerCase().trim()
+    : '';
+  var siteLocs = new Set();
+  var otherLocs = new Set();
+  for (var i = 0; i < equipments.length; i++) {
+    var eq = equipments[i];
+    var loc = eq && eq.localidade ? String(eq.localidade).trim() : '';
+    if (!loc || loc === '-' || loc.toUpperCase() === 'N/A') continue;
+    if (siteLower && eq.local && String(eq.local).toLowerCase().trim() === siteLower) {
+      siteLocs.add(loc);
+    } else {
+      otherLocs.add(loc);
+    }
+  }
+  var list1 = Array.from(siteLocs).sort(function (a, b) { return a.localeCompare(b); });
+  var list2 = Array.from(otherLocs)
+    .filter(function (l) { return !siteLocs.has(l); })
+    .sort(function (a, b) { return a.localeCompare(b); });
+  return list1.concat(list2);
+}
+
+export function initDiarioCellAutocomplete(td, field, item) {
+  var wrap = td.querySelector('.diario-autocomplete-wrap');
+  var input = td.querySelector('.diario-edit-input');
+  var dropdown = td.querySelector('.diario-autocomplete-dropdown');
+  if (!wrap || !input || !dropdown) return;
+
+  function bindWithOptions(equipments) {
+    var allOptions = [];
+    if (field === 'site') {
+      var rawSites = getDiarioSites(equipments);
+      allOptions.push({ label: 'N/A', value: null, isNa: true });
+      for (var s = 0; s < rawSites.length; s++) {
+        allOptions.push({ label: rawSites[s], value: rawSites[s], isNa: false });
+      }
+    } else if (field === 'localidade') {
+      var rawLocs = getDiarioLocalidades(equipments, item.site);
+      allOptions.push({ label: 'N/A', value: null, isNa: true });
+      for (var l = 0; l < rawLocs.length; l++) {
+        allOptions.push({ label: rawLocs[l], value: rawLocs[l], isNa: false });
+      }
+    } else if (field === 'equipamento_id') {
+      var rawEquips = getDiarioEquipmentsForSite(equipments, item.site);
+      allOptions.push({ label: 'N/A', value: null, isNa: true, eq: null });
+      for (var e = 0; e < rawEquips.length; e++) {
+        var eq = rawEquips[e];
+        var display = formatEquipamentoDisplay(eq.equipamento, eq.capacidade);
+        var subParts = [];
+        if (eq.localidade) subParts.push(eq.localidade);
+        if (eq.local) subParts.push(eq.local);
+        var sub = subParts.length > 0 ? ' (' + subParts.join(' · ') + ')' : '';
+        allOptions.push({
+          label: display + sub,
+          display: display,
+          value: eq.id,
+          isNa: false,
+          eq: eq,
+          search: (eq.equipamento + ' ' + (eq.capacidade || '') + ' ' + (eq.localidade || '') + ' ' + (eq.local || '')).toLowerCase(),
+        });
+      }
+    }
+
+    var activeIndex = -1;
+    var currentFiltered = [];
+
+    function filterOptions(q) {
+      var query = (q || '').toLowerCase().trim();
+      if (!query) {
+        return allOptions.slice(0, 60);
+      }
+      var res = [];
+      if ('n/a'.includes(query) || 'na'.includes(query)) {
+        res.push(allOptions[0]);
+      }
+      for (var i = 1; i < allOptions.length; i++) {
+        var opt = allOptions[i];
+        var searchText = opt.search || opt.label.toLowerCase();
+        if (searchText.indexOf(query) !== -1) {
+          res.push(opt);
+          if (res.length >= 60) break;
+        }
+      }
+      if (res.length === 0 && 'n/a'.startsWith(query)) {
+        res.push(allOptions[0]);
+      }
+      return res;
+    }
+
+    function renderDropdown() {
+      dropdown.innerHTML = '';
+      if (currentFiltered.length === 0) {
+        dropdown.classList.add('hidden');
+        return;
+      }
+      dropdown.classList.remove('hidden');
+
+      for (var i = 0; i < currentFiltered.length; i++) {
+        var opt = currentFiltered[i];
+        var div = document.createElement('div');
+        div.className = 'diario-autocomplete-item px-3 py-1.5 text-xs cursor-pointer select-none '
+          + (i === activeIndex
+              ? 'bg-sky-100 text-sky-900 font-medium dark:bg-sky-950/70 dark:text-sky-200'
+              : (opt.isNa ? 'text-amber-600 dark:text-amber-400 font-medium hover:bg-slate-100 dark:hover:bg-slate-700/60' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60'));
+        div.textContent = opt.label;
+        div.dataset.index = String(i);
+
+        (function (optionItem, idx) {
+          div.addEventListener('mouseenter', function () {
+            activeIndex = idx;
+            updateActiveItemHighlight();
+          });
+          div.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            selectOption(optionItem);
+          });
+        })(opt, i);
+
+        dropdown.appendChild(div);
+      }
+      scrollActiveIntoView();
+    }
+
+    function updateActiveItemHighlight() {
+      var items = dropdown.children;
+      for (var j = 0; j < items.length; j++) {
+        var it = items[j];
+        var isAct = j === activeIndex;
+        var opt = currentFiltered[j];
+        it.className = 'diario-autocomplete-item px-3 py-1.5 text-xs cursor-pointer select-none '
+          + (isAct
+              ? 'bg-sky-100 text-sky-900 font-medium dark:bg-sky-950/70 dark:text-sky-200'
+              : (opt && opt.isNa ? 'text-amber-600 dark:text-amber-400 font-medium hover:bg-slate-100 dark:hover:bg-slate-700/60' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/60'));
+      }
+    }
+
+    function scrollActiveIntoView() {
+      if (activeIndex >= 0 && dropdown.children[activeIndex]) {
+        dropdown.children[activeIndex].scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    function selectOption(opt) {
+      if (opt.isNa) {
+        input.value = 'N/A';
+        if (field === 'equipamento_id') {
+          input.dataset.selectedId = '';
+          input.dataset.selectedEq = '';
+        }
+      } else if (field === 'equipamento_id') {
+        input.value = opt.display || opt.label;
+        input.dataset.selectedId = String(opt.value);
+        input.dataset.selectedEq = JSON.stringify(opt.eq);
+      } else {
+        input.value = opt.value;
+      }
+      dropdown.classList.add('hidden');
+      saveDiarioField(td);
+    }
+
+    input.addEventListener('focus', function () {
+      currentFiltered = filterOptions(input.value);
+      activeIndex = -1;
+      renderDropdown();
+    });
+
+    input.addEventListener('input', function () {
+      if (field === 'equipamento_id') {
+        input.dataset.selectedId = '';
+        input.dataset.selectedEq = '';
+      }
+      currentFiltered = filterOptions(input.value);
+      activeIndex = -1;
+      renderDropdown();
+    });
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (dropdown.classList.contains('hidden')) {
+          currentFiltered = filterOptions(input.value);
+          renderDropdown();
+        }
+        activeIndex = Math.min(activeIndex + 1, currentFiltered.length - 1);
+        updateActiveItemHighlight();
+        scrollActiveIntoView();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (dropdown.classList.contains('hidden')) {
+          currentFiltered = filterOptions(input.value);
+          renderDropdown();
+        }
+        activeIndex = Math.max(activeIndex - 1, 0);
+        updateActiveItemHighlight();
+        scrollActiveIntoView();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!dropdown.classList.contains('hidden') && activeIndex >= 0 && currentFiltered[activeIndex]) {
+          selectOption(currentFiltered[activeIndex]);
+        } else {
+          dropdown.classList.add('hidden');
+          saveDiarioField(td);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        dropdown.classList.add('hidden');
+        cancelDiarioEdit(td);
+      }
+    });
+  }
+
+  if (_equipmentsCache) {
+    bindWithOptions(_equipmentsCache);
+  } else {
+    loadDiarioEquipments().then(bindWithOptions).catch(function (err) {
+      console.error('Erro ao carregar equipamentos para autocomplete:', err);
+      bindWithOptions([]);
+    });
+  }
+}
+
 export function enterDiarioEdit(td, field) {
   if (td.querySelector('.diario-edit-input')) return;
   var tr = td.closest('tr');
@@ -229,23 +513,52 @@ export function enterDiarioEdit(td, field) {
 
   var inputHtml = '';
   if (field === 'categoria') {
-    inputHtml = '<select class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800">';
+    inputHtml = '<select class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">';
     DIARIO_CATEGORY_OPTIONS.forEach(function (cat) {
       var sel = raw === cat ? ' selected' : '';
       inputHtml += '<option value="' + cat + '"' + sel + '>' + cat.charAt(0).toUpperCase() + cat.slice(1) + '</option>';
     });
     inputHtml += '</select>';
   } else if (field === 'status') {
-    inputHtml = '<select class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800">';
+    inputHtml = '<select class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100">';
     DIARIO_STATUS_OPTIONS.forEach(function (st) {
       var sel = raw === st ? ' selected' : '';
       inputHtml += '<option value="' + st + '"' + sel + '>' + st + '</option>';
     });
     inputHtml += '</select>';
   } else if (field === 'data') {
-    inputHtml = '<input type="date" class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800" value="' + escapeHtml(raw) + '" />';
+    inputHtml = '<input type="date" class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100" value="' + escapeHtml(raw) + '" />';
+  } else if (field === 'site' || field === 'equipamento_id' || field === 'localidade') {
+    var initialVal = raw;
+    var selectedId = '';
+    var selectedEq = '';
+    if (field === 'equipamento_id') {
+      initialVal = item.equipamento_nome
+        ? formatEquipamentoDisplay(item.equipamento_nome, item.equipamento_capacidade)
+        : (item.equipamento ? formatEquipamentoDisplay(item.equipamento, item.equipamento_capacidade) : '');
+      selectedId = item.equipamento_id ? String(item.equipamento_id) : '';
+    } else {
+      if (initialVal === 'N/A' || initialVal === '-') initialVal = '';
+    }
+
+    var minW = field === 'equipamento_id' ? 'min-w-[240px]' : 'min-w-[150px]';
+
+    td.innerHTML = '<div class="diario-autocomplete-wrap relative flex items-center gap-1 w-full ' + minW + '">'
+      + '<input type="text" class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 w-full" value="' + escapeHtml(initialVal) + '" data-selected-id="' + escapeHtml(selectedId) + '" data-selected-eq="' + escapeHtml(selectedEq) + '" autocomplete="off" placeholder="Selecione ou digite..." />'
+      + '<button type="button" class="diario-save-btn px-1.5 py-1 rounded-lg bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 shrink-0 cursor-pointer" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
+      + '<button type="button" class="diario-cancel-btn px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 shrink-0 cursor-pointer" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>'
+      + '<div class="diario-autocomplete-dropdown absolute left-0 top-full mt-1 w-full ' + (field === 'equipamento_id' ? 'min-w-[260px]' : 'min-w-[180px]') + ' max-h-56 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 hidden"></div>'
+      + '</div>';
+
+    var inputEl = td.querySelector('.diario-edit-input');
+    if (inputEl) {
+      inputEl.focus();
+      if (inputEl.select && typeof inputEl.select === 'function') inputEl.select();
+    }
+    initDiarioCellAutocomplete(td, field, item);
+    return;
   } else {
-    inputHtml = '<input type="text" class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 text-sm bg-white text-slate-800 w-full" value="' + escapeHtml(raw) + '" />';
+    inputHtml = '<input type="text" class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 w-full" value="' + escapeHtml(raw) + '" />';
   }
 
   td.innerHTML = '<div class="flex items-center gap-1">'
@@ -290,10 +603,90 @@ export async function saveDiarioField(td) {
       return;
     }
 
+    if (field === 'equipamento_id') {
+      var selectedId = input.dataset.selectedId;
+      var selectedEqStr = input.dataset.selectedEq;
+      var selectedEq = selectedEqStr ? JSON.parse(selectedEqStr) : null;
+      var equipId = null;
+
+      if (value === '' || value.toUpperCase() === 'N/A' || value === '-') {
+        equipId = null;
+        selectedEq = null;
+      } else if (selectedId) {
+        equipId = parseInt(selectedId, 10);
+        if (!selectedEq && _equipmentsCache) {
+          selectedEq = _equipmentsCache.find(function (e) { return e.id === equipId; });
+        }
+      } else if (_equipmentsCache) {
+        var match = _equipmentsCache.find(function (e) {
+          return e.equipamento.toLowerCase() === value.toLowerCase() ||
+            formatEquipamentoDisplay(e.equipamento, e.capacidade).toLowerCase() === value.toLowerCase();
+        });
+        if (match) {
+          equipId = match.id;
+          selectedEq = match;
+        }
+      }
+
+      var equipUpdateRes = await apiFetch('/app/api/index.php?route=diario', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: parseInt(id, 10), field: 'equipamento_id', value: equipId }),
+      });
+      var equipUpdateResult = await equipUpdateRes.json();
+      if (!equipUpdateResult.success) {
+        showToast(equipUpdateResult.message || 'Erro ao salvar equipamento', 'error');
+        return;
+      }
+
+      item.equipamento_id = equipId;
+      item.equipamento_nome = selectedEq ? selectedEq.equipamento : null;
+      item.equipamento_capacidade = selectedEq && selectedEq.capacidade != null ? String(parseFloat(selectedEq.capacidade)) : null;
+
+      // Smart Cascade (Option 1): auto-fill site and localidade if currently empty/N/A
+      if (selectedEq) {
+        if ((!item.site || item.site === 'N/A' || item.site === '-') && selectedEq.local) {
+          try {
+            await apiFetch('/app/api/index.php?route=diario', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: parseInt(id, 10), field: 'site', value: selectedEq.local }),
+            });
+            item.site = selectedEq.local;
+          } catch (errCascadeSite) {
+            console.error('Erro no cascateamento de site:', errCascadeSite);
+          }
+        }
+        if ((!item.localidade || item.localidade === 'N/A' || item.localidade === '-') && selectedEq.localidade) {
+          try {
+            await apiFetch('/app/api/index.php?route=diario', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: parseInt(id, 10), field: 'localidade', value: selectedEq.localidade }),
+            });
+            item.localidade = selectedEq.localidade;
+          } catch (errCascadeLoc) {
+            console.error('Erro no cascateamento de localidade:', errCascadeLoc);
+          }
+        }
+      }
+
+      refreshDiarioRow(id);
+      showToast('Equipamento atualizado', 'success');
+      return;
+    }
+
+    var normalizedValue = value;
+    if (field === 'site' || field === 'localidade') {
+      if (normalizedValue === '' || normalizedValue.toUpperCase() === 'N/A' || normalizedValue === '-') {
+        normalizedValue = null;
+      }
+    }
+
     var updateRes = await apiFetch('/app/api/index.php?route=diario', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: parseInt(id, 10), field: field, value: value }),
+      body: JSON.stringify({ id: parseInt(id, 10), field: field, value: normalizedValue }),
     });
     var updateResult = await updateRes.json();
     if (!updateResult.success) {
@@ -545,7 +938,7 @@ export async function exportDiarioCsv() {
         var it = allItems[i];
         _addRow([
           sanitizeCSV(it.site || ''),
-          sanitizeCSV(it.equipamento_nome || it.equipamento || ''),
+          sanitizeCSV(formatEquipamentoDisplay(it.equipamento_nome || it.equipamento, it.equipamento_capacidade) === '-' ? '' : formatEquipamentoDisplay(it.equipamento_nome || it.equipamento, it.equipamento_capacidade)),
           sanitizeCSV(it.localidade || ''),
           sanitizeCSV(it.os || ''),
           sanitizeCSV(it.data || ''),
@@ -914,6 +1307,19 @@ export function initDiarioList() {
         + '|' + Array.from(diarioCategoryFilter).sort().join(',')
         + '|' + diarioDateFrom + '|' + diarioDateTo + '|' + diarioSortBy + '|' + diarioSortDir;
     },
+  });
+
+  // Pre-load equipments cache for instant autocomplete
+  loadDiarioEquipments().catch(function () {});
+
+  // Close open autocomplete dropdowns when clicking outside
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.diario-autocomplete-wrap')) {
+      var openDds = document.querySelectorAll('.diario-autocomplete-dropdown:not(.hidden)');
+      for (var d = 0; d < openDds.length; d++) {
+        openDds[d].classList.add('hidden');
+      }
+    }
   });
 
   if (_diarioScroll) _diarioScroll.init();

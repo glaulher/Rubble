@@ -209,6 +209,183 @@ describe("diario/list.js unit & integration", function () {
     expect(tdEquipe.querySelector('.diario-save-btn')).not.toBeNull();
   });
 
+  it("formats equipamento display with capacity in TR or fallback", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    expect(globalThis.formatEquipamentoDisplay('WM 01', '5.00')).toBe('WM 01 \u2014 5 TR');
+    expect(globalThis.formatEquipamentoDisplay('Splitter', 2.5)).toBe('Splitter \u2014 2.5 TR');
+    expect(globalThis.formatEquipamentoDisplay('Chiller', null)).toBe('Chiller');
+    expect(globalThis.formatEquipamentoDisplay('Chiller', '')).toBe('Chiller');
+    expect(globalThis.formatEquipamentoDisplay(null, null)).toBe('-');
+    expect(globalThis.formatEquipamentoDisplay('-', null)).toBe('-');
+    expect(globalThis.formatEquipamentoDisplay('N/A', null)).toBe('-');
+  });
+
+  it("extracts unique sites, localidades and prioritizes equipments for site", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    const mockEquipments = [
+      { id: 1, equipamento: 'WM 01', capacidade: '5.0', local: 'BMA', localidade: 'Container 1' },
+      { id: 2, equipamento: 'WM 02', capacidade: '7.5', local: 'VIX', localidade: 'Sala Técnica' },
+      { id: 3, equipamento: 'AC 01', capacidade: null, local: 'BMA', localidade: 'Container 2' },
+    ];
+
+    const sites = globalThis.getDiarioSites(mockEquipments);
+    expect(sites).toEqual(['BMA', 'VIX']);
+
+    const localidades = globalThis.getDiarioLocalidades(mockEquipments, 'BMA');
+    expect(localidades[0]).toBe('Container 1');
+    expect(localidades[1]).toBe('Container 2');
+    expect(localidades[2]).toBe('Sala Técnica');
+
+    const equipmentsForBma = globalThis.getDiarioEquipmentsForSite(mockEquipments, 'BMA');
+    expect(equipmentsForBma[0].local).toBe('BMA');
+    expect(equipmentsForBma[1].local).toBe('BMA');
+    expect(equipmentsForBma[2].local).toBe('VIX');
+  });
+
+  it("enters inline edit for site, equipamento_id and localidade with autocomplete wrap", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    const row = {
+      id: 1,
+      site: 'BMA',
+      equipamento_id: 1,
+      equipamento_nome: 'WM 01',
+      equipamento_capacidade: '5.0',
+      localidade: 'Container 1',
+    };
+    globalThis.renderDiarioTable([row], false);
+
+    // Site edit
+    const tdSite = document.querySelector('td[data-field="site"]');
+    globalThis.enterDiarioEdit(tdSite, 'site');
+    expect(tdSite.querySelector('.diario-autocomplete-wrap')).not.toBeNull();
+    expect(tdSite.querySelector('.diario-autocomplete-dropdown')).not.toBeNull();
+
+    // Equipamento edit
+    const tdEquip = document.querySelector('td[data-field="equipamento_id"]');
+    globalThis.enterDiarioEdit(tdEquip, 'equipamento_id');
+    expect(tdEquip.querySelector('.diario-autocomplete-wrap')).not.toBeNull();
+    expect(tdEquip.querySelector('.diario-autocomplete-dropdown')).not.toBeNull();
+
+    // Localidade edit
+    const tdLoc = document.querySelector('td[data-field="localidade"]');
+    globalThis.enterDiarioEdit(tdLoc, 'localidade');
+    expect(tdLoc.querySelector('.diario-autocomplete-wrap')).not.toBeNull();
+    expect(tdLoc.querySelector('.diario-autocomplete-dropdown')).not.toBeNull();
+  });
+
+  it("performs smart cascade when selecting equipment on empty site and localidade", async function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    const calls = [];
+    globalThis.apiFetch = function (url, opts) {
+      if (url.includes('route=equipment')) {
+        return Promise.resolve({
+          json: () => Promise.resolve({
+            success: true,
+            data: [
+              { id: 10, equipamento: 'CH 01', capacidade: '10.0', local: 'SPO', localidade: 'Central Gelada' }
+            ]
+          })
+        });
+      }
+      if (opts && opts.method === 'PATCH') {
+        const body = JSON.parse(opts.body);
+        calls.push(body);
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: { id: body.id, field: body.field, value: body.value } })
+        });
+      }
+      return Promise.resolve({
+        json: () => Promise.resolve({ success: true, data: { items: [], total: 0 } })
+      });
+    };
+
+    const row = {
+      id: 42,
+      site: null,
+      equipamento_id: null,
+      equipamento_nome: null,
+      equipamento_capacidade: null,
+      localidade: null,
+    };
+    globalThis.renderDiarioTable([row], false);
+
+    const tdEquip = document.querySelector('td[data-field="equipamento_id"]');
+    globalThis.enterDiarioEdit(tdEquip, 'equipamento_id');
+
+    // Simulate selecting CH 01
+    const input = tdEquip.querySelector('.diario-edit-input');
+    input.dataset.selectedId = '10';
+    input.dataset.selectedEq = JSON.stringify({
+      id: 10,
+      equipamento: 'CH 01',
+      capacidade: '10.0',
+      local: 'SPO',
+      localidade: 'Central Gelada'
+    });
+    input.value = 'CH 01 \u2014 10 TR';
+
+    await globalThis.saveDiarioField(tdEquip);
+
+    // Verify PATCH calls: first equipamento_id, then cascading site, then cascading localidade
+    expect(calls.some(c => c.field === 'equipamento_id' && c.value === 10)).toBe(true);
+    expect(calls.some(c => c.field === 'site' && c.value === 'SPO')).toBe(true);
+    expect(calls.some(c => c.field === 'localidade' && c.value === 'Central Gelada')).toBe(true);
+  });
+
+  it("saves null when selecting N/A for site, equipamento_id or localidade", async function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    const calls = [];
+    globalThis.apiFetch = function (url, opts) {
+      if (opts && opts.method === 'PATCH') {
+        const body = JSON.parse(opts.body);
+        calls.push(body);
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: { id: body.id, field: body.field, value: body.value } })
+        });
+      }
+      return Promise.resolve({
+        json: () => Promise.resolve({ success: true, data: { items: [], total: 0 } })
+      });
+    };
+
+    const row = {
+      id: 55,
+      site: 'BMA',
+      equipamento_id: 1,
+      equipamento_nome: 'WM 01',
+      equipamento_capacidade: '5.0',
+      localidade: 'Container 1',
+    };
+    globalThis.renderDiarioTable([row], false);
+
+    // 1. Equipamento to N/A
+    const tdEquip = document.querySelector('td[data-field="equipamento_id"]');
+    globalThis.enterDiarioEdit(tdEquip, 'equipamento_id');
+    const inputEquip = tdEquip.querySelector('.diario-edit-input');
+    inputEquip.value = 'N/A';
+    inputEquip.dataset.selectedId = '';
+    await globalThis.saveDiarioField(tdEquip);
+    expect(calls.some(c => c.field === 'equipamento_id' && c.value === null)).toBe(true);
+
+    // 2. Site to N/A
+    const tdSite = document.querySelector('td[data-field="site"]');
+    globalThis.enterDiarioEdit(tdSite, 'site');
+    const inputSite = tdSite.querySelector('.diario-edit-input');
+    inputSite.value = 'N/A';
+    await globalThis.saveDiarioField(tdSite);
+    expect(calls.some(c => c.field === 'site' && c.value === null)).toBe(true);
+  });
+
   it("does not re-declare imported identifiers in public/js/diario/list.js", function () {
     const filePath = resolve(__dirname, '../public/js/diario/list.js');
     const content = readFileSync(filePath, 'utf-8');

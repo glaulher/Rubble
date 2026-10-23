@@ -60,7 +60,7 @@ class DiarioRepository extends BaseRepository
         $orderCol = $sortMap[$sortBy] ?? 'd.data';
         $orderDir = strtoupper($sortDir) === 'ASC' ? 'ASC' : 'DESC';
 
-        $sql = "SELECT d.*, e.equipamento AS equipamento_nome, COALESCE(u.nome, u.username) AS created_by_name
+        $sql = "SELECT d.*, e.equipamento AS equipamento_nome, e.capacidade AS equipamento_capacidade, COALESCE(u.nome, u.username) AS created_by_name
                 FROM diario_atividades d
                 LEFT JOIN equipamentos e ON d.equipamento_id = e.id
                 LEFT JOIN usuarios u ON d.created_by = u.id";
@@ -115,7 +115,7 @@ class DiarioRepository extends BaseRepository
     public function findById(int $id): ?DiarioAtividade
     {
         $stmt = $this->safePrepare(
-            "SELECT d.*, e.equipamento AS equipamento_nome, COALESCE(u.nome, u.username) AS created_by_name
+            "SELECT d.*, e.equipamento AS equipamento_nome, e.capacidade AS equipamento_capacidade, COALESCE(u.nome, u.username) AS created_by_name
              FROM diario_atividades d
              LEFT JOIN equipamentos e ON d.equipamento_id = e.id
              LEFT JOIN usuarios u ON d.created_by = u.id

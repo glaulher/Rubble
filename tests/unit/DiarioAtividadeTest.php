@@ -16,6 +16,7 @@ class DiarioAtividadeTest extends TestCase
             'site' => 'BMA',
             'equipamento_id' => 5,
             'equipamento_nome' => 'WM 01',
+            'equipamento_capacidade' => '5.00',
             'localidade' => 'Container 1',
             'os' => 'OS12345',
             'data' => '2026-10-22',
@@ -35,6 +36,7 @@ class DiarioAtividadeTest extends TestCase
         $this->assertSame('BMA', $entity->site);
         $this->assertSame(5, $entity->equipamentoId);
         $this->assertSame('WM 01', $entity->equipamentoNome);
+        $this->assertSame('5', $entity->equipamentoCapacidade);
         $this->assertSame('Container 1', $entity->localidade);
         $this->assertSame('OS12345', $entity->os);
         $this->assertSame('2026-10-22', $entity->data);
@@ -52,6 +54,7 @@ class DiarioAtividadeTest extends TestCase
         $this->assertSame('BMA', $arr['site']);
         $this->assertSame(5, $arr['equipamento_id']);
         $this->assertSame('WM 01', $arr['equipamento_nome']);
+        $this->assertSame('5', $arr['equipamento_capacidade']);
         $this->assertSame('Container 1', $arr['localidade']);
         $this->assertSame('OS12345', $arr['os']);
         $this->assertSame('2026-10-22', $arr['data']);
