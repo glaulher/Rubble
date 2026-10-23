@@ -429,3 +429,15 @@ button:disabled { cursor: not-allowed; }
   margin-top: 0.25rem;
   text-align: center;
 }
+
+/* Diário Autocomplete Dropdown */
+.dark .diario-autocomplete-dropdown {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6) !important;
+}
+
+.dark .diario-autocomplete-dropdown .diario-autocomplete-item:hover {
+  background-color: #334155 !important;
+}

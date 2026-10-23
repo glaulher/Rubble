@@ -341,6 +341,67 @@ export function initDiarioCellAutocomplete(td, field, item) {
     var activeIndex = -1;
     var currentFiltered = [];
 
+    function updateDropdownPosition() {
+      if (dropdown.classList.contains('hidden')) return;
+      if (typeof input.getBoundingClientRect !== 'function') return;
+      var rect = input.getBoundingClientRect();
+      if (!rect || (rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.left === 0)) {
+        dropdown.style.position = 'fixed';
+        dropdown.style.zIndex = '99999';
+        return;
+      }
+
+      var minW = field === 'equipamento_id' ? 320 : 200;
+      var width = Math.max(rect.width, minW);
+
+      var winW = window.innerWidth || (document.documentElement ? document.documentElement.clientWidth : 1024);
+      var left = rect.left;
+      if (left + width > winW - 12) {
+        left = Math.max(12, winW - width - 12);
+      }
+
+      var winH = window.innerHeight || (document.documentElement ? document.documentElement.clientHeight : 768);
+      var spaceBelow = winH - rect.bottom;
+      var spaceAbove = rect.top;
+      var dropdownMaxH = 224;
+
+      dropdown.style.position = 'fixed';
+      dropdown.style.zIndex = '99999';
+      dropdown.style.left = Math.round(left) + 'px';
+      dropdown.style.width = Math.round(width) + 'px';
+
+      if (spaceBelow < dropdownMaxH && spaceAbove > spaceBelow) {
+        var maxH = Math.min(dropdownMaxH, Math.max(80, spaceAbove - 16));
+        dropdown.style.maxHeight = maxH + 'px';
+        var approxH = Math.min(currentFiltered.length * 28 + 8, maxH);
+        var currentH = dropdown.offsetHeight > 0 ? dropdown.offsetHeight : approxH;
+        dropdown.style.top = Math.max(8, Math.round(rect.top - currentH - 4)) + 'px';
+      } else {
+        var maxH = Math.min(dropdownMaxH, Math.max(80, spaceBelow - 16));
+        dropdown.style.maxHeight = maxH + 'px';
+        dropdown.style.top = Math.round(rect.bottom + 4) + 'px';
+      }
+    }
+
+    function onScrollOrResize() {
+      if (dropdown.classList.contains('hidden')) return;
+      if (typeof input.getBoundingClientRect !== 'function') return;
+      var rect = input.getBoundingClientRect();
+      var winH = window.innerHeight || (document.documentElement ? document.documentElement.clientHeight : 768);
+      if (rect.bottom < 0 || rect.top > winH) {
+        dropdown.classList.add('hidden');
+      } else {
+        updateDropdownPosition();
+      }
+    }
+
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true });
+    var scrollContainer = document.getElementById('diarioScrollContainer');
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', onScrollOrResize, { passive: true });
+    }
+
     function filterOptions(q) {
       var query = (q || '').toLowerCase().trim();
       if (!query) {
@@ -395,6 +456,7 @@ export function initDiarioCellAutocomplete(td, field, item) {
 
         dropdown.appendChild(div);
       }
+      updateDropdownPosition();
       scrollActiveIntoView();
     }
 
@@ -547,7 +609,7 @@ export function enterDiarioEdit(td, field) {
       + '<input type="text" class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 w-full" value="' + escapeHtml(initialVal) + '" data-selected-id="' + escapeHtml(selectedId) + '" data-selected-eq="' + escapeHtml(selectedEq) + '" autocomplete="off" placeholder="Selecione ou digite..." />'
       + '<button type="button" class="diario-save-btn px-1.5 py-1 rounded-lg bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 shrink-0 cursor-pointer" title="Salvar" aria-label="Salvar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>'
       + '<button type="button" class="diario-cancel-btn px-1.5 py-1 rounded-lg bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 shrink-0 cursor-pointer" title="Cancelar" aria-label="Cancelar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>'
-      + '<div class="diario-autocomplete-dropdown absolute left-0 top-full mt-1 w-full ' + (field === 'equipamento_id' ? 'min-w-[260px]' : 'min-w-[180px]') + ' max-h-56 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 hidden"></div>'
+      + '<div class="diario-autocomplete-dropdown border border-slate-200 dark:border-slate-700 rounded-lg shadow-2xl bg-white dark:bg-slate-800 overflow-y-auto hidden" style="position: fixed; z-index: 99999;"></div>'
       + '</div>';
 
     var inputEl = td.querySelector('.diario-edit-input');
