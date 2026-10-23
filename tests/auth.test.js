@@ -87,7 +87,11 @@ var applyRoleVisibility = globalThis.applyRoleVisibility;
 describe('auth.js', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    global.window = { location: { hash: '#/' } };
+    if (global.window && typeof global.window.addEventListener === 'function') {
+      global.window.location.hash = '#/';
+    } else {
+      global.window = { location: { hash: '#/' }, addEventListener: () => {} };
+    }
     document.body.innerHTML = `
       <aside id="sidebar" style="display: none;"></aside>
       <div id="userDisplay"></div>

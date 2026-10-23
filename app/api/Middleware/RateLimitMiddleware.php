@@ -25,6 +25,7 @@ class RateLimitMiddleware
         'pdf-audit'            => ['POST' => 5],
         'preditiva-parse'      => ['POST' => 5],
         'notify'               => ['GET' => 5],
+        'diario'               => ['POST' => 10, 'PUT' => 30, 'PATCH' => 30, 'DELETE' => 10],
     ];
 
     public function handle(string $route, string $method): void

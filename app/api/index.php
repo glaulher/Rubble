@@ -13,7 +13,7 @@ use App\Api\Controllers\{
     UploadController, EmailController, ExportController, PdfAuditController,
     PlannedActivityController, PreventivaController, FilterExchangeController,
     PendingTicketsController, PreventivaDashboardController, InventoryController,
-    AdminAuditController, PreditivaParseController
+    AdminAuditController, PreditivaParseController, DiarioController
 };
 Env::load(__DIR__ . '/../../.env');
 
@@ -364,6 +364,45 @@ $router->addRoute('filter-exchanges', 'PATCH', function () use ($auth) {
 });
 $router->addRoute('filter-exchanges', 'DELETE', function () use ($auth) {
     (new FilterExchangeController(null, $auth->getUser()))->delete();
+});
+
+// Diário de Atividades
+$router->addRoute('diario', 'GET', function () use ($auth) {
+    $ctrl = new DiarioController($auth->getUser());
+    $action = $_GET['action'] ?? '';
+    if ($action === 'lookup-os') {
+        $ctrl->lookupOs();
+    } else {
+        $ctrl->listAll();
+    }
+});
+$router->addRoute('diario', 'POST', function () use ($auth) {
+    (new DiarioController($auth->getUser()))->create();
+});
+$router->addRoute('diario', 'PUT', function () use ($auth) {
+    $ctrl = new DiarioController($auth->getUser());
+    $action = $_GET['action'] ?? '';
+    if ($action === 'append-obs') {
+        $ctrl->appendObs();
+    } elseif ($action === 'change-status') {
+        $ctrl->changeStatus();
+    } else {
+        $ctrl->updateField();
+    }
+});
+$router->addRoute('diario', 'PATCH', function () use ($auth) {
+    $ctrl = new DiarioController($auth->getUser());
+    $action = $_GET['action'] ?? '';
+    if ($action === 'append-obs') {
+        $ctrl->appendObs();
+    } elseif ($action === 'change-status') {
+        $ctrl->changeStatus();
+    } else {
+        $ctrl->updateField();
+    }
+});
+$router->addRoute('diario', 'DELETE', function () use ($auth) {
+    (new DiarioController($auth->getUser()))->delete();
 });
 
 // Preventiva

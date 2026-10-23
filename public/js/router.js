@@ -25,8 +25,9 @@ import { initInventoryList } from '/public/js/inventory/list.js';
 import { loadInventoryForm } from '/public/js/inventory/form.js';
 import { initAdminAudit } from '/public/js/admin/audit.js';
 import { initPreditivaParse } from '/public/js/preditiva-parse/preditiva-parse.js';
+import { initDiarioList } from '/public/js/diario/list.js';
 
-const VIEW_VERSION = 46;
+const VIEW_VERSION = 47;
 
 export async function loadPage(url) {
   try {
@@ -187,6 +188,13 @@ export async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/pending-tickets/list.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/diario" || hash === "#diario" || hash.startsWith("#/diario?") || hash.startsWith("#diario?")) {
+    /*
+    |--------------------------------------------------------------------------
+    | DIÁRIO DE ATIVIDADES
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/diario/list.html?v=" + VIEW_VERSION);
   } else if (hash === "#/os-dashboard") {
     /*
     |--------------------------------------------------------------------------
@@ -306,6 +314,8 @@ export async function router() {
       initPlannedSummary();
     } else if (hash === "#/pending-tickets") {
       initPendingTickets();
+    } else if (hash === "#/diario" || hash === "#diario" || hash.startsWith("#/diario?") || hash.startsWith("#diario?")) {
+      initDiarioList();
     } else if (hash === "#/os-dashboard") {
       initOsDashboard();
     } else if (hash === "#/preventiva-dashboard") {

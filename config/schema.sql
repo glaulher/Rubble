@@ -839,6 +839,32 @@ CREATE TABLE IF NOT EXISTS `token_blacklist` (
   INDEX `idx_token_blacklist_expires` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- diario_atividades — Diário de Atividades executadas
+CREATE TABLE IF NOT EXISTS `diario_atividades` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `site` VARCHAR(100) DEFAULT NULL,
+  `equipamento_id` INT DEFAULT NULL,
+  `localidade` VARCHAR(100) DEFAULT NULL,
+  `os` VARCHAR(50) DEFAULT NULL,
+  `data` DATE DEFAULT NULL,
+  `categoria` ENUM('corretiva','preventiva') DEFAULT NULL,
+  `status` VARCHAR(50) DEFAULT NULL,
+  `equipe` VARCHAR(100) DEFAULT NULL,
+  `obs` MEDIUMTEXT DEFAULT NULL,
+  `created_by` INT DEFAULT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT NULL,
+  INDEX `idx_diario_data` (`data`),
+  INDEX `idx_diario_status` (`status`),
+  INDEX `idx_diario_categoria` (`categoria`),
+  INDEX `idx_diario_equipe` (`equipe`),
+  INDEX `idx_diario_site` (`site`),
+  INDEX `idx_diario_os` (`os`),
+  INDEX `idx_diario_created_by` (`created_by`),
+  FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos`(`id`) ON DELETE SET NULL,
+  FOREIGN KEY (`created_by`) REFERENCES `usuarios`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

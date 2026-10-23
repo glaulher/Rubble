@@ -1,0 +1,150 @@
+<div
+  class="min-h-screen dark-gradient"
+  style="background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);"
+>
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-2 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 items-center">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Diário de Atividades</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Registro diário de atividades executadas</p>
+      </div>
+      <div class="text-center self-center">
+        <span class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold">
+          <span id="diarioBadge">0</span>
+          <span class="ml-1">Atividades</span>
+        </span>
+      </div>
+      <div class="flex items-center gap-4 justify-self-end self-start">
+        <button
+          type="button"
+          id="diarioNewBtn"
+          data-role="admin supervisor coordenador gerente"
+          class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-4 py-2 rounded-xl font-semibold transition whitespace-nowrap cursor-pointer"
+        >
+          + Nova linha
+        </button>
+        <input
+          id="diarioSearchInput"
+          type="text"
+          aria-label="Buscar atividades"
+          placeholder="Buscar..."
+          class="px-4 py-1.5 rounded-xl bg-slate-800 border border-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-slate-700 text-blue-200 w-60"
+        />
+        <div class="relative group">
+          <button
+            type="button"
+            id="diarioCsvBtn"
+            data-action="generate-csv"
+            class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-2 py-2 rounded-xl font-semibold transition cursor-pointer"
+          >
+            <svg
+              class="w-6 h-6"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="8" y1="13" x2="16" y2="13" />
+              <line x1="8" y1="17" x2="16" y2="17" />
+              <line x1="8" y1="9" x2="10" y2="9" />
+            </svg>
+          </button>
+          <span
+            class="absolute right-0 top-[54px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+          >
+            Gerar relatório CSV
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="px-6 py-3 flex flex-wrap gap-4 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 mt-4">
+    <div class="flex flex-col shrink-0">
+      <label for="diarioDateFrom" class="text-xs text-slate-500 mb-1">Data Início</label>
+      <input
+        type="date"
+        id="diarioDateFrom"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36"
+      />
+    </div>
+    <div class="flex flex-col shrink-0">
+      <label for="diarioDateTo" class="text-xs text-slate-500 mb-1">Data Fim</label>
+      <input
+        type="date"
+        id="diarioDateTo"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36"
+      />
+    </div>
+    <div class="flex flex-col relative shrink-0" id="diarioCategoryContainer">
+      <label for="diarioCategoryBtn" class="text-xs text-slate-500 mb-1">Categoria</label>
+      <button
+        type="button"
+        id="diarioCategoryBtn"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40 text-left flex items-center justify-between gap-1 cursor-pointer"
+      >
+        <span id="diarioCategoryLabel" class="truncate">Todas</span>
+        <svg class="w-4 h-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div
+        id="diarioCategoryDropdown"
+        class="hidden absolute top-full left-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
+      ></div>
+    </div>
+    <div class="flex flex-col relative shrink-0" id="diarioStatusContainer">
+      <label for="diarioStatusBtn" class="text-xs text-slate-500 mb-1">Status</label>
+      <button
+        type="button"
+        id="diarioStatusBtn"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-44 text-left flex items-center justify-between gap-1 cursor-pointer"
+      >
+        <span id="diarioStatusLabel" class="truncate">Todos</span>
+        <svg class="w-4 h-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div
+        id="diarioStatusDropdown"
+        class="hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
+      ></div>
+    </div>
+  </div>
+
+  <main class="p-6 space-y-6">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <div id="diarioScrollContainer" class="max-h-[70vh] overflow-y-auto">
+          <table id="diarioTable" class="w-full text-left">
+            <thead class="sticky top-0 z-10">
+              <tr class="bg-slate-50 border-b border-slate-200 text-left text-slate-600">
+                <th data-sort="site" data-col="site" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Site <span class="sort-icon text-slate-400"></span></th>
+                <th data-sort="equipamento" data-col="equipamento" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Equipamento <span class="sort-icon text-slate-400"></span></th>
+                <th data-sort="localidade" data-col="localidade" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Localidade <span class="sort-icon text-slate-400"></span></th>
+                <th data-sort="os" data-col="os" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">OS <span class="sort-icon text-slate-400"></span></th>
+                <th data-sort="data" data-col="data" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data <span class="sort-icon text-slate-400"></span></th>
+                <th data-sort="categoria" data-col="categoria" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Categoria <span class="sort-icon text-slate-400"></span></th>
+                <th data-sort="status" data-col="status" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Status <span class="sort-icon text-slate-400"></span></th>
+                <th data-sort="equipe" data-col="equipe" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Equipe <span class="sort-icon text-slate-400"></span></th>
+                <th class="px-3 py-2.5 text-sm font-semibold tracking-wider min-w-[280px]">Observação</th>
+                <th class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap text-center w-16">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="diarioTableBody"></tbody>
+          </table>
+          <div id="diarioSentinel" class="h-10"></div>
+        </div>
+      </div>
+      <div id="diarioEmpty" class="hidden text-center py-20 text-slate-500">
+        <p class="text-lg">Nenhuma atividade registrada.</p>
+      </div>
+    </div>
+  </main>
+</div>
