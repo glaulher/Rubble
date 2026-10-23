@@ -18,13 +18,6 @@ export const DIARIO_CATEGORY_OPTIONS = [
   'corretiva', 'preventiva'
 ];
 
-export function formatDate(dateStr) {
-  if (!dateStr) return '';
-  var parts = String(dateStr).split('-');
-  if (parts.length !== 3) return String(dateStr);
-  return parts[2] + '/' + parts[1] + '/' + parts[0];
-}
-
 var _diarioScroll = null;
 var diarioSearch = '';
 var diarioStatusFilter = new Set();

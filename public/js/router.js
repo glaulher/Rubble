@@ -27,7 +27,7 @@ import { initAdminAudit } from '/public/js/admin/audit.js';
 import { initPreditivaParse } from '/public/js/preditiva-parse/preditiva-parse.js';
 import { initDiarioList } from '/public/js/diario/list.js';
 
-const VIEW_VERSION = 47;
+const VIEW_VERSION = 48;
 
 export async function loadPage(url) {
   try {

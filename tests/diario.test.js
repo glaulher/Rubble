@@ -208,4 +208,19 @@ describe("diario/list.js unit & integration", function () {
     expect(tdEquipe.querySelector('input.diario-edit-input').value).toBe('Carlos / João');
     expect(tdEquipe.querySelector('.diario-save-btn')).not.toBeNull();
   });
+
+  it("does not re-declare imported identifiers in public/js/diario/list.js", function () {
+    const filePath = resolve(__dirname, '../public/js/diario/list.js');
+    const content = readFileSync(filePath, 'utf-8');
+    const importMatches = [...content.matchAll(/^import\s*\{([^}]+)\}/gm)];
+    const importedNames = [];
+    for (const match of importMatches) {
+      const names = match[1].split(',').map(s => s.trim().split(/\s+as\s+/)[0]).filter(Boolean);
+      importedNames.push(...names);
+    }
+    for (const name of importedNames) {
+      const redeclareRegex = new RegExp(`^(?:export\\s+)?(?:function|const|let|var|class)\\s+${name}\\b`, 'm');
+      expect(content).not.toMatch(redeclareRegex);
+    }
+  });
 });
