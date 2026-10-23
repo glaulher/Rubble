@@ -92,7 +92,7 @@ export function renderDiarioRow(item) {
       + '</button>'
     : '<span class="text-slate-300 dark:text-slate-600">-</span>';
 
-  return '<tr class="diario-row border-b border-slate-200 dark:border-slate-700/60 hover:bg-slate-50/50 transition" data-id="' + item.id + '">'
+  return '<tr class="diario-row border-b border-slate-100 hover:bg-slate-100 transition cursor-pointer" data-id="' + item.id + '">'
     + '<td class="px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200" data-field="site">'
       + '<span class="inline-flex items-center gap-1">'
       + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.site)) + '">' + escapeHtml(item.site || '-') + '</span>'
