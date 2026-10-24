@@ -356,7 +356,8 @@ class PlannedActivityService
         if ($replicateSla && $tipo === 'preventiva') {
             $prev = $this->repository->getPreventivaById($id);
             $groupId = !empty($prev['sla_group_id']) ? (int) $prev['sla_group_id'] : $id;
-            $this->repository->updatePreventivaTeamForGroup($groupId, $equipe);
+            $fromDate = !empty($data['from_date']) ? trim($data['from_date']) : ($prev['data_planejada'] ?? null);
+            $this->repository->updatePreventivaTeamForGroup($groupId, $equipe, $fromDate);
         } else {
             $this->repository->updateTeam($id, $tipo, $equipe);
         }

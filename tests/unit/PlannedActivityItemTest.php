@@ -49,6 +49,57 @@ class PlannedActivityItemTest extends TestCase
         $this->assertArrayHasKey('item', $result);
     }
 
+    public function testUpdateTeamReplicateSlaPassesFromDateFromCardDate(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('getPreventivaById')->with(10)->willReturn([
+            'id' => 10,
+            'sla_group_id' => 5,
+            'data_planejada' => '2026-10-25',
+        ]);
+        $repo->expects($this->once())
+            ->method('updatePreventivaTeamForGroup')
+            ->with(5, 'Tech A', '2026-10-25')
+            ->willReturn(true);
+        $repo->method('getItemById')->willReturn(['id' => 10, 'tipo' => 'preventiva', 'equipe' => 'Tech A']);
+
+        $result = $this->createService($repo)->updateTeam([
+            'id' => 10,
+            'tipo' => 'preventiva',
+            'equipe' => 'Tech A',
+            'replicate_sla' => true,
+        ]);
+
+        $this->assertSame('updated', $result['action']);
+        $this->assertTrue($result['replicated']);
+    }
+
+    public function testUpdateTeamReplicateSlaWithExplicitFromDate(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('getPreventivaById')->with(10)->willReturn([
+            'id' => 10,
+            'sla_group_id' => 5,
+            'data_planejada' => '2026-10-25',
+        ]);
+        $repo->expects($this->once())
+            ->method('updatePreventivaTeamForGroup')
+            ->with(5, 'Tech A', '2026-10-26')
+            ->willReturn(true);
+        $repo->method('getItemById')->willReturn(['id' => 10, 'tipo' => 'preventiva', 'equipe' => 'Tech A']);
+
+        $result = $this->createService($repo)->updateTeam([
+            'id' => 10,
+            'tipo' => 'preventiva',
+            'equipe' => 'Tech A',
+            'replicate_sla' => true,
+            'from_date' => '2026-10-26',
+        ]);
+
+        $this->assertSame('updated', $result['action']);
+        $this->assertTrue($result['replicated']);
+    }
+
     public function testUpdateObsReturnsFullItem(): void
     {
         $repo = $this->createMockRepo();

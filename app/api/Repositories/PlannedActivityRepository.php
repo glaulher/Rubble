@@ -451,11 +451,17 @@ class PlannedActivityRepository extends BaseRepository
         return $stmt->execute();
     }
 
-    public function updatePreventivaTeamForGroup(int $groupId, string $equipe): bool
+    public function updatePreventivaTeamForGroup(int $groupId, string $equipe, ?string $fromDate = null): bool
     {
-        $sql = "UPDATE atividades_preventivas SET equipe = ? WHERE sla_group_id = ? OR id = ?";
-        $stmt = $this->safePrepare($sql);
-        $stmt->bind_param('sii', $equipe, $groupId, $groupId);
+        if ($fromDate !== null && $fromDate !== '') {
+            $sql = "UPDATE atividades_preventivas SET equipe = ? WHERE (sla_group_id = ? OR id = ?) AND data_planejada >= ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('siis', $equipe, $groupId, $groupId, $fromDate);
+        } else {
+            $sql = "UPDATE atividades_preventivas SET equipe = ? WHERE sla_group_id = ? OR id = ?";
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('sii', $equipe, $groupId, $groupId);
+        }
         return $stmt->execute();
     }
 

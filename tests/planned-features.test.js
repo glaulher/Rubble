@@ -282,6 +282,73 @@ describe("Planned Activity - SLA Reversion & Replication Features", () => {
       expect(document.getElementById('modalConfirmTitle').textContent).toBe('Replicar Técnico');
       expect(document.getElementById('modalConfirmMessage').textContent).toContain('Roberto Lima');
     });
+
+    it("replicates technician only from the current card date forward and does not change previous dates", async () => {
+      document.body.innerHTML += `
+        <div class="planned-card" data-id="101" data-date="2026-10-24" data-sla-days="3" data-sla-day-number="1" data-sla-group-id="101">
+          <span class="team-name-wrap">
+            <strong class="team-name-text">Técnico Anterior</strong>
+            <button class="team-edit-btn" data-id="101" data-tipo="preventiva">Editar</button>
+          </span>
+        </div>
+        <div class="planned-card" data-id="102" data-date="2026-10-25" data-sla-days="3" data-sla-day-number="2" data-sla-group-id="101">
+          <span class="team-name-wrap">
+            <strong class="team-name-text">Técnico Antigo</strong>
+            <button class="team-edit-btn" data-id="102" data-tipo="preventiva">Editar</button>
+          </span>
+        </div>
+        <div class="planned-card" data-id="103" data-date="2026-10-26" data-sla-days="3" data-sla-day-number="3" data-sla-group-id="101">
+          <span class="team-name-wrap">
+            <strong class="team-name-text">Técnico Antigo</strong>
+            <button class="team-edit-btn" data-id="103" data-tipo="preventiva">Editar</button>
+          </span>
+        </div>
+      `;
+
+      const btn = document.querySelector('.planned-card[data-id="102"] .team-edit-btn');
+      startTeamInlineEdit(btn);
+
+      const input = document.querySelector('.planned-card[data-id="102"] .team-edit-input');
+      const strong = document.querySelector('.planned-card[data-id="102"] .team-name-text');
+      input.value = 'Técnico Novo';
+
+      let requestedBody = null;
+      global.fetch = mock((url, opts) => {
+        requestedBody = JSON.parse(opts.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              item: { id: 102, equipe: 'Técnico Novo', tipo: 'preventiva', data_planejada: '2026-10-25' }
+            }
+          })
+        });
+      });
+
+      saveTeamInlineEdit(input, strong);
+
+      // Confirm replication
+      document.getElementById('modalConfirmOk').click();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Assert payload includes from_date
+      expect(requestedBody).not.toBeNull();
+      expect(requestedBody.from_date).toBe('2026-10-25');
+      expect(requestedBody.replicate_sla).toBe(true);
+
+      // Assert card 101 (previous date: 2026-10-24) was NOT modified
+      const card101 = document.querySelector('.planned-card[data-id="101"]');
+      expect(card101.querySelector('.team-name-text').textContent).toBe('Técnico Anterior');
+
+      // Assert card 102 (current date: 2026-10-25) was updated
+      const card102 = document.querySelector('.planned-card[data-id="102"]');
+      expect(card102.querySelector('.team-name-text').textContent).toBe('Técnico Novo');
+
+      // Assert card 103 (future date: 2026-10-26) was updated
+      const card103 = document.querySelector('.planned-card[data-id="103"]');
+      expect(card103.querySelector('.team-name-text').textContent).toBe('Técnico Novo');
+    });
   });
 
   describe("SLA Progress Bar Calculation & Fallback", () => {

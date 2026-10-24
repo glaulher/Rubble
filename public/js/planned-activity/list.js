@@ -231,7 +231,7 @@ export function buildPlannedCardHtml(item) {
     slaProgressHtml = '<div class="mt-2 text-xs sla-progress-container ' + progressColor + '"><div class="flex items-center gap-1.5 mb-1"><svg class="w-3.5 h-3.5 shrink-0 ' + iconColor + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 16l3-3 3 3 5-5"/></svg><span class="sla-progress-text">Progresso SLA: ' + text + '</span></div><div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full transition-all duration-300 sla-progress-bar ' + barColor + '" style="width:' + pct + '%"></div></div></div>';
   }
 
-  var cardDateAttr = tipo === 'corretiva' ? ' data-date="' + safeDate + '"' : '';
+  var cardDateAttr = safeDate ? ' data-date="' + safeDate + '"' : '';
   var cardContentHtml =
     '<div class="flex items-start justify-between gap-3">' +
       '<div class="flex-1 min-w-0">' +
@@ -387,6 +387,7 @@ export function saveTeamInlineEdit(input, strong) {
   var slaDays = card ? parseInt(card.getAttribute('data-sla-days') || '0', 10) : 0;
   var slaDayNum = card ? parseInt(card.getAttribute('data-sla-day-number') || '0', 10) : 0;
   var slaGroupId = card ? (card.getAttribute('data-sla-group-id') || card.getAttribute('data-id')) : null;
+  var cardDate = card ? (card.getAttribute('data-date') || (card.closest('.timeline-group') ? card.closest('.timeline-group').getAttribute('data-date') : '')) : '';
 
   finishTeamEdit(input, strong);
 
@@ -408,27 +409,31 @@ export function saveTeamInlineEdit(input, strong) {
   if (hasSlaGroup) {
     confirmAction(
       'Replicar Técnico',
-      'Deseja replicar o técnico "' + escapeHtml(newValue) + '" para todos os ' + slaDays + ' dias deste SLA?',
+      'Deseja replicar o técnico "' + escapeHtml(newValue) + '" a partir desta data para os próximos dias deste SLA?',
       'Sim, replicar',
       'confirm',
       'Não, apenas este'
     ).then(function (shouldReplicate) {
-      _doSaveTeam(id, tipo, newValue, strong, shouldReplicate, slaGroupId);
+      _doSaveTeam(id, tipo, newValue, strong, shouldReplicate, slaGroupId, cardDate);
     });
   } else {
-    _doSaveTeam(id, tipo, newValue, strong, false, slaGroupId);
+    _doSaveTeam(id, tipo, newValue, strong, false, slaGroupId, cardDate);
   }
 }
 
-function _doSaveTeam(id, tipo, newValue, strong, replicateSla, slaGroupId) {
+function _doSaveTeam(id, tipo, newValue, strong, replicateSla, slaGroupId, cardDate) {
+  var payload = {
+    id: parseInt(id, 10),
+    equipe: newValue,
+    tipo: tipo,
+    replicate_sla: !!replicateSla
+  };
+  if (cardDate) {
+    payload.from_date = cardDate;
+  }
   apiFetch('/app/api/index.php?route=planned-activities', {
     method: 'PUT',
-    body: JSON.stringify({
-      id: parseInt(id, 10),
-      equipe: newValue,
-      tipo: tipo,
-      replicate_sla: !!replicateSla
-    }),
+    body: JSON.stringify(payload),
   })
   .then(function (res) { return res.json(); })
   .then(function (result) {
@@ -441,6 +446,10 @@ function _doSaveTeam(id, tipo, newValue, strong, replicateSla, slaGroupId) {
       if (replicateSla && slaGroupId) {
         var groupSelector = '.planned-card[data-sla-group-id="' + slaGroupId + '"], .planned-card[data-id="' + slaGroupId + '"]';
         document.querySelectorAll(groupSelector).forEach(function (c) {
+          var cDate = c.getAttribute('data-date') || (c.closest('.timeline-group') ? c.closest('.timeline-group').getAttribute('data-date') : '');
+          if (cardDate && cDate && cDate < cardDate) {
+            return;
+          }
           var s = c.querySelector('.team-name-text');
           if (s) s.textContent = newValue;
           var b = c.querySelector('.team-edit-btn');
