@@ -382,12 +382,15 @@ export function saveTeamInlineEdit(input, strong) {
     return;
   }
 
-  // Verifica se existem outros cards do mesmo grupo SLA visíveis na tela
+  // Verifica se pertence a um grupo SLA com múltiplos dias
   var hasSlaGroup = slaDays > 1 && slaGroupId != null;
-  if (hasSlaGroup) {
+  if (!hasSlaGroup && slaGroupId != null) {
     var groupSelector = '.planned-card[data-sla-group-id="' + slaGroupId + '"], .planned-card[data-id="' + slaGroupId + '"]';
     var groupCards = document.querySelectorAll(groupSelector);
-    hasSlaGroup = groupCards.length > 1;
+    if (groupCards.length > 1) {
+      hasSlaGroup = true;
+      if (!slaDays) slaDays = groupCards.length;
+    }
   }
 
   if (hasSlaGroup) {

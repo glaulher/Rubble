@@ -253,6 +253,35 @@ describe("Planned Activity - SLA Reversion & Replication Features", () => {
       const siblingCard = document.querySelector('.planned-card[data-id="21"]');
       expect(siblingCard.querySelector('.team-name-text').textContent).toBe('Carlos Silva');
     });
+
+    it("prompts for SLA replication even when only 1 card of the multi-day SLA is visible on screen (e.g. date filter)", async () => {
+      document.body.innerHTML += `
+        <div class="planned-card" data-id="30" data-sla-days="3" data-sla-day-number="2" data-sla-group-id="25">
+          <span class="team-name-wrap">
+            <strong class="team-name-text">A definir</strong>
+            <button class="team-edit-btn" data-id="30" data-tipo="preventiva">Editar</button>
+          </span>
+        </div>
+      `;
+      const btn = document.querySelector('.planned-card[data-id="30"] .team-edit-btn');
+      startTeamInlineEdit(btn);
+
+      const input = document.querySelector('.planned-card[data-id="30"] .team-edit-input');
+      const strong = document.querySelector('.planned-card[data-id="30"] .team-name-text');
+      input.value = 'Roberto Lima';
+
+      global.fetch = mock(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ success: true, data: { item: { id: 30, equipe: 'Roberto Lima', tipo: 'preventiva' } } })
+      }));
+
+      saveTeamInlineEdit(input, strong);
+
+      const confirmModal = document.getElementById('modalConfirm');
+      expect(confirmModal.classList.contains('hidden')).toBe(false);
+      expect(document.getElementById('modalConfirmTitle').textContent).toBe('Replicar Técnico');
+      expect(document.getElementById('modalConfirmMessage').textContent).toContain('Roberto Lima');
+    });
   });
 
   describe("SLA Progress Bar Calculation & Fallback", () => {
