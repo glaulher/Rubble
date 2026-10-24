@@ -58,10 +58,10 @@ class PlannedActivityService
         return $item;
     }
 
-    public function listAll(int $limit, int $offset, string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null, ?string $tipo = null): array
+    public function listAll(int $limit, int $offset, string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null, ?string $tipo = null, ?string $team = null): array
     {
-        $items = $this->repository->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status, $tipo);
-        $total = $this->repository->count($search, $dateFrom, $dateTo, $status, $tipo);
+        $items = $this->repository->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status, $tipo, $team);
+        $total = $this->repository->count($search, $dateFrom, $dateTo, $status, $tipo, $team);
 
         // Enriquecer preventivas com progresso do SLA (regra de negócio no Service)
         foreach ($items as &$it) {
@@ -591,5 +591,14 @@ class PlannedActivityService
         $this->createSlaCards($id, $slaDates, $tipo, $id);
 
         return ['action' => 'sla_set', 'sla_days' => $slaDays, 'cards_created' => count($slaDates)];
+    }
+
+    /**
+     * Retorna array de equipes (lowercase) designadas no intervalo de datas.
+     * Considera designada: equipe IS NOT NULL AND equipe != '' AND equipe != 'A definir'
+     */
+    public function getAssignedTeams(?string $dateFrom, ?string $dateTo): array
+    {
+        return $this->repository->getAssignedTeams($dateFrom, $dateTo);
     }
 }

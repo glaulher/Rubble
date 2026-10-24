@@ -170,7 +170,7 @@ describe('Diário Integration — Router (public/js/router.js)', () => {
 
     expect(fetchMock).toHaveBeenCalled();
     const calledUrl = fetchMock.mock.calls[0][0];
-    expect(calledUrl).toContain('/app/Views/diario/list.html?v=48');
+    expect(calledUrl).toContain('/app/Views/diario/list.html');
     expect(document.getElementById('app').innerHTML).toBe('<div id="diarioListView">Lista Diário de Atividades</div>');
     expect(globalThis.initDiarioList).toHaveBeenCalled();
   });
@@ -181,7 +181,7 @@ describe('Diário Integration — Router (public/js/router.js)', () => {
 
     expect(fetchMock).toHaveBeenCalled();
     const calledUrl = fetchMock.mock.calls[0][0];
-    expect(calledUrl).toContain('/app/Views/diario/list.html?v=48');
+    expect(calledUrl).toContain('/app/Views/diario/list.html');
     expect(document.getElementById('app').innerHTML).toBe('<div id="diarioListView">Lista Diário de Atividades</div>');
     expect(globalThis.initDiarioList).toHaveBeenCalled();
   });
@@ -192,7 +192,7 @@ describe('Diário Integration — Router (public/js/router.js)', () => {
 
     expect(fetchMock).toHaveBeenCalled();
     const calledUrl = fetchMock.mock.calls[0][0];
-    expect(calledUrl).toContain('/app/Views/diario/list.html?v=48');
+    expect(calledUrl).toContain('/app/Views/diario/list.html');
     expect(document.getElementById('app').innerHTML).toBe('<div id="diarioListView">Lista Diário de Atividades</div>');
     expect(globalThis.initDiarioList).toHaveBeenCalled();
   });

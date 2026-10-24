@@ -1,6 +1,7 @@
 import { showToast } from '/public/js/core/dom.js';
 import { createAutocomplete } from '/public/js/pv/form-autocomplete.js';
 import { loadLocals, getPvLocalOptions } from '/public/js/pv/form-utils.js';
+import { initTeamAutocomplete } from '/public/js/components/team-autocomplete.js';
 
 export async function generateEmergenciaOs() {
   const resp = await fetch(
@@ -55,6 +56,10 @@ export async function loadHomeForm() {
   const form = document.getElementById('ticketForm');
 
   if (!form) return;
+
+  if (typeof initTeamAutocomplete === 'function') {
+    initTeamAutocomplete('#osEquipe', '#osEquipeDropdown');
+  }
 
   /*
   |--------------------------------------------------------------------------

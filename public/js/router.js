@@ -26,8 +26,9 @@ import { loadInventoryForm } from '/public/js/inventory/form.js';
 import { initAdminAudit } from '/public/js/admin/audit.js';
 import { initPreditivaParse } from '/public/js/preditiva-parse/preditiva-parse.js';
 import { initDiarioList } from '/public/js/diario/list.js';
+import { initTeams } from '/public/js/teams/list.js';
 
-const VIEW_VERSION = 48;
+const VIEW_VERSION = 49;
 
 export async function loadPage(url) {
   try {
@@ -256,6 +257,13 @@ export async function router() {
       return;
     }
     html = await loadPage("/app/Views/admin/audit.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/teams" || hash.startsWith("#/teams?")) {
+    /*
+    |--------------------------------------------------------------------------
+    | TEAMS (Equipes)
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/teams/list.html?v=" + VIEW_VERSION);
   } else if (hash === "#/login") {
     html = await loadPage("/app/Views/auth/login.html?v=" + VIEW_VERSION);
   } else {
@@ -332,6 +340,8 @@ export async function router() {
       initInventoryList();
     } else if (hash.startsWith("#/admin-audit") || hash.startsWith("#/administrativo")) {
       initAdminAudit();
+    } else if (hash === "#/teams" || hash.startsWith("#/teams?")) {
+      initTeams();
     } else if (hash === "#/login") {
       initLogin();
     } else {

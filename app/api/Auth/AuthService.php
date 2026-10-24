@@ -104,23 +104,23 @@ class AuthService
 
         $rolePermissions = [
             'supervisor' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'locals', 'notify', 'auth', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory', 'preditiva-parse', 'diario'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'locals', 'notify', 'auth', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory', 'preditiva-parse', 'diario', 'equipes', 'teams'],
                 'write' => ['equipment', 'tickets', 'pending-tickets', 'filter-exchanges', 'inventory', 'preditiva-parse', 'diario'],
             ],
             'coordenador' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory', 'preditiva-parse', 'diario'],
-                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities', 'preventiva', 'pending-tickets', 'filter-exchanges', 'inventory', 'preditiva-parse', 'diario'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory', 'preditiva-parse', 'diario', 'equipes', 'teams'],
+                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities', 'preventiva', 'pending-tickets', 'filter-exchanges', 'inventory', 'preditiva-parse', 'diario', 'equipes', 'teams'],
             ],
             'gerente' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory', 'preditiva-parse', 'diario'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory', 'preditiva-parse', 'diario', 'equipes', 'teams'],
                 'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'planned-activities', 'preventiva', 'pending-tickets', 'filter-exchanges', 'inventory', 'preditiva-parse', 'diario'],
             ],
             'administrativo' => [
-                'read' => ['pdf-audit', 'auth', 'os-dashboard', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'preditiva-parse'],
+                'read' => ['pdf-audit', 'auth', 'os-dashboard', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'preditiva-parse', 'equipes', 'teams'],
                 'write' => ['preditiva-parse'],
             ],
             'cliente' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'locals', 'notify', 'planned-activities', 'pending-tickets', 'filter-exchanges'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'locals', 'notify', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'equipes', 'teams'],
                 'write' => [],
             ],
         ];

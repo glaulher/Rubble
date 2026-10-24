@@ -6,10 +6,10 @@ use App\Api\Entities\Ticket;
 
 class PlannedActivityRepository extends BaseRepository
 {
-    public function listAll(int $limit, int $offset, string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null, ?string $tipo = null): array
+    public function listAll(int $limit, int $offset, string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null, ?string $tipo = null, ?string $team = null): array
     {
-        [$pw, $pp, $pt] = $this->buildPreventivaFilter($search, $dateFrom, $dateTo, $status, $tipo);
-        [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status, $tipo);
+        [$pw, $pp, $pt] = $this->buildPreventivaFilter($search, $dateFrom, $dateTo, $status, $tipo, $team);
+        [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status, $tipo, $team);
 
         $sql = $this->combinedSelect($pw, $cw) . "
             ORDER BY data_planejada DESC, sort_order ASC, id DESC
@@ -93,10 +93,10 @@ class PlannedActivityRepository extends BaseRepository
         ";
     }
 
-    public function count(string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null, ?string $tipo = null): int
+    public function count(string $search, ?string $dateFrom = null, ?string $dateTo = null, ?string $status = null, ?string $tipo = null, ?string $team = null): int
     {
-        [$pw, $pp, $pt] = $this->buildPreventivaFilter($search, $dateFrom, $dateTo, $status, $tipo);
-        [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status, $tipo);
+        [$pw, $pp, $pt] = $this->buildPreventivaFilter($search, $dateFrom, $dateTo, $status, $tipo, $team);
+        [$cw, $cp, $ct] = $this->buildCorretivaFilter($search, $dateFrom, $dateTo, $status, $tipo, $team);
 
         $sql = "
             SELECT COUNT(*) AS total
@@ -124,7 +124,7 @@ class PlannedActivityRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
-    private function buildCorretivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status, ?string $tipo = null): array
+    private function buildCorretivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status, ?string $tipo = null, ?string $team = null): array
     {
         if ($tipo !== null && $tipo !== '' && mb_strtolower($tipo) !== 'corretiva') {
             return ['1 = 0', [], ''];
@@ -149,6 +149,11 @@ class PlannedActivityRepository extends BaseRepository
             $params[] = mb_strtolower($status);
             $types .= 's';
         }
+        if ($team !== null && $team !== '') {
+            $where .= ' AND LOWER(r.equipe) = ?';
+            $params[] = mb_strtolower($team);
+            $types .= 's';
+        }
 
         $search = $this->normalizeDateSearch($search);
         if ($search !== '') {
@@ -168,7 +173,7 @@ class PlannedActivityRepository extends BaseRepository
         return [$where, $params, $types];
     }
 
-    private function buildPreventivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status, ?string $tipo = null): array
+    private function buildPreventivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status, ?string $tipo = null, ?string $team = null): array
     {
         if ($tipo !== null && $tipo !== '' && mb_strtolower($tipo) !== 'preventiva') {
             return ['1 = 0', [], ''];
@@ -191,6 +196,11 @@ class PlannedActivityRepository extends BaseRepository
         if ($status !== null && $status !== '') {
             $where .= ' AND LOWER(ap.status) = ?';
             $params[] = mb_strtolower($status);
+            $types .= 's';
+        }
+        if ($team !== null && $team !== '') {
+            $where .= ' AND LOWER(ap.equipe) = ?';
+            $params[] = mb_strtolower($team);
             $types .= 's';
         }
 
@@ -666,5 +676,74 @@ class PlannedActivityRepository extends BaseRepository
             $stmt->bind_param('iis', $dayNum, $parentId, $data);
         }
         $stmt->execute();
+    }
+
+    /**
+     * Retorna array de equipes designadas (mb_strtolower) no intervalo de datas.
+     * Corretivas: planejamento_datas JOIN registros; Preventivas: atividades_preventivas.data_planejada.
+     * Considera designada: equipe não nulo, não vazio e diferente de 'A definir'.
+     */
+    public function getAssignedTeams(?string $dateFrom, ?string $dateTo): array
+    {
+        $teams = [];
+
+        // Corretivas
+        $whereCorretiva = "r.equipe IS NOT NULL AND r.equipe != '' AND LOWER(r.equipe) != 'a definir'";
+        $paramsCorretiva = [];
+        $typesCorretiva  = '';
+        if ($dateFrom) {
+            $whereCorretiva .= ' AND pd.data_planejada >= ?';
+            $typesCorretiva  .= 's';
+            $paramsCorretiva[] = $dateFrom;
+        }
+        if ($dateTo) {
+            $whereCorretiva .= ' AND pd.data_planejada <= ?';
+            $typesCorretiva  .= 's';
+            $paramsCorretiva[] = $dateTo;
+        }
+        $sqlCorretiva = "SELECT DISTINCT LOWER(r.equipe) AS equipe
+                         FROM planejamento_datas pd
+                         JOIN registros r ON r.id = pd.registro_id
+                         WHERE $whereCorretiva";
+        $stmt = $this->safePrepare($sqlCorretiva);
+        if ($typesCorretiva) {
+            $stmt->bind_param($typesCorretiva, ...$paramsCorretiva);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $teams[] = trim($row['equipe']);
+        }
+        $stmt->close();
+
+        // Preventivas
+        $wherePreventiva = "ap.equipe IS NOT NULL AND ap.equipe != '' AND LOWER(ap.equipe) != 'a definir'";
+        $paramsPreventiva = [];
+        $typesPreventiva  = '';
+        if ($dateFrom) {
+            $wherePreventiva .= ' AND ap.data_planejada >= ?';
+            $typesPreventiva  .= 's';
+            $paramsPreventiva[] = $dateFrom;
+        }
+        if ($dateTo) {
+            $wherePreventiva .= ' AND ap.data_planejada <= ?';
+            $typesPreventiva  .= 's';
+            $paramsPreventiva[] = $dateTo;
+        }
+        $sqlPreventiva = "SELECT DISTINCT LOWER(ap.equipe) AS equipe
+                          FROM atividades_preventivas ap
+                          WHERE $wherePreventiva";
+        $stmt = $this->safePrepare($sqlPreventiva);
+        if ($typesPreventiva) {
+            $stmt->bind_param($typesPreventiva, ...$paramsPreventiva);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $teams[] = trim($row['equipe']);
+        }
+        $stmt->close();
+
+        return array_values(array_unique($teams));
     }
 }

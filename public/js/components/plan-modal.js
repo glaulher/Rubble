@@ -7,6 +7,7 @@
 import { showToast } from '/public/js/core/dom.js';
 import { apiFetch } from '/public/js/core/auth.js';
 import { createAutocomplete } from '/public/js/pv/form-autocomplete.js';
+import { initTeamAutocomplete } from '/public/js/components/team-autocomplete.js';
 
 export var PlanModal = (function () {
   var _mounted = false;
@@ -156,6 +157,10 @@ export var PlanModal = (function () {
       },
       onBlur: function (o) { o.hide(); },
     });
+
+    if (typeof initTeamAutocomplete === 'function') {
+      initTeamAutocomplete('#planEquipe', '.equipe-dropdown');
+    }
   }
 
   function _mount() {

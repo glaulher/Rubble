@@ -5,12 +5,15 @@ import { showToast, confirmDelete, confirmAction } from '/public/js/core/dom.js'
 import { iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
 import { PlanModal } from '/public/js/components/plan-modal.js';
+import { initTeamAutocomplete, getTeamOptions } from '/public/js/components/team-autocomplete.js';
+import { renderTeamFilterBar } from '/public/js/components/team-filter-bar.js';
 
 let plannedSearch = '';
 let plannedDateFrom = '';
 let plannedDateTo = '';
 let plannedTipoFilter = '';
 let plannedStatusFilter = '';
+let plannedTeamFilter = null;
 let _plannedScroll = null;
 
 const PLANNED_LIMIT = 20;
@@ -323,6 +326,14 @@ export function startTeamInlineEdit(btn) {
 
   strong.style.display = 'none';
   strong.parentNode.insertBefore(input, strong.nextSibling);
+  if (typeof initTeamAutocomplete === 'function') {
+    initTeamAutocomplete(input, null, {
+      onSelect: function (val) {
+        input.value = val;
+        doSave();
+      }
+    });
+  }
   input.focus();
   input.select();
 
@@ -422,6 +433,7 @@ function _doSaveTeam(id, tipo, newValue, strong, replicateSla, slaGroupId) {
         });
       }
       showToast('Equipe atualizada!', 'success');
+      fetchAndRenderTeamBar();
     } else {
       showToast(result && result.message ? result.message : 'Erro ao atualizar equipe.', 'error');
     }
@@ -1106,6 +1118,7 @@ export function setupPlannedScroll() {
       if (plannedTipoFilter) urlParams.set('tipo', plannedTipoFilter);
       if (plannedStatusFilter) urlParams.set('status', plannedStatusFilter);
       if (plannedSearch) urlParams.set('search', plannedSearch);
+      if (plannedTeamFilter) urlParams.set('equipe', plannedTeamFilter);
       return apiFetch('/app/api/index.php?route=planned-activities&' + urlParams.toString(), opts)
         .then(function (r) { return r.json(); })
         .then(function (result) {
@@ -1123,9 +1136,10 @@ export function setupPlannedScroll() {
       window._plannedTotal = state.total;
       var counter = document.getElementById('plannedCounter');
       if (counter) counter.textContent = state.total + ' atividades';
+      fetchAndRenderTeamBar();
     },
     getFilterHash: function () {
-      return plannedDateFrom + '|' + plannedDateTo + '|' + plannedTipoFilter + '|' + plannedStatusFilter + '|' + plannedSearch;
+      return plannedDateFrom + '|' + plannedDateTo + '|' + plannedTipoFilter + '|' + plannedStatusFilter + '|' + plannedSearch + '|' + (plannedTeamFilter || '');
     },
     onError: function (err) {
       console.error('Erro ao carregar atividades:', err);
@@ -1149,6 +1163,7 @@ export function setupPlannedFilters() {
     if (plannedSearch !== newSearch) {
       plannedSearch = newSearch;
     }
+    fetchAndRenderTeamBar();
     resetPlannedState(plannedSearch);
   }
 
@@ -1425,12 +1440,52 @@ export function setupPlannedSearch() {
   });
 }
 
+export async function fetchAndRenderTeamBar() {
+  var container = document.getElementById('plannedTeamFilterBar');
+  if (!container || typeof getTeamOptions !== 'function' || typeof renderTeamFilterBar !== 'function') return;
+
+  try {
+    var dateFrom = plannedDateFrom || '';
+    var dateTo = plannedDateTo || '';
+    var statusUrl = '/app/api/index.php?route=planned-activities&action=teams-status';
+    if (dateFrom) statusUrl += '&date_from=' + encodeURIComponent(dateFrom);
+    if (dateTo) statusUrl += '&date_to=' + encodeURIComponent(dateTo);
+
+    var results = await Promise.all([
+      getTeamOptions(),
+      apiFetch(statusUrl).then(function (r) { return r.json(); }).catch(function () { return { success: false }; })
+    ]);
+
+    var teamList = results[0] || [];
+    var statusRes = results[1] || {};
+
+    var registeredNames = teamList.map(function (t) { return t.nome || t.name; }).filter(Boolean);
+    var assignedList = (statusRes.success && statusRes.data && statusRes.data.assignedTeams)
+      ? statusRes.data.assignedTeams
+      : [];
+
+    renderTeamFilterBar(
+      container,
+      registeredNames,
+      assignedList,
+      function (selectedTeam) {
+        plannedTeamFilter = selectedTeam;
+        resetPlannedState(plannedSearch);
+      },
+      plannedTeamFilter
+    );
+  } catch (err) {
+    console.error('Erro ao renderizar barra de equipes:', err);
+  }
+}
+
 export function initPlannedActivity() {
   plannedSearch = '';
   plannedDateFrom = '';
   plannedDateTo = '';
   plannedTipoFilter = '';
   plannedStatusFilter = '';
+  plannedTeamFilter = null;
   window._plannedTotal = 0;
   var contentEl = document.getElementById('plannedContent');
   if (contentEl) contentEl.innerHTML = '';
@@ -1438,6 +1493,7 @@ export function initPlannedActivity() {
   setupPlannedFilters();
   if (_plannedScroll) _plannedScroll.destroy();
   setupPlannedScroll();
+  fetchAndRenderTeamBar();
 
   var dateFromEl = document.getElementById('plannedDateFrom');
   if (dateFromEl) dateFromEl.value = plannedDateFrom;

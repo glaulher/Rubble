@@ -26,6 +26,8 @@ class RateLimitMiddleware
         'preditiva-parse'      => ['POST' => 5],
         'notify'               => ['GET' => 5],
         'diario'               => ['POST' => 10, 'PUT' => 30, 'PATCH' => 30, 'DELETE' => 10],
+        'teams'                => ['POST' => 10, 'PUT' => 10, 'DELETE' => 10],
+        'equipes'              => ['POST' => 10, 'PUT' => 10, 'DELETE' => 10],
     ];
 
     public function handle(string $route, string $method): void

@@ -30,6 +30,13 @@ export function evalModule(path, extraCode) {
       return m.replace(/^export\s+/, '');
     }
   );
+  importStripped = importStripped.replace(
+    /^export\s+let\s+([A-Za-z_$][\w$]*)/gm,
+    function (m, name) {
+      exported.push(name);
+      return m.replace(/^export\s+/, '');
+    }
+  );
   var bridges = exported
     .map(function (name) { return 'globalThis.' + name + ' = ' + name + ';'; })
     .join('\n');

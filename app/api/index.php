@@ -13,7 +13,7 @@ use App\Api\Controllers\{
     UploadController, EmailController, ExportController, PdfAuditController,
     PlannedActivityController, PreventivaController, FilterExchangeController,
     PendingTicketsController, PreventivaDashboardController, InventoryController,
-    AdminAuditController, PreditivaParseController, DiarioController
+    AdminAuditController, PreditivaParseController, DiarioController, TeamController
 };
 Env::load(__DIR__ . '/../../.env');
 
@@ -276,12 +276,25 @@ $router->addRoute('scm', 'DELETE', function () {
     (new ScmController())->delete();
 });
 
+// Teams
+$router->addRoute('teams', 'GET', fn () => (new TeamController())->listAll());
+$router->addRoute('teams', 'POST', fn () => (new TeamController())->save());
+$router->addRoute('teams', 'PUT', fn () => (new TeamController())->update());
+$router->addRoute('teams', 'DELETE', fn () => (new TeamController())->delete());
+// Backward compatibility alias for equipes
+$router->addRoute('equipes', 'GET', fn () => (new TeamController())->listAll());
+$router->addRoute('equipes', 'POST', fn () => (new TeamController())->save());
+$router->addRoute('equipes', 'PUT', fn () => (new TeamController())->update());
+$router->addRoute('equipes', 'DELETE', fn () => (new TeamController())->delete());
+
 // Planned Activities
 $router->addRoute('planned-activities', 'GET', function () use ($auth) {
     $ctrl = new PlannedActivityController();
     $action = $_GET['action'] ?? '';
     if ($action === 'export-csv') {
         $ctrl->exportCsv();
+    } elseif ($action === 'teams-status') {
+        $ctrl->teamsStatus();
     } else {
         $ctrl->listAll();
     }

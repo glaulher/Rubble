@@ -35,8 +35,9 @@ class PlannedActivityController
             $dateTo = trim($_GET['date_to'] ?? '') ?: null;
             $tipo = trim($_GET['tipo'] ?? '') ?: null;
             $status = trim($_GET['status'] ?? '') ?: null;
+            $team = trim($_GET['equipe'] ?? ($_GET['team'] ?? '')) ?: null;
 
-            $result = $this->service->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status, $tipo);
+            $result = $this->service->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status, $tipo, $team);
 
             Response::success('Atividades listadas com sucesso', [
                 'items' => $result['items'],
@@ -58,8 +59,9 @@ class PlannedActivityController
             $dateTo = trim($_GET['date_to'] ?? '') ?: null;
             $tipo = trim($_GET['tipo'] ?? '') ?: null;
             $status = trim($_GET['status'] ?? '') ?: null;
+            $team = trim($_GET['equipe'] ?? ($_GET['team'] ?? '')) ?: null;
 
-            $result = $this->service->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status, $tipo);
+            $result = $this->service->listAll($limit, $offset, $search, $dateFrom, $dateTo, $status, $tipo, $team);
             $items = $result['items'] ?? [];
 
             header('Content-Type: text/csv; charset=Windows-1252');
@@ -367,6 +369,26 @@ class PlannedActivityController
 
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TEAMS STATUS (indicador de designação para a barra de equipes)
+    |--------------------------------------------------------------------------
+    */
+
+    public function teamsStatus(): void
+    {
+        try {
+            $dateFrom = trim($_GET['date_from'] ?? '') ?: null;
+            $dateTo   = trim($_GET['date_to']   ?? '') ?: null;
+
+            $assignedTeams = $this->service->getAssignedTeams($dateFrom, $dateTo);
+
+            Response::success('Teams status carregado', ['assignedTeams' => $assignedTeams]);
         } catch (\Throwable $e) {
             Response::serverError($e);
         }
