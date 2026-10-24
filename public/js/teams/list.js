@@ -5,7 +5,6 @@ import { invalidateTeamCache } from '/public/js/components/team-autocomplete.js'
 
 let teams = [];
 let teamSearch = '';
-let listenerAttached = false;
 
 export async function initTeams() {
   teamSearch = '';
@@ -81,18 +80,27 @@ function renderTeams() {
 }
 
 function attachListeners() {
-  document.querySelector('[data-action="open-team-modal-create"]')
-    ?.addEventListener('click', () => openModal());
+  const openBtn = document.querySelector('[data-action="open-team-modal-create"]');
+  if (openBtn && !openBtn._listenerAttached) {
+    openBtn._listenerAttached = true;
+    openBtn.addEventListener('click', () => openModal());
+  }
 
-  document.querySelector('[data-action="close-team-modal"]')
-    ?.addEventListener('click', () => closeModal());
+  const closeBtn = document.querySelector('[data-action="close-team-modal"]');
+  if (closeBtn && !closeBtn._listenerAttached) {
+    closeBtn._listenerAttached = true;
+    closeBtn.addEventListener('click', () => closeModal());
+  }
 
-  document.querySelector('[data-action="save-team"]')
-    ?.addEventListener('click', () => saveTeam());
+  const saveBtn = document.querySelector('[data-action="save-team"]');
+  if (saveBtn && !saveBtn._listenerAttached) {
+    saveBtn._listenerAttached = true;
+    saveBtn.addEventListener('click', () => saveTeam());
+  }
 
   const tableBody = document.getElementById('teamTableBody');
-  if (tableBody && !listenerAttached) {
-    listenerAttached = true;
+  if (tableBody && !tableBody._listenerAttached) {
+    tableBody._listenerAttached = true;
     tableBody.addEventListener('click', event => {
       const button = event.target.closest('[data-action]');
       if (!button) return;
@@ -110,7 +118,8 @@ function attachListeners() {
 
 function setupSearch() {
   const searchInput = document.getElementById('teamSearchInput');
-  if (!searchInput) return;
+  if (!searchInput || searchInput._listenerAttached) return;
+  searchInput._listenerAttached = true;
 
   searchInput.addEventListener('click', function () {
     if (this.value !== '') {
