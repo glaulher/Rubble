@@ -76,7 +76,7 @@ export function buildPlannedCardHtml(item) {
   var capacidade = item.capacidade || '';
   var local = item.local || '';
   var localScm = item.local_scm || '';
-  var material = item.material || (tipo === 'preventiva' ? '' : 'Sim');
+  var material = item.material || (tipo === 'corretiva' ? 'Sim' : '');
 
   var capacidadeHtml = capacidade ? '<span class="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded-lg text-xs font-medium">' + escapeHtml(capacidade) + ' TR</span>' : '';
 
@@ -96,7 +96,9 @@ export function buildPlannedCardHtml(item) {
   var statusBadge = plannedStatusBadgeHtml(item.status);
   var tipoBadge = tipo === 'corretiva'
     ? '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-amber-100 text-amber-700">Corretiva</span>'
-    : '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-blue-100 text-blue-700">Preventiva</span>';
+    : tipo === 'adm'
+      ? '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-violet-100 text-violet-700">Adm</span>'
+      : '<span class="inline-block px-2 py-0.5 rounded-lg text-xs font-medium bg-blue-100 text-blue-700">Preventiva</span>';
   var equipe = item.equipe || 'A definir';
 
   var canEdit = false;
@@ -146,6 +148,12 @@ export function buildPlannedCardHtml(item) {
     if (canEdit) {
       extraBtns += iconButtonHtml('delete', 'Excluir atividade', { 'class': 'planned-delete-btn', 'data-id': item.id });
     }
+  } else if (tipo === 'adm') {
+    // Regra de negócio: adm não tem OS/equipamento/SLA — status via modal corretiva, delete remove a atividade inteira
+    extraBtns = iconButtonHtml('edit', 'Alterar status', { 'class': 'planned-corretiva-status-btn', 'data-id': item.id, 'data-status': item.status || 'Pendente', 'data-date': item.data_planejada || '', 'data-tipo': 'adm' });
+    if (canEdit) {
+      extraBtns += iconButtonHtml('delete', 'Excluir atividade', { 'class': 'planned-delete-btn', 'data-id': item.id });
+    }
   } else {
     extraBtns = iconButtonHtml('edit', 'Alterar status', { 'class': 'planned-corretiva-status-btn', 'data-id': item.id, 'data-status': item.status || 'Pendente', 'data-date': item.data_planejada || '' });
     if (!hasSla && canEdit) {
@@ -158,7 +166,11 @@ export function buildPlannedCardHtml(item) {
 
   var headerHtml = '';
 
-  if (tipo === 'preventiva') {
+  if (tipo === 'adm') {
+    headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
+      '<span class="font-semibold text-sm text-slate-800">' + escapeHtml(local) + '</span>' +
+    '</div>';
+  } else if (tipo === 'preventiva') {
     headerHtml = '<div class="flex items-center gap-2 flex-wrap">' +
       '<span class="font-semibold text-sm ' + (mercadoTextColor || 'text-slate-800') + '">' + escapeHtml(local) + '</span>' +
       (item.os ? '<span class="relative group inline-flex text-sm text-slate-600 cursor-pointer hover:text-blue-600 hover:underline transition" data-action="copy-os" data-os="' + escapeHtml(item.os) + '" aria-label="Clique para copiar">Ticket ' + escapeHtml(item.os) + '<span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 origin-top scale-0 group-hover:scale-100 transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Clique para copiar</span></span>' : '') +
@@ -224,7 +236,7 @@ export function buildPlannedCardHtml(item) {
     '<div class="flex items-start justify-between gap-3">' +
       '<div class="flex-1 min-w-0">' +
         headerHtml +
-        (tipo !== 'preventiva' ? localHtml : '') +
+        (tipo === 'corretiva' ? localHtml : '') +
       '</div>' +
       '<div class="flex items-center gap-2 shrink-0">' +
         actionsHtml +
@@ -831,11 +843,13 @@ export function finishObsEdit(textarea, span) {
 
 const CORRETIVA_STATUSES = ['Concluído', 'Pendente', 'Em andamento', 'Planejado', 'Projeto Clean up'];
 
-export function openCorretivaStatusModal(id, currentStatus, currentDate) {
+export function openCorretivaStatusModal(id, currentStatus, currentDate, tipo) {
   var modal = document.getElementById('modalStatusCorretiva');
   if (!modal) return;
   document.getElementById('corretivaStatusId').value = id;
   document.getElementById('corretivaStatusSourceDate').value = currentDate || '';
+  var tipoInput = document.getElementById('corretivaStatusTipo');
+  if (tipoInput) tipoInput.value = tipo || 'corretiva';
 
   var select = document.getElementById('corretivaStatusSelect');
   select.innerHTML = '<option value="">Selecione</option>';
@@ -859,9 +873,11 @@ export function openCorretivaStatusModal(id, currentStatus, currentDate) {
 export function submitCorretivaStatus() {
   var id = parseInt(document.getElementById('corretivaStatusId').value, 10);
   var status = document.getElementById('corretivaStatusSelect').value;
+  var tipoInput = document.getElementById('corretivaStatusTipo');
+  var tipo = tipoInput && tipoInput.value ? tipoInput.value : 'corretiva';
   if (!id || !status) return;
 
-  var payload = { id: id, status: status };
+  var payload = { id: id, status: status, tipo: tipo };
 
   if (status === 'Planejado') {
     var dateInput = document.getElementById('corretivaDataPlanejada');
@@ -1356,12 +1372,13 @@ export function copyPlannedWhatsApp() {
         lines.push('\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501');
 
         groupItems.forEach(function (item) {
+          var itemTipo = item.tipo || 'preventiva';
           var local = item.local || '';
           var localScm = item.local_scm || '';
-          if (local && localScm) {
+          if (local && (localScm || item.localidade) && itemTipo !== 'adm') {
             lines.push('*' + local + ' - ' + localScm + '* \u2014 ' + (item.localidade || ''));
           } else if (local) {
-            lines.push('*' + local + '* \u2014 ' + (item.localidade || ''));
+            lines.push('*' + local + '*');
           }
 
           var equipName;
@@ -1372,13 +1389,16 @@ export function copyPlannedWhatsApp() {
             equipName = item.equipamento || 'N/A';
           }
           var cap = item.capacidade || '';
-          var itemTipo = item.tipo || 'preventiva';
-          var tipoLabel = itemTipo === 'corretiva' ? 'Corretiva' : 'Preventiva';
-          var osLabel = itemTipo === 'corretiva' ? '*OS*' : '*Ticket*';
-          var equipLine = osLabel + ' ' + (item.os || '') + ' | ' + equipName;
-          if (cap) equipLine += ' (' + cap + ' TR)';
-          equipLine += ' | *' + tipoLabel + '*';
-          lines.push(equipLine);
+          var tipoLabel = itemTipo === 'corretiva' ? 'Corretiva' : itemTipo === 'adm' ? 'Adm' : 'Preventiva';
+          if (itemTipo === 'adm') {
+            lines.push('*Adm* \u2014 atividade interna');
+          } else {
+            var osLabel = itemTipo === 'corretiva' ? '*OS*' : '*Ticket*';
+            var equipLine = osLabel + ' ' + (item.os || '') + ' | ' + equipName;
+            if (cap) equipLine += ' (' + cap + ' TR)';
+            equipLine += ' | *' + tipoLabel + '*';
+            lines.push(equipLine);
+          }
 
           lines.push('*Equipe:* ' + (item.equipe || 'A definir'));
           lines.push('*Status:* ' + statusIcon(item.status) + ' ' + (item.status || ''));
@@ -1674,7 +1694,8 @@ export function initPlannedActivity() {
         var corrId = parseInt(corretivaStatusBtn.getAttribute('data-id'), 10);
         var corrStatus = corretivaStatusBtn.getAttribute('data-status');
         var corrDate = corretivaStatusBtn.getAttribute('data-date') || '';
-        if (corrId) openCorretivaStatusModal(corrId, corrStatus, corrDate);
+        var corrTipo = corretivaStatusBtn.getAttribute('data-tipo') || 'corretiva';
+        if (corrId) openCorretivaStatusModal(corrId, corrStatus, corrDate, corrTipo);
         return;
       }
 
@@ -2092,7 +2113,7 @@ export function handlePlannedCreated(data) {
 export function deletePlanned(id, tipo, dataPlanejada, slaDayNumber) {
   if (typeof confirmDelete !== 'function') return;
 
-  var route = tipo === 'preventiva'
+  var route = (tipo === 'preventiva' || tipo === 'adm')
     ? '/app/api/index.php?route=preventiva'
     : '/app/api/index.php?route=planned-activities';
 

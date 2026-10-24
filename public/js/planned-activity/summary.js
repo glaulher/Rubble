@@ -26,6 +26,7 @@ var SUMMARY_STATUS_BADGES = {
 var SUMMARY_TIPO_BADGES = {
   'preventiva': 'bg-blue-100 text-blue-700',
   'corretiva':  'bg-amber-100 text-amber-700',
+  'adm':        'bg-violet-100 text-violet-700',
 };
 
 var SUMMARY_CSV_HEADER = ['SITE', 'TECNICO', 'DATA', 'TIPO', 'STATUS'];
@@ -44,6 +45,7 @@ export function summaryFormatTipo(tipo) {
   var t = (tipo || '').toLowerCase().trim();
   if (t === 'preventiva') return 'Preventiva';
   if (t === 'corretiva') return 'Corretiva';
+  if (t === 'adm') return 'Adm';
   return tipo || '-';
 }
 

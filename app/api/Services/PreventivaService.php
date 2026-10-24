@@ -55,8 +55,26 @@ class PreventivaService
         return $item;
     }
 
+    private const ALLOWED_TIPOS = ['preventiva', 'adm'];
+
+    /**
+     * Status do tipo adm = ciclo Corretiva (sem matriz de transição).
+     */
+    private const ALLOWED_ADM_STATUSES = [
+        'Concluído', 'Pendente', 'Em andamento', 'Planejado', 'Projeto Clean up',
+    ];
+
     public function planPreventiva(array $data, array $currentUser): array
     {
+        $tipo = mb_strtolower(trim((string) ($data['tipo'] ?? 'preventiva')));
+        if ($tipo === '') {
+            $tipo = 'preventiva';
+        }
+
+        if (!in_array($tipo, self::ALLOWED_TIPOS, true)) {
+            throw new \RuntimeException('Tipo inválido. Use preventiva ou adm.');
+        }
+
         $site = trim($data['site'] ?? '');
         $dataPlanejada = trim($data['data_planejada'] ?? '');
         $ticket = trim($data['ticket'] ?? '');
@@ -75,6 +93,12 @@ class PreventivaService
             throw new \RuntimeException('Formato de data inválido.');
         }
 
+        // Regra de negócio: preventiva exige site registrado (com equipamentos);
+        // adm aceita texto livre (local interno/logístico).
+        if ($tipo === 'preventiva' && $this->repository->countMachinesForSite($site) === 0) {
+            throw new \RuntimeException('Site inválido. Selecione um site da lista.');
+        }
+
         if ($equipe === '') {
             $equipe = 'A definir';
         }
@@ -90,7 +114,8 @@ class PreventivaService
             ? "[{$now}] {$userName} ({$userRole}):\n{$obs}"
             : '';
 
-        $hasSla = !empty($data['sla_days']) && (int) $data['sla_days'] > 0;
+        // Regra de negócio: adm nunca tem SLA (campos de SLA ignorados)
+        $hasSla = $tipo !== 'adm' && !empty($data['sla_days']) && (int) $data['sla_days'] > 0;
         $includeSat = !empty($data['sla_include_saturday']);
         $includeSun = !empty($data['sla_include_sunday']);
 
@@ -100,6 +125,7 @@ class PreventivaService
             'ticket' => $ticket,
             'equipe' => $equipe,
             'obs' => $auditEntry,
+            'tipo' => $tipo,
         ];
 
         if ($hasSla) {
@@ -162,6 +188,12 @@ class PreventivaService
         }
 
         $statusAtual = $record['status'];
+
+        // Regra de negócio: adm usa o ciclo de status da corretiva, sem matriz de transição
+        if (($record['tipo'] ?? 'preventiva') === 'adm') {
+            return $this->updateAdmStatusWithinPreventiva($id, $novoStatus, $obs, $currentUser, $dataPlanejada, $record);
+        }
+
         $transitions = self::ALLOWED_STATUS_TRANSITIONS[$statusAtual] ?? [];
 
         if (!in_array($novoStatus, $transitions, true)) {
@@ -229,6 +261,36 @@ class PreventivaService
         }
 
         $this->repository->updateStatus($id, $novoStatus, $newObs, $dataPlanejada, $qtdToPersist);
+
+        $record = $this->repository->getById($id);
+        return ['action' => 'status_updated', 'id' => $id, 'status' => $novoStatus, 'obs' => $record['obs'] ?? '', 'item' => $this->enrichItem($this->repository->getPreventivaItemById($id))];
+    }
+
+    private function updateAdmStatusWithinPreventiva(int $id, string $novoStatus, string $obs, array $currentUser, ?string $dataPlanejada, array $record): array
+    {
+        $allowedLower = array_map('mb_strtolower', self::ALLOWED_ADM_STATUSES);
+        $idx = array_search(mb_strtolower($novoStatus), $allowedLower, true);
+        if ($idx === false) {
+            throw new \RuntimeException('Status inválido.');
+        }
+        $novoStatus = self::ALLOWED_ADM_STATUSES[$idx];
+
+        if ($dataPlanejada !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dataPlanejada)) {
+            throw new \RuntimeException('Formato de data inválido.');
+        }
+
+        $userName = $currentUser['nome'] ?? $currentUser['username'] ?? 'Desconhecido';
+        $userRole = $currentUser['role'] ?? '';
+        $now = date('d/m/Y H:i');
+
+        $existingObs = $record['obs'] ?? '';
+        $newEntry = "[{$now}] {$userName} ({$userRole}): Status alterado para '{$novoStatus}'";
+        if ($obs !== '') {
+            $newEntry .= "\n{$obs}";
+        }
+        $newObs = $existingObs !== '' ? $existingObs . "\n\n" . $newEntry : $newEntry;
+
+        $this->repository->updateStatus($id, $novoStatus, $newObs, $dataPlanejada, null);
 
         $record = $this->repository->getById($id);
         return ['action' => 'status_updated', 'id' => $id, 'status' => $novoStatus, 'obs' => $record['obs'] ?? '', 'item' => $this->enrichItem($this->repository->getPreventivaItemById($id))];
@@ -308,7 +370,7 @@ class PreventivaService
         return [
             'action' => 'deleted',
             'id' => $id,
-            'tipo' => 'preventiva',
+            'tipo' => ($record['tipo'] ?? 'preventiva') !== '' ? ($record['tipo'] ?? 'preventiva') : 'preventiva',
             'sla_reconciled' => $slaReconciled,
         ];
     }

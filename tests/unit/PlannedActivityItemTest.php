@@ -183,6 +183,7 @@ class PlannedActivityItemTest extends TestCase
     public function testPreventivaPlanReturnsFullItem(): void
     {
         $repo = $this->createMock(PreventivaRepository::class);
+        $repo->method('countMachinesForSite')->with('RJOEN')->willReturn(4);
         $repo->method('create')->willReturn(12);
         $repo->method('getPreventivaItemById')->with(12)->willReturn(['id' => 12, 'tipo' => 'preventiva', 'status' => 'Planejado']);
 

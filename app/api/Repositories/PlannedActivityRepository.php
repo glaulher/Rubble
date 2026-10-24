@@ -36,7 +36,7 @@ class PlannedActivityRepository extends BaseRepository
 
     public function getItemById(int $id, string $tipo, ?string $dataPlanejada = null): ?array
     {
-        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+        if (!in_array($tipo, ['preventiva', 'corretiva', 'adm'], true)) {
             return null;
         }
 
@@ -67,7 +67,7 @@ class PlannedActivityRepository extends BaseRepository
             SELECT id, local, equipamento, capacidade, local_scm, localidade, os, data_planejada, equipe, status, qtd_executada, obs, tipo, machine_count, sort_order, mercado, sla_days, sla_include_saturday, sla_include_sunday, sla_day_number, sla_group_id, sla_extensions
             FROM (
                 SELECT ap.id, ap.site AS local, '' AS equipamento, '' AS capacidade, '' AS local_scm, '' AS localidade,
-                       ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.qtd_executada, ap.obs, 'preventiva' AS tipo,
+                       ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.qtd_executada, ap.obs, ap.tipo AS tipo,
                        (SELECT COUNT(*) FROM equipamentos WHERE TRIM(local) = TRIM(ap.site)) AS machine_count,
                        ap.sort_order,
                        COALESCE((SELECT e.mercado FROM equipamentos e WHERE TRIM(e.local) = TRIM(ap.site) LIMIT 1), '') AS mercado,
@@ -175,13 +175,19 @@ class PlannedActivityRepository extends BaseRepository
 
     private function buildPreventivaFilter(string $search, ?string $dateFrom, ?string $dateTo, ?string $status, ?string $tipo = null, ?string $team = null): array
     {
-        if ($tipo !== null && $tipo !== '' && mb_strtolower($tipo) !== 'preventiva') {
-            return ['1 = 0', [], ''];
+        if ($tipo !== null && $tipo !== '') {
+            $lower = mb_strtolower($tipo);
+            if (!in_array($lower, ['preventiva', 'adm'], true)) {
+                return ['1 = 0', [], ''];
+            }
+            $where = 'ap.data_planejada IS NOT NULL AND ap.tipo = ?';
+            $params = [$lower];
+            $types = 's';
+        } else {
+            $where = 'ap.data_planejada IS NOT NULL';
+            $params = [];
+            $types = '';
         }
-
-        $where = 'ap.data_planejada IS NOT NULL';
-        $params = [];
-        $types = '';
 
         if ($dateFrom !== null && $dateFrom !== '') {
             $where .= ' AND ap.data_planejada >= ?';
@@ -207,7 +213,7 @@ class PlannedActivityRepository extends BaseRepository
         $search = $this->normalizeDateSearch($search);
         if ($search !== '') {
             $searchTerm = '%' . $search . '%';
-            $where .= ' AND (ap.site LIKE ? OR ap.ticket LIKE ? OR ap.obs LIKE ? OR \'preventiva\' LIKE ?)';
+            $where .= ' AND (ap.site LIKE ? OR ap.ticket LIKE ? OR ap.obs LIKE ? OR ap.tipo LIKE ?)';
             array_push($params, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
             $types .= 'ssss';
         }
@@ -327,9 +333,9 @@ class PlannedActivityRepository extends BaseRepository
     public function createPreventivaSlaCard(int $originalId, string $targetDate, int $slaDayNumber): int
     {
         $sql = "
-            INSERT INTO atividades_preventivas (site, ticket, data_planejada, equipe, status, obs,
+            INSERT INTO atividades_preventivas (site, ticket, data_planejada, equipe, status, obs, tipo,
                 sla_days, sla_include_saturday, sla_include_sunday, sla_day_number, sla_group_id)
-            SELECT site, ticket, ?, equipe, 'Planejado', obs,
+            SELECT site, ticket, ?, equipe, 'Planejado', obs, tipo,
                    sla_days, sla_include_saturday, sla_include_sunday, ?, COALESCE(sla_group_id, id)
             FROM atividades_preventivas
             WHERE id = ?
@@ -438,7 +444,7 @@ class PlannedActivityRepository extends BaseRepository
 
     public function updateTeam(int $id, string $tipo, string $equipe): bool
     {
-        $table = $tipo === 'preventiva' ? 'atividades_preventivas' : 'registros';
+        $table = $tipo === 'corretiva' ? 'registros' : 'atividades_preventivas';
         $sql = "UPDATE {$table} SET equipe = ? WHERE id = ?";
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('si', $equipe, $id);
@@ -455,10 +461,18 @@ class PlannedActivityRepository extends BaseRepository
 
     public function updateObs(int $id, string $tipo, string $obs): bool
     {
-        $table = $tipo === 'preventiva' ? 'atividades_preventivas' : 'registros';
+        $table = $tipo === 'corretiva' ? 'registros' : 'atividades_preventivas';
         $sql = "UPDATE {$table} SET obs = ? WHERE id = ?";
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('si', $obs, $id);
+        return $stmt->execute();
+    }
+
+    public function updateAdmStatus(int $id, string $status): bool
+    {
+        $sql = "UPDATE atividades_preventivas SET status = ? WHERE id = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('si', $status, $id);
         return $stmt->execute();
     }
 
@@ -511,10 +525,11 @@ class PlannedActivityRepository extends BaseRepository
                 $itemTipo = is_array($item) ? ($item['tipo'] ?? 'preventiva') : ($item->tipo ?? 'preventiva');
                 $pos = $position + 1;
                 if ($itemId > 0) {
-                    if ($itemTipo === 'preventiva') {
-                        $prevOrders[$itemId] = $pos;
-                    } else {
+                    if ($itemTipo === 'corretiva') {
                         $corrOrders[$itemId] = $pos;
+                    } else {
+                        // preventiva e adm vivem em atividades_preventivas (ordenadas por data_planejada)
+                        $prevOrders[$itemId] = $pos;
                     }
                 }
             }
@@ -559,7 +574,7 @@ class PlannedActivityRepository extends BaseRepository
             return;
         }
 
-        if ($tipo === 'preventiva') {
+        if ($tipo !== 'corretiva') {
             $caseSql = '';
             $ids = [];
             foreach ($order as $position => $id) {
@@ -596,7 +611,8 @@ class PlannedActivityRepository extends BaseRepository
 
     public function moveDate(int $id, string $tipo, string $sourceDate, string $targetDate): void
     {
-        if ($tipo === 'preventiva') {
+        if ($tipo !== 'corretiva') {
+            // preventiva e adm: data direto na tabela atividades_preventivas
             $sql = "UPDATE atividades_preventivas SET data_planejada = ?, sort_order = 0 WHERE id = ?";
             $stmt = $this->safePrepare($sql);
             $stmt->bind_param('si', $targetDate, $id);
@@ -618,7 +634,7 @@ class PlannedActivityRepository extends BaseRepository
     public function findByDate(string $date): array
     {
         $sql = "
-            SELECT 'preventiva' AS tipo, id, site, ticket AS os, data_planejada, equipe, status, obs
+            SELECT ap.tipo AS tipo, id, site, ticket AS os, data_planejada, equipe, status, obs
             FROM atividades_preventivas
             WHERE data_planejada = ?
             UNION ALL
@@ -641,8 +657,8 @@ class PlannedActivityRepository extends BaseRepository
     public function duplicatePreventivaToDate(int $id, string $targetDate, string $status): int
     {
         $sql = "
-            INSERT INTO atividades_preventivas (site, ticket, data_planejada, equipe, status, obs)
-            SELECT site, ticket, ?, equipe, ?, obs
+            INSERT INTO atividades_preventivas (site, ticket, data_planejada, equipe, status, obs, tipo)
+            SELECT site, ticket, ?, equipe, ?, obs, tipo
             FROM atividades_preventivas
             WHERE id = ?
         ";

@@ -28,8 +28,16 @@ export var PlanModal = (function () {
     var t = _el.tipo ? _el.tipo.value : '';
     var isPreventiva = t === 'preventiva';
     var isCorretiva = t === 'corretiva';
+    var isAdm = t === 'adm';
     if (_el.prevFields) _el.prevFields.classList.toggle('hidden', !isPreventiva);
     if (_el.corrFields) _el.corrFields.classList.toggle('hidden', !isCorretiva);
+    // Regra de negócio: adm não tem SLA
+    if (_el.slaFields) _el.slaFields.classList.toggle('hidden', isAdm);
+    if (_el.site) {
+      _el.site.placeholder = isAdm
+        ? 'Local da atividade Adm (texto livre)'
+        : 'Digite o site...';
+    }
   }
 
   function _reset() {
@@ -42,6 +50,10 @@ export var PlanModal = (function () {
       _el.submitBtn.disabled = false;
       _el.submitBtn.textContent = 'Planejar';
     }
+  }
+
+  function _getTipo() {
+    return _el.tipo ? _el.tipo.value : '';
   }
 
   function _prefillTicket(ticket) {
@@ -133,6 +145,25 @@ export var PlanModal = (function () {
       onSelect: function (item) {
         _loadEquipamentos(item);
       },
+      // Adm = texto livre (não reverte o valor no blur); preventiva/corretiva validam na lista
+      onBlur: function (o) {
+        var val = o.input.value.trim();
+        if (_getTipo() === 'adm') {
+          o.input.value = val;
+          o.setLastValid(val);
+        } else {
+          var options = o.getOptions();
+          if (options.indexOf(val) >= 0) {
+            o.input.value = val;
+            o.setLastValid(val);
+          } else if (!val) {
+            o.setLastValid('');
+          } else {
+            o.input.value = o.lastValid;
+          }
+        }
+        o.hide();
+      },
     });
 
     createAutocomplete({
@@ -185,6 +216,7 @@ export var PlanModal = (function () {
     _el.slaDays = document.getElementById('planSlaDays');
     _el.slaSat = document.getElementById('planSlaSat');
     _el.slaSun = document.getElementById('planSlaSun');
+    _el.slaFields = document.getElementById('planSlaFields');
     _el.cancelBtn = document.getElementById('btnCancelPlan');
     _el.submitBtn = document.querySelector('#planForm button[type="submit"]');
 
@@ -214,12 +246,12 @@ export var PlanModal = (function () {
     if (!_ctx) return;
 
     if (!_el.tipo || !_el.tipo.value) {
-      showToast('Selecione o tipo (Preventiva ou Corretiva).', 'error');
+      showToast('Selecione o tipo (Preventiva, Corretiva ou Adm).', 'error');
       if (_el.tipo) _el.tipo.focus();
       return;
     }
     if (!_el.site || !_el.site.value.trim()) {
-      showToast('Selecione um site.', 'error');
+      showToast(_getTipo() === 'adm' ? 'Informe o local da atividade.' : 'Selecione um site.', 'error');
       if (_el.site) _el.site.focus();
       return;
     }
@@ -230,10 +262,23 @@ export var PlanModal = (function () {
     }
 
     var isPreventiva = _el.tipo.value === 'preventiva';
+    var isAdm = _el.tipo.value === 'adm';
     var route;
     var payload;
 
-    if (isPreventiva) {
+    if (isAdm) {
+      // Regra de negócio: adm = tarefa interna (sem OS, sem equipamento, sem SLA);
+      // grava em atividades_preventivas com tipo='adm' e site de texto livre.
+      route = '/app/api/index.php?route=preventiva';
+      payload = {
+        tipo: 'adm',
+        site: _el.site.value.trim(),
+        data_planejada: _el.data.value,
+        ticket: '',
+        equipe: (_el.equipe ? _el.equipe.value.trim() : '') || 'A definir',
+        obs: (_el.obs ? _el.obs.value.trim() : '') || '',
+      };
+    } else if (isPreventiva) {
       route = '/app/api/index.php?route=preventiva';
       payload = {
         site: _el.site.value.trim(),

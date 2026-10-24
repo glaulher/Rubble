@@ -302,10 +302,13 @@ class PlannedActivityController
 
             $id = (int) $data['id'];
             $status = trim($data['status']);
-            $dataPlanejada = isset($data['data_planejada']) ? trim($data['data_planejada']) : null;
-            $sourceDate = isset($data['source_date']) ? trim($data['source_date']) : null;
+            $dataPlanejada = isset($data['data_planejada']) && $data['data_planejada'] !== '' ? trim($data['data_planejada']) : null;
+            $sourceDate = isset($data['source_date']) && $data['source_date'] !== '' ? trim($data['source_date']) : null;
+            $tipo = trim($data['tipo'] ?? 'corretiva') ?: 'corretiva';
 
-            $result = $this->service->updateCorretivaStatus($id, $status, $dataPlanejada, $sourceDate);
+            $result = $tipo === 'adm'
+                ? $this->service->updateAdmStatus($id, $status, $dataPlanejada, $sourceDate)
+                : $this->service->updateCorretivaStatus($id, $status, $dataPlanejada, $sourceDate);
 
             Cache::invalidateGroup('equipment_list:', 'planned_activities:');
 

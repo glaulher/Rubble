@@ -28,7 +28,7 @@ import { initPreditivaParse } from '/public/js/preditiva-parse/preditiva-parse.j
 import { initDiarioList } from '/public/js/diario/list.js';
 import { initTeams } from '/public/js/teams/list.js';
 
-const VIEW_VERSION = 49;
+const VIEW_VERSION = 50;
 
 export async function loadPage(url) {
   try {

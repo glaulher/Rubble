@@ -695,7 +695,7 @@ CREATE TABLE IF NOT EXISTS `planejamento_datas` (
   KEY `idx_pd_sort_order` (`sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- atividades_preventivas — Atividades preventivas planejadas (migration 039 + 042/043/046)
+-- atividades_preventivas — Atividades preventivas/adm planejadas (migration 039 + 042/043/046/067)
 CREATE TABLE IF NOT EXISTS `atividades_preventivas` (
   `id`                  INT AUTO_INCREMENT PRIMARY KEY,
   `site`                VARCHAR(100) NOT NULL,
@@ -705,6 +705,7 @@ CREATE TABLE IF NOT EXISTS `atividades_preventivas` (
   `status`              VARCHAR(50) NOT NULL DEFAULT 'Planejado',
   `qtd_executada`       INT UNSIGNED NULL,
   `obs`                 TEXT,
+  `tipo`                ENUM('preventiva','adm') NOT NULL DEFAULT 'preventiva',
   `sort_order`          INT NOT NULL DEFAULT 0,
   `sla_days`            INT DEFAULT NULL,
   `sla_include_saturday` TINYINT(1) DEFAULT 0,
@@ -716,6 +717,7 @@ CREATE TABLE IF NOT EXISTS `atividades_preventivas` (
   KEY `idx_ap_site` (`site`),
   KEY `idx_ap_status` (`status`),
   KEY `idx_ap_data_planejada` (`data_planejada`),
+  KEY `idx_ap_tipo` (`tipo`),
   KEY `idx_ap_sla_group` (`sla_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -7,6 +7,7 @@ class PreventivaRepository extends BaseRepository
     public function create(array $data, string $defaultStatus = 'Planejado'): int
     {
         $hasSla = !empty($data['sla_days']) && (int) $data['sla_days'] > 0;
+        $tipo = $data['tipo'] ?? 'preventiva';
 
         if ($hasSla) {
             $slaDays = (int) $data['sla_days'];
@@ -16,19 +17,20 @@ class PreventivaRepository extends BaseRepository
             $groupId = $data['sla_group_id'] ?? null;
             if ($groupId === null) {
                 $sql = "
-                    INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs,
+                    INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs, tipo,
                         sla_days, sla_include_saturday, sla_include_sunday, sla_day_number, sla_group_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
                 ";
                 $stmt = $this->safePrepare($sql);
                 $stmt->bind_param(
-                    'ssssssiiii',
+                    'sssssssiiii',
                     $data['site'],
                     $data['data_planejada'],
                     $data['ticket'],
                     $data['equipe'],
                     $defaultStatus,
                     $data['obs'],
+                    $tipo,
                     $slaDays,
                     $includeSat,
                     $includeSun,
@@ -36,19 +38,20 @@ class PreventivaRepository extends BaseRepository
                 );
             } else {
                 $sql = "
-                    INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs,
+                    INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs, tipo,
                         sla_days, sla_include_saturday, sla_include_sunday, sla_day_number, sla_group_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ";
                 $stmt = $this->safePrepare($sql);
                 $stmt->bind_param(
-                    'ssssssiiiii',
+                    'sssssssiiiii',
                     $data['site'],
                     $data['data_planejada'],
                     $data['ticket'],
                     $data['equipe'],
                     $defaultStatus,
                     $data['obs'],
+                    $tipo,
                     $slaDays,
                     $includeSat,
                     $includeSun,
@@ -58,18 +61,19 @@ class PreventivaRepository extends BaseRepository
             }
         } else {
             $sql = "
-                INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs, tipo)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ";
             $stmt = $this->safePrepare($sql);
             $stmt->bind_param(
-                'ssssss',
+                'sssssss',
                 $data['site'],
                 $data['data_planejada'],
                 $data['ticket'],
                 $data['equipe'],
                 $defaultStatus,
-                $data['obs']
+                $data['obs'],
+                $tipo
             );
         }
         $stmt->execute();
@@ -83,9 +87,9 @@ class PreventivaRepository extends BaseRepository
     public function createSlaCard(int $originalId, string $targetDate, int $slaDayNumber): int
     {
         $sql = "
-            INSERT INTO atividades_preventivas (site, ticket, data_planejada, equipe, status, obs,
+            INSERT INTO atividades_preventivas (site, ticket, data_planejada, equipe, status, obs, tipo,
                 sla_days, sla_include_saturday, sla_include_sunday, sla_day_number, sla_group_id)
-            SELECT site, ticket, ?, equipe, 'Planejado', obs,
+            SELECT site, ticket, ?, equipe, 'Planejado', obs, tipo,
                    sla_days, sla_include_saturday, sla_include_sunday, ?, COALESCE(sla_group_id, id)
             FROM atividades_preventivas
             WHERE id = ?
@@ -185,7 +189,7 @@ class PreventivaRepository extends BaseRepository
     {
         $sql = "
             SELECT ap.id, ap.site AS local, '' AS equipamento, '' AS capacidade, '' AS local_scm, '' AS localidade,
-                   ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.qtd_executada, ap.obs, 'preventiva' AS tipo,
+                   ap.ticket AS os, ap.data_planejada, ap.equipe, ap.status, ap.qtd_executada, ap.obs, ap.tipo AS tipo,
                    (SELECT COUNT(*) FROM equipamentos WHERE TRIM(local) = TRIM(ap.site)) AS machine_count,
                    ap.sort_order,
                    COALESCE((SELECT e.mercado FROM equipamentos e WHERE TRIM(e.local) = TRIM(ap.site) LIMIT 1), '') AS mercado,

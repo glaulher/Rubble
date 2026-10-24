@@ -342,7 +342,7 @@ class PlannedActivityService
         if ($id <= 0) {
             throw new \RuntimeException('ID inválido.');
         }
-        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+        if (!in_array($tipo, ['preventiva', 'corretiva', 'adm'], true)) {
             throw new \RuntimeException('Tipo inválido.');
         }
         if ($equipe === '') {
@@ -373,7 +373,7 @@ class PlannedActivityService
         if ($id <= 0) {
             throw new \RuntimeException('ID inválido.');
         }
-        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+        if (!in_array($tipo, ['preventiva', 'corretiva', 'adm'], true)) {
             throw new \RuntimeException('Tipo inválido.');
         }
         if (mb_strlen($obs) > 1000) {
@@ -422,6 +422,41 @@ class PlannedActivityService
         return ['action' => 'updated', 'id' => $id, 'status' => $cleanStatus, 'item' => $this->getItem($id, 'corretiva', $itemDate)];
     }
 
+    /**
+     * Status do tipo adm (atividades_preventivas): ciclo Corretiva, sem matriz de transição.
+     */
+    public function updateAdmStatus(int $id, string $status, ?string $dataPlanejada = null, ?string $sourceDate = null): array
+    {
+        if ($id <= 0) {
+            throw new \RuntimeException('ID inválido.');
+        }
+
+        $cleanStatus = trim($status);
+
+        $allowedLower = array_map('mb_strtolower', self::ALLOWED_CORRETIVA_STATUSES);
+        $idx = array_search(mb_strtolower($cleanStatus), $allowedLower, true);
+        if ($idx === false) {
+            throw new \RuntimeException('Status inválido.');
+        }
+        $cleanStatus = self::ALLOWED_CORRETIVA_STATUSES[$idx];
+
+        if ($dataPlanejada !== null && $sourceDate !== null && $cleanStatus === 'Planejado') {
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dataPlanejada)) {
+                throw new \RuntimeException('Formato da nova data inválido.');
+            }
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $sourceDate)) {
+                throw new \RuntimeException('Formato da data de origem inválido.');
+            }
+            $this->repository->moveDate($id, 'adm', $sourceDate, $dataPlanejada);
+        }
+
+        $this->repository->updateAdmStatus($id, $cleanStatus);
+
+        $itemDate = $dataPlanejada ?? $sourceDate;
+
+        return ['action' => 'updated', 'id' => $id, 'status' => $cleanStatus, 'item' => $this->getItem($id, 'adm', $itemDate)];
+    }
+
     public function duplicateDay(string $sourceDate, string $targetDate): array
     {
         if ($sourceDate === $targetDate) {
@@ -445,7 +480,8 @@ class PlannedActivityService
         $count = 0;
 
         foreach ($items as $item) {
-            if ($item['tipo'] === 'preventiva') {
+            if ($item['tipo'] !== 'corretiva') {
+                // preventiva e adm: duplica linha na tabela atividades_preventivas (tipo copiado)
                 $this->repository->duplicatePreventivaToDate((int) $item['id'], $targetDate, $status);
             } else {
                 $this->repository->duplicateCorretivaToDate((int) $item['id'], $targetDate, $status, $origin);
@@ -462,7 +498,7 @@ class PlannedActivityService
             throw new \RuntimeException('Ordem inválida.');
         }
 
-        if (!in_array($tipo, ['preventiva', 'corretiva', 'mixed'], true)) {
+        if (!in_array($tipo, ['preventiva', 'corretiva', 'adm', 'mixed'], true)) {
             throw new \RuntimeException('Tipo inválido.');
         }
 
@@ -481,7 +517,7 @@ class PlannedActivityService
             throw new \RuntimeException('ID inválido.');
         }
 
-        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+        if (!in_array($tipo, ['preventiva', 'corretiva', 'adm'], true)) {
             throw new \RuntimeException('Tipo inválido.');
         }
 

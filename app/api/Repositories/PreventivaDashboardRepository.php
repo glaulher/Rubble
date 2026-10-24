@@ -65,7 +65,7 @@ class PreventivaDashboardRepository extends BaseRepository
                 SELECT ap.id, ap.site, ap.ticket, ap.data_planejada, ap.equipe, ap.status, ap.qtd_executada, ap.obs,
                        (SELECT COUNT(*) FROM equipamentos e WHERE e.local = ap.site) AS machine_count
                 FROM atividades_preventivas ap
-                WHERE {$pWhere}
+                WHERE ({$pWhere}) AND ap.tipo = 'preventiva'
 
                 UNION ALL
 
