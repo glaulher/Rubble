@@ -384,6 +384,24 @@ class PlannedActivityServiceTest extends TestCase
         $this->assertSame('reordered', $result['action']);
     }
 
+    public function testReorderSuccessMixed(): void
+    {
+        $items = [
+            ['id' => 3, 'tipo' => 'preventiva'],
+            ['id' => 8, 'tipo' => 'corretiva'],
+            ['id' => 1, 'tipo' => 'preventiva'],
+        ];
+        $repo = $this->createMockRepo();
+        $repo->expects($this->once())
+            ->method('batchUpdateSortOrder')
+            ->with($items, 'mixed', '2026-07-15');
+
+        $service = $this->createService($repo);
+        $result = $service->reorder($items, 'mixed', '2026-07-15');
+
+        $this->assertSame('reordered', $result['action']);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | moveDate() tests

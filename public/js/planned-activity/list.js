@@ -1722,6 +1722,21 @@ export function initPlannedActivity() {
 
     // --- Drag and Drop (reorder + move date) ---
     _dragState = {};
+    var _lastDragTarget = null;
+    var _lastDragPosition = null;
+    var _lastDragGroup = null;
+
+    function _clearDragIndicators() {
+      if (_lastDragTarget) {
+        _lastDragTarget.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+        _lastDragTarget = null;
+      }
+      if (_lastDragGroup) {
+        _lastDragGroup.classList.remove('drag-over');
+        _lastDragGroup = null;
+      }
+      _lastDragPosition = null;
+    }
 
     content.addEventListener('dragstart', function (e) {
       var handle = e.target.closest('.drag-handle');
@@ -1747,9 +1762,13 @@ export function initPlannedActivity() {
     });
 
     content.addEventListener('dragend', function (e) {
-      var wrapper = e.target.closest('.planned-card-wrapper');
-      if (wrapper) wrapper.classList.remove('dragging');
-      document.querySelectorAll('.planned-card-wrapper.drag-over').forEach(function (w) { w.classList.remove('drag-over'); });
+      if (_dragState.card) {
+        _dragState.card.classList.remove('dragging');
+      }
+      _clearDragIndicators();
+      document.querySelectorAll('.planned-card-wrapper.drag-over, .planned-card-wrapper.drag-over-top, .planned-card-wrapper.drag-over-bottom').forEach(function (w) {
+        w.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+      });
       document.querySelectorAll('.timeline-group.drag-over').forEach(function (g) { g.classList.remove('drag-over'); });
       _dragState = {};
     });
@@ -1759,16 +1778,41 @@ export function initPlannedActivity() {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
 
-      // Continuous highlight: clear all, apply to current target only
-      document.querySelectorAll('.planned-card-wrapper.drag-over').forEach(function (w) { w.classList.remove('drag-over'); });
-      document.querySelectorAll('.timeline-group.drag-over').forEach(function (g) { g.classList.remove('drag-over'); });
-
       var wrapper = e.target.closest('.planned-card-wrapper');
       var group = e.target.closest('.timeline-group');
+
       if (wrapper && wrapper !== _dragState.card) {
-        wrapper.classList.add('drag-over');
-      } else if (group && !wrapper) {
-        group.classList.add('drag-over');
+        if (_lastDragGroup) {
+          _lastDragGroup.classList.remove('drag-over');
+          _lastDragGroup = null;
+        }
+
+        var rect = wrapper.getBoundingClientRect();
+        var isBottom = (e.clientY - rect.top) > (rect.height / 2);
+        var newPosition = isBottom ? 'bottom' : 'top';
+
+        if (_lastDragTarget !== wrapper || _lastDragPosition !== newPosition) {
+          if (_lastDragTarget && _lastDragTarget !== wrapper) {
+            _lastDragTarget.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+          }
+          _lastDragTarget = wrapper;
+          _lastDragPosition = newPosition;
+          wrapper.classList.remove('drag-over-top', 'drag-over-bottom');
+          wrapper.classList.add(isBottom ? 'drag-over-bottom' : 'drag-over-top');
+        }
+      } else if (group && (!wrapper || wrapper === _dragState.card)) {
+        if (_lastDragTarget) {
+          _lastDragTarget.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+          _lastDragTarget = null;
+          _lastDragPosition = null;
+        }
+        if (_lastDragGroup !== group) {
+          if (_lastDragGroup) _lastDragGroup.classList.remove('drag-over');
+          _lastDragGroup = group;
+          group.classList.add('drag-over');
+        }
+      } else {
+        _clearDragIndicators();
       }
     });
 
@@ -1778,40 +1822,64 @@ export function initPlannedActivity() {
       var srcId = _dragState.id;
       var srcTipo = _dragState.tipo;
       var srcDate = _dragState.sourceDate;
+      var draggedCard = _dragState.card;
 
-      document.querySelectorAll('.planned-card-wrapper.drag-over').forEach(function (w) { w.classList.remove('drag-over'); });
-      document.querySelectorAll('.timeline-group.drag-over').forEach(function (g) { g.classList.remove('drag-over'); });
-
-      var targetCard = e.target.closest('.planned-card');
-      var targetWrapper = targetCard ? targetCard.closest('.planned-card-wrapper') : null;
+      var targetWrapper = e.target.closest('.planned-card-wrapper');
       var targetGroup = e.target.closest('.timeline-group');
+
+      _clearDragIndicators();
+      document.querySelectorAll('.planned-card-wrapper.drag-over, .planned-card-wrapper.drag-over-top, .planned-card-wrapper.drag-over-bottom').forEach(function (w) {
+        w.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+      });
+      document.querySelectorAll('.timeline-group.drag-over').forEach(function (g) { g.classList.remove('drag-over'); });
 
       if (!targetGroup) return;
 
       var targetDate = targetGroup.getAttribute('data-date');
+      var cardsContainer = targetGroup.querySelector('.space-y-3');
+      if (!cardsContainer) return;
 
-      if (targetWrapper && targetWrapper !== _dragState.card && targetDate === srcDate) {
-        // Same group reorder — optimistic DOM update
-        var cardsContainer = targetGroup.querySelector('.space-y-3');
-        if (!cardsContainer) return;
-        cardsContainer.insertBefore(_dragState.card, targetWrapper);
+      if (targetDate === srcDate) {
+        // --- Reordenação no mesmo dia ---
+        if (targetWrapper && targetWrapper !== draggedCard) {
+          var rect = targetWrapper.getBoundingClientRect();
+          var isAfter = (e.clientY - rect.top) > (rect.height / 2);
+          var insertBeforeNode = isAfter ? targetWrapper.nextElementSibling : targetWrapper;
+
+          if (insertBeforeNode !== draggedCard) {
+            cardsContainer.insertBefore(draggedCard, insertBeforeNode);
+          }
+        } else if (!targetWrapper) {
+          // Soltou no espaço do grupo (ex: abaixo do último card)
+          cardsContainer.appendChild(draggedCard);
+        } else {
+          return;
+        }
 
         var wrapperEls = Array.from(cardsContainer.querySelectorAll('.planned-card-wrapper'));
-        var order = wrapperEls.map(function (w) { return parseInt(w.querySelector('.planned-card').getAttribute('data-id'), 10); });
+        var order = wrapperEls.map(function (w) {
+          var c = w.querySelector('.planned-card');
+          return {
+            id: parseInt(c.getAttribute('data-id'), 10),
+            tipo: c.getAttribute('data-tipo') || 'preventiva'
+          };
+        });
 
         apiFetch('/app/api/index.php?route=planned-activities&action=reorder', {
           method: 'POST',
-          body: JSON.stringify({ tipo: srcTipo, data_planejada: srcDate, order: order }),
+          body: JSON.stringify({ tipo: 'mixed', data_planejada: srcDate, order: order }),
         })
           .then(function (r) { return r.json(); })
           .then(function (result) {
             if (!result || !result.success) {
-              resetPlannedState('');
+              console.error('Falha ao salvar reordenação:', result);
             }
           })
-          .catch(function () { resetPlannedState(''); });
+          .catch(function (err) {
+            console.error('Erro de rede ao salvar reordenação:', err);
+          });
       } else if (targetDate && targetDate !== srcDate) {
-        // Cross-group move
+        // --- Movimentação entre datas diferentes ---
         var payload = { id: parseInt(srcId, 10), tipo: srcTipo, source_date: srcDate, target_date: targetDate };
         apiFetch('/app/api/index.php?route=planned-activities&action=move-date', {
           method: 'POST',
@@ -1820,7 +1888,7 @@ export function initPlannedActivity() {
           .then(function (r) { return r.json(); })
           .then(function (result) {
             if (result && result.success) {
-              // Optimistic DOM move already applied; keep it.
+              // Optimistic DOM move already applied
             } else {
               showToast(result && result.message ? result.message : 'Erro ao mover atividade.', 'error');
               resetPlannedState('');
@@ -1830,10 +1898,10 @@ export function initPlannedActivity() {
             showToast('Erro ao mover atividade.', 'error');
             resetPlannedState('');
           });
-        // Move card optimistically (removes from source group)
-        var srcGroup = _dragState.card.closest('.timeline-group');
+
+        var srcGroup = draggedCard.closest('.timeline-group');
         if (srcGroup) {
-          _dragState.card.remove();
+          draggedCard.remove();
           if (srcGroup.querySelectorAll('.planned-card').length === 0) {
             srcGroup.remove();
           }

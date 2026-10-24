@@ -502,6 +502,63 @@ class PlannedActivityRepository extends BaseRepository
             return;
         }
 
+        // Se $order for array de objetos/arrays com id e tipo
+        if (is_array($order[0]) || is_object($order[0])) {
+            $prevOrders = [];
+            $corrOrders = [];
+            foreach ($order as $position => $item) {
+                $itemId = (int) (is_array($item) ? ($item['id'] ?? 0) : ($item->id ?? 0));
+                $itemTipo = is_array($item) ? ($item['tipo'] ?? 'preventiva') : ($item->tipo ?? 'preventiva');
+                $pos = $position + 1;
+                if ($itemId > 0) {
+                    if ($itemTipo === 'preventiva') {
+                        $prevOrders[$itemId] = $pos;
+                    } else {
+                        $corrOrders[$itemId] = $pos;
+                    }
+                }
+            }
+
+            if (!empty($prevOrders)) {
+                $caseSql = '';
+                $ids = [];
+                $whereIds = [];
+                foreach ($prevOrders as $id => $pos) {
+                    $caseSql .= "WHEN ? THEN ? ";
+                    $ids[] = (int) $id;
+                    $ids[] = (int) $pos;
+                    $whereIds[] = (int) $id;
+                }
+                $placeholders = implode(',', array_fill(0, count($whereIds), '?'));
+                $types = str_repeat('ii', count($prevOrders)) . str_repeat('i', count($whereIds));
+                $allParams = array_merge($ids, $whereIds);
+                $sql = "UPDATE atividades_preventivas SET sort_order = CASE id {$caseSql} END WHERE id IN ({$placeholders})";
+                $stmt = $this->safePrepare($sql);
+                $stmt->bind_param($types, ...$allParams);
+                $stmt->execute();
+            }
+
+            if (!empty($corrOrders)) {
+                $caseSql = '';
+                $ids = [];
+                $whereIds = [];
+                foreach ($corrOrders as $id => $pos) {
+                    $caseSql .= "WHEN ? THEN ? ";
+                    $ids[] = (int) $id;
+                    $ids[] = (int) $pos;
+                    $whereIds[] = (int) $id;
+                }
+                $placeholders = implode(',', array_fill(0, count($whereIds), '?'));
+                $types = str_repeat('ii', count($corrOrders)) . 's' . str_repeat('i', count($whereIds));
+                $allParams = array_merge($ids, [$data], $whereIds);
+                $sql = "UPDATE planejamento_datas SET sort_order = CASE registro_id {$caseSql} END WHERE data_planejada = ? AND registro_id IN ({$placeholders})";
+                $stmt = $this->safePrepare($sql);
+                $stmt->bind_param($types, ...$allParams);
+                $stmt->execute();
+            }
+            return;
+        }
+
         if ($tipo === 'preventiva') {
             $caseSql = '';
             $ids = [];
@@ -518,15 +575,18 @@ class PlannedActivityRepository extends BaseRepository
         } else {
             $caseSql = '';
             $ids = [];
+            $whereIds = [];
             foreach ($order as $position => $id) {
                 $caseSql .= "WHEN ? THEN ? ";
                 $ids[] = (int) $id;
                 $ids[] = $position + 1;
+                $whereIds[] = (int) $id;
             }
-            $types = str_repeat('ii', count($order)) . 's';
-            $allParams = array_merge($ids, [$data]);
+            $placeholders = implode(',', array_fill(0, count($whereIds), '?'));
+            $types = str_repeat('ii', count($order)) . 's' . str_repeat('i', count($whereIds));
+            $allParams = array_merge($ids, [$data], $whereIds);
 
-            $sql = "UPDATE planejamento_datas SET sort_order = CASE registro_id {$caseSql} END WHERE data_planejada = ?";
+            $sql = "UPDATE planejamento_datas SET sort_order = CASE registro_id {$caseSql} END WHERE data_planejada = ? AND registro_id IN ({$placeholders})";
         }
 
         $stmt = $this->safePrepare($sql);

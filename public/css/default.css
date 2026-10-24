@@ -385,20 +385,42 @@ button:disabled { cursor: not-allowed; }
 }
 
 /* Drag and Drop visual feedback */
+.planned-card-wrapper.dragging {
+  opacity: 0.45 !important;
+}
+
 .planned-card-wrapper.dragging .planned-card {
-  opacity: 0.4 !important;
   border-style: dashed !important;
 }
 
+/* Indicadores de inserção superior e inferior sem layout shift (via box-shadow) */
+.planned-card-wrapper.drag-over-top .planned-card {
+  box-shadow: 0 -4px 0 0 #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+.planned-card-wrapper.drag-over-bottom .planned-card {
+  box-shadow: 0 4px 0 0 #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+.dark .planned-card-wrapper.drag-over-top .planned-card {
+  box-shadow: 0 -4px 0 0 #60a5fa !important;
+  background-color: rgba(96, 165, 250, 0.1) !important;
+}
+
+.dark .planned-card-wrapper.drag-over-bottom .planned-card {
+  box-shadow: 0 4px 0 0 #60a5fa !important;
+  background-color: rgba(96, 165, 250, 0.1) !important;
+}
+
 .planned-card-wrapper.drag-over .planned-card {
-  border-color: #3b82f6 !important;
-  border-width: 2px !important;
-  border-style: dashed !important;
+  box-shadow: 0 0 0 2px #3b82f6 !important;
   background-color: rgba(59, 130, 246, 0.05) !important;
 }
 
 .dark .planned-card-wrapper.drag-over .planned-card {
-  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 2px #60a5fa !important;
   background-color: rgba(96, 165, 250, 0.1) !important;
 }
 

@@ -462,7 +462,7 @@ class PlannedActivityService
             throw new \RuntimeException('Ordem inválida.');
         }
 
-        if (!in_array($tipo, ['preventiva', 'corretiva'], true)) {
+        if (!in_array($tipo, ['preventiva', 'corretiva', 'mixed'], true)) {
             throw new \RuntimeException('Tipo inválido.');
         }
 
