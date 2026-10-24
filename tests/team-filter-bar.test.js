@@ -1,6 +1,7 @@
 /**
  * Testes para team-filter-bar.js
- * Testa: render com N equipes, badge total, toggle classe cinza→verde, clique ativa filtro.
+ * Testa: render com N equipes, badge total, toggle classe cinza→verde, clique ativa filtro,
+ *        renderização do ícone de cópia, e separação entre clique de cópia e clique de filtro.
  */
 import { describe, it, expect, beforeEach } from 'bun:test';
 
@@ -10,6 +11,8 @@ function escapeHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+const COPY_ICON_MARKER = 'data-action="team-copy-btn"';
 
 function renderTeamFilterBar(container, registeredTeams, assignedTeams, onFilterChange, currentFilter = null) {
   container._registeredTeams = registeredTeams || [];
@@ -28,7 +31,8 @@ function renderTeamFilterBar(container, registeredTeams, assignedTeams, onFilter
     const isActive   = currentFilter && currentFilter.toLowerCase() === lower;
     const baseClass  = isAssigned ? 'emerald' : 'slate';
     const ring       = isActive ? ' ring-active' : '';
-    return '<button data-action="team-filter-btn" data-team-name="' + escapeHtml(nome) + '" class="btn-' + baseClass + ring + '">' + escapeHtml(nome) + '</button>';
+    const copyBtn    = '<span data-action="team-copy-btn" data-team-name="' + escapeHtml(nome) + '"></span>';
+    return '<button data-action="team-filter-btn" data-team-name="' + escapeHtml(nome) + '" class="btn-' + baseClass + ring + '">' + escapeHtml(nome) + copyBtn + '</button>';
   }).join('');
 
   const badge = '<span class="badge">' + container._registeredTeams.length + '</span>';
@@ -37,6 +41,14 @@ function renderTeamFilterBar(container, registeredTeams, assignedTeams, onFilter
   if (!container._listenerAttached) {
     container._listenerAttached = true;
     container.addEventListener('click', e => {
+      // Copy icon click — must check before filter-btn so it doesn't trigger filter
+      const copyBtn = e.target.closest('[data-action="team-copy-btn"]');
+      if (copyBtn) {
+        // stopPropagation would be called in real DOM; in tests just track the copy call
+        if (container._onCopy) container._onCopy(copyBtn.dataset.teamName);
+        return;
+      }
+
       const btn = e.target.closest('[data-action="team-filter-btn"]');
       if (!btn) return;
       const teamName = btn.dataset.teamName;
@@ -61,6 +73,23 @@ function makeContainer() {
     },
   };
   return el;
+}
+
+
+/**
+ * Creates a fake filter-btn target whose closest() correctly returns null for
+ * the copy-btn selector and itself for the filter-btn selector.
+ */
+function makeFakeFilterBtn(teamName) {
+  const btn = {
+    dataset: { teamName, action: 'team-filter-btn' },
+    closest(sel) {
+      if (sel === '[data-action="team-copy-btn"]') return null;
+      if (sel === '[data-action="team-filter-btn"]') return btn;
+      return null;
+    },
+  };
+  return btn;
 }
 
 describe('team-filter-bar render', () => {
@@ -110,7 +139,7 @@ describe('team-filter-bar toggle', () => {
     renderTeamFilterBar(container, ['Alpha'], [], v => { filterValue = v; });
 
     // Simula clique no botão Alpha
-    const fakeBtn = { dataset: { teamName: 'Alpha', action: 'team-filter-btn' }, closest: (sel) => fakeBtn };
+    const fakeBtn = makeFakeFilterBtn('Alpha');
     container.click(fakeBtn);
 
     expect(filterValue).toBe('Alpha');
@@ -123,7 +152,7 @@ describe('team-filter-bar toggle', () => {
     renderTeamFilterBar(container, ['Alpha'], [], v => { filterValue = v; }, 'Alpha');
 
     // Container já começa com Alpha ativo; clique remove
-    const fakeBtn = { dataset: { teamName: 'Alpha', action: 'team-filter-btn' }, closest: (sel) => fakeBtn };
+    const fakeBtn = makeFakeFilterBtn('Alpha');
     container.click(fakeBtn);
 
     expect(filterValue).toBeNull();
@@ -135,7 +164,7 @@ describe('team-filter-bar toggle', () => {
     const container = makeContainer();
     renderTeamFilterBar(container, ['Alpha', 'Beta'], [], v => { filterValue = v; }, 'Alpha');
 
-    const fakeBtn = { dataset: { teamName: 'Beta', action: 'team-filter-btn' }, closest: (sel) => fakeBtn };
+    const fakeBtn = makeFakeFilterBtn('Beta');
     container.click(fakeBtn);
 
     expect(filterValue).toBe('Beta');
@@ -155,5 +184,55 @@ describe('team-filter-bar toggle', () => {
     renderTeamFilterBar(container, ['Alpha', 'Beta'], ['alpha', 'beta'], () => {});
     const btns = container.innerHTML.match(/btn-emerald/g) || [];
     expect(btns.length).toBe(2);
+  });
+});
+
+describe('team-filter-bar copy icon', () => {
+  it('renders a copy icon span per button', () => {
+    const container = makeContainer();
+    renderTeamFilterBar(container, ['Alpha', 'Beta'], [], () => {});
+    const copyIcons = (container.innerHTML.match(/data-action="team-copy-btn"/g) || []).length;
+    expect(copyIcons).toBe(2);
+  });
+
+  it('copy icon carries the correct team name', () => {
+    const container = makeContainer();
+    renderTeamFilterBar(container, ['Alpha'], [], () => {});
+    expect(container.innerHTML).toContain('data-action="team-copy-btn" data-team-name="Alpha"');
+  });
+
+  it('clicking copy icon triggers onCopy callback and NOT the filter', () => {
+    let filterValue = 'UNCHANGED';
+    let copiedName = null;
+    const container = makeContainer();
+    container._onCopy = name => { copiedName = name; };
+    renderTeamFilterBar(container, ['Alpha'], [], v => { filterValue = v; });
+
+    // Simulate click on the copy icon (closest returns copy-btn, not filter-btn)
+    const fakeCopyBtn = {
+      dataset: { teamName: 'Alpha', action: 'team-copy-btn' },
+      closest: sel => sel === '[data-action="team-copy-btn"]' ? fakeCopyBtn : null,
+    };
+    container.click(fakeCopyBtn);
+
+    expect(copiedName).toBe('Alpha');
+    expect(filterValue).toBe('UNCHANGED'); // filter must NOT change
+  });
+
+  it('clicking the button (not icon) still toggles filter and does not call onCopy', () => {
+    let filterValue = null;
+    let copiedName = null;
+    const container = makeContainer();
+    container._onCopy = name => { copiedName = name; };
+    renderTeamFilterBar(container, ['Alpha'], [], v => { filterValue = v; });
+
+    const fakeFilterBtn = {
+      dataset: { teamName: 'Alpha', action: 'team-filter-btn' },
+      closest: sel => sel === '[data-action="team-copy-btn"]' ? null : fakeFilterBtn,
+    };
+    container.click(fakeFilterBtn);
+
+    expect(filterValue).toBe('Alpha');
+    expect(copiedName).toBeNull(); // copy must NOT be triggered
   });
 });
