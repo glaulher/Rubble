@@ -301,7 +301,7 @@ class PlannedActivityRepository extends BaseRepository
 
     public function getLastPlannedDate(int $registroId): string
     {
-        $sql = "SELECT data_planejada FROM planejamento_datas WHERE registro_id = ? ORDER BY sla_day_number DESC, data_planejada DESC LIMIT 1";
+        $sql = "SELECT data_planejada FROM planejamento_datas WHERE registro_id = ? ORDER BY data_planejada DESC, sla_day_number DESC LIMIT 1";
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $registroId);
         $stmt->execute();
@@ -369,7 +369,7 @@ class PlannedActivityRepository extends BaseRepository
 
     public function getLastPreventivaDate(int $groupId): string
     {
-        $sql = "SELECT data_planejada FROM atividades_preventivas WHERE sla_group_id = ? OR id = ? ORDER BY sla_day_number DESC, data_planejada DESC LIMIT 1";
+        $sql = "SELECT data_planejada FROM atividades_preventivas WHERE sla_group_id = ? OR id = ? ORDER BY data_planejada DESC, sla_day_number DESC LIMIT 1";
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('ii', $groupId, $groupId);
         $stmt->execute();

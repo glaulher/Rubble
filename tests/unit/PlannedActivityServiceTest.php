@@ -521,4 +521,71 @@ class PlannedActivityServiceTest extends TestCase
         $this->assertSame([], $result['items']);
         $this->assertSame(0, $result['total']);
     }
+
+    public function testExtendSlaCorretivaCalculatesFromLastPlannedDate(): void
+    {
+        $repo = $this->createMockRepo();
+        $ticket = new \App\Api\Entities\Ticket([
+            'id' => 560,
+            'equipamento_id' => 1,
+            'sla_days' => 3,
+            'sla_include_saturday' => 0,
+            'sla_include_sunday' => 0,
+            'tipo' => 'corretiva',
+        ]);
+        $repo->method('getById')->with(560)->willReturn($ticket);
+        $repo->method('getMaxSlaDayNumber')->with(560, 'corretiva')->willReturn(3);
+        $repo->method('getLastPlannedDate')->with(560)->willReturn('2026-10-28');
+        $repo->expects($this->once())
+            ->method('addSlaExtension')
+            ->with(560, 'corretiva', 1, 'Escopo maior')
+            ->willReturn(1);
+        $repo->expects($this->once())
+            ->method('addPlannedDate')
+            ->with(560, '2026-10-29', 4)
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $result = $service->extendSla([
+            'id' => 560,
+            'tipo' => 'corretiva',
+            'extra_days' => 1,
+            'justification' => 'Escopo maior',
+        ]);
+
+        $this->assertSame('extended', $result['action']);
+        $this->assertSame(1, $result['extra_days']);
+        $this->assertSame(1, $result['cards_created']);
+    }
+
+    public function testExtendSlaCorretivaWithFromDateAppendsAfterFromDate(): void
+    {
+        $repo = $this->createMockRepo();
+        $ticket = new \App\Api\Entities\Ticket([
+            'id' => 560,
+            'equipamento_id' => 1,
+            'sla_days' => 3,
+            'sla_include_saturday' => 0,
+            'sla_include_sunday' => 0,
+            'tipo' => 'corretiva',
+        ]);
+        $repo->method('getById')->with(560)->willReturn($ticket);
+        $repo->method('getMaxSlaDayNumber')->with(560, 'corretiva')->willReturn(3);
+        $repo->method('getLastPlannedDate')->with(560)->willReturn('2026-10-28');
+        $repo->expects($this->once())
+            ->method('addPlannedDate')
+            ->with(560, '2026-10-29', 4)
+            ->willReturn(true);
+
+        $service = $this->createService($repo);
+        $result = $service->extendSla([
+            'id' => 560,
+            'tipo' => 'corretiva',
+            'extra_days' => 1,
+            'justification' => 'Escopo maior',
+            'from_date' => '2026-10-28',
+        ]);
+
+        $this->assertSame('extended', $result['action']);
+    }
 }

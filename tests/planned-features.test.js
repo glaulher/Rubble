@@ -69,6 +69,7 @@ describe("Planned Activity - SLA Reversion & Replication Features", () => {
         <form id="extendSlaForm">
           <input type="hidden" id="extendSlaId">
           <input type="hidden" id="extendSlaTipo">
+          <input type="hidden" id="extendSlaFromDate">
           <input id="extendSlaDays" type="number">
           <input id="extendSlaTargetDate" type="date">
           <input type="radio" name="sla_justification" value="Condições climáticas" checked>
@@ -663,6 +664,36 @@ describe("Planned Activity - SLA Reversion & Replication Features", () => {
 
       expect(extendPayload).not.toBeNull();
       expect(extendPayload.target_date).toBeNull();
+    });
+
+    it("sends from_date when opened from a card with specific date", async () => {
+      let extendPayload = null;
+      global.fetch = mock((url, opts) => {
+        extendPayload = JSON.parse(opts.body);
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              action: 'extended',
+              extra_days: 1,
+              cards_created: 1
+            }
+          })
+        });
+      });
+
+      openExtendSlaModal(60, 'corretiva', '2026-10-28');
+      document.getElementById('extendSlaDays').value = '1';
+      document.querySelector('input[name="sla_justification"]').checked = true;
+
+      submitExtendSla();
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(extendPayload).not.toBeNull();
+      expect(extendPayload.id).toBe(60);
+      expect(extendPayload.from_date).toBe('2026-10-28');
     });
   });
 

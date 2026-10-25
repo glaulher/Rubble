@@ -270,7 +270,7 @@ function buildSlaLineHtml(item) {
     '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
     '<span>' + text + '</span>' +
     (item.sla_extensions ? '<span class="text-slate-400 ml-1">\u00b7 ' + escapeHtml(item.sla_extensions) + '</span>' : '') +
-    (canEditPlanned() ? '<button class="inline-flex items-center justify-center text-blue-400 hover:text-blue-600 ml-0.5 align-middle extend-sla-btn" data-action="extend-sla" data-id="' + item.id + '" data-tipo="' + (item.tipo || 'corretiva') + '" aria-label="Estender SLA"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' : '') +
+    (canEditPlanned() ? '<button class="inline-flex items-center justify-center text-blue-400 hover:text-blue-600 ml-0.5 align-middle extend-sla-btn" data-action="extend-sla" data-id="' + item.id + '" data-tipo="' + (item.tipo || 'corretiva') + '" data-date="' + (item.data_planejada || '') + '" aria-label="Estender SLA"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>' : '') +
     '</div>';
 }
 
@@ -1737,7 +1737,8 @@ export function initPlannedActivity() {
       if (extendBtn) {
         var extId = parseInt(extendBtn.getAttribute('data-id'), 10);
         var extTipo = extendBtn.getAttribute('data-tipo');
-        if (extId) openExtendSlaModal(extId, extTipo);
+        var extDate = extendBtn.getAttribute('data-date') || '';
+        if (extId) openExtendSlaModal(extId, extTipo, extDate);
         return;
       }
 
@@ -2322,17 +2323,19 @@ export function generateSlaDateList(startDate, days, includeSat, includeSun) {
   return dates;
 }
 
-export function openExtendSlaModal(id, tipo) {
+export function openExtendSlaModal(id, tipo, fromDate) {
   var modal = document.getElementById('modalExtendSla');
   var info = document.getElementById('extendSlaInfo');
   var idInput = document.getElementById('extendSlaId');
   var tipoInput = document.getElementById('extendSlaTipo');
+  var dateInput = document.getElementById('extendSlaFromDate');
   var daysInput = document.getElementById('extendSlaDays');
   var targetDateInput = document.getElementById('extendSlaTargetDate');
   var radios = document.querySelectorAll('input[name="sla_justification"]');
   if (!modal) return;
   if (idInput) idInput.value = id;
   if (tipoInput) tipoInput.value = tipo;
+  if (dateInput) dateInput.value = fromDate || '';
   if (info) info.textContent = 'Estendendo SLA da atividade #' + id + ' (' + tipo + ')';
   if (daysInput) daysInput.value = '';
   if (targetDateInput) targetDateInput.value = '';
@@ -2348,6 +2351,8 @@ export function closeExtendSlaModal() {
 export function submitExtendSla() {
   var id = document.getElementById('extendSlaId');
   var tipo = document.getElementById('extendSlaTipo');
+  var dateInput = document.getElementById('extendSlaFromDate');
+  var fromDate = dateInput && dateInput.value ? dateInput.value : null;
   var days = document.getElementById('extendSlaDays');
   var targetDateInput = document.getElementById('extendSlaTargetDate');
   var targetDate = targetDateInput && targetDateInput.value ? targetDateInput.value : null;
@@ -2359,15 +2364,20 @@ export function submitExtendSla() {
   var btn = document.querySelector('#extendSlaForm button[type="submit"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Estendendo...'; }
 
+  var payload = {
+    id: parseInt(id.value, 10),
+    tipo: tipo ? tipo.value : 'corretiva',
+    extra_days: parseInt(days.value, 10),
+    justification: selected.value,
+    target_date: targetDate,
+  };
+  if (fromDate) {
+    payload.from_date = fromDate;
+  }
+
   apiFetch('/app/api/index.php?route=planned-activities&action=extend-sla', {
     method: 'POST',
-    body: JSON.stringify({
-      id: parseInt(id.value, 10),
-      tipo: tipo ? tipo.value : 'corretiva',
-      extra_days: parseInt(days.value, 10),
-      justification: selected.value,
-      target_date: targetDate,
-    }),
+    body: JSON.stringify(payload),
   })
     .then(function (r) { return r.json(); })
     .then(function (result) {

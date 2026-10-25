@@ -270,7 +270,7 @@ class PlannedActivityService
             if ($slaDays <= 0) {
                 $slaDays = (int) ($parent['sla_days'] ?? 0);
             }
-            $lastDate = $this->repository->getLastPreventivaDate($groupId);
+            $lastDate = !empty($data['from_date']) ? trim($data['from_date']) : $this->repository->getLastPreventivaDate($groupId);
             $targetParentId = $groupId;
         } else {
             $parent = $this->repository->getById($id);
@@ -279,8 +279,11 @@ class PlannedActivityService
             }
             $includeSat = (bool) ($parent->sla_include_saturday ?? false);
             $includeSun = (bool) ($parent->sla_include_sunday ?? false);
-            $slaDays = (int) ($parent->sla_days ?? 0);
-            $lastDate = $this->repository->getLastPlannedDate($id);
+            $slaDays = $this->repository->getMaxSlaDayNumber($id, 'corretiva');
+            if ($slaDays <= 0) {
+                $slaDays = (int) ($parent->sla_days ?? 0);
+            }
+            $lastDate = !empty($data['from_date']) ? trim($data['from_date']) : $this->repository->getLastPlannedDate($id);
             $targetParentId = $id;
         }
 
