@@ -4,6 +4,7 @@ import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
 import { getUser } from '/public/js/core/auth.js';
 import { iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
+import { openCreateTermoModal } from '/public/js/termo/termo-modal.js';
 
 let inventoryList = [];
 let inventorySearch = '';
@@ -92,6 +93,11 @@ export async function initInventoryList() {
     btnNew.addEventListener('click', navigateInventoryForm);
   }
 
+  const btnTermo = document.getElementById('btnNewTermoCautela') || document.querySelector('[data-action="open-termo-modal"]');
+  if (btnTermo) {
+    btnTermo.onclick = () => openCreateTermoModal();
+  }
+
   const csvBtn = document.querySelector('[data-action="generate-csv"]') || document.getElementById('btnInventoryCsv');
   if (csvBtn) {
     csvBtn.removeEventListener('click', exportInventoryCsv);
@@ -107,6 +113,10 @@ export async function initInventoryList() {
       const id = parseInt(btn.dataset.id, 10);
       if (!id) return;
       switch (btn.dataset.action) {
+        case 'termo':
+          const item = inventoryList.find((it) => it.id === id);
+          openCreateTermoModal(item);
+          break;
         case 'edit':
           editInventoryItem(id);
           break;
@@ -215,6 +225,7 @@ export function renderInventory() {
 
       let actions =
         '<div class="flex items-center justify-end gap-2">' +
+        '<button type="button" data-action="termo" data-id="' + item.id + '" title="Emitir Termo de Cautela" class="p-1.5 rounded-lg text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition cursor-pointer text-xs font-semibold">✍️ Cautela</button>' +
         iconButtonHtml('edit', 'Editar', { 'data-action': 'edit', 'data-id': item.id });
       if (canDelete) {
         actions += iconButtonHtml('delete', 'Excluir', { 'data-action': 'delete', 'data-id': item.id }, 'right');
