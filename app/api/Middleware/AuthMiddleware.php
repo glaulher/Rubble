@@ -14,8 +14,14 @@ class AuthMiddleware
     public function handle(string $route, string $method): void
     {
         $publicRoutes = ['auth', 'config'];
+        $action = $_GET['action'] ?? null;
 
         if (in_array($route, $publicRoutes, true)) {
+            return;
+        }
+
+        // Ações públicas para assinatura de Termo de Responsabilidade pelo técnico
+        if ($route === 'termo' && in_array($action, ['public-view', 'public-sign'], true)) {
             return;
         }
 
@@ -45,7 +51,7 @@ class AuthMiddleware
 
         $action = $_GET['action'] ?? null;
 
-        if ($route === 'inventory') {
+        if ($route === 'inventory' || $route === 'termo') {
             $allowedRoles = ['admin', 'coordenador', 'gerente', 'supervisor'];
             if (!in_array($user->role ?? '', $allowedRoles, true)) {
                 Response::error('Permissão negada', 403);

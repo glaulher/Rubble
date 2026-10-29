@@ -13,7 +13,8 @@ use App\Api\Controllers\{
     UploadController, EmailController, ExportController, PdfAuditController,
     PlannedActivityController, PreventivaController, FilterExchangeController,
     PendingTicketsController, PreventivaDashboardController, InventoryController,
-    AdminAuditController, PreditivaParseController, DiarioController, TeamController
+    AdminAuditController, PreditivaParseController, DiarioController, TeamController,
+    TermoController
 };
 Env::load(__DIR__ . '/../../.env');
 
@@ -485,6 +486,21 @@ $router->addRoute('inventory', 'GET', function () use ($auth) {
     $service = new \App\Api\Services\InventoryService($repo);
     $controller = new InventoryController($service);
     $controller->handle('DELETE', $auth->getUser());
+});
+
+// Termos de Responsabilidade e Assinatura Digital
+$router->addRoute('termo', 'GET', function () use ($auth) {
+    $repo = new \App\Api\Repositories\TermoRepository();
+    $invRepo = new \App\Api\Repositories\InventoryRepository();
+    $service = new \App\Api\Services\TermoService($repo, $invRepo);
+    $controller = new TermoController($service);
+    $controller->handle('GET', $auth->getUser());
+})->addRoute('termo', 'POST', function () use ($auth) {
+    $repo = new \App\Api\Repositories\TermoRepository();
+    $invRepo = new \App\Api\Repositories\InventoryRepository();
+    $service = new \App\Api\Services\TermoService($repo, $invRepo);
+    $controller = new TermoController($service);
+    $controller->handle('POST', $auth->getUser());
 });
 
 // Admin Audit & Access Control
