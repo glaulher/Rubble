@@ -426,6 +426,8 @@ $router->addRoute('preventiva', 'POST', function () use ($auth) {
         $ctrl->updateStatus();
     } elseif ($action === 'update-qtd') {
         $ctrl->updateQtd();
+    } elseif ($action === 'import') {
+        $ctrl->import();
     } else {
         $ctrl->plan();
     }

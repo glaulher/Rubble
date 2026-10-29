@@ -117,4 +117,94 @@ class PreventivaServiceTest extends TestCase
 
         $service->updateStatus(11, 'Em Andamento', '', ['nome' => 'Admin', 'role' => 'admin'], null, 2);
     }
+
+    public function testImportBatchGroupsMultiDaySiteAndDelegatesToRepository(): void
+    {
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventivaRepository::class);
+
+        $mockRepo->expects($this->once())
+            ->method('importBatch')
+            ->with($this->callback(function (array $groups) {
+                // Must have grouped NRIDTC with 2 dates and BMADTC with 1 date
+                $nri = array_values(array_filter($groups, fn ($g) => $g['site'] === 'NRIDTC'));
+                $bma = array_values(array_filter($groups, fn ($g) => $g['site'] === 'BMADTC'));
+
+                if (count($nri) !== 1 || count($bma) !== 1) {
+                    return false;
+                }
+
+                // NRIDTC dates must be sorted
+                if ($nri[0]['dates'] !== ['2026-11-03', '2026-11-04']) {
+                    return false;
+                }
+
+                if ($bma[0]['dates'] !== ['2026-11-19']) {
+                    return false;
+                }
+
+                return true;
+            }))
+            ->willReturn([
+                'imported' => 3,
+                'skipped' => 0,
+                'errors' => [],
+            ]);
+
+        $service = new PreventivaService($mockRepo);
+        $rows = [
+            ['data' => '2026-11-04', 'site' => 'NRIDTC', 'tipo' => 'preventiva'],
+            ['data' => '2026-11-03', 'site' => 'NRIDTC', 'tipo' => 'preventiva'],
+            ['data' => '2026-11-19', 'site' => 'BMADTC', 'tipo' => 'preventiva'],
+        ];
+
+        $result = $service->importBatch($rows, ['nome' => 'Admin', 'role' => 'admin']);
+        $this->assertSame(3, $result['imported']);
+        $this->assertSame(0, $result['skipped']);
+    }
+
+    public function testImportBatchNormalizesBrazilianDatesAndTipo(): void
+    {
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventivaRepository::class);
+
+        $mockRepo->expects($this->once())
+            ->method('importBatch')
+            ->with($this->callback(function (array $groups) {
+                $item = $groups[0] ?? null;
+                return $item && $item['site'] === 'RJOFRG'
+                    && $item['dates'] === ['2026-11-03']
+                    && $item['tipo'] === 'preventiva';
+            }))
+            ->willReturn(['imported' => 1, 'skipped' => 0, 'errors' => []]);
+
+        $service = new PreventivaService($mockRepo);
+        $rows = [
+            ['data' => '03/11/2026', 'site' => ' RJOFRG ', 'tipo' => 'PREVENTIVA'],
+        ];
+
+        $result = $service->importBatch($rows, ['nome' => 'Admin', 'role' => 'admin']);
+        $this->assertSame(1, $result['imported']);
+    }
+
+    public function testImportBatchSkipsRowsWithInvalidDateOrEmptySite(): void
+    {
+        $mockRepo = $this->createMock(\App\Api\Repositories\PreventivaRepository::class);
+
+        $mockRepo->expects($this->once())
+            ->method('importBatch')
+            ->with($this->callback(function (array $groups) {
+                return count($groups) === 1 && $groups[0]['site'] === 'VALID';
+            }))
+            ->willReturn(['imported' => 1, 'skipped' => 0, 'errors' => []]);
+
+        $service = new PreventivaService($mockRepo);
+        $rows = [
+            ['data' => '2026-11-03', 'site' => '', 'tipo' => 'preventiva'],
+            ['data' => 'data-invalida', 'site' => 'SITE1', 'tipo' => 'preventiva'],
+            ['data' => '2026-11-05', 'site' => 'VALID', 'tipo' => 'preventiva'],
+        ];
+
+        $result = $service->importBatch($rows, ['nome' => 'Admin', 'role' => 'admin']);
+        $this->assertSame(1, $result['imported']);
+        $this->assertSame(2, $result['skipped']);
+    }
 }

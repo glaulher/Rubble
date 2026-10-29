@@ -10,6 +10,15 @@
         <span id="plannedCounter" class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold">0 atividades</span>
       </div>
       <div class="justify-self-end flex items-center gap-3">
+        <!-- Importar CSV -->
+        <button id="btnPlannedImportCsv" data-role="admin coordenador gerente" class="bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 p-2 rounded-xl relative group" aria-label="Importar Planejamento (CSV)">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span class="absolute right-0 top-[54px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Importar Planejamento (CSV)</span>
+        </button>
         <!-- CSV -->
         <button id="btnPlannedCsv" data-role="admin coordenador gerente supervisor administrativo cliente" class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 p-2 rounded-xl relative group" aria-label="Exportar CSV">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

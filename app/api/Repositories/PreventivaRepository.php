@@ -265,4 +265,91 @@ class PreventivaRepository extends BaseRepository
         return $stmt->execute();
     }
 
+    public function importBatch(array $groupedItems): array
+    {
+        $imported = 0;
+        $skipped = 0;
+        $errors = [];
+
+        $this->conn->begin_transaction();
+
+        try {
+            $checkSql = "SELECT id FROM atividades_preventivas WHERE TRIM(site) = TRIM(?) AND data_planejada = ? AND tipo = ? LIMIT 1";
+            $stmtCheck = $this->safePrepare($checkSql);
+
+            $insertSingleSql = "INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs, tipo, sort_order, sla_days, sla_day_number, sla_group_id) VALUES (?, ?, '', 'A definir', 'Planejado', '', ?, 0, NULL, 0, NULL)";
+            $stmtInsertSingle = $this->safePrepare($insertSingleSql);
+
+            $insertFirstSql = "INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs, tipo, sort_order, sla_days, sla_day_number, sla_group_id) VALUES (?, ?, '', 'A definir', 'Planejado', '', ?, 0, ?, 1, NULL)";
+            $stmtInsertFirst = $this->safePrepare($insertFirstSql);
+
+            $updateGroupIdSql = "UPDATE atividades_preventivas SET sla_group_id = ? WHERE id = ?";
+            $stmtUpdateGroupId = $this->safePrepare($updateGroupIdSql);
+
+            $insertSubsequentSql = "INSERT INTO atividades_preventivas (site, data_planejada, ticket, equipe, status, obs, tipo, sort_order, sla_days, sla_day_number, sla_group_id) VALUES (?, ?, '', 'A definir', 'Planejado', '', ?, 0, ?, ?, ?)";
+            $stmtInsertSubsequent = $this->safePrepare($insertSubsequentSql);
+
+            foreach ($groupedItems as $group) {
+                $site = trim($group['site'] ?? '');
+                $tipo = trim($group['tipo'] ?? 'preventiva');
+                $dates = $group['dates'] ?? [];
+
+                if ($site === '' || empty($dates)) {
+                    continue;
+                }
+
+                $newDates = [];
+                foreach ($dates as $date) {
+                    $stmtCheck->bind_param('sss', $site, $date, $tipo);
+                    $stmtCheck->execute();
+                    $res = $stmtCheck->get_result();
+                    if ($res && $res->fetch_row()) {
+                        $skipped++;
+                    } else {
+                        $newDates[] = $date;
+                    }
+                }
+
+                $totalDays = count($newDates);
+                if ($totalDays === 0) {
+                    continue;
+                }
+
+                if ($totalDays === 1) {
+                    $stmtInsertSingle->bind_param('sss', $site, $newDates[0], $tipo);
+                    $stmtInsertSingle->execute();
+                    $imported++;
+                } else {
+                    // Multi-day SLA activity
+                    $firstDate = $newDates[0];
+                    $stmtInsertFirst->bind_param('sssi', $site, $firstDate, $tipo, $totalDays);
+                    $stmtInsertFirst->execute();
+                    $firstId = (int) $this->conn->insert_id;
+                    $imported++;
+
+                    $stmtUpdateGroupId->bind_param('ii', $firstId, $firstId);
+                    $stmtUpdateGroupId->execute();
+
+                    for ($i = 1; $i < $totalDays; $i++) {
+                        $subDate = $newDates[$i];
+                        $dayNum = $i + 1;
+                        $stmtInsertSubsequent->bind_param('sssiii', $site, $subDate, $tipo, $totalDays, $dayNum, $firstId);
+                        $stmtInsertSubsequent->execute();
+                        $imported++;
+                    }
+                }
+            }
+
+            $this->conn->commit();
+        } catch (\Throwable $e) {
+            $this->conn->rollback();
+            throw $e;
+        }
+
+        return [
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'errors' => $errors,
+        ];
+    }
 }

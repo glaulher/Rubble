@@ -7,6 +7,7 @@ import { downloadCSV } from '/public/js/utils/csv.js';
 import { PlanModal } from '/public/js/components/plan-modal.js';
 import { initTeamAutocomplete, getTeamOptions } from '/public/js/components/team-autocomplete.js';
 import { renderTeamFilterBar } from '/public/js/components/team-filter-bar.js';
+import { importPlannedActivities } from './planned-import.js';
 
 let plannedSearch = '';
 let plannedDateFrom = '';
@@ -1548,6 +1549,11 @@ export function initPlannedActivity() {
   var btnCsv = document.getElementById('btnPlannedCsv');
   if (btnCsv) {
     btnCsv.addEventListener('click', exportPlannedCsv);
+  }
+
+  var btnImport = document.getElementById('btnPlannedImportCsv');
+  if (btnImport) {
+    btnImport.addEventListener('click', importPlannedActivities);
   }
 
   var btnWhatsApp = document.getElementById('btnPlannedWhatsApp');

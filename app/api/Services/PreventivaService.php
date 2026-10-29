@@ -374,4 +374,62 @@ class PreventivaService
             'sla_reconciled' => $slaReconciled,
         ];
     }
+
+    public function importBatch(array $rows, array $currentUser): array
+    {
+        $grouped = [];
+        $skippedInitial = 0;
+
+        foreach ($rows as $row) {
+            $site = trim((string) ($row['site'] ?? ''));
+            $rawDate = trim((string) ($row['data'] ?? ''));
+
+            if ($site === '' || $rawDate === '') {
+                $skippedInitial++;
+                continue;
+            }
+
+            $date = $this->normalizeDate($rawDate);
+            if ($date === '') {
+                $skippedInitial++;
+                continue;
+            }
+
+            $rawTipo = mb_strtolower(trim((string) ($row['tipo'] ?? 'preventiva')));
+            $tipo = str_contains($rawTipo, 'adm') ? 'adm' : 'preventiva';
+
+            $groupKey = $site . '::' . $tipo;
+            if (!isset($grouped[$groupKey])) {
+                $grouped[$groupKey] = [
+                    'site' => $site,
+                    'tipo' => $tipo,
+                    'dates' => [],
+                ];
+            }
+            if (!in_array($date, $grouped[$groupKey]['dates'], true)) {
+                $grouped[$groupKey]['dates'][] = $date;
+            }
+        }
+
+        foreach ($grouped as &$grp) {
+            sort($grp['dates']);
+        }
+        unset($grp);
+
+        $res = $this->repository->importBatch(array_values($grouped));
+        $res['skipped'] = (int) ($res['skipped'] ?? 0) + $skippedInitial;
+        return $res;
+    }
+
+    private function normalizeDate(string $dateStr): string
+    {
+        $trimmed = trim($dateStr);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed)) {
+            return $trimmed;
+        }
+        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $trimmed, $m)) {
+            return sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[2], (int) $m[1]);
+        }
+        return '';
+    }
 }

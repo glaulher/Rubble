@@ -112,4 +112,29 @@ class PreventivaController
             Response::serverError($e);
         }
     }
+
+    public function import(): void
+    {
+        try {
+            $data = Request::body();
+            if (!$data || !isset($data['rows']) || !is_array($data['rows'])) {
+                Response::json(['success' => false, 'message' => 'Dados inválidos'], 400);
+                return;
+            }
+
+            $result = $this->service->importBatch($data['rows'], (array) $this->currentUser);
+
+            Response::json([
+                'success'  => true,
+                'message'  => "Importação concluída: {$result['imported']} adicionados, {$result['skipped']} ignorados",
+                'imported' => $result['imported'],
+                'skipped'  => $result['skipped'],
+                'errors'   => $result['errors'] ?? [],
+            ]);
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
 }
