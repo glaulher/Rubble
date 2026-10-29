@@ -183,6 +183,42 @@ class InventoryRepository extends BaseRepository
         return $success;
     }
 
+    public function transferCustody(int $id, string $novoTecnico, string $dataRetirada, string $termoRef): bool
+    {
+        $stmt = $this->conn->prepare(
+            "UPDATE inventario 
+             SET tecnico_nome = ?, data_retirada = ?, data_devolucao = NULL, status = 'em_posse',
+                 observacoes = CONCAT(COALESCE(observacoes, ''), '\n', ?)
+             WHERE id = ?"
+        );
+        if (!$stmt) {
+            return false;
+        }
+        $note = "[Transferência via Termo {$termoRef} em {$dataRetirada}]";
+        $stmt->bind_param('sssi', $novoTecnico, $dataRetirada, $note, $id);
+        $res = $stmt->execute();
+        $stmt->close();
+        return $res;
+    }
+
+    public function markReturned(int $id, string $dataDevolucao, ?string $obs = null): bool
+    {
+        $stmt = $this->conn->prepare(
+            "UPDATE inventario 
+             SET data_devolucao = ?, status = 'devolvido',
+                 observacoes = CONCAT(COALESCE(observacoes, ''), '\n', ?)
+             WHERE id = ?"
+        );
+        if (!$stmt) {
+            return false;
+        }
+        $note = $obs ? "[Devolução em {$dataDevolucao}: {$obs}]" : "[Devolução registrada em {$dataDevolucao}]";
+        $stmt->bind_param('ssi', $dataDevolucao, $note, $id);
+        $res = $stmt->execute();
+        $stmt->close();
+        return $res;
+    }
+
     public function delete(int $id): bool
     {
         $stmt = $this->conn->prepare('DELETE FROM inventario WHERE id = ?');
