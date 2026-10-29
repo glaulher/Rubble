@@ -27,6 +27,7 @@ import { initAdminAudit } from '/public/js/admin/audit.js';
 import { initPreditivaParse } from '/public/js/preditiva-parse/preditiva-parse.js';
 import { initDiarioList } from '/public/js/diario/list.js';
 import { initTeams } from '/public/js/teams/list.js';
+import { initPublicSign } from '/public/js/termo/public-sign.js';
 
 const VIEW_VERSION = 50;
 
@@ -264,6 +265,13 @@ export async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/teams/list.html?v=" + VIEW_VERSION);
+  } else if (hash.startsWith("#/assinar-termo") || hash.startsWith("#assinar-termo") || hash.startsWith("#/termo") || hash.startsWith("#termo")) {
+    /*
+    |--------------------------------------------------------------------------
+    | ASSINATURA PÚBLICA DE TERMO (TÉCNICO / MOBILE)
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/termo/public-sign.html?v=" + VIEW_VERSION);
   } else if (hash === "#/login") {
     html = await loadPage("/app/Views/auth/login.html?v=" + VIEW_VERSION);
   } else {
@@ -342,6 +350,8 @@ export async function router() {
       initAdminAudit();
     } else if (hash === "#/teams" || hash.startsWith("#/teams?")) {
       initTeams();
+    } else if (hash.startsWith("#/assinar-termo") || hash.startsWith("#assinar-termo") || hash.startsWith("#/termo") || hash.startsWith("#termo")) {
+      initPublicSign();
     } else if (hash === "#/login") {
       initLogin();
     } else {

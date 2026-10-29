@@ -154,10 +154,15 @@ export function apiFetch(url, options = {}) {
 }
 
 export function authGuard() {
-  const hash = window.location.hash;
-  const publicRoutes = ['#/login'];
+  const hash = window.location.hash || '';
+  const isPublicRoute =
+    hash === '#/login' ||
+    hash.startsWith('#/assinar-termo') ||
+    hash.startsWith('#assinar-termo') ||
+    hash.startsWith('#/termo') ||
+    hash.startsWith('#termo');
 
-  if (!isAuthenticated() && !publicRoutes.includes(hash)) {
+  if (!isAuthenticated() && !isPublicRoute) {
     window.location.hash = '#/login';
     return false;
   }
@@ -378,9 +383,11 @@ export function initLogin() {
 export function updateUserDisplay() {
   const user = getUser();
   const displayEl = document.getElementById('userDisplay');
-  const isLoginPage = window.location.hash === '#/login';
+  const hash = window.location.hash || '';
+  const isLoginPage = hash === '#/login';
+  const isPublicTermoPage = hash.startsWith('#/assinar-termo') || hash.startsWith('#assinar-termo') || hash.startsWith('#/termo') || hash.startsWith('#termo');
 
-  toggleSidebar(!!user && !isLoginPage);
+  toggleSidebar(!!user && !isLoginPage && !isPublicTermoPage);
 
   if (!isLoginPage && localStorage.getItem('theme') === 'dark') {
     document.documentElement.classList.add('dark');
