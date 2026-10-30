@@ -1,9 +1,9 @@
 import { showToast } from '/public/js/core/dom.js';
 import { escapeHtml } from '/public/js/core/utils.js';
 import { getUser, getToken } from '/public/js/core/auth.js';
-import { initSignaturePad } from '/public/js/termo/signature-pad.js';
-import { generateTermoPdf } from '/public/js/termo/termo-pdf.js';
-import { generateQrCodeSvg } from '/public/js/termo/qr-code.js';
+import { initSignaturePad } from '/public/js/termo/signature-pad.js?v=28';
+import { generateTermoPdf } from '/public/js/termo/termo-pdf.js?v=28';
+import { generateQrCodeSvg } from '/public/js/termo/qr-code.js?v=28';
 
 export function getTermoPublicUrl(token, origin = '') {
   const base = origin || (typeof window !== 'undefined' ? window.location.origin : '');

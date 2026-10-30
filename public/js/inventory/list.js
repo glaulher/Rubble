@@ -4,7 +4,7 @@ import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
 import { getUser } from '/public/js/core/auth.js';
 import { iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
-import { openCreateTermoModal, openTermosListModal } from '/public/js/termo/termo-modal.js';
+import { openCreateTermoModal, openTermosListModal } from '/public/js/termo/termo-modal.js?v=28';
 
 let inventoryList = [];
 let inventorySearch = '';

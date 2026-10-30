@@ -21,15 +21,15 @@ import { initFilters } from '/public/js/filter-exchanges/list.js';
 import { initPdfAudit } from '/public/js/pdf-audit/audit.js';
 import { initEquipamentDashboard } from '/public/js/equipment/dashboard.js';
 import { initPreventivaDashboard } from '/public/js/preventiva/dashboard.js';
-import { initInventoryList } from '/public/js/inventory/list.js';
-import { loadInventoryForm } from '/public/js/inventory/form.js';
+import { initInventoryList } from '/public/js/inventory/list.js?v=28';
+import { loadInventoryForm } from '/public/js/inventory/form.js?v=28';
 import { initAdminAudit } from '/public/js/admin/audit.js';
 import { initPreditivaParse } from '/public/js/preditiva-parse/preditiva-parse.js';
 import { initDiarioList } from '/public/js/diario/list.js';
 import { initTeams } from '/public/js/teams/list.js';
-import { initPublicSign } from '/public/js/termo/public-sign.js';
+import { initPublicSign } from '/public/js/termo/public-sign.js?v=28';
 
-const VIEW_VERSION = 50;
+const VIEW_VERSION = 51;
 
 export async function loadPage(url) {
   try {

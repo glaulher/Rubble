@@ -1,5 +1,5 @@
-import { initSignaturePad } from '/public/js/termo/signature-pad.js';
-import { generateTermoPdf } from '/public/js/termo/termo-pdf.js';
+import { initSignaturePad } from '/public/js/termo/signature-pad.js?v=28';
+import { generateTermoPdf } from '/public/js/termo/termo-pdf.js?v=28';
 import { escapeHtml } from '/public/js/core/utils.js';
 
 let signaturePadInstance = null;
