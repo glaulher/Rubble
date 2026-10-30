@@ -14,31 +14,41 @@
         </span>
       </div>
 
-      <!-- BOTÕES DE AÇÃO DO SUB-HEADER -->
-      <div class="text-right flex items-center justify-end gap-2">
+      <!-- BOTÕES DE AÇÃO DO SUB-HEADER (Ícones com tooltip estilo Atividade Planejada) -->
+      <div class="text-right flex items-center justify-end gap-3">
+        <!-- Cautelas -->
         <button id="btnHistoryTermos" data-action="open-termos-history"
-          class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-4 py-2 rounded-xl text-sm font-medium transition cursor-pointer whitespace-nowrap flex items-center gap-2" title="Ver Histórico de Termos">
-          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 p-2 rounded-xl relative group cursor-pointer transition"
+          aria-label="Histórico de Cautelas">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
             <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
             <path d="M9 12h6"/>
             <path d="M9 16h6"/>
           </svg>
-          <span>Cautelas</span>
+          <span class="absolute right-0 top-[54px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Histórico de Cautelas</span>
         </button>
 
+        <!-- Novo Termo -->
         <button id="btnNewTermoCautela" data-action="open-termo-modal"
-          class="bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 px-4 py-2 rounded-xl text-sm font-medium transition cursor-pointer whitespace-nowrap flex items-center gap-2">
-          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          class="bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 p-2 rounded-xl relative group cursor-pointer transition"
+          aria-label="Novo Termo de Cautela">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 20h9"/>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
           </svg>
-          <span>+ Novo Termo</span>
+          <span class="absolute right-0 top-[54px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Novo Termo de Cautela</span>
         </button>
 
+        <!-- Novo Item -->
         <button id="btnNewInventory" data-action="navigate-inventory-form"
-          class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-4 py-2 rounded-xl text-sm font-medium transition cursor-pointer whitespace-nowrap">
-          + Novo Item
+          class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 p-2 rounded-xl relative group cursor-pointer transition"
+          aria-label="+ Novo Item">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span class="absolute right-0 top-[54px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">+ Novo Item</span>
         </button>
       </div>
     </div>
