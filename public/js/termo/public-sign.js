@@ -1,5 +1,5 @@
-import { initSignaturePad } from '/public/js/termo/signature-pad.js?v=28';
-import { generateTermoPdf } from '/public/js/termo/termo-pdf.js?v=28';
+import { initSignaturePad } from '/public/js/termo/signature-pad.js?v=30';
+import { generateTermoPdf } from '/public/js/termo/termo-pdf.js?v=30';
 import { escapeHtml } from '/public/js/core/utils.js';
 
 let signaturePadInstance = null;
@@ -71,6 +71,41 @@ export async function initPublicSign() {
   }
 }
 
+function renderTermoItems(container, badgeEl, itens) {
+  if (!container) return;
+  container.innerHTML = '';
+  const list = Array.isArray(itens) ? itens : [];
+
+  if (badgeEl) {
+    badgeEl.textContent = `${list.length} ${list.length === 1 ? 'item' : 'itens'}`;
+  }
+
+  if (list.length === 0) {
+    container.innerHTML = '<p class="text-xs text-slate-400 py-4 text-center">Nenhum equipamento/ferramenta relacionado neste termo.</p>';
+    return;
+  }
+
+  list.forEach((item, index) => {
+    const card = document.createElement('div');
+    card.className = 'flex items-center justify-between p-3.5 rounded-2xl bg-white border border-slate-200 text-xs shadow-xs gap-3';
+    card.innerHTML = `
+      <div class="flex items-center gap-3 min-w-0 flex-1">
+        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-800 font-bold flex items-center justify-center text-xs shrink-0">${index + 1}</span>
+        <div class="min-w-0 flex-1">
+          <strong class="text-slate-900 block font-semibold text-sm truncate">${escapeHtml(item.material_nome || '-')}</strong>
+          <div class="text-slate-500 text-xs mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+            ${item.modelo ? `<span>Modelo: <strong class="text-slate-700 font-medium">${escapeHtml(item.modelo)}</strong></span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="shrink-0 text-right">
+        <span class="font-mono bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-800 text-xs font-semibold block">${escapeHtml(item.serial || 'S/N')}</span>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
 function renderSuccessState(termo) {
   const codEl = document.getElementById('successCodigo');
   const tecEl = document.getElementById('successTecnico');
@@ -78,12 +113,29 @@ function renderSuccessState(termo) {
   const dateEl = document.getElementById('successAssinadoEm');
   const imgEl = document.getElementById('successSignatureImg');
   const pdfBtn = document.getElementById('btnDownloadPdfSuccess');
+  const itemsContainer = document.getElementById('successItemsList');
+  const badgeEl = document.getElementById('successItemsCountBadge');
+  const obsContainer = document.getElementById('successObservacoesContainer');
+  const obsText = document.getElementById('successObservacoesText');
 
   if (codEl) codEl.textContent = termo.codigo;
-  if (tecEl) tecEl.textContent = termo.tecnico_nome;
+  if (tecEl) tecEl.textContent = termo.tecnico_nome + (termo.tecnico_documento ? ` (${termo.tecnico_documento})` : '');
   if (entEl) entEl.textContent = termo.entregue_por;
   if (dateEl && termo.assinado_em) dateEl.textContent = 'Assinado digitalmente em ' + termo.assinado_em;
   if (imgEl && termo.assinatura_imagem) imgEl.src = termo.assinatura_imagem;
+
+  // Renderizar itens sob custódia
+  renderTermoItems(itemsContainer, badgeEl, termo.itens);
+
+  // Observações se existirem
+  if (obsContainer && obsText) {
+    if (termo.observacoes && termo.observacoes.trim()) {
+      obsText.textContent = termo.observacoes.trim();
+      obsContainer.classList.remove('hidden');
+    } else {
+      obsContainer.classList.add('hidden');
+    }
+  }
 
   if (pdfBtn) {
     pdfBtn.onclick = () => {
@@ -97,6 +149,9 @@ function renderSignState(termo, token) {
   const entEl = document.getElementById('signEntreguePor');
   const tecEl = document.getElementById('signTecnicoNome');
   const listEl = document.getElementById('signItemsList');
+  const badgeEl = document.getElementById('signItemsCountBadge');
+  const obsContainer = document.getElementById('signObservacoesContainer');
+  const obsText = document.getElementById('signObservacoesText');
   const canvas = document.getElementById('signatureCanvas');
   const placeholder = document.getElementById('signaturePlaceholder');
   const clearBtn = document.getElementById('btnClearSignature');
@@ -106,23 +161,17 @@ function renderSignState(termo, token) {
   if (entEl) entEl.textContent = termo.entregue_por;
   if (tecEl) tecEl.textContent = termo.tecnico_nome + (termo.tecnico_documento ? ` (${termo.tecnico_documento})` : '');
 
-  if (listEl) {
-    listEl.innerHTML = '';
-    (termo.itens || []).forEach((item, index) => {
-      const card = document.createElement('div');
-      card.className = 'flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs shadow-xs';
-      card.innerHTML = `
-        <div class="flex items-center gap-2.5">
-          <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 font-bold flex items-center justify-center text-[10px] shrink-0">${index + 1}</span>
-          <div>
-            <strong class="text-slate-900 dark:text-white block font-semibold">${escapeHtml(item.material_nome)}</strong>
-            <span class="text-slate-600 dark:text-slate-400 text-[11px]">${escapeHtml(item.modelo || '-')}</span>
-          </div>
-        </div>
-        <span class="font-mono bg-slate-100 dark:bg-slate-700/80 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 font-semibold">${escapeHtml(item.serial || 'N/A')}</span>
-      `;
-      listEl.appendChild(card);
-    });
+  // Renderizar lista de ferramentas e materiais
+  renderTermoItems(listEl, badgeEl, termo.itens);
+
+  // Observações se existirem
+  if (obsContainer && obsText) {
+    if (termo.observacoes && termo.observacoes.trim()) {
+      obsText.textContent = termo.observacoes.trim();
+      obsContainer.classList.remove('hidden');
+    } else {
+      obsContainer.classList.add('hidden');
+    }
   }
 
   if (canvas) {

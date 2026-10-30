@@ -286,6 +286,9 @@ button:disabled { cursor: not-allowed; }
 .dark .border-amber-200 { border-color: #3d352d !important; }
 .dark .border-emerald-200 { border-color: #065f46 !important; }
 .dark .border-emerald-800 { border-color: #065f46 !important; }
+.dark .border-sky-200 { border-color: #0369a1 !important; }
+.dark .bg-sky-50 { background-color: #151922 !important; }
+.dark .text-sky-950 { color: #bae6fd !important; }
 .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #252d3d !important; }
 
 /* Hover states */
