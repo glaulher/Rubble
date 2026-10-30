@@ -39,6 +39,9 @@ describe('iconButtonHtml', function () {
 
     var copyHtml = iconButtonHtml('copy', 'Duplicar');
     expect(copyHtml.indexOf('bg-violet-100')).not.toBe(-1);
+
+    var termoHtml = iconButtonHtml('termo', 'Emitir Termo');
+    expect(termoHtml.indexOf('bg-sky-100')).not.toBe(-1);
   });
 
   it('applies custom attrs', function () {

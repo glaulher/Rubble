@@ -230,7 +230,7 @@ export function renderInventory() {
 
       let actions =
         '<div class="flex items-center justify-end gap-2">' +
-        '<button type="button" data-action="termo" data-id="' + item.id + '" title="Emitir Termo de Cautela" class="p-1.5 rounded-lg text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition cursor-pointer text-xs font-semibold">✍️ Cautela</button>' +
+        iconButtonHtml('termo', 'Emitir Termo de Cautela', { 'data-action': 'termo', 'data-id': item.id }) +
         iconButtonHtml('edit', 'Editar', { 'data-action': 'edit', 'data-id': item.id });
       if (canDelete) {
         actions += iconButtonHtml('delete', 'Excluir', { 'data-action': 'delete', 'data-id': item.id }, 'right');

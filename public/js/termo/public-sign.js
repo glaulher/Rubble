@@ -175,7 +175,7 @@ function renderSignState(termo, token) {
         if (!json.success) {
           alert(json.message || 'Erro ao salvar assinatura.');
           confirmBtn.disabled = false;
-          confirmBtn.innerHTML = '<span>✍️ Confirmar e Assinar Termo</span>';
+          confirmBtn.innerHTML = '<svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Confirmar e Assinar Termo</span>';
           return;
         }
 
@@ -192,7 +192,7 @@ function renderSignState(termo, token) {
       } catch (e) {
         alert('Erro ao enviar assinatura. Verifique sua conexão.');
         confirmBtn.disabled = false;
-        confirmBtn.innerHTML = '<span>✍️ Confirmar e Assinar Termo</span>';
+        confirmBtn.innerHTML = '<svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Confirmar e Assinar Termo</span>';
       }
     };
   }

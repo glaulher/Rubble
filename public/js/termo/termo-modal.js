@@ -237,8 +237,10 @@ export function openShareTermoModal(termo) {
   modal.innerHTML = `
     <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg overflow-hidden my-8 animate-in zoom-in-95 duration-200">
       <div class="p-6 text-center border-b border-slate-100 dark:border-slate-700/60 bg-emerald-50/50 dark:bg-emerald-950/20">
-        <div class="w-12 h-12 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold">
-          ✓
+        <div class="w-12 h-12 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 rounded-full flex items-center justify-center mx-auto mb-2 font-bold">
+          <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
         </div>
         <h3 class="text-lg font-bold text-slate-900 dark:text-white">Termo: ${escapeHtml(termo.codigo)}</h3>
         <p class="text-xs text-slate-500 dark:text-slate-400">Escolha como o técnico <strong>${escapeHtml(termo.tecnico_nome)}</strong> irá assinar:</p>
@@ -249,7 +251,12 @@ export function openShareTermoModal(termo) {
         <a href="${waLink}" target="_blank" rel="noopener noreferrer"
           class="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 transition group cursor-pointer">
           <div class="flex items-center gap-3">
-            <div class="w-9 h-9 bg-emerald-500 text-white rounded-xl flex items-center justify-center font-bold text-lg">📱</div>
+            <div class="w-9 h-9 bg-emerald-500 text-white rounded-xl flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                <line x1="12" y1="18" x2="12.01" y2="18"/>
+              </svg>
+            </div>
             <div class="text-left">
               <strong class="text-xs text-emerald-950 dark:text-emerald-200 block font-semibold">Enviar por WhatsApp</strong>
               <span class="text-[11px] text-emerald-700 dark:text-emerald-400">Abre com mensagem pronta para o técnico</span>
@@ -276,7 +283,11 @@ export function openShareTermoModal(termo) {
         <!-- OPÇÃO 4: ASSINAR AGORA NA TELA -->
         <button type="button" id="btnSignNowModalBtn"
           class="w-full bg-blue-300 hover:bg-blue-400 active:bg-blue-500 text-blue-900 py-3 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2">
-          <span>✍️ Técnico está presente? Assinar aqui agora</span>
+          <svg class="w-4 h-4 text-blue-900 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          <span>Técnico presente? Assinar agora na tela</span>
         </button>
 
         <button type="button" id="btnCloseShareModal" class="w-full text-slate-400 hover:text-slate-600 dark:hover:text-white py-2 text-xs transition cursor-pointer">
@@ -361,9 +372,9 @@ export async function openTermosListModal() {
     container.innerHTML = json.data.map((t) => {
       let statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Pendente</span>';
       if (t.status === 'assinado') {
-        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Assinado ✍️</span>';
+        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Assinado</span>';
       } else if (t.status === 'devolvido') {
-        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">Devolvido ✓</span>';
+        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">Devolvido</span>';
       } else if (t.status === 'devolvido_parcial') {
         statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">Devolvido Parcial</span>';
       }
@@ -383,15 +394,29 @@ export async function openTermosListModal() {
           </div>
 
           <div class="flex items-center gap-2 shrink-0">
-            <button type="button" class="btn-share-termo px-2.5 py-1.5 rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-800 font-semibold cursor-pointer text-xs" data-termo='${escapeHtml(JSON.stringify(t))}'>
-              📱 Link
+            <button type="button" class="btn-share-termo px-2.5 py-1.5 rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-800 font-semibold cursor-pointer text-xs flex items-center gap-1.5" data-termo='${escapeHtml(JSON.stringify(t))}'>
+              <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+              <span>Link</span>
             </button>
-            <button type="button" class="btn-pdf-termo px-2.5 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold cursor-pointer text-xs" data-id="${t.id}">
-              📄 PDF
+            <button type="button" class="btn-pdf-termo px-2.5 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold cursor-pointer text-xs flex items-center gap-1.5" data-id="${t.id}">
+              <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              <span>PDF</span>
             </button>
             ${t.status === 'assinado' || t.status === 'devolvido_parcial' ? `
-              <button type="button" class="btn-devolver-termo px-2.5 py-1.5 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-900 font-bold cursor-pointer text-xs" data-id="${t.id}">
-                🔄 Devolver
+              <button type="button" class="btn-devolver-termo px-2.5 py-1.5 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-900 font-bold cursor-pointer text-xs flex items-center gap-1.5" data-id="${t.id}">
+                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="1 4 1 10 7 10"/>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                </svg>
+                <span>Devolver</span>
               </button>
             ` : ''}
           </div>
