@@ -8,7 +8,7 @@ tempo_fechado/alertas_notificacao_config.py
 tempo_fechado/usuarios_config.py
 OS/
 LAUDO/
-# *.sql (temporariamente liberado para commitar a migration 070)
+*.sql
 cache/
 AGENTS.md
 contexto.md
