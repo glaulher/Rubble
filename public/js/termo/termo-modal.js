@@ -1,8 +1,9 @@
 import { showToast } from '/public/js/core/dom.js';
 import { escapeHtml } from '/public/js/core/utils.js';
-import { getUser } from '/public/js/core/auth.js';
+import { getUser, getToken } from '/public/js/core/auth.js';
 import { initSignaturePad } from '/public/js/termo/signature-pad.js';
 import { generateTermoPdf } from '/public/js/termo/termo-pdf.js';
+import { generateQrCodeSvg } from '/public/js/termo/qr-code.js';
 
 export function getTermoPublicUrl(token, origin = '') {
   const base = origin || (typeof window !== 'undefined' ? window.location.origin : '');
@@ -21,17 +22,10 @@ export async function openCreateTermoModal(preselectedItem = null) {
   const user = getUser();
   const defaultEntregador = user ? (user.nome || user.username) : 'Engemon';
 
-  // Buscar técnicos e itens do inventário disponíveis
   let technicians = [];
-  let inventoryItems = [];
-
   try {
-    const [techRes, invRes] = await Promise.all([
-      fetch('/app/api/index.php?route=inventory&action=technicians').then((r) => r.json()),
-      fetch('/app/api/index.php?route=inventory&limit=100&status=em_posse').then((r) => r.json()),
-    ]);
+    const techRes = await fetch('/app/api/index.php?route=inventory&action=technicians').then((r) => r.json());
     if (techRes.success && Array.isArray(techRes.data)) technicians = techRes.data;
-    if (invRes.success && Array.isArray(invRes.data)) inventoryItems = invRes.data;
   } catch (_) {}
 
   modal = document.createElement('div');
@@ -45,7 +39,7 @@ export async function openCreateTermoModal(preselectedItem = null) {
           <h3 class="text-lg font-bold text-slate-900 dark:text-white">Novo Termo de Responsabilidade / Cautela</h3>
           <p class="text-xs text-slate-500 dark:text-slate-400">Emissão de termo com assinatura digital para retirada de ferramentas</p>
         </div>
-        <button type="button" id="btnCloseTermoCreateModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-2xl leading-none">&times;</button>
+        <button type="button" id="btnCloseTermoCreateModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-2xl leading-none cursor-pointer">&times;</button>
       </div>
 
       <form id="formCreateTermo" class="p-6 space-y-5">
@@ -84,7 +78,7 @@ export async function openCreateTermoModal(preselectedItem = null) {
         <div>
           <div class="flex items-center justify-between mb-2">
             <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Ferramentas / Equipamentos do Termo *</label>
-            <button type="button" id="btnAddManualItemBtn" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">+ Adicionar Item Avulso</button>
+            <button type="button" id="btnAddManualItemBtn" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer">+ Adicionar Item Avulso</button>
           </div>
 
           <div id="termoItemsContainer" class="space-y-2 max-h-48 overflow-y-auto p-1 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-900/30">
@@ -122,7 +116,7 @@ export async function openCreateTermoModal(preselectedItem = null) {
       <input type="text" class="item-mat flex-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent px-2.5 py-1.5 text-xs text-slate-800 dark:text-white" placeholder="Descrição do Material *" required value="${escapeHtml(item.material_nome || '')}" />
       <input type="text" class="item-mod w-28 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent px-2.5 py-1.5 text-xs text-slate-800 dark:text-white" placeholder="Modelo" value="${escapeHtml(item.modelo || '')}" />
       <input type="text" class="item-ser w-28 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent px-2.5 py-1.5 text-xs text-slate-800 dark:text-white font-mono" placeholder="Serial / Placa" value="${escapeHtml(item.serial || '')}" />
-      <button type="button" class="btn-remove-item text-red-500 hover:text-red-700 text-base leading-none px-1.5">&times;</button>
+      <button type="button" class="btn-remove-item text-red-500 hover:text-red-700 text-base leading-none px-1.5 cursor-pointer">&times;</button>
     `;
     row.querySelector('.btn-remove-item').onclick = () => {
       row.remove();
@@ -131,7 +125,6 @@ export async function openCreateTermoModal(preselectedItem = null) {
     container.appendChild(row);
   }
 
-  // Pre-popular item se fornecido
   if (preselectedItem) {
     addItemRow(preselectedItem);
   } else {
@@ -144,7 +137,6 @@ export async function openCreateTermoModal(preselectedItem = null) {
   document.getElementById('btnCloseTermoCreateModal').onclick = closeModal;
   document.getElementById('btnCancelTermoCreate').onclick = closeModal;
 
-  // Submit do formulário
   document.getElementById('formCreateTermo').onsubmit = async (e) => {
     e.preventDefault();
     const rows = container.querySelectorAll('.item-row');
@@ -183,11 +175,12 @@ export async function openCreateTermoModal(preselectedItem = null) {
     submitBtn.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Salvando...';
 
     try {
+      const token = getToken();
       const res = await fetch('/app/api/index.php?route=termo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${sessionStorage.getItem('auth_token') || ''}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(payload),
       });
@@ -221,8 +214,9 @@ export function openShareTermoModal(termo) {
   let modal = document.getElementById(modalId);
   if (modal) modal.remove();
 
-  const publicUrl = getTermoPublicUrl(termo.token);
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(publicUrl)}`;
+  const publicUrl = getTermoPublicUrl(termo.token || termo.token_assinatura);
+  const qrSvgDataUrl = generateQrCodeSvg(publicUrl, 180);
+
   const waMsg = buildWhatsAppMessage({
     tecnico: termo.tecnico_nome,
     entregue_por: termo.entregue_por,
@@ -246,7 +240,7 @@ export function openShareTermoModal(termo) {
         <div class="w-12 h-12 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 rounded-full flex items-center justify-center mx-auto mb-2 text-xl font-bold">
           ✓
         </div>
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Termo Gerado: ${escapeHtml(termo.codigo)}</h3>
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Termo: ${escapeHtml(termo.codigo)}</h3>
         <p class="text-xs text-slate-500 dark:text-slate-400">Escolha como o técnico <strong>${escapeHtml(termo.tecnico_nome)}</strong> irá assinar:</p>
       </div>
 
@@ -273,10 +267,10 @@ export function openShareTermoModal(termo) {
           </button>
         </div>
 
-        <!-- OPÇÃO 3: QR CODE -->
+        <!-- OPÇÃO 3: QR CODE LOCAL -->
         <div class="text-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
           <p class="text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">Ou aponte a câmera do celular para o QR Code:</p>
-          <img src="${qrUrl}" alt="QR Code Assinatura" class="w-36 h-36 mx-auto rounded-xl shadow-sm border border-slate-200 bg-white p-1" />
+          <img src="${qrSvgDataUrl}" alt="QR Code Assinatura" class="w-36 h-36 mx-auto rounded-xl shadow-sm border border-slate-200 bg-white p-1" />
         </div>
 
         <!-- OPÇÃO 4: ASSINAR AGORA NA TELA -->
@@ -285,7 +279,7 @@ export function openShareTermoModal(termo) {
           <span>✍️ Técnico está presente? Assinar aqui agora</span>
         </button>
 
-        <button type="button" id="btnCloseShareModal" class="w-full text-slate-400 hover:text-slate-600 dark:hover:text-white py-2 text-xs transition">
+        <button type="button" id="btnCloseShareModal" class="w-full text-slate-400 hover:text-slate-600 dark:hover:text-white py-2 text-xs transition cursor-pointer">
           Fechar
         </button>
       </div>
@@ -307,6 +301,253 @@ export function openShareTermoModal(termo) {
 
   document.getElementById('btnSignNowModalBtn').onclick = () => {
     close();
-    window.location.hash = `#/assinar-termo?token=${encodeURIComponent(termo.token)}`;
+    const token = termo.token || termo.token_assinatura;
+    window.location.hash = `#/assinar-termo?token=${encodeURIComponent(token)}`;
+  };
+}
+
+export async function openTermosListModal() {
+  const modalId = 'modalTermosHistory';
+  let modal = document.getElementById(modalId);
+  if (modal) modal.remove();
+
+  modal = document.createElement('div');
+  modal.id = modalId;
+  modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto';
+
+  modal.innerHTML = `
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-4xl overflow-hidden my-8 animate-in fade-in duration-200">
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Termos de Cautela Emitidos</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Histórico de cautelas, assinaturas digitais e baixas de ferramentas</p>
+        </div>
+        <button type="button" id="btnCloseTermosHistoryModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-2xl leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <div class="p-6">
+        <div id="termosHistoryLoading" class="text-center py-8">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+          <p class="text-xs text-slate-400">Carregando termos...</p>
+        </div>
+
+        <div id="termosHistoryContainer" class="hidden max-h-[60vh] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60">
+          <!-- Lista injetada aqui -->
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const close = () => modal.remove();
+  document.getElementById('btnCloseTermosHistoryModal').onclick = close;
+
+  try {
+    const token = getToken();
+    const res = await fetch('/app/api/index.php?route=termo&limit=50', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    const json = await res.json();
+    document.getElementById('termosHistoryLoading').classList.add('hidden');
+    const container = document.getElementById('termosHistoryContainer');
+    container.classList.remove('hidden');
+
+    if (!json.success || !Array.isArray(json.data) || json.data.length === 0) {
+      container.innerHTML = '<p class="text-center text-slate-400 text-xs py-8">Nenhum termo de cautela registrado até o momento.</p>';
+      return;
+    }
+
+    container.innerHTML = json.data.map((t) => {
+      let statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Pendente</span>';
+      if (t.status === 'assinado') {
+        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Assinado ✍️</span>';
+      } else if (t.status === 'devolvido') {
+        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">Devolvido ✓</span>';
+      } else if (t.status === 'devolvido_parcial') {
+        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">Devolvido Parcial</span>';
+      }
+
+      const itemCount = (t.itens || []).length;
+      return `
+        <div class="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-slate-50 dark:hover:bg-slate-750 px-2 rounded-xl transition">
+          <div>
+            <div class="flex items-center gap-2">
+              <strong class="font-mono font-bold text-slate-900 dark:text-white">${escapeHtml(t.codigo)}</strong>
+              ${statusBadge}
+              <span class="text-slate-400 text-[11px]">${escapeHtml(t.created_at ? t.created_at.substring(0, 10) : '')}</span>
+            </div>
+            <p class="text-slate-600 dark:text-slate-300 mt-1">
+              <strong>${escapeHtml(t.tecnico_nome)}</strong> recebeu de <em>${escapeHtml(t.entregue_por)}</em> &bull; ${itemCount} ferramenta(s)
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" class="btn-share-termo px-2.5 py-1.5 rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-800 font-semibold cursor-pointer text-xs" data-termo='${escapeHtml(JSON.stringify(t))}'>
+              📱 Link
+            </button>
+            <button type="button" class="btn-pdf-termo px-2.5 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold cursor-pointer text-xs" data-id="${t.id}">
+              📄 PDF
+            </button>
+            ${t.status === 'assinado' || t.status === 'devolvido_parcial' ? `
+              <button type="button" class="btn-devolver-termo px-2.5 py-1.5 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-900 font-bold cursor-pointer text-xs" data-id="${t.id}">
+                🔄 Devolver
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.btn-share-termo').forEach((b) => {
+      b.onclick = () => {
+        const data = JSON.parse(b.dataset.termo);
+        openShareTermoModal(data);
+      };
+    });
+
+    container.querySelectorAll('.btn-pdf-termo').forEach((b) => {
+      b.onclick = async () => {
+        const id = b.dataset.id;
+        const res = await fetch(`/app/api/index.php?route=termo&action=get&id=${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const detail = await res.json();
+        if (detail.success) {
+          generateTermoPdf(detail.data);
+        }
+      };
+    });
+
+    container.querySelectorAll('.btn-devolver-termo').forEach((b) => {
+      b.onclick = async () => {
+        const id = b.dataset.id;
+        const res = await fetch(`/app/api/index.php?route=termo&action=get&id=${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const detail = await res.json();
+        if (detail.success) {
+          close();
+          openDevolucaoModal(detail.data);
+        }
+      };
+    });
+  } catch (_) {
+    document.getElementById('termosHistoryLoading').innerHTML = '<p class="text-red-500 text-xs">Erro ao carregar histórico de termos.</p>';
+  }
+}
+
+export function openDevolucaoModal(termo) {
+  const modalId = 'modalTermoDevolucao';
+  let modal = document.getElementById(modalId);
+  if (modal) modal.remove();
+
+  const pendingItems = (termo.itens || []).filter((i) => i.status_item === 'em_posse');
+
+  modal = document.createElement('div');
+  modal.id = modalId;
+  modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto';
+
+  modal.innerHTML = `
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md overflow-hidden my-8 animate-in zoom-in-95 duration-200">
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">Registrar Devolução: ${escapeHtml(termo.codigo)}</h3>
+          <p class="text-xs text-slate-500">Técnico: ${escapeHtml(termo.tecnico_nome)}</p>
+        </div>
+        <button type="button" id="btnCloseDevolucaoModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-2xl leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <form id="formDevolucaoTermo" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Selecione os itens devolvidos:</label>
+          <div class="space-y-2 max-h-40 overflow-y-auto p-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900">
+            ${pendingItems.map((item) => `
+              <label class="flex items-center gap-2.5 text-xs text-slate-800 dark:text-slate-200 cursor-pointer">
+                <input type="checkbox" name="item_devolucao" value="${item.id}" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                <span class="font-medium">${escapeHtml(item.material_nome)}</span>
+                <span class="font-mono text-slate-400 text-[11px]">(${escapeHtml(item.serial || 'N/A')})</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Data da Devolução</label>
+          <input type="date" id="devolucaoData" required value="${new Date().toISOString().substring(0, 10)}"
+            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-xs" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Observações de Devolução</label>
+          <textarea id="devolucaoObs" rows="2"
+            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-xs" placeholder="Estado de conservação, integridade, etc."></textarea>
+        </div>
+
+        <div class="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+          <button type="button" id="btnCancelDevolucao" class="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-900 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer">
+            Cancelar
+          </button>
+          <button type="submit" id="btnSubmitDevolucao" class="flex-1 bg-emerald-300 hover:bg-emerald-400 text-emerald-900 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer">
+            Confirmar Baixa
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const close = () => modal.remove();
+  document.getElementById('btnCloseDevolucaoModal').onclick = close;
+  document.getElementById('btnCancelDevolucao').onclick = close;
+
+  document.getElementById('formDevolucaoTermo').onsubmit = async (e) => {
+    e.preventDefault();
+    const checked = Array.from(modal.querySelectorAll('input[name="item_devolucao"]:checked')).map((c) => parseInt(c.value, 10));
+    if (checked.length === 0) {
+      alert('Selecione pelo menos um item para devolver.');
+      return;
+    }
+
+    const payload = {
+      termo_id: termo.id,
+      item_ids: checked,
+      data_devolucao: document.getElementById('devolucaoData').value,
+      observacoes: document.getElementById('devolucaoObs').value.trim(),
+    };
+
+    const submitBtn = document.getElementById('btnSubmitDevolucao');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processando...';
+
+    try {
+      const token = getToken();
+      const res = await fetch('/app/api/index.php?route=termo&action=devolver', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        alert(json.message || 'Erro ao registrar devolução.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Confirmar Baixa';
+        return;
+      }
+
+      close();
+      showToast('Devolução registrada com sucesso!');
+      if (typeof window.initInventoryList === 'function') {
+        window.initInventoryList();
+      }
+    } catch (_) {
+      alert('Erro ao conectar ao servidor.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Confirmar Baixa';
+    }
   };
 }

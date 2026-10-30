@@ -22,4 +22,34 @@ class TermoControllerTest extends TestCase
     {
         $this->assertInstanceOf(TermoController::class, $this->controller);
     }
+
+    public function testRejectsMismatchedActionOnGetPublicSign(): void
+    {
+        $_GET['action'] = 'public-sign';
+        $this->serviceMock->expects($this->never())->method('list');
+        $this->serviceMock->expects($this->never())->method('signPublicTermo');
+
+        // We capture output
+        ob_start();
+        $this->controller->handle('GET', null);
+        $output = ob_get_clean();
+        $data = json_decode($output, true);
+
+        $this->assertFalse($data['success']);
+        $this->assertStringContainsString('inválida', $data['message']);
+    }
+
+    public function testRejectsUnauthenticatedCreateAction(): void
+    {
+        $_GET['action'] = 'create';
+        $this->serviceMock->expects($this->never())->method('createTermo');
+
+        ob_start();
+        $this->controller->handle('POST', null);
+        $output = ob_get_clean();
+        $data = json_decode($output, true);
+
+        $this->assertFalse($data['success']);
+        $this->assertStringContainsString('Autenticação', $data['message']);
+    }
 }

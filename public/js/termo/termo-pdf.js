@@ -58,12 +58,21 @@ export function generateTermoPdf(termo) {
 
   doc.setFont('helvetica', 'normal');
   (termo.itens || []).forEach((it, idx) => {
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
     doc.text(String(idx + 1), 22, y + 4);
     doc.text(String(it.material_nome || ''), 30, y + 4);
     doc.text(String(it.modelo || '-'), 95, y + 4);
     doc.text(String(it.serial || 'N/A'), 145, y + 4);
     y += 6;
   });
+
+  if (y > 230) {
+    doc.addPage();
+    y = 20;
+  }
 
   // Cláusula de Responsabilidade
   y += 8;

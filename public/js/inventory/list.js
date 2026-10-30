@@ -4,7 +4,7 @@ import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
 import { getUser } from '/public/js/core/auth.js';
 import { iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
-import { openCreateTermoModal } from '/public/js/termo/termo-modal.js';
+import { openCreateTermoModal, openTermosListModal } from '/public/js/termo/termo-modal.js';
 
 let inventoryList = [];
 let inventorySearch = '';
@@ -96,6 +96,11 @@ export async function initInventoryList() {
   const btnTermo = document.getElementById('btnNewTermoCautela') || document.querySelector('[data-action="open-termo-modal"]');
   if (btnTermo) {
     btnTermo.onclick = () => openCreateTermoModal();
+  }
+
+  const btnHistory = document.getElementById('btnHistoryTermos') || document.querySelector('[data-action="open-termos-history"]');
+  if (btnHistory) {
+    btnHistory.onclick = () => openTermosListModal();
   }
 
   const csvBtn = document.querySelector('[data-action="generate-csv"]') || document.getElementById('btnInventoryCsv');

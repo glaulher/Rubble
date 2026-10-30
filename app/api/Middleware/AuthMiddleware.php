@@ -21,8 +21,12 @@ class AuthMiddleware
         }
 
         // Ações públicas para assinatura de Termo de Responsabilidade pelo técnico
-        if ($route === 'termo' && in_array($action, ['public-view', 'public-sign'], true)) {
-            return;
+        if ($route === 'termo') {
+            $isPublicView = ($method === 'GET' && $action === 'public-view');
+            $isPublicSign = ($method === 'POST' && $action === 'public-sign');
+            if ($isPublicView || $isPublicSign) {
+                return;
+            }
         }
 
         $authHeader = AuthService::getAuthHeader();

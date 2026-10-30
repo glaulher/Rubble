@@ -26,17 +26,36 @@ class TermoController
                 $this->publicView();
             } elseif ($action === 'get' || isset($_GET['id'])) {
                 $this->get();
-            } else {
+            } elseif ($action === 'list' || $action === null || $action === '') {
                 $this->list();
+            } else {
+                Response::json(['success' => false, 'message' => 'Ação inválida para GET.'], 400);
             }
         } elseif ($method === 'POST') {
             if ($action === 'public-sign') {
                 $this->publicSign();
             } elseif ($action === 'devolver') {
+                if (!$user) {
+                    Response::json(['success' => false, 'message' => 'Autenticação necessária.'], 401);
+                    return;
+                }
                 $this->devolver();
-            } else {
+            } elseif ($action === 'create' || $action === null || $action === '') {
+                if (!$user) {
+                    Response::json(['success' => false, 'message' => 'Autenticação necessária.'], 401);
+                    return;
+                }
                 $this->create($user);
+            } else {
+                Response::json(['success' => false, 'message' => 'Ação inválida para POST.'], 400);
             }
+        } elseif ($method === 'DELETE') {
+            if (!$user) {
+                Response::json(['success' => false, 'message' => 'Autenticação necessária.'], 401);
+                return;
+            }
+            $id = (int) ($_GET['id'] ?? 0);
+            $this->delete($id);
         } else {
             Response::json(['success' => false, 'message' => 'Método não permitido.'], 405);
         }
@@ -86,6 +105,17 @@ class TermoController
         $obs = !empty($body['observacoes']) ? (string) $body['observacoes'] : null;
 
         $res = $this->service->devolverItens($termoId, $itemIds, $dataDevolucao, $obs);
+        Response::json($res, $res['success'] ? 200 : 400);
+    }
+
+    public function delete(int $id): void
+    {
+        if ($id <= 0) {
+            Response::json(['success' => false, 'message' => 'ID do termo não fornecido.'], 400);
+            return;
+        }
+
+        $res = $this->service->deleteTermo($id);
         Response::json($res, $res['success'] ? 200 : 400);
     }
 

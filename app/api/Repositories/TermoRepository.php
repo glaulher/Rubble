@@ -264,7 +264,7 @@ class TermoRepository extends BaseRepository
             $types .= 's';
         }
 
-        $sql = 'SELECT * FROM termos_responsabilidade';
+        $sql = 'SELECT id, codigo, emissor_id, entregue_por, tecnico_nome, tecnico_documento, tecnico_telefone, status, token_assinatura, token_expira_em, assinado_em, assinado_ip, assinado_user_agent, observacoes, created_at, updated_at FROM termos_responsabilidade';
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
@@ -329,5 +329,17 @@ class TermoRepository extends BaseRepository
         $res = $stmt->get_result()->fetch_assoc();
         $stmt->close();
         return (int) ($res['total'] ?? 0);
+    }
+
+    public function delete(int $id): bool
+    {
+        $stmt = $this->conn->prepare('DELETE FROM termos_responsabilidade WHERE id = ?');
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('i', $id);
+        $res = $stmt->execute();
+        $stmt->close();
+        return $res;
     }
 }

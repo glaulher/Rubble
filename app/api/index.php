@@ -501,6 +501,12 @@ $router->addRoute('termo', 'GET', function () use ($auth) {
     $service = new \App\Api\Services\TermoService($repo, $invRepo);
     $controller = new TermoController($service);
     $controller->handle('POST', $auth->getUser());
+})->addRoute('termo', 'DELETE', function () use ($auth) {
+    $repo = new \App\Api\Repositories\TermoRepository();
+    $invRepo = new \App\Api\Repositories\InventoryRepository();
+    $service = new \App\Api\Services\TermoService($repo, $invRepo);
+    $controller = new TermoController($service);
+    $controller->handle('DELETE', $auth->getUser());
 });
 
 // Admin Audit & Access Control

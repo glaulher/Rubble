@@ -8,6 +8,7 @@ use App\Api\Services\TermoService;
 use App\Api\Repositories\TermoRepository;
 use App\Api\Repositories\InventoryRepository;
 use App\Api\Entities\TermoResponsabilidade;
+use App\Api\Entities\TermoItem;
 
 class TermoServiceTest extends TestCase
 {
@@ -108,5 +109,69 @@ class TermoServiceTest extends TestCase
         $res = $this->service->signPublicTermo($token, '', '127.0.0.1', 'Mozilla');
         $this->assertFalse($res['success']);
         $this->assertStringContainsString('Assinatura inválida', $res['message']);
+    }
+
+    public function testSignPublicTermoRejectsNonPngSignature(): void
+    {
+        $token = str_repeat('a', 64);
+        $invalidSig = 'data:text/plain;base64,' . base64_encode(str_repeat('NOT_A_PNG', 20));
+        $res = $this->service->signPublicTermo($token, $invalidSig, '127.0.0.1', 'Mozilla');
+        $this->assertFalse($res['success']);
+        $this->assertStringContainsString('Formato de imagem inválido', $res['message']);
+    }
+
+    public function testDevolverItensAcceptsStringIdsAndSyncsInventory(): void
+    {
+        $termo = new TermoResponsabilidade([
+            'id' => 5,
+            'codigo' => 'TR-2026-0005',
+            'status' => 'assinado',
+            'itens' => [
+                new TermoItem([
+                    'id' => 10,
+                    'termo_id' => 5,
+                    'inventario_id' => 99,
+                    'status_item' => 'em_posse',
+                ]),
+            ],
+        ]);
+
+        $this->termoRepoMock->expects($this->once())
+            ->method('findById')
+            ->with(5)
+            ->willReturn($termo);
+
+        $this->termoRepoMock->expects($this->once())
+            ->method('returnItems')
+            ->with(5, [10], '2026-10-29', 'Devolvido OK')
+            ->willReturn(true);
+
+        // Inventory sync MUST be called with integer 99
+        $this->inventoryRepoMock->expects($this->once())
+            ->method('markReturned')
+            ->with(99, '2026-10-29', 'Devolvido OK')
+            ->willReturn(true);
+
+        // Sending string "10" from JSON payload
+        $res = $this->service->devolverItens(5, ['10'], '2026-10-29', 'Devolvido OK');
+        $this->assertTrue($res['success']);
+    }
+
+    public function testDeleteTermoFailsIfAlreadySigned(): void
+    {
+        $termo = new TermoResponsabilidade([
+            'id' => 1,
+            'codigo' => 'TR-2026-0001',
+            'status' => 'assinado',
+        ]);
+
+        $this->termoRepoMock->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($termo);
+
+        $res = $this->service->deleteTermo(1);
+        $this->assertFalse($res['success']);
+        $this->assertStringContainsString('apenas termos pendentes', $res['message']);
     }
 }

@@ -142,6 +142,14 @@ class TermoService
             ];
         }
 
+        if (!preg_match('#^data:image/png;base64,[A-Za-z0-9+/=]+$#', $signatureBase64)) {
+            return [
+                'success' => false,
+                'message' => 'Formato de imagem inválido. A assinatura deve ser um PNG válido.',
+                'code' => 400,
+            ];
+        }
+
         $termo = $this->repository->findByToken($token);
         if (!$termo) {
             return [
@@ -203,6 +211,7 @@ class TermoService
 
     public function devolverItens(int $termoId, array $itemIds, string $dataDevolucao, ?string $obs = null): array
     {
+        $itemIds = array_values(array_filter(array_map('intval', $itemIds), fn($val) => $val > 0));
         if (empty($itemIds)) {
             return [
                 'success' => false,
@@ -228,7 +237,7 @@ class TermoService
 
         // Sincronizar com o inventário
         foreach ($termo->itens as $it) {
-            if (in_array($it->id, $itemIds, true) && $it->inventarioId) {
+            if (in_array((int) $it->id, $itemIds, true) && $it->inventarioId) {
                 $this->inventoryRepository->markReturned($it->inventarioId, $dataDevolucao, $obs);
             }
         }
@@ -236,6 +245,37 @@ class TermoService
         return [
             'success' => true,
             'message' => 'Devolução registrada com sucesso.',
+        ];
+    }
+
+    public function deleteTermo(int $id): array
+    {
+        $termo = $this->repository->findById($id);
+        if (!$termo) {
+            return [
+                'success' => false,
+                'message' => 'Termo não encontrado.',
+            ];
+        }
+
+        if ($termo->status !== 'pendente') {
+            return [
+                'success' => false,
+                'message' => 'Não é possível excluir: apenas termos pendentes podem ser excluídos/cancelados.',
+            ];
+        }
+
+        $deleted = $this->repository->delete($id);
+        if (!$deleted) {
+            return [
+                'success' => false,
+                'message' => 'Erro ao excluir termo do banco de dados.',
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Termo excluído com sucesso.',
         ];
     }
 

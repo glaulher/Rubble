@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { Window } from 'happy-dom';
+import { describe, it, expect } from 'bun:test';
 import { buildWhatsAppMessage, getTermoPublicUrl } from '../public/js/termo/termo-modal.js';
+import { generateQrCodeSvg } from '../public/js/termo/qr-code.js';
 
 describe('Termo Modal & Sharing Logic', () => {
   it('generates public termo URL correctly', () => {
@@ -20,5 +20,12 @@ describe('Termo Modal & Sharing Logic', () => {
     expect(msg).toContain('Mauro');
     expect(msg).toContain('TR-2026-0001');
     expect(msg).toContain('https://rubbleapp.com/#/assinar-termo?token=abc');
+  });
+
+  it('generates offline SVG QR code data URL without external requests', () => {
+    const qrSvg = generateQrCodeSvg('https://rubbleapp.com/#/assinar-termo?token=123', 180);
+    expect(qrSvg).toStartWith('data:image/svg+xml');
+    expect(qrSvg).toContain('<svg');
+    expect(qrSvg).toContain('</svg>');
   });
 });
