@@ -4,7 +4,7 @@ import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
 import { getUser } from '/public/js/core/auth.js';
 import { iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
-import { openCreateTermoModal, openTermosListModal } from '/public/js/termo/termo-modal.js?v=28';
+import { openCreateTermoModal, openTermosListModal } from '/public/js/termo/termo-modal.js?v=29';
 
 let inventoryList = [];
 let inventorySearch = '';
@@ -66,9 +66,9 @@ export async function initInventoryList() {
     buttons.forEach((btn) => {
       const isSelected = (btn.dataset.status || '') === '';
       if (isSelected) {
-        btn.className = 'status-pill px-3 py-1.5 rounded-lg transition bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm font-semibold cursor-pointer';
+        btn.className = 'status-pill px-3 py-1.5 rounded-lg transition bg-white text-slate-900 shadow-sm font-semibold cursor-pointer';
       } else {
-        btn.className = 'status-pill px-3 py-1.5 rounded-lg transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer';
+        btn.className = 'status-pill px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900 cursor-pointer';
       }
     });
   }
@@ -298,9 +298,9 @@ export function setStatusFilter(status) {
     buttons.forEach((btn) => {
       const isSelected = (btn.dataset.status || '') === (status || '');
       if (isSelected) {
-        btn.className = 'status-pill px-3 py-1.5 rounded-lg transition bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm font-semibold cursor-pointer';
+        btn.className = 'status-pill px-3 py-1.5 rounded-lg transition bg-white text-slate-900 shadow-sm font-semibold cursor-pointer';
       } else {
-        btn.className = 'status-pill px-3 py-1.5 rounded-lg transition text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer';
+        btn.className = 'status-pill px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900 cursor-pointer';
       }
     });
   }

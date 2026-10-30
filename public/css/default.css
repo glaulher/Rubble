@@ -183,6 +183,7 @@ button:disabled { cursor: not-allowed; }
 .dark body .bg-red-50,
 .dark .bg-red-50 { background-color: #1e1a2a !important; }
 .dark .bg-amber-50 { background-color: #1c1814 !important; }
+.dark .bg-emerald-50 { background-color: rgba(6, 78, 59, 0.4) !important; }
 
 /* Button backgrounds - buttons keep their light pastel colors in dark mode */
 .dark .bg-slate-200 { background-color: #334155 !important; }
@@ -243,6 +244,9 @@ button:disabled { cursor: not-allowed; }
 .bg-gradient-to-r.from-sky-700.to-slate-900 {
   background-image: linear-gradient(to right, #0369a1, #0f172a);
 }
+.dark .bg-gradient-to-r.from-sky-700.to-slate-900 {
+  background-image: linear-gradient(to right, #1a1f2e, #0f172a) !important;
+}
 
 /* Text colors */
 .dark .text-slate-900 { color: #e2e8f0 !important; }
@@ -251,6 +255,9 @@ button:disabled { cursor: not-allowed; }
 .dark .text-slate-600 { color: #94a3b8 !important; }
 .dark .text-red-700 { color: #fca5a5 !important; }
 .dark .text-red-600 { color: #fca5a5 !important; }
+.dark .text-emerald-950 { color: #a7f3d0 !important; }
+.dark .text-emerald-200 { color: #a7f3d0 !important; }
+.dark .text-emerald-400 { color: #34d399 !important; }
 .dark .text-emerald-600 { color: #34d399 !important; }
 .dark .text-emerald-700 { color: #6ee7b7 !important; }
 .dark .text-purple-700 { color: #c4b5fd !important; }
@@ -262,6 +269,7 @@ button:disabled { cursor: not-allowed; }
 .dark .text-sky-600 { color: #38bdf8 !important; }
 .dark .text-sky-400 { color: #38bdf8 !important; }
 .dark .text-sky-300 { color: #7dd3fc !important; }
+.dark .text-sky-200 { color: #bae6fd !important; }
 
 /* Buttons keep their light text color in dark mode (pastel bg + dark text) */
 .dark .bg-slate-300.text-slate-900 { color: #0f172a !important; }
@@ -276,11 +284,17 @@ button:disabled { cursor: not-allowed; }
 .dark .border-slate-300 { border-color: #3b4459 !important; }
 .dark .border-red-200 { border-color: #3a2d3d !important; }
 .dark .border-amber-200 { border-color: #3d352d !important; }
+.dark .border-emerald-200 { border-color: #065f46 !important; }
+.dark .border-emerald-800 { border-color: #065f46 !important; }
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #252d3d !important; }
 
 /* Hover states */
 .dark .hover\:bg-slate-100:hover { background-color: #1e2536 !important; }
 .dark .hover\:bg-slate-50:hover { background-color: #1e2536 !important; }
 .dark .hover\:bg-white:hover { background-color: #222838 !important; }
+.dark .hover\:bg-sky-50:hover { background-color: #1e2536 !important; }
+.dark .hover\:bg-emerald-100:hover,
+.dark .bg-emerald-50:hover { background-color: rgba(6, 95, 70, 0.6) !important; }
 
 /* Input fields */
 .dark input[type="text"],

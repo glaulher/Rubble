@@ -76,14 +76,14 @@ export function setupTechnicianAutocomplete() {
     const items = dropdown.querySelectorAll('.autocomplete-item');
     items.forEach((it, idx) => {
       if (idx === index) {
-        it.classList.add('bg-sky-100', 'text-sky-900', 'dark:bg-sky-900/40', 'dark:text-sky-200');
-        it.classList.remove('text-slate-700', 'dark:text-slate-200');
+        it.classList.add('bg-sky-100', 'text-sky-900');
+        it.classList.remove('text-slate-700');
         if (typeof it.scrollIntoView === 'function') {
           it.scrollIntoView({ block: 'nearest' });
         }
       } else {
-        it.classList.remove('bg-sky-100', 'text-sky-900', 'dark:bg-sky-900/40', 'dark:text-sky-200');
-        it.classList.add('text-slate-700', 'dark:text-slate-200');
+        it.classList.remove('bg-sky-100', 'text-sky-900');
+        it.classList.add('text-slate-700');
       }
     });
   }
@@ -105,7 +105,7 @@ export function setupTechnicianAutocomplete() {
     dropdown.innerHTML = currentMatches
       .map((name, i) => {
         return (
-          '<div class="autocomplete-item px-4 py-2.5 text-sm cursor-pointer text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-slate-700/60 transition" data-index="' +
+          '<div class="autocomplete-item px-4 py-2.5 text-sm cursor-pointer text-slate-700 hover:bg-sky-50 transition" data-index="' +
           i +
           '" data-value="' +
           escapeHtml(name) +
