@@ -85,25 +85,23 @@
     </div>
   </div>
 
-  <!-- FILTER BAR -->
-  <div class="px-6 py-3 flex flex-wrap gap-4 items-center justify-between bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-sm border border-slate-200 dark:border-[#2d3548] mx-6 mt-4">
-    <div class="flex flex-wrap items-center gap-4">
-      <!-- Status Filter -->
+  <main class="max-w-[96rem] mx-auto px-4 sm:px-6 py-6">
+    <!-- FILTROS (Estilo PV) -->
+    <div class="flex flex-col md:flex-row gap-4 mb-6">
       <div class="flex items-center gap-2">
-        <label for="inventoryStatusFilter" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Status:</label>
+        <label for="inventoryStatusFilter" class="sr-only">Status</label>
         <select id="inventoryStatusFilter"
-          class="rounded-xl border border-slate-300 dark:border-[#3b4459] bg-white dark:bg-[#131824] text-slate-800 dark:text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+          class="rounded-xl border border-slate-300 dark:border-[#3b4459] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-100 bg-white dark:bg-[#1a1f2e] text-slate-800 dark:text-slate-200 text-sm cursor-pointer shadow-xs">
           <option value="">Todos os status</option>
           <option value="em_posse">Em posse</option>
           <option value="devolvido">Devolvido</option>
         </select>
       </div>
 
-      <!-- Category Filter -->
       <div class="flex items-center gap-2">
-        <label for="inventoryCategoryFilter" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Categoria:</label>
+        <label for="inventoryCategoryFilter" class="sr-only">Categoria</label>
         <select id="inventoryCategoryFilter"
-          class="rounded-xl border border-slate-300 dark:border-[#3b4459] bg-white dark:bg-[#131824] text-slate-800 dark:text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+          class="rounded-xl border border-slate-300 dark:border-[#3b4459] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-100 bg-white dark:bg-[#1a1f2e] text-slate-800 dark:text-slate-200 text-sm cursor-pointer shadow-xs">
           <option value="">Todas as categorias</option>
           <option value="veiculo">Veículos</option>
           <option value="ferramenta">Ferramentas</option>
@@ -119,40 +117,40 @@
         <button type="button" data-status="devolvido" class="status-pill">Devolvido</button>
       </div>
     </div>
-  </div>
 
-  <!-- TABLE CONTENT -->
-  <div class="p-6">
-    <div class="bg-white dark:bg-[#1a1f2e] rounded-3xl shadow-xl border border-slate-200 dark:border-[#2d3548] overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 uppercase text-xs tracking-wider border-b border-slate-200 dark:border-slate-700">
-            <th class="w-10 px-3 py-3 text-center">
-              <input type="checkbox" id="checkAllInventory" class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer" title="Selecionar todos" />
-            </th>
-            <th class="text-left px-4 py-3 font-semibold">Categoria</th>
-            <th class="text-left px-4 py-3 font-semibold">Material / Descrição</th>
-            <th class="text-left px-4 py-3 font-semibold">Modelo</th>
-            <th class="text-left px-4 py-3 font-semibold">Serial / Placa</th>
-            <th class="text-left px-4 py-3 font-semibold">Técnico Responsável</th>
-            <th class="text-left px-4 py-3 font-semibold whitespace-nowrap">Retirada</th>
-            <th class="text-left px-4 py-3 font-semibold whitespace-nowrap">Devolução</th>
-            <th class="text-center px-4 py-3 font-semibold whitespace-nowrap">Status</th>
-            <th class="text-right px-4 py-3 font-semibold w-24">Ações</th>
-          </tr>
-        </thead>
-        <tbody id="inventoryTableBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
-      </table>
+    <!-- TABELA (Idêntica à tabela de PV) -->
+    <div class="bg-white dark:bg-[#1a1f2e] rounded-2xl shadow-sm border border-slate-200 dark:border-[#2d3548] overflow-hidden">
+      <div class="overflow-x-auto">
+        <table id="inventoryTable" class="w-full">
+          <thead class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
+            <tr>
+              <th class="w-10 px-3 py-3 text-center text-sm font-semibold text-slate-600 dark:text-slate-300">
+                <input type="checkbox" id="checkAllInventory" aria-label="Selecionar todos os itens" class="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer" title="Selecionar todos" />
+              </th>
+              <th class="text-left px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Categoria</th>
+              <th class="text-left px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Material / Descrição</th>
+              <th class="text-left px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Modelo</th>
+              <th class="text-left px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Serial / Placa</th>
+              <th class="text-left px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Técnico Responsável</th>
+              <th class="text-left px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Retirada</th>
+              <th class="text-left px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Devolução</th>
+              <th class="text-center px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Status</th>
+              <th class="text-right px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap w-28">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryTableBody"></tbody>
+        </table>
+      </div>
+
+      <div id="inventoryEmpty" class="hidden p-10 text-center text-slate-500 dark:text-slate-400">
+        Nenhum item encontrado no inventário
+      </div>
+
+      <div id="inventoryLoading" class="hidden text-center py-8">
+        <span class="text-slate-400">Carregando...</span>
+      </div>
     </div>
 
-    <div id="inventoryEmpty" class="hidden text-center py-12 text-slate-400 dark:text-slate-500">
-      Nenhum item encontrado no inventário
-    </div>
-
-    <div id="inventoryLoading" class="hidden text-center py-8">
-      <span class="text-slate-400">Carregando...</span>
-    </div>
-
-    <div id="sentinel" class="h-4"></div>
-  </div>
+    <div id="sentinel" class="h-10"></div>
+  </main>
 </div>

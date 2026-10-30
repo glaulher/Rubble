@@ -25,38 +25,24 @@ export function formatDate(dateStr) {
 export function getCategoryBadge(category) {
   switch (category) {
     case 'veiculo':
-      return '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50">' +
-        '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>' +
-        'Veículo</span>';
+      return '<span class="inline-block bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Veículo</span>';
     case 'ferramenta':
-      return '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">' +
-        '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>' +
-        'Ferramenta</span>';
+      return '<span class="inline-block bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Ferramenta</span>';
     case 'celular_ti':
-      return '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 border border-sky-200 dark:border-sky-800/50">' +
-        '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>' +
-        'Celular / TI</span>';
+      return '<span class="inline-block bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Celular / TI</span>';
     case 'equipamento':
-      return '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50">' +
-        '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>' +
-        'Equipamento</span>';
+      return '<span class="inline-block bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Equipamento</span>';
     case 'outros':
     default:
-      return '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">' +
-        '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>' +
-        'Outros</span>';
+      return '<span class="inline-block bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Outros</span>';
   }
 }
 
 export function getStatusBadge(status) {
   if (status === 'devolvido') {
-    return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">' +
-      '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>' +
-      'Devolvido</span>';
+    return '<span class="inline-block bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Devolvido</span>';
   }
-  return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">' +
-    '<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>' +
-    'Em posse</span>';
+  return '<span class="inline-block bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Em posse</span>';
 }
 
 export async function initInventoryList() {
@@ -256,19 +242,19 @@ export function renderInventory() {
       actions += '</div>';
 
       return (
-        '<tr data-inventory-id="' + item.id + '" class="hover:bg-slate-50 dark:hover:bg-[#1f2638] transition">' +
-        '<td class="w-10 px-3 py-3 text-center">' +
-        '<input type="checkbox" class="inventory-row-checkbox w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer" value="' + item.id + '" />' +
+        '<tr data-inventory-id="' + item.id + '" class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-[#1f2638] transition cursor-pointer">' +
+        '<td class="w-10 px-3 py-3.5 text-center text-sm">' +
+        '<input type="checkbox" class="inventory-row-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer" value="' + item.id + '" />' +
         '</td>' +
-        '<td class="px-4 py-3 whitespace-nowrap">' + categoryBadge + '</td>' +
-        '<td class="px-4 py-3 font-medium text-slate-900 dark:text-white">' + escapeHtml(item.material_nome || '-') + '</td>' +
-        '<td class="px-4 py-3 text-slate-600 dark:text-slate-300">' + escapeHtml(item.modelo || '-') + '</td>' +
-        '<td class="px-4 py-3 text-slate-600 dark:text-slate-300 font-mono text-xs">' + escapeHtml(item.serial || '-') + '</td>' +
-        '<td class="px-4 py-3 text-slate-700 dark:text-slate-200">' + escapeHtml(item.tecnico_nome || '-') + '</td>' +
-        '<td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap text-xs">' + escapeHtml(dataRetirada) + '</td>' +
-        '<td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap text-xs">' + escapeHtml(dataDevolucao) + '</td>' +
-        '<td class="px-4 py-3 text-center whitespace-nowrap">' + statusBadge + '</td>' +
-        '<td class="px-4 py-3 text-right">' + actions + '</td>' +
+        '<td class="px-4 py-3.5 text-sm whitespace-nowrap">' + categoryBadge + '</td>' +
+        '<td class="px-4 py-3.5 text-sm font-semibold text-slate-900 dark:text-white">' + escapeHtml(item.material_nome || '-') + '</td>' +
+        '<td class="px-4 py-3.5 text-sm text-slate-700 dark:text-slate-300">' + escapeHtml(item.modelo || '-') + '</td>' +
+        '<td class="px-4 py-3.5 text-sm text-slate-700 dark:text-slate-300 font-mono text-xs">' + escapeHtml(item.serial || '-') + '</td>' +
+        '<td class="px-4 py-3.5 text-sm text-slate-700 dark:text-slate-300">' + escapeHtml(item.tecnico_nome || '-') + '</td>' +
+        '<td class="px-4 py-3.5 text-sm text-slate-700 dark:text-slate-400 whitespace-nowrap text-xs">' + escapeHtml(dataRetirada) + '</td>' +
+        '<td class="px-4 py-3.5 text-sm text-slate-700 dark:text-slate-400 whitespace-nowrap text-xs">' + escapeHtml(dataDevolucao) + '</td>' +
+        '<td class="px-4 py-3.5 text-sm text-center whitespace-nowrap">' + statusBadge + '</td>' +
+        '<td class="px-4 py-3.5 text-sm text-right whitespace-nowrap">' + actions + '</td>' +
         '</tr>'
       );
     })
