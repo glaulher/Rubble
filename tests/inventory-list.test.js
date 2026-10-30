@@ -227,25 +227,25 @@ describe("Inventory List — Controller & Logic (public/js/inventory/list.js)", 
     it("renders vehicle badge for veiculo", function () {
       var badge = globalThis.getCategoryBadge("veiculo");
       expect(badge).toContain("Veículo");
-      expect(badge).toContain("bg-indigo-50");
+      expect(badge).toContain("bg-indigo-100");
     });
 
     it("renders tool badge for ferramenta", function () {
       var badge = globalThis.getCategoryBadge("ferramenta");
       expect(badge).toContain("Ferramenta");
-      expect(badge).toContain("bg-amber-50");
+      expect(badge).toContain("bg-amber-100");
     });
 
     it("renders IT badge for celular_ti", function () {
       var badge = globalThis.getCategoryBadge("celular_ti");
       expect(badge).toContain("Celular / TI");
-      expect(badge).toContain("bg-sky-50");
+      expect(badge).toContain("bg-sky-100");
     });
 
     it("renders equipment badge for equipamento", function () {
       var badge = globalThis.getCategoryBadge("equipamento");
       expect(badge).toContain("Equipamento");
-      expect(badge).toContain("bg-teal-50");
+      expect(badge).toContain("bg-teal-100");
     });
 
     it("renders outros badge for outros or unknown", function () {

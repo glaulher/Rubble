@@ -1,22 +1,22 @@
-<div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col justify-between py-6 px-4 sm:px-6">
+<div class="min-h-screen dark-gradient text-slate-800 dark:text-slate-100 flex flex-col justify-between py-6 px-4 sm:px-6" style="background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);">
   <div class="max-w-2xl mx-auto w-full">
     <!-- BRANDING TOP -->
     <div class="flex items-center justify-center gap-3 mb-6">
-      <img src="/image/monster.png" alt="Rubble" class="w-10 h-10 object-contain" />
+      <img src="/image/Monster.png" alt="Rubble" class="w-10 h-10 object-contain" />
       <div>
         <h1 class="text-xl font-bold tracking-wide text-slate-900 dark:text-white leading-tight">Rubble</h1>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Termo de Responsabilidade e Cautela</p>
+        <p class="text-xs text-slate-600 dark:text-slate-400">Termo de Responsabilidade e Cautela</p>
       </div>
     </div>
 
     <!-- STATE 1: LOADING -->
-    <div id="termoLoadingState" class="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-200 dark:border-slate-700 text-center">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-3"></div>
+    <div id="termoLoadingState" class="bg-white dark:bg-[#1a1f2e] rounded-3xl p-8 shadow-xl border border-slate-200 dark:border-[#2d3548] text-center">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600 mb-3"></div>
       <p class="text-slate-500 dark:text-slate-400 text-sm">Carregando dados do termo...</p>
     </div>
 
     <!-- STATE 2: ERROR / EXPIRED -->
-    <div id="termoErrorState" class="hidden bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-red-200 dark:border-red-900/50 text-center">
+    <div id="termoErrorState" class="hidden bg-white dark:bg-[#1a1f2e] rounded-3xl p-8 shadow-xl border border-red-200 dark:border-red-900/50 text-center">
       <div class="w-12 h-12 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
       </div>
@@ -25,103 +25,109 @@
     </div>
 
     <!-- STATE 3: ALREADY SIGNED / SUCCESS -->
-    <div id="termoSuccessState" class="hidden bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-emerald-200 dark:border-emerald-900/50">
-      <div class="text-center mb-6">
-        <div class="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3">
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+    <div id="termoSuccessState" class="hidden bg-white dark:bg-[#1a1f2e] rounded-3xl shadow-xl border border-slate-200 dark:border-[#2d3548] overflow-hidden">
+      <div class="bg-gradient-to-r from-sky-700 to-slate-900 dark:from-[#1a1f2e] dark:to-[#0f172a] px-8 py-6 text-white text-center">
+        <div class="w-14 h-14 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-3">
+          <svg class="w-8 h-8 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
         </div>
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 mb-2">Termo Assinado</span>
-        <h2 class="text-xl font-bold text-slate-900 dark:text-white" id="successCodigo">TR-2026-0001</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" id="successAssinadoEm">Assinado em 29/10/2026</p>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 mb-2">Termo Assinado</span>
+        <h2 class="text-2xl font-light tracking-[0.05em] text-white" id="successCodigo">TR-2026-0001</h2>
+        <p class="text-xs text-sky-100 mt-1" id="successAssinadoEm">Assinado em 29/10/2026</p>
       </div>
 
-      <div class="bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl p-4 mb-6 border border-slate-200/80 dark:border-slate-700/60 text-xs sm:text-sm space-y-2">
-        <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Técnico:</span><span class="font-semibold text-slate-900 dark:text-slate-100" id="successTecnico">-</span></div>
-        <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Entregue por:</span><span class="font-semibold text-slate-900 dark:text-slate-100" id="successEntreguePor">-</span></div>
-      </div>
-
-      <!-- Preview da Assinatura (Sempre sobre fundo branco puro para contraste perfeito do traço) -->
-      <div class="text-center mb-6">
-        <p class="text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">Assinatura Digital Registrada</p>
-        <div class="border border-slate-300 dark:border-slate-600 rounded-2xl p-3 inline-block shadow-sm" style="background-color: #ffffff !important;">
-          <img id="successSignatureImg" src="" alt="Assinatura" class="max-h-24 max-w-full object-contain mx-auto" />
+      <div class="p-6 sm:p-8 space-y-6">
+        <div class="bg-slate-50 dark:bg-[#151922] rounded-2xl p-4 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm space-y-2">
+          <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Técnico:</span><span class="font-semibold text-slate-900 dark:text-slate-100" id="successTecnico">-</span></div>
+          <div class="flex justify-between"><span class="text-slate-500 dark:text-slate-400">Entregue por:</span><span class="font-semibold text-slate-900 dark:text-slate-100" id="successEntreguePor">-</span></div>
         </div>
-      </div>
 
-      <div class="flex gap-3">
-        <button type="button" id="btnDownloadPdfSuccess" class="w-full bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 font-semibold py-3 px-4 rounded-xl text-sm transition cursor-pointer flex items-center justify-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-          Baixar Comprovante em PDF
-        </button>
+        <!-- Preview da Assinatura (Sempre sobre fundo branco puro para contraste perfeito do traço) -->
+        <div class="text-center">
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">Assinatura Digital Registrada</p>
+          <div class="border border-slate-300 dark:border-slate-600 rounded-2xl p-3 inline-block shadow-sm" style="background-color: #ffffff !important;">
+            <img id="successSignatureImg" src="" alt="Assinatura" class="max-h-24 max-w-full object-contain mx-auto" />
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button type="button" id="btnDownloadPdfSuccess" class="w-full bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 font-semibold py-3 px-4 rounded-xl text-sm transition cursor-pointer flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            Baixar Comprovante em PDF
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- STATE 4: SIGNING FORM -->
-    <div id="termoSignState" class="hidden bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-700">
-      <!-- HEADER DO TERMO -->
-      <div class="border-b border-slate-200 dark:border-slate-700 pb-4 mb-6">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold tracking-wider text-blue-600 dark:text-blue-400 uppercase">Cautela de Equipamentos</span>
-          <span id="signCodigoBadge" class="text-xs font-mono bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800 px-2.5 py-1 rounded-lg font-bold">TR-2026-0001</span>
-        </div>
-        <h2 class="text-xl font-bold text-slate-900 dark:text-white mt-1">Termo de Entrega e Responsabilidade</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Confira a lista de materiais abaixo antes de assinar.</p>
-      </div>
-
-      <!-- PARTES -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 text-xs sm:text-sm">
+    <div id="termoSignState" class="hidden bg-white dark:bg-[#1a1f2e] rounded-3xl shadow-xl border border-slate-200 dark:border-[#2d3548] overflow-hidden">
+      <!-- HEADER DO TERMO ESTILO PV -->
+      <div class="bg-gradient-to-r from-sky-700 to-slate-900 dark:from-[#1a1f2e] dark:to-[#0f172a] px-8 py-6 text-white flex items-center justify-between">
         <div>
-          <span class="text-slate-500 dark:text-slate-400 block text-xs font-medium">Entregue por</span>
-          <strong class="text-slate-900 dark:text-slate-100 font-semibold" id="signEntreguePor">-</strong>
-        </div>
-        <div>
-          <span class="text-slate-500 dark:text-slate-400 block text-xs font-medium">Técnico Recebedor</span>
-          <strong class="text-slate-900 dark:text-slate-100 font-semibold" id="signTecnicoNome">-</strong>
-        </div>
-      </div>
-
-      <!-- LISTA DE EQUIPAMENTOS -->
-      <div class="mb-6">
-        <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Equipamentos / Ferramentas</h3>
-        <div id="signItemsList" class="space-y-2">
-          <!-- Injetado dinamicamente -->
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-semibold tracking-wider text-sky-200 uppercase">Cautela de Equipamentos</span>
+            <span id="signCodigoBadge" class="text-xs font-mono bg-white/20 text-white px-2.5 py-0.5 rounded-lg font-bold">TR-2026-0001</span>
+          </div>
+          <h2 class="text-2xl font-light tracking-[0.05em] text-white">Termo de Entrega e Responsabilidade</h2>
+          <p class="text-sky-100 text-xs mt-0.5">Confira a lista de materiais abaixo antes de assinar</p>
         </div>
       </div>
 
-      <!-- TEXTO DO TERMO -->
-      <div class="bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50 rounded-2xl p-4 mb-6 text-xs text-slate-800 dark:text-slate-200 leading-relaxed">
-        <p class="font-bold text-blue-900 dark:text-blue-300 mb-1">Declaração de Responsabilidade:</p>
-        <p>Declaro para os devidos fins que recebi os equipamentos e ferramentas acima relacionados em perfeito estado de conservação e funcionamento, assumindo total responsabilidade pela guarda, zelo e integridade dos mesmos, comprometendo-me a utilizá-los exclusivamente no desempenho de minhas atividades profissionais e a devolvê-los quando solicitado.</p>
-      </div>
-
-      <!-- QUADRO DE ASSINATURA -->
-      <div class="mb-6">
-        <div class="flex items-center justify-between mb-2">
-          <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">
-            Assine no quadro abaixo com o dedo ou mouse *
-          </label>
-          <button type="button" id="btnClearSignature" class="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white underline cursor-pointer">
-            Limpar
-          </button>
-        </div>
-
-        <div class="border-2 border-dashed border-slate-300 dark:border-slate-500 rounded-2xl overflow-hidden touch-none relative shadow-inner" style="height: 180px; background-color: #ffffff !important;">
-          <canvas id="signatureCanvas" class="w-full h-full block cursor-crosshair" style="background-color: #ffffff !important;"></canvas>
-          <div id="signaturePlaceholder" class="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 text-xs select-none">
-            Desenhe sua assinatura aqui
+      <div class="p-6 sm:p-8 space-y-6">
+        <!-- PARTES -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 dark:bg-[#151922] p-4 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm">
+          <div>
+            <span class="text-slate-500 dark:text-slate-400 block text-xs font-medium">Entregue por</span>
+            <strong class="text-slate-900 dark:text-slate-100 font-semibold" id="signEntreguePor">-</strong>
+          </div>
+          <div>
+            <span class="text-slate-500 dark:text-slate-400 block text-xs font-medium">Técnico Recebedor</span>
+            <strong class="text-slate-900 dark:text-slate-100 font-semibold" id="signTecnicoNome">-</strong>
           </div>
         </div>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Ao assinar, o horário, IP e dispositivo são registrados para autenticidade.</p>
-      </div>
 
-      <!-- BOTÃO DE SUBMISSÃO -->
-      <button type="button" id="btnConfirmSignature" class="w-full bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 font-bold py-3.5 px-6 rounded-2xl text-base transition shadow-sm cursor-pointer flex items-center justify-center gap-2">
-        <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 20h9"/>
-          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-        </svg>
-        <span>Confirmar e Assinar Termo</span>
-      </button>
+        <!-- LISTA DE EQUIPAMENTOS -->
+        <div>
+          <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Equipamentos / Ferramentas</h3>
+          <div id="signItemsList" class="space-y-2">
+            <!-- Injetado dinamicamente -->
+          </div>
+        </div>
+
+        <!-- TEXTO DO TERMO -->
+        <div class="bg-sky-50 dark:bg-[#151922] border border-sky-200 dark:border-sky-900 rounded-2xl p-4 text-xs text-sky-950 dark:text-sky-200 leading-relaxed">
+          <p class="font-bold text-sky-900 dark:text-sky-300 mb-1">Declaração de Responsabilidade:</p>
+          <p>Declaro para os devidos fins que recebi os equipamentos e ferramentas acima relacionados em perfeito estado de conservação e funcionamento, assumindo total responsabilidade pela guarda, zelo e integridade dos mesmos, comprometendo-me a utilizá-los exclusivamente no desempenho de minhas atividades profissionais e a devolvê-los quando solicitado.</p>
+        </div>
+
+        <!-- QUADRO DE ASSINATURA -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Assine no quadro abaixo com o dedo ou mouse *
+            </label>
+            <button type="button" id="btnClearSignature" class="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white underline cursor-pointer">
+              Limpar
+            </button>
+          </div>
+
+          <div class="border-2 border-dashed border-slate-300 dark:border-slate-500 rounded-2xl overflow-hidden touch-none relative shadow-inner" style="height: 180px; background-color: #ffffff !important;">
+            <canvas id="signatureCanvas" class="w-full h-full block cursor-crosshair" style="background-color: #ffffff !important;"></canvas>
+            <div id="signaturePlaceholder" class="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 text-xs select-none">
+              Desenhe sua assinatura aqui
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Ao assinar, o horário, IP e dispositivo são registrados para autenticidade.</p>
+        </div>
+
+        <!-- BOTÃO DE SUBMISSÃO -->
+        <button type="button" id="btnConfirmSignature" class="w-full bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 font-bold py-3.5 px-6 rounded-2xl text-base transition shadow-sm cursor-pointer flex items-center justify-center gap-2">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          <span>Confirmar e Assinar Termo</span>
+        </button>
+      </div>
     </div>
   </div>
 

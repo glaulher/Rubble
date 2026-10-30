@@ -25,24 +25,24 @@ export function formatDate(dateStr) {
 export function getCategoryBadge(category) {
   switch (category) {
     case 'veiculo':
-      return '<span class="inline-block bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Veículo</span>';
+      return '<span class="inline-block bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">Veículo</span>';
     case 'ferramenta':
-      return '<span class="inline-block bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Ferramenta</span>';
+      return '<span class="inline-block bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">Ferramenta</span>';
     case 'celular_ti':
-      return '<span class="inline-block bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Celular / TI</span>';
+      return '<span class="inline-block bg-sky-100 text-sky-700 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">Celular / TI</span>';
     case 'equipamento':
-      return '<span class="inline-block bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Equipamento</span>';
+      return '<span class="inline-block bg-teal-100 text-teal-700 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">Equipamento</span>';
     case 'outros':
     default:
-      return '<span class="inline-block bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Outros</span>';
+      return '<span class="inline-block bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">Outros</span>';
   }
 }
 
 export function getStatusBadge(status) {
   if (status === 'devolvido') {
-    return '<span class="inline-block bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Devolvido</span>';
+    return '<span class="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">Devolvido</span>';
   }
-  return '<span class="inline-block bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">Em posse</span>';
+  return '<span class="inline-block bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">Em posse</span>';
 }
 
 export async function initInventoryList() {
@@ -242,19 +242,19 @@ export function renderInventory() {
       actions += '</div>';
 
       return (
-        '<tr data-inventory-id="' + item.id + '" class="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-[#1f2638] transition cursor-pointer">' +
-        '<td class="w-10 px-3 py-3.5 text-center text-sm">' +
-        '<input type="checkbox" class="inventory-row-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer" value="' + item.id + '" />' +
+        '<tr data-inventory-id="' + item.id + '" class="border-b border-slate-100 hover:bg-slate-100 transition cursor-pointer">' +
+        '<td class="w-10 px-3 py-4 text-center text-sm">' +
+        '<input type="checkbox" class="inventory-row-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" value="' + item.id + '" />' +
         '</td>' +
-        '<td class="px-4 py-3.5 text-sm whitespace-nowrap">' + categoryBadge + '</td>' +
-        '<td class="px-4 py-3.5 text-sm font-semibold text-slate-900 dark:text-white">' + escapeHtml(item.material_nome || '-') + '</td>' +
-        '<td class="px-4 py-3.5 text-sm text-slate-700 dark:text-slate-300">' + escapeHtml(item.modelo || '-') + '</td>' +
-        '<td class="px-4 py-3.5 text-sm text-slate-700 dark:text-slate-300 font-mono text-xs">' + escapeHtml(item.serial || '-') + '</td>' +
-        '<td class="px-4 py-3.5 text-sm text-slate-700 dark:text-slate-300">' + escapeHtml(item.tecnico_nome || '-') + '</td>' +
-        '<td class="px-4 py-3.5 text-sm text-slate-700 dark:text-slate-400 whitespace-nowrap text-xs">' + escapeHtml(dataRetirada) + '</td>' +
-        '<td class="px-4 py-3.5 text-sm text-slate-700 dark:text-slate-400 whitespace-nowrap text-xs">' + escapeHtml(dataDevolucao) + '</td>' +
-        '<td class="px-4 py-3.5 text-sm text-center whitespace-nowrap">' + statusBadge + '</td>' +
-        '<td class="px-4 py-3.5 text-sm text-right whitespace-nowrap">' + actions + '</td>' +
+        '<td class="px-4 py-4 text-sm whitespace-nowrap">' + categoryBadge + '</td>' +
+        '<td class="px-4 py-4 text-sm font-semibold text-slate-900">' + escapeHtml(item.material_nome || '-') + '</td>' +
+        '<td class="px-4 py-4 text-sm text-slate-700">' + escapeHtml(item.modelo || '-') + '</td>' +
+        '<td class="px-4 py-4 text-sm text-slate-700 font-mono text-xs">' + escapeHtml(item.serial || '-') + '</td>' +
+        '<td class="px-4 py-4 text-sm text-slate-700">' + escapeHtml(item.tecnico_nome || '-') + '</td>' +
+        '<td class="px-4 py-4 text-sm text-slate-700 whitespace-nowrap text-xs">' + escapeHtml(dataRetirada) + '</td>' +
+        '<td class="px-4 py-4 text-sm text-slate-700 whitespace-nowrap text-xs">' + escapeHtml(dataDevolucao) + '</td>' +
+        '<td class="px-4 py-4 text-sm text-center whitespace-nowrap">' + statusBadge + '</td>' +
+        '<td class="px-4 py-4 text-sm text-right whitespace-nowrap">' + actions + '</td>' +
         '</tr>'
       );
     })

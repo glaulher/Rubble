@@ -33,27 +33,27 @@ export async function openCreateTermoModal(preselectedItems = null) {
   modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto';
 
   modal.innerHTML = `
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-2xl overflow-hidden my-8 animate-in fade-in duration-200">
-      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+    <div class="bg-white dark:bg-[#1a1f2e] rounded-3xl shadow-2xl border border-slate-200 dark:border-[#2d3548] w-full max-w-2xl overflow-hidden my-8 animate-in fade-in duration-200">
+      <div class="bg-gradient-to-r from-sky-700 to-slate-900 dark:from-[#1a1f2e] dark:to-[#0f172a] px-8 py-6 text-white flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Novo Termo de Responsabilidade / Cautela</h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400">Emissão de termo com assinatura digital para retirada de ferramentas</p>
+          <h2 class="text-2xl font-light tracking-[0.05em] text-white">Novo Termo de Cautela</h2>
+          <p class="text-sky-100 mt-1 text-xs">Emissão de termo com assinatura digital para retirada de ferramentas</p>
         </div>
-        <button type="button" id="btnCloseTermoCreateModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-2xl leading-none cursor-pointer">&times;</button>
+        <button type="button" id="btnCloseTermoCreateModal" class="text-white/70 hover:text-white text-3xl font-light leading-none cursor-pointer">&times;</button>
       </div>
 
-      <form id="formCreateTermo" class="p-6 space-y-5">
+      <form id="formCreateTermo" class="p-6 sm:p-8 space-y-5 bg-white dark:bg-[#1a1f2e]">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Entregue por *</label>
             <input type="text" id="termoEntreguePor" required value="${escapeHtml(defaultEntregador)}"
-              class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-blue-500" placeholder="Ex: Mauro, Engemon" />
+              class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#151922] text-slate-800 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-sky-500" placeholder="Ex: Mauro, Engemon" />
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Técnico Recebedor *</label>
             <input type="text" id="termoTecnicoNome" required list="listTecnicosTermo"
-              class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-blue-500" placeholder="Nome do técnico que está pegando" />
+              class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#151922] text-slate-800 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-sky-500" placeholder="Nome do técnico que está pegando" />
             <datalist id="listTecnicosTermo">
               ${technicians.map((t) => `<option value="${escapeHtml(t)}"></option>`).join('')}
             </datalist>
@@ -64,13 +64,13 @@ export async function openCreateTermoModal(preselectedItems = null) {
           <div>
             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Documento (CPF / Matrícula)</label>
             <input type="text" id="termoTecnicoDocumento"
-              class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-blue-500" placeholder="Opcional" />
+              class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#151922] text-slate-800 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-sky-500" placeholder="Opcional" />
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">WhatsApp do Técnico (com DDD)</label>
             <input type="tel" id="termoTecnicoTelefone"
-              class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-blue-500" placeholder="Ex: 21999999999" />
+              class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#151922] text-slate-800 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-sky-500" placeholder="Ex: 21999999999" />
           </div>
         </div>
 
@@ -78,10 +78,10 @@ export async function openCreateTermoModal(preselectedItems = null) {
         <div>
           <div class="flex items-center justify-between mb-2">
             <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Ferramentas / Equipamentos do Termo *</label>
-            <button type="button" id="btnAddManualItemBtn" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer">+ Adicionar Item Avulso</button>
+            <button type="button" id="btnAddManualItemBtn" class="text-xs text-sky-600 dark:text-sky-400 hover:underline font-medium cursor-pointer">+ Adicionar Item Avulso</button>
           </div>
 
-          <div id="termoItemsContainer" class="space-y-2 max-h-48 overflow-y-auto p-1 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-900/30">
+          <div id="termoItemsContainer" class="space-y-2 max-h-48 overflow-y-auto p-2 border border-slate-200 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-[#151922]">
             <!-- Itens inseridos aqui -->
           </div>
         </div>
@@ -89,14 +89,14 @@ export async function openCreateTermoModal(preselectedItems = null) {
         <div>
           <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Observações</label>
           <textarea id="termoObservacoes" rows="2"
-            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3.5 py-2 text-xs focus:ring-2 focus:ring-blue-500" placeholder="Estado de conservação, acessórios inclusos, etc."></textarea>
+            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#151922] text-slate-800 dark:text-white px-3.5 py-2 text-xs focus:ring-2 focus:ring-sky-500" placeholder="Estado de conservação, acessórios inclusos, etc."></textarea>
         </div>
 
-        <div class="flex gap-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-          <button type="button" id="btnCancelTermoCreate" class="flex-1 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer">
+        <div class="flex gap-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+          <button type="button" id="btnCancelTermoCreate" class="flex-1 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 py-3 rounded-xl text-xs font-semibold transition cursor-pointer">
             Cancelar
           </button>
-          <button type="submit" id="btnSubmitTermoCreate" class="flex-1 bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-900 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5">
+          <button type="submit" id="btnSubmitTermoCreate" class="flex-1 bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 py-3 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5">
             <span>Emitir Termo e Gerar Link</span>
           </button>
         </div>
@@ -110,12 +110,12 @@ export async function openCreateTermoModal(preselectedItems = null) {
 
   function addItemRow(item = {}) {
     const row = document.createElement('div');
-    row.className = 'flex items-center gap-2 bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs item-row';
+    row.className = 'flex items-center gap-2 bg-white dark:bg-[#1a1f2e] p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs item-row shadow-2xs';
     row.innerHTML = `
       <input type="hidden" class="item-inv-id" value="${item.id || ''}" />
-      <input type="text" class="item-mat flex-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent px-2.5 py-1.5 text-xs text-slate-800 dark:text-white" placeholder="Descrição do Material *" required value="${escapeHtml(item.material_nome || '')}" />
-      <input type="text" class="item-mod w-28 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent px-2.5 py-1.5 text-xs text-slate-800 dark:text-white" placeholder="Modelo" value="${escapeHtml(item.modelo || '')}" />
-      <input type="text" class="item-ser w-28 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent px-2.5 py-1.5 text-xs text-slate-800 dark:text-white font-mono" placeholder="Serial / Placa" value="${escapeHtml(item.serial || '')}" />
+      <input type="text" class="item-mat flex-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#151922] px-2.5 py-1.5 text-xs text-slate-800 dark:text-white" placeholder="Descrição do Material *" required value="${escapeHtml(item.material_nome || '')}" />
+      <input type="text" class="item-mod w-28 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#151922] px-2.5 py-1.5 text-xs text-slate-800 dark:text-white" placeholder="Modelo" value="${escapeHtml(item.modelo || '')}" />
+      <input type="text" class="item-ser w-28 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#151922] px-2.5 py-1.5 text-xs text-slate-800 dark:text-white font-mono" placeholder="Serial / Placa" value="${escapeHtml(item.serial || '')}" />
       <button type="button" class="btn-remove-item text-red-500 hover:text-red-700 text-base leading-none px-1.5 cursor-pointer">&times;</button>
     `;
     row.querySelector('.btn-remove-item').onclick = () => {
@@ -183,7 +183,7 @@ export async function openCreateTermoModal(preselectedItems = null) {
 
     const submitBtn = document.getElementById('btnSubmitTermoCreate');
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Salvando...';
+    submitBtn.innerHTML = '<svg class="w-4 h-4 animate-spin shrink-0" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Salvando...</span>';
 
     try {
       const token = getToken();
@@ -246,23 +246,21 @@ export function openShareTermoModal(termo) {
   modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto';
 
   modal.innerHTML = `
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg overflow-hidden my-8 animate-in zoom-in-95 duration-200">
-      <div class="p-6 text-center border-b border-slate-100 dark:border-slate-700/60 bg-emerald-50/50 dark:bg-emerald-950/20">
-        <div class="w-12 h-12 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 rounded-full flex items-center justify-center mx-auto mb-2 font-bold">
-          <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+    <div class="bg-white dark:bg-[#1a1f2e] rounded-3xl shadow-2xl border border-slate-200 dark:border-[#2d3548] w-full max-w-lg overflow-hidden my-8 animate-in zoom-in-95 duration-200">
+      <div class="bg-gradient-to-r from-sky-700 to-slate-900 dark:from-[#1a1f2e] dark:to-[#0f172a] px-8 py-6 text-white flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-light tracking-[0.05em] text-white">Termo: ${escapeHtml(termo.codigo)}</h2>
+          <p class="text-sky-100 mt-1 text-xs">Escolha como o técnico <strong>${escapeHtml(termo.tecnico_nome)}</strong> irá assinar:</p>
         </div>
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Termo: ${escapeHtml(termo.codigo)}</h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Escolha como o técnico <strong>${escapeHtml(termo.tecnico_nome)}</strong> irá assinar:</p>
+        <button type="button" id="btnCloseShareModal" class="text-white/70 hover:text-white text-3xl font-light leading-none cursor-pointer">&times;</button>
       </div>
 
-      <div class="p-6 space-y-4">
+      <div class="p-6 space-y-4 bg-white dark:bg-[#1a1f2e]">
         <!-- OPÇÃO 1: WHATSAPP -->
         <a href="${waLink}" target="_blank" rel="noopener noreferrer"
-          class="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 transition group cursor-pointer">
+          class="flex items-center justify-between p-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 transition group cursor-pointer">
           <div class="flex items-center gap-3">
-            <div class="w-9 h-9 bg-emerald-500 text-white rounded-xl flex items-center justify-center">
+            <div class="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shrink-0">
               <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
                 <line x1="12" y1="18" x2="12.01" y2="18"/>
@@ -273,35 +271,35 @@ export function openShareTermoModal(termo) {
               <span class="text-[11px] text-emerald-700 dark:text-emerald-400">Abre com mensagem pronta para o técnico</span>
             </div>
           </div>
-          <span class="text-emerald-700 dark:text-emerald-300 text-xs font-bold">&rarr;</span>
+          <span class="text-emerald-700 dark:text-emerald-300 text-sm font-bold">&rarr;</span>
         </a>
 
         <!-- OPÇÃO 2: COPIAR LINK -->
-        <div class="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+        <div class="flex items-center gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-[#151922] border border-slate-200 dark:border-slate-700">
           <input type="text" readonly value="${escapeHtml(publicUrl)}" id="shareTermoUrlInput"
             class="flex-1 bg-transparent text-xs text-slate-700 dark:text-slate-300 font-mono outline-none select-all truncate" />
-          <button type="button" id="btnCopyTermoUrl" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer">
+          <button type="button" id="btnCopyTermoUrl" class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-3.5 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer">
             Copiar
           </button>
         </div>
 
         <!-- OPÇÃO 3: QR CODE LOCAL -->
-        <div class="text-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
+        <div class="text-center p-4 rounded-2xl bg-slate-50 dark:bg-[#151922] border border-slate-200 dark:border-slate-700">
           <p class="text-xs text-slate-500 dark:text-slate-400 mb-2 font-medium">Ou aponte a câmera do celular para o QR Code:</p>
-          <img src="${qrSvgDataUrl}" alt="QR Code Assinatura" class="w-36 h-36 mx-auto rounded-xl shadow-sm border border-slate-200 bg-white p-1" />
+          <img src="${qrSvgDataUrl}" alt="QR Code Assinatura" class="w-36 h-36 mx-auto rounded-xl shadow-sm border border-slate-200 bg-white p-2" />
         </div>
 
         <!-- OPÇÃO 4: ASSINAR AGORA NA TELA -->
         <button type="button" id="btnSignNowModalBtn"
-          class="w-full bg-blue-300 hover:bg-blue-400 active:bg-blue-500 text-blue-900 py-3 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-2">
-          <svg class="w-4 h-4 text-blue-900 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          class="w-full bg-blue-300 hover:bg-blue-400 active:bg-blue-500 text-blue-800 py-3 rounded-2xl text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 20h9"/>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
           </svg>
           <span>Técnico presente? Assinar agora na tela</span>
         </button>
 
-        <button type="button" id="btnCloseShareModal" class="w-full text-slate-400 hover:text-slate-600 dark:hover:text-white py-2 text-xs transition cursor-pointer">
+        <button type="button" id="btnBottomCloseShareModal" class="w-full text-slate-400 hover:text-slate-600 dark:hover:text-white py-2 text-xs transition cursor-pointer">
           Fechar
         </button>
       </div>
@@ -312,6 +310,8 @@ export function openShareTermoModal(termo) {
 
   const close = () => modal.remove();
   document.getElementById('btnCloseShareModal').onclick = close;
+  const bottomClose = document.getElementById('btnBottomCloseShareModal');
+  if (bottomClose) bottomClose.onclick = close;
 
   document.getElementById('btnCopyTermoUrl').onclick = () => {
     navigator.clipboard.writeText(publicUrl).then(() => {
@@ -338,22 +338,22 @@ export async function openTermosListModal() {
   modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto';
 
   modal.innerHTML = `
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-4xl overflow-hidden my-8 animate-in fade-in duration-200">
-      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+    <div class="bg-white dark:bg-[#1a1f2e] rounded-3xl shadow-2xl border border-slate-200 dark:border-[#2d3548] w-full max-w-4xl overflow-hidden my-8 animate-in fade-in duration-200">
+      <div class="bg-gradient-to-r from-sky-700 to-slate-900 dark:from-[#1a1f2e] dark:to-[#0f172a] px-8 py-6 text-white flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Termos de Cautela Emitidos</h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400">Histórico de cautelas, assinaturas digitais e baixas de ferramentas</p>
+          <h2 class="text-2xl font-light tracking-[0.05em] text-white">Termos de Cautela Emitidos</h2>
+          <p class="text-sky-100 mt-1 text-xs">Histórico de cautelas, assinaturas digitais e baixas de ferramentas</p>
         </div>
-        <button type="button" id="btnCloseTermosHistoryModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-2xl leading-none cursor-pointer">&times;</button>
+        <button type="button" id="btnCloseTermosHistoryModal" class="text-white/70 hover:text-white text-3xl font-light leading-none cursor-pointer">&times;</button>
       </div>
 
-      <div class="p-6">
+      <div class="p-6 bg-white dark:bg-[#1a1f2e]">
         <div id="termosHistoryLoading" class="text-center py-8">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600 mb-2"></div>
           <p class="text-xs text-slate-400">Carregando termos...</p>
         </div>
 
-        <div id="termosHistoryContainer" class="hidden max-h-[60vh] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/60">
+        <div id="termosHistoryContainer" class="hidden max-h-[60vh] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
           <!-- Lista injetada aqui -->
         </div>
       </div>
@@ -384,23 +384,23 @@ export async function openTermosListModal() {
     }
 
     container.innerHTML = json.data.map((t) => {
-      let statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Pendente</span>';
+      let statusBadge = '<span class="inline-block px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Pendente</span>';
       if (t.status === 'assinado') {
-        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Assinado</span>';
+        statusBadge = '<span class="inline-block px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Assinado</span>';
       } else if (t.status === 'devolvido') {
-        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">Devolvido</span>';
+        statusBadge = '<span class="inline-block px-3 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">Devolvido</span>';
       } else if (t.status === 'devolvido_parcial') {
-        statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">Devolvido Parcial</span>';
+        statusBadge = '<span class="inline-block px-3 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">Devolvido Parcial</span>';
       }
 
       const itemCount = (t.itens || []).length;
       return `
-        <div class="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-slate-50 dark:hover:bg-slate-750 px-2 rounded-xl transition">
+        <div class="py-3.5 px-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-xl transition">
           <div>
             <div class="flex items-center gap-2">
               <strong class="font-mono font-bold text-slate-900 dark:text-white">${escapeHtml(t.codigo)}</strong>
               ${statusBadge}
-              <span class="text-slate-400 text-[11px]">${escapeHtml(t.created_at ? t.created_at.substring(0, 10) : '')}</span>
+              <span class="text-slate-400 text-xs">${escapeHtml(t.created_at ? t.created_at.substring(0, 10) : '')}</span>
             </div>
             <p class="text-slate-600 dark:text-slate-300 mt-1">
               <strong>${escapeHtml(t.tecnico_nome)}</strong> recebeu de <em>${escapeHtml(t.entregue_por)}</em> &bull; ${itemCount} ferramenta(s)
@@ -408,14 +408,14 @@ export async function openTermosListModal() {
           </div>
 
           <div class="flex items-center gap-2 shrink-0">
-            <button type="button" class="btn-share-termo px-2.5 py-1.5 rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-800 font-semibold cursor-pointer text-xs flex items-center gap-1.5" data-termo='${escapeHtml(JSON.stringify(t))}'>
+            <button type="button" class="btn-share-termo px-3 py-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-800 font-medium cursor-pointer text-xs flex items-center gap-1.5 transition" data-termo='${escapeHtml(JSON.stringify(t))}'>
               <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
               </svg>
               <span>Link</span>
             </button>
-            <button type="button" class="btn-pdf-termo px-2.5 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold cursor-pointer text-xs flex items-center gap-1.5" data-id="${t.id}">
+            <button type="button" class="btn-pdf-termo px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium cursor-pointer text-xs flex items-center gap-1.5 transition" data-id="${t.id}">
               <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
@@ -425,7 +425,7 @@ export async function openTermosListModal() {
               <span>PDF</span>
             </button>
             ${t.status === 'assinado' || t.status === 'devolvido_parcial' ? `
-              <button type="button" class="btn-devolver-termo px-2.5 py-1.5 rounded-lg bg-emerald-200 hover:bg-emerald-300 text-emerald-900 font-bold cursor-pointer text-xs flex items-center gap-1.5" data-id="${t.id}">
+              <button type="button" class="btn-devolver-termo px-3 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-medium cursor-pointer text-xs flex items-center gap-1.5 transition" data-id="${t.id}">
                 <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="1 4 1 10 7 10"/>
                   <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
@@ -434,7 +434,7 @@ export async function openTermosListModal() {
               </button>
             ` : ''}
             ${isAdmin ? `
-              <button type="button" class="btn-delete-termo px-2.5 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-950/40 dark:hover:bg-red-900/60 dark:text-red-300 font-semibold cursor-pointer text-xs flex items-center gap-1.5 transition" data-id="${t.id}" title="Excluir Termo">
+              <button type="button" class="btn-delete-termo px-3 py-1.5 rounded-xl bg-red-100 hover:bg-red-200 text-red-600 font-medium cursor-pointer text-xs flex items-center gap-1.5 transition" data-id="${t.id}" title="Excluir Termo">
                 <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="3 6 5 6 21 6"/>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -524,22 +524,22 @@ export function openDevolucaoModal(termo) {
   modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto';
 
   modal.innerHTML = `
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md overflow-hidden my-8 animate-in zoom-in-95 duration-200">
-      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30">
+    <div class="bg-white dark:bg-[#1a1f2e] rounded-3xl shadow-2xl border border-slate-200 dark:border-[#2d3548] w-full max-w-md overflow-hidden my-8 animate-in zoom-in-95 duration-200">
+      <div class="bg-gradient-to-r from-sky-700 to-slate-900 dark:from-[#1a1f2e] dark:to-[#0f172a] px-8 py-6 text-white flex items-center justify-between">
         <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white">Registrar Devolução: ${escapeHtml(termo.codigo)}</h3>
-          <p class="text-xs text-slate-500">Técnico: ${escapeHtml(termo.tecnico_nome)}</p>
+          <h2 class="text-xl font-light tracking-[0.05em] text-white">Registrar Devolução: ${escapeHtml(termo.codigo)}</h2>
+          <p class="text-sky-100 mt-1 text-xs">Técnico: ${escapeHtml(termo.tecnico_nome)}</p>
         </div>
-        <button type="button" id="btnCloseDevolucaoModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-2xl leading-none cursor-pointer">&times;</button>
+        <button type="button" id="btnCloseDevolucaoModal" class="text-white/70 hover:text-white text-3xl font-light leading-none cursor-pointer">&times;</button>
       </div>
 
-      <form id="formDevolucaoTermo" class="p-6 space-y-4">
+      <form id="formDevolucaoTermo" class="p-6 space-y-4 bg-white dark:bg-[#1a1f2e]">
         <div>
           <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Selecione os itens devolvidos:</label>
-          <div class="space-y-2 max-h-40 overflow-y-auto p-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900">
+          <div class="space-y-2 max-h-40 overflow-y-auto p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-[#151922]">
             ${pendingItems.map((item) => `
               <label class="flex items-center gap-2.5 text-xs text-slate-800 dark:text-slate-200 cursor-pointer">
-                <input type="checkbox" name="item_devolucao" value="${item.id}" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                <input type="checkbox" name="item_devolucao" value="${item.id}" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
                 <span class="font-medium">${escapeHtml(item.material_nome)}</span>
                 <span class="font-mono text-slate-400 text-[11px]">(${escapeHtml(item.serial || 'N/A')})</span>
               </label>
@@ -550,20 +550,20 @@ export function openDevolucaoModal(termo) {
         <div>
           <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Data da Devolução</label>
           <input type="date" id="devolucaoData" required value="${new Date().toISOString().substring(0, 10)}"
-            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-xs" />
+            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#151922] text-slate-800 dark:text-white px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-sky-500" />
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Observações de Devolução</label>
           <textarea id="devolucaoObs" rows="2"
-            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-2 text-xs" placeholder="Estado de conservação, integridade, etc."></textarea>
+            class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#151922] text-slate-800 dark:text-white px-3.5 py-2 text-xs focus:ring-2 focus:ring-sky-500" placeholder="Estado de conservação, integridade, etc."></textarea>
         </div>
 
-        <div class="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-          <button type="button" id="btnCancelDevolucao" class="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-900 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer">
+        <div class="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+          <button type="button" id="btnCancelDevolucao" class="flex-1 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer">
             Cancelar
           </button>
-          <button type="submit" id="btnSubmitDevolucao" class="flex-1 bg-emerald-300 hover:bg-emerald-400 text-emerald-900 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer">
+          <button type="submit" id="btnSubmitDevolucao" class="flex-1 bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer">
             Confirmar Baixa
           </button>
         </div>
