@@ -75,6 +75,15 @@ class RateLimitMiddlewareAuditTest extends TestCase
         $this->assertLessThanOrEqual(10, $this->limits['notify']['GET']);
     }
 
+    public function testScIsRateLimited(): void
+    {
+        $this->assertArrayHasKey('sc', $this->limits);
+        $this->assertSame(
+            ['POST' => 10, 'PUT' => 10, 'PATCH' => 30, 'DELETE' => 10],
+            $this->limits['sc']
+        );
+    }
+
     public function testAllLimitsArePositiveIntegers(): void
     {
         foreach ($this->limits as $route => $methods) {

@@ -14,7 +14,7 @@ use App\Api\Controllers\{
     PlannedActivityController, PreventivaController, FilterExchangeController,
     PendingTicketsController, PreventivaDashboardController, InventoryController,
     AdminAuditController, PreditivaParseController, DiarioController, TeamController,
-    TermoController
+    TermoController, SolicitacaoCompraController
 };
 Env::load(__DIR__ . '/../../.env');
 
@@ -276,6 +276,21 @@ $router->addRoute('scm', 'POST', function () {
 $router->addRoute('scm', 'DELETE', function () {
     (new ScmController())->delete();
 });
+
+// SC (Solicitação de Compra)
+$router->addRoute('sc', 'GET', function () {
+    $ctrl = new SolicitacaoCompraController();
+
+    if (isset($_GET['id'])) {
+        $ctrl->getById();
+    } else {
+        $ctrl->listAll();
+    }
+});
+$router->addRoute('sc', 'POST', fn () => (new SolicitacaoCompraController())->save());
+$router->addRoute('sc', 'PUT', fn () => (new SolicitacaoCompraController())->update());
+$router->addRoute('sc', 'PATCH', fn () => (new SolicitacaoCompraController())->updateField());
+$router->addRoute('sc', 'DELETE', fn () => (new SolicitacaoCompraController())->delete());
 
 // Teams
 $router->addRoute('teams', 'GET', fn () => (new TeamController())->listAll());

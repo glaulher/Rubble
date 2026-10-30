@@ -192,4 +192,30 @@ class AuthServiceTest extends TestCase
             $this->assertFalse($result, "Role '{$role}' não deve ter acesso a admin-audit");
         }
     }
+
+    public function testScRouteIsAllowedForComercialRoles(): void
+    {
+        foreach (['coordenador', 'gerente', 'administrativo'] as $role) {
+            $user = (object)['role' => $role];
+            $this->assertTrue(AuthService::requireRole($user, 'sc', 'GET', null), $role);
+            $this->assertTrue(AuthService::requireRole($user, 'sc', 'PATCH', null), $role);
+            $this->assertTrue(AuthService::requireRole($user, 'sc', 'POST', null), $role);
+        }
+    }
+
+    public function testScRouteIsDeniedForSupervisorAndCliente(): void
+    {
+        foreach (['supervisor', 'cliente'] as $role) {
+            $user = (object)['role' => $role];
+            $this->assertFalse(AuthService::requireRole($user, 'sc', 'GET', null), $role);
+            $this->assertFalse(AuthService::requireRole($user, 'sc', 'PATCH', null), $role);
+        }
+    }
+
+    public function testScDeleteIsAdminOnly(): void
+    {
+        $this->assertFalse(AuthService::requireRole((object)['role' => 'gerente'], 'sc', 'DELETE', null));
+        $this->assertFalse(AuthService::requireRole((object)['role' => 'coordenador'], 'sc', 'DELETE', null));
+        $this->assertTrue(AuthService::requireRole((object)['role' => 'admin'], 'sc', 'DELETE', null));
+    }
 }
