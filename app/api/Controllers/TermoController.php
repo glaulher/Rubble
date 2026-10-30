@@ -55,7 +55,7 @@ class TermoController
                 return;
             }
             $id = (int) ($_GET['id'] ?? 0);
-            $this->delete($id);
+            $this->delete($id, $user);
         } else {
             Response::json(['success' => false, 'message' => 'Método não permitido.'], 405);
         }
@@ -108,14 +108,15 @@ class TermoController
         Response::json($res, $res['success'] ? 200 : 400);
     }
 
-    public function delete(int $id): void
+    public function delete(int $id, ?object $user = null): void
     {
         if ($id <= 0) {
             Response::json(['success' => false, 'message' => 'ID do termo não fornecido.'], 400);
             return;
         }
 
-        $res = $this->service->deleteTermo($id);
+        $isAdmin = ($user && isset($user->role) && $user->role === 'admin');
+        $res = $this->service->deleteTermo($id, $isAdmin);
         Response::json($res, $res['success'] ? 200 : 400);
     }
 

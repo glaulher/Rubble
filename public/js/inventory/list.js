@@ -95,7 +95,25 @@ export async function initInventoryList() {
 
   const btnTermo = document.getElementById('btnNewTermoCautela') || document.querySelector('[data-action="open-termo-modal"]');
   if (btnTermo) {
-    btnTermo.onclick = () => openCreateTermoModal();
+    btnTermo.onclick = () => {
+      const checkedBoxes = Array.from(document.querySelectorAll('.inventory-row-checkbox:checked'));
+      const selectedItems = checkedBoxes.map((cb) => {
+        const id = parseInt(cb.value, 10);
+        return inventoryList.find((x) => x.id === id);
+      }).filter(Boolean);
+
+      openCreateTermoModal(selectedItems.length > 0 ? selectedItems : null);
+    };
+  }
+
+  const checkAll = document.getElementById('checkAllInventory');
+  if (checkAll) {
+    checkAll.onchange = () => {
+      const rowBoxes = document.querySelectorAll('.inventory-row-checkbox');
+      rowBoxes.forEach((cb) => {
+        cb.checked = checkAll.checked;
+      });
+    };
   }
 
   const btnHistory = document.getElementById('btnHistoryTermos') || document.querySelector('[data-action="open-termos-history"]');
@@ -239,6 +257,9 @@ export function renderInventory() {
 
       return (
         '<tr data-inventory-id="' + item.id + '" class="hover:bg-slate-50 dark:hover:bg-[#1f2638] transition">' +
+        '<td class="w-10 px-3 py-3 text-center">' +
+        '<input type="checkbox" class="inventory-row-checkbox w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer" value="' + item.id + '" />' +
+        '</td>' +
         '<td class="px-4 py-3 whitespace-nowrap">' + categoryBadge + '</td>' +
         '<td class="px-4 py-3 font-medium text-slate-900 dark:text-white">' + escapeHtml(item.material_nome || '-') + '</td>' +
         '<td class="px-4 py-3 text-slate-600 dark:text-slate-300">' + escapeHtml(item.modelo || '-') + '</td>' +

@@ -14,7 +14,7 @@ export function buildWhatsAppMessage({ tecnico, entregue_por, codigo, url }) {
   return `Olá ${tecnico}! Segue o Termo de Responsabilidade (${codigo}) referente à retirada de equipamentos/ferramentas com ${entregue_por}.\n\nPor favor, confira os itens e assine digitalmente pelo link abaixo:\n${url}`;
 }
 
-export async function openCreateTermoModal(preselectedItem = null) {
+export async function openCreateTermoModal(preselectedItems = null) {
   const modalId = 'modalTermoCreate';
   let modal = document.getElementById(modalId);
   if (modal) modal.remove();
@@ -125,8 +125,19 @@ export async function openCreateTermoModal(preselectedItem = null) {
     container.appendChild(row);
   }
 
-  if (preselectedItem) {
-    addItemRow(preselectedItem);
+  if (Array.isArray(preselectedItems) && preselectedItems.length > 0) {
+    preselectedItems.forEach((item) => addItemRow(item));
+    const firstTecnico = preselectedItems[0].tecnico_nome;
+    if (firstTecnico && preselectedItems.every((x) => x.tecnico_nome === firstTecnico)) {
+      const entregueEl = document.getElementById('termoEntreguePor');
+      if (entregueEl) entregueEl.value = firstTecnico;
+    }
+  } else if (preselectedItems && typeof preselectedItems === 'object') {
+    addItemRow(preselectedItems);
+    if (preselectedItems.tecnico_nome) {
+      const entregueEl = document.getElementById('termoEntreguePor');
+      if (entregueEl) entregueEl.value = preselectedItems.tecnico_nome;
+    }
   } else {
     addItemRow();
   }
@@ -356,6 +367,9 @@ export async function openTermosListModal() {
 
   try {
     const token = getToken();
+    const currentUser = getUser();
+    const isAdmin = currentUser && currentUser.role === 'admin';
+
     const res = await fetch('/app/api/index.php?route=termo&limit=50', {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
@@ -419,6 +433,15 @@ export async function openTermosListModal() {
                 <span>Devolver</span>
               </button>
             ` : ''}
+            ${isAdmin ? `
+              <button type="button" class="btn-delete-termo px-2.5 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-950/40 dark:hover:bg-red-900/60 dark:text-red-300 font-semibold cursor-pointer text-xs flex items-center gap-1.5 transition" data-id="${t.id}" title="Excluir Termo">
+                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                <span>Excluir</span>
+              </button>
+            ` : ''}
           </div>
         </div>
       `;
@@ -454,6 +477,33 @@ export async function openTermosListModal() {
         if (detail.success) {
           close();
           openDevolucaoModal(detail.data);
+        }
+      };
+    });
+
+    container.querySelectorAll('.btn-delete-termo').forEach((b) => {
+      b.onclick = async () => {
+        const id = b.dataset.id;
+        if (!confirm('Deseja realmente excluir este termo de responsabilidade? Esta ação removerá o termo do histórico.')) {
+          return;
+        }
+        try {
+          const res = await fetch(`/app/api/index.php?route=termo&id=${id}`, {
+            method: 'DELETE',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          const result = await res.json();
+          if (result.success) {
+            showToast('Termo excluído com sucesso.');
+            openTermosListModal();
+            if (typeof window.initInventoryList === 'function') {
+              window.initInventoryList();
+            }
+          } else {
+            alert(result.message || 'Erro ao excluir termo.');
+          }
+        } catch (e) {
+          alert('Erro ao excluir termo.');
         }
       };
     });

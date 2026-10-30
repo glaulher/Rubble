@@ -52,4 +52,23 @@ class TermoControllerTest extends TestCase
         $this->assertFalse($data['success']);
         $this->assertStringContainsString('Autenticação', $data['message']);
     }
+
+    public function testHandlesDeleteActionWithAdminRole(): void
+    {
+        $_GET['id'] = '10';
+        $user = (object) ['id' => 1, 'role' => 'admin'];
+
+        $this->serviceMock->expects($this->once())
+            ->method('deleteTermo')
+            ->with(10, true)
+            ->willReturn(['success' => true, 'message' => 'Termo excluído com sucesso.']);
+
+        ob_start();
+        $this->controller->handle('DELETE', $user);
+        $output = ob_get_clean();
+        $data = json_decode($output, true);
+
+        $this->assertTrue($data['success']);
+        $this->assertStringContainsString('excluído com sucesso', $data['message']);
+    }
 }

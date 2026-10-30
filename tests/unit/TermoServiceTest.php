@@ -174,4 +174,26 @@ class TermoServiceTest extends TestCase
         $this->assertFalse($res['success']);
         $this->assertStringContainsString('apenas termos pendentes', $res['message']);
     }
+
+    public function testAdminCanDeleteSignedTermo(): void
+    {
+        $termo = new TermoResponsabilidade([
+            'id' => 1,
+            'status' => 'assinado',
+        ]);
+
+        $this->termoRepoMock->expects($this->once())
+            ->method('findById')
+            ->with(1)
+            ->willReturn($termo);
+
+        $this->termoRepoMock->expects($this->once())
+            ->method('delete')
+            ->with(1)
+            ->willReturn(true);
+
+        $res = $this->service->deleteTermo(1, true);
+        $this->assertTrue($res['success']);
+        $this->assertStringContainsString('excluído com sucesso', $res['message']);
+    }
 }

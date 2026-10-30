@@ -248,7 +248,7 @@ class TermoService
         ];
     }
 
-    public function deleteTermo(int $id): array
+    public function deleteTermo(int $id, bool $isAdmin = false): array
     {
         $termo = $this->repository->findById($id);
         if (!$termo) {
@@ -258,7 +258,7 @@ class TermoService
             ];
         }
 
-        if ($termo->status !== 'pendente') {
+        if (!$isAdmin && $termo->status !== 'pendente') {
             return [
                 'success' => false,
                 'message' => 'Não é possível excluir: apenas termos pendentes podem ser excluídos/cancelados.',

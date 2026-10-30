@@ -184,6 +184,10 @@ describe("Inventory List — View (app/Views/inventory/list.html)", function () 
 
     var sentinel = document.getElementById("sentinel");
     expect(sentinel).not.toBeNull();
+
+    var checkAll = document.getElementById("checkAllInventory");
+    expect(checkAll).not.toBeNull();
+    expect(checkAll.type).toBe("checkbox");
   });
 });
 
@@ -328,6 +332,12 @@ describe("Inventory List — Controller & Logic (public/js/inventory/list.js)", 
 
       var rows = tbody.querySelectorAll("tr");
       expect(rows.length).toBe(3);
+
+      var checkboxes = tbody.querySelectorAll(".inventory-row-checkbox");
+      expect(checkboxes.length).toBe(3);
+      expect(checkboxes[0].value).toBe("1");
+      expect(checkboxes[1].value).toBe("2");
+      expect(checkboxes[2].value).toBe("3");
 
       expect(rows[0].textContent).toContain("Fiat Strada");
       expect(rows[0].textContent).toContain("BRA-2E19");
