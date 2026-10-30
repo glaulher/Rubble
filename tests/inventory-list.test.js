@@ -169,6 +169,7 @@ describe("Inventory List — View (app/Views/inventory/list.html)", function () 
     expect(options).toContain("");
     expect(options).toContain("veiculo");
     expect(options).toContain("ferramenta");
+    expect(options).toContain("material");
     expect(options).toContain("celular_ti");
     expect(options).toContain("equipamento");
     expect(options).toContain("outros");
@@ -234,6 +235,12 @@ describe("Inventory List — Controller & Logic (public/js/inventory/list.js)", 
       var badge = globalThis.getCategoryBadge("ferramenta");
       expect(badge).toContain("Ferramenta");
       expect(badge).toContain("bg-amber-100");
+    });
+
+    it("renders material badge for material", function () {
+      var badge = globalThis.getCategoryBadge("material");
+      expect(badge).toContain("Material");
+      expect(badge).toContain("bg-purple-100");
     });
 
     it("renders IT badge for celular_ti", function () {

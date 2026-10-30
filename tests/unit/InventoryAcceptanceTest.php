@@ -76,6 +76,7 @@ class InventoryAcceptanceTest extends TestCase
         // Check enum values for categoria
         $this->assertStringContainsString('veiculo', $columns['categoria']['Type']);
         $this->assertStringContainsString('ferramenta', $columns['categoria']['Type']);
+        $this->assertStringContainsString('material', $columns['categoria']['Type']);
         $this->assertStringContainsString('celular_ti', $columns['categoria']['Type']);
         $this->assertStringContainsString('equipamento', $columns['categoria']['Type']);
         $this->assertStringContainsString('outros', $columns['categoria']['Type']);

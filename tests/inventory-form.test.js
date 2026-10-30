@@ -59,12 +59,12 @@ describe("Inventory Form — View (app/Views/inventory/form.html)", function () 
     expect(idInput.type).toBe("hidden");
   });
 
-  it("contains category select with all 5 required options", function () {
+  it("contains category select with all 6 required options", function () {
     var select = document.getElementById("inventoryCategoria");
     expect(select).not.toBeNull();
 
     var options = Array.from(select.options).map((o) => o.value);
-    expect(options).toEqual(["veiculo", "ferramenta", "celular_ti", "equipamento", "outros"]);
+    expect(options).toEqual(["veiculo", "ferramenta", "material", "celular_ti", "equipamento", "outros"]);
   });
 
   it("contains technician input and autocomplete dropdown container", function () {
@@ -158,6 +158,16 @@ describe("Inventory Form — Controller & Logic (public/js/inventory/form.js)", 
       var labelSerial = document.getElementById("labelSerial");
       expect(labelMaterial.textContent).toContain("Ferramenta");
       expect(labelSerial.textContent).toContain("Série");
+    });
+
+    it("adapts labels and placeholders for material", function () {
+      document.getElementById("inventoryCategoria").value = "material";
+      globalThis.updateCategoryPlaceholders();
+
+      var labelMaterial = document.getElementById("labelMaterialNome");
+      var labelSerial = document.getElementById("labelSerial");
+      expect(labelMaterial.textContent).toContain("Material");
+      expect(labelSerial.textContent).toContain("Lote");
     });
 
     it("adapts labels and placeholders for celular_ti", function () {

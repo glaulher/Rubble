@@ -775,7 +775,7 @@ CREATE TABLE IF NOT EXISTS `email_processed` (
 -- inventario — Custódia e controle de ferramentas, veículos e equipamentos
 CREATE TABLE IF NOT EXISTS `inventario` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `categoria` enum('veiculo','ferramenta','celular_ti','equipamento','outros') NOT NULL DEFAULT 'ferramenta',
+  `categoria` enum('veiculo','ferramenta','material','celular_ti','equipamento','outros') NOT NULL DEFAULT 'ferramenta',
   `tecnico_nome` varchar(100) NOT NULL,
   `material_nome` varchar(150) NOT NULL,
   `modelo` varchar(100) NOT NULL,

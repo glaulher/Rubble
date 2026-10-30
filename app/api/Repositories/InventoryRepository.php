@@ -39,7 +39,7 @@ class InventoryRepository extends BaseRepository
             $types .= 's';
         }
 
-        if (!empty($filters['categoria']) && in_array($filters['categoria'], ['veiculo', 'ferramenta', 'celular_ti', 'equipamento', 'outros'], true)) {
+        if (!empty($filters['categoria']) && in_array($filters['categoria'], ['veiculo', 'ferramenta', 'material', 'celular_ti', 'equipamento', 'outros'], true)) {
             $where[] = 'categoria = ?';
             $params[] = $filters['categoria'];
             $types .= 's';
@@ -94,7 +94,7 @@ class InventoryRepository extends BaseRepository
             $types .= 's';
         }
 
-        if (!empty($filters['categoria']) && in_array($filters['categoria'], ['veiculo', 'ferramenta', 'celular_ti', 'equipamento', 'outros'], true)) {
+        if (!empty($filters['categoria']) && in_array($filters['categoria'], ['veiculo', 'ferramenta', 'material', 'celular_ti', 'equipamento', 'outros'], true)) {
             $where[] = 'categoria = ?';
             $params[] = $filters['categoria'];
             $types .= 's';

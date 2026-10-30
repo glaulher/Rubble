@@ -46,6 +46,11 @@ export function updateCategoryPlaceholders() {
     if (materialInput) materialInput.placeholder = 'Ex: Furadeira de Impacto, Multímetro';
     if (serialLabel) serialLabel.textContent = 'Número de Série / Patrimônio *';
     if (serialInput) serialInput.placeholder = 'Ex: SN123456';
+  } else if (cat === 'material') {
+    if (materialLabel) materialLabel.textContent = 'Material / Insumo *';
+    if (materialInput) materialInput.placeholder = 'Ex: Fita Isolante, Cabo PP, Tubo de Cobre';
+    if (serialLabel) serialLabel.textContent = 'Serial / Lote / Código *';
+    if (serialInput) serialInput.placeholder = 'Ex: Lote 123 ou N/A';
   } else if (cat === 'celular_ti') {
     if (materialLabel) materialLabel.textContent = 'Aparelho / Equipamento TI *';
     if (materialInput) materialInput.placeholder = 'Ex: Samsung Galaxy A15, Notebook Dell';

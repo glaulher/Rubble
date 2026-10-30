@@ -4,7 +4,7 @@ import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
 import { getUser } from '/public/js/core/auth.js';
 import { iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
-import { openCreateTermoModal, openTermosListModal } from '/public/js/termo/termo-modal.js?v=31';
+import { openCreateTermoModal, openTermosListModal } from '/public/js/termo/termo-modal.js?v=32';
 
 let inventoryList = [];
 let inventorySearch = '';
@@ -48,6 +48,8 @@ export function getCategoryBadge(category) {
       return '<span class="inline-block bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">Veículo</span>';
     case 'ferramenta':
       return '<span class="inline-block bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">Ferramenta</span>';
+    case 'material':
+      return '<span class="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">Material</span>';
     case 'celular_ti':
       return '<span class="inline-block bg-sky-100 text-sky-700 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">Celular / TI</span>';
     case 'equipamento':
@@ -411,6 +413,7 @@ export async function exportInventoryCsv() {
     const categoryLabels = {
       veiculo: 'Veículo',
       ferramenta: 'Ferramenta',
+      material: 'Material',
       celular_ti: 'Celular TI',
       equipamento: 'Equipamento',
       outros: 'Outros',

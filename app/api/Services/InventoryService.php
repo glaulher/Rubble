@@ -9,7 +9,7 @@ use App\Api\Repositories\InventoryRepository;
 class InventoryService
 {
     private InventoryRepository $repository;
-    private const ALLOWED_CATEGORIES = ['veiculo', 'ferramenta', 'celular_ti', 'equipamento', 'outros'];
+    private const ALLOWED_CATEGORIES = ['veiculo', 'ferramenta', 'material', 'celular_ti', 'equipamento', 'outros'];
 
     public function __construct(InventoryRepository $repository)
     {
