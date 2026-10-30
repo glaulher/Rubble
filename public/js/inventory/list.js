@@ -4,7 +4,7 @@ import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
 import { getUser } from '/public/js/core/auth.js';
 import { iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
-import { openCreateTermoModal, openTermosListModal } from '/public/js/termo/termo-modal.js?v=29';
+import { openCreateTermoModal, openTermosListModal } from '/public/js/termo/termo-modal.js?v=30';
 
 let inventoryList = [];
 let inventorySearch = '';
@@ -12,6 +12,26 @@ let inventoryStatus = '';
 let inventoryCategory = '';
 let inventoryLimit = 20;
 var _inventoryScroll = null;
+let serverTotalEmPosse = null;
+
+export function updateInventoryCounter(total) {
+  serverTotalEmPosse = total !== undefined && total !== null ? parseInt(total, 10) : null;
+  const counter = document.getElementById('inventoryCounter');
+  if (counter && serverTotalEmPosse !== null) {
+    counter.textContent = String(serverTotalEmPosse);
+  }
+}
+
+export function reloadInventory() {
+  inventoryList = [];
+  if (_inventoryScroll) {
+    _inventoryScroll.reset().init();
+  }
+}
+if (typeof window !== 'undefined') {
+  window.removeEventListener('inventory:reload', reloadInventory);
+  window.addEventListener('inventory:reload', reloadInventory);
+}
 
 export function formatDate(dateStr) {
   if (!dateStr) return '-';
@@ -161,6 +181,9 @@ export async function initInventoryList() {
           showToast('Erro ao carregar inventário', 'error');
           return { data: [], total: 0 };
         }
+        if (typeof result.total_em_posse !== 'undefined') {
+          updateInventoryCounter(result.total_em_posse);
+        }
         return { data: result.data || [], total: result.total || 0 };
       } catch (e) {
         showToast('Erro ao carregar inventário', 'error');
@@ -207,7 +230,7 @@ export function renderInventory() {
 
   const inPossession = inventoryList.filter((item) => item.status === 'em_posse').length;
   if (counter) {
-    counter.textContent = String(inPossession);
+    counter.textContent = serverTotalEmPosse !== null ? String(serverTotalEmPosse) : String(inPossession);
   }
   if (counterLabel) {
     counterLabel.textContent = inPossession === 1 ? 'em campo' : 'em campo';

@@ -20,10 +20,12 @@ class InventoryService
     {
         $items = $this->repository->list($filters, $limit, $offset);
         $total = $this->repository->count($filters);
+        $totalEmPosse = $this->repository->countEmPosse();
         return [
             'success' => true,
             'data' => $items,
             'total' => $total,
+            'total_em_posse' => $totalEmPosse,
         ];
     }
 

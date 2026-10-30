@@ -9,6 +9,7 @@ use App\Api\Repositories\TermoRepository;
 use App\Api\Repositories\InventoryRepository;
 use App\Api\Entities\TermoResponsabilidade;
 use App\Api\Entities\TermoItem;
+use App\Api\Entities\InventoryItem;
 
 class TermoServiceTest extends TestCase
 {
@@ -195,5 +196,146 @@ class TermoServiceTest extends TestCase
         $res = $this->service->deleteTermo(1, true);
         $this->assertTrue($res['success']);
         $this->assertStringContainsString('excluído com sucesso', $res['message']);
+    }
+
+    public function testCreateTermoTransfersAndClonesActiveInventoryItemWithExplicitId(): void
+    {
+        $data = [
+            'entregue_por' => 'Mauro',
+            'tecnico_nome' => 'Raphael',
+            'itens' => [
+                [
+                    'inventario_id' => 42,
+                    'material_nome' => 'Bomba de Vácuo',
+                    'modelo' => '7 CFM',
+                    'serial' => 'BV-01',
+                ],
+            ],
+        ];
+
+        $this->termoRepoMock->expects($this->once())
+            ->method('generateNextCode')
+            ->willReturn('TR-2026-0002');
+
+        $this->inventoryRepoMock->expects($this->once())
+            ->method('transferAndCloneItem')
+            ->with(42, 'Raphael', 'TR-2026-0002', 1)
+            ->willReturn(101);
+
+        $this->termoRepoMock->expects($this->once())
+            ->method('create')
+            ->with(
+                $this->callback(fn($d) => $d['codigo'] === 'TR-2026-0002'),
+                $this->callback(fn($itens) => $itens[0]['inventario_id'] === 101),
+                1
+            )
+            ->willReturn(2);
+
+        $res = $this->service->createTermo($data, 1);
+        $this->assertTrue($res['success']);
+        $this->assertSame(2, $res['data']['id']);
+    }
+
+    public function testCreateTermoTransfersAndClonesActiveInventoryItemMatchedBySerial(): void
+    {
+        $data = [
+            'entregue_por' => 'Mauro',
+            'tecnico_nome' => 'Carlos',
+            'itens' => [
+                [
+                    'material_nome' => 'Recolhedora',
+                    'modelo' => 'R22/R410',
+                    'serial' => 'REC-999',
+                ],
+            ],
+        ];
+
+        $existingActiveItem = new InventoryItem([
+            'id' => 77,
+            'tecnico_nome' => 'Mauro',
+            'material_nome' => 'Recolhedora',
+            'serial' => 'REC-999',
+            'status' => 'em_posse',
+        ]);
+
+        $this->termoRepoMock->expects($this->once())
+            ->method('generateNextCode')
+            ->willReturn('TR-2026-0003');
+
+        $this->inventoryRepoMock->expects($this->once())
+            ->method('findActiveBySerial')
+            ->with('REC-999')
+            ->willReturn($existingActiveItem);
+
+        $this->inventoryRepoMock->expects($this->once())
+            ->method('transferAndCloneItem')
+            ->with(77, 'Carlos', 'TR-2026-0003', 1)
+            ->willReturn(102);
+
+        $this->termoRepoMock->expects($this->once())
+            ->method('create')
+            ->with(
+                $this->anything(),
+                $this->callback(fn($itens) => $itens[0]['inventario_id'] === 102),
+                1
+            )
+            ->willReturn(3);
+
+        $res = $this->service->createTermo($data, 1);
+        $this->assertTrue($res['success']);
+    }
+
+    public function testSignPublicTermoSkipsRedundantCustodyTransferIfAlreadyLinked(): void
+    {
+        $token = str_repeat('b', 64);
+        $validPngSig = 'data:image/png;base64,' . base64_encode(str_repeat('PNG_DATA', 20));
+
+        $termo = new TermoResponsabilidade([
+            'id' => 10,
+            'codigo' => 'TR-2026-0010',
+            'entregue_por' => 'Mauro',
+            'tecnico_nome' => 'Raphael',
+            'token_assinatura' => $token,
+            'token_expira_em' => date('Y-m-d H:i:s', strtotime('+5 days')),
+            'status' => 'pendente',
+            'itens' => [
+                new TermoItem([
+                    'id' => 1,
+                    'termo_id' => 10,
+                    'inventario_id' => 200,
+                    'material_nome' => 'Bomba de Vácuo',
+                ]),
+            ],
+        ]);
+
+        $this->termoRepoMock->expects($this->once())
+            ->method('findByToken')
+            ->with($token)
+            ->willReturn($termo);
+
+        $this->termoRepoMock->expects($this->once())
+            ->method('saveSignature')
+            ->with(10, $validPngSig, '127.0.0.1', 'Mozilla/5.0')
+            ->willReturn(true);
+
+        $alreadyUpdatedItem = new InventoryItem([
+            'id' => 200,
+            'tecnico_nome' => 'Raphael',
+            'observacoes' => '[Transferência de Mauro via Termo TR-2026-0010 em 2026-10-30]',
+            'status' => 'em_posse',
+        ]);
+
+        $this->inventoryRepoMock->expects($this->once())
+            ->method('findById')
+            ->with(200)
+            ->willReturn($alreadyUpdatedItem);
+
+        // transferCustody should NOT be called because it's already assigned with that code
+        $this->inventoryRepoMock->expects($this->never())
+            ->method('transferCustody');
+
+        $res = $this->service->signPublicTermo($token, $validPngSig, '127.0.0.1', 'Mozilla/5.0');
+        $this->assertTrue($res['success']);
+        $this->assertSame(200, $res['code']);
     }
 }

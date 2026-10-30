@@ -3,7 +3,6 @@ import { escapeHtml } from '/public/js/core/utils.js';
 import { getUser, getToken } from '/public/js/core/auth.js';
 import { initSignaturePad } from '/public/js/termo/signature-pad.js?v=28';
 import { generateTermoPdf } from '/public/js/termo/termo-pdf.js?v=28';
-import { generateQrCodeSvg } from '/public/js/termo/qr-code.js?v=28';
 
 export function getTermoPublicUrl(token, origin = '') {
   const base = origin || (typeof window !== 'undefined' ? window.location.origin : '');
@@ -205,6 +204,9 @@ export async function openCreateTermoModal(preselectedItems = null) {
 
       closeModal();
       showToast('Termo criado com sucesso!');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('inventory:reload'));
+      }
       openShareTermoModal({
         ...json.data,
         tecnico_nome: payload.tecnico_nome,
@@ -226,7 +228,6 @@ export function openShareTermoModal(termo) {
   if (modal) modal.remove();
 
   const publicUrl = getTermoPublicUrl(termo.token || termo.token_assinatura);
-  const qrSvgDataUrl = generateQrCodeSvg(publicUrl, 180);
 
   const waMsg = buildWhatsAppMessage({
     tecnico: termo.tecnico_nome,
@@ -283,13 +284,7 @@ export function openShareTermoModal(termo) {
           </button>
         </div>
 
-        <!-- OPÇÃO 3: QR CODE LOCAL -->
-        <div class="text-center p-4 rounded-2xl bg-slate-50 border border-slate-200">
-          <p class="text-xs text-slate-500 mb-2 font-medium">Ou aponte a câmera do celular para o QR Code:</p>
-          <img src="${qrSvgDataUrl}" alt="QR Code Assinatura" class="w-36 h-36 mx-auto rounded-xl shadow-sm border border-slate-200 bg-white p-2" />
-        </div>
-
-        <!-- OPÇÃO 4: ASSINAR AGORA NA TELA -->
+        <!-- OPÇÃO 3: ASSINAR AGORA NA TELA -->
         <button type="button" id="btnSignNowModalBtn"
           class="w-full bg-blue-300 hover:bg-blue-400 active:bg-blue-500 text-blue-800 py-3 rounded-2xl text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2">
           <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

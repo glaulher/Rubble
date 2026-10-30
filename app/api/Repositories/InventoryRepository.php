@@ -113,9 +113,37 @@ class InventoryRepository extends BaseRepository
             $stmt->bind_param($types, ...$params);
         }
         $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        return (int) ($row['total'] ?? 0);
+    }
+
+    public function countEmPosse(): int
+    {
+        $res = $this->conn->query("SELECT COUNT(*) as total FROM inventario WHERE status = 'em_posse'");
+        if (!$res) {
+            return 0;
+        }
+        $row = $res->fetch_assoc();
+        return (int) ($row['total'] ?? 0);
+    }
+
+    public function findActiveBySerial(string $serial): ?InventoryItem
+    {
+        $serial = trim($serial);
+        if ($serial === '') {
+            return null;
+        }
+        $stmt = $this->conn->prepare("SELECT * FROM inventario WHERE serial = ? AND status = 'em_posse' ORDER BY id DESC LIMIT 1");
+        if (!$stmt) {
+            return null;
+        }
+        $stmt->bind_param('s', $serial);
+        $stmt->execute();
         $res = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-        return (int)($res['total'] ?? 0);
+        return $res ? new InventoryItem($res) : null;
     }
 
     public function findById(int $id): ?InventoryItem
@@ -181,6 +209,55 @@ class InventoryRepository extends BaseRepository
         $success = $stmt->execute();
         $stmt->close();
         return $success;
+    }
+
+    public function transferAndCloneItem(int $oldId, string $novoTecnico, string $termoRef, ?int $userId = null): ?int
+    {
+        $oldItem = $this->findById($oldId);
+        if (!$oldItem) {
+            return null;
+        }
+
+        $today = date('Y-m-d');
+        $antigoTecnico = $oldItem->tecnicoNome;
+
+        // 1. Fechar linha anterior: data_devolucao = hoje, status = 'devolvido'
+        $stmtClose = $this->conn->prepare(
+            "UPDATE inventario 
+             SET data_devolucao = ?, status = 'devolvido',
+                 observacoes = CONCAT(COALESCE(observacoes, ''), '\n', ?)
+             WHERE id = ?"
+        );
+        if (!$stmtClose) {
+            return null;
+        }
+        $noteClose = "[Transferido para {$novoTecnico} via Termo {$termoRef} em {$today}]";
+        $stmtClose->bind_param('ssi', $today, $noteClose, $oldId);
+        $stmtClose->execute();
+        $stmtClose->close();
+
+        // 2. Abrir nova linha: dados clonados, novo técnico, data_retirada = hoje, status = 'em_posse'
+        $stmtNew = $this->conn->prepare(
+            "INSERT INTO inventario 
+             (categoria, tecnico_nome, material_nome, modelo, serial, data_retirada, data_devolucao, status, observacoes, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, NULL, 'em_posse', ?, ?)"
+        );
+        if (!$stmtNew) {
+            return null;
+        }
+        $noteNew = "[Transferência de {$antigoTecnico} via Termo {$termoRef} em {$today}]";
+        $categoria = $oldItem->categoria;
+        $materialNome = $oldItem->materialNome;
+        $modelo = $oldItem->modelo;
+        $serial = $oldItem->serial;
+        $createdBy = $userId ?? $oldItem->createdBy;
+
+        $stmtNew->bind_param('sssssssi', $categoria, $novoTecnico, $materialNome, $modelo, $serial, $today, $noteNew, $createdBy);
+        $stmtNew->execute();
+        $newId = (int) $stmtNew->insert_id;
+        $stmtNew->close();
+
+        return $newId > 0 ? $newId : null;
     }
 
     public function transferCustody(int $id, string $novoTecnico, string $dataRetirada, string $termoRef): bool

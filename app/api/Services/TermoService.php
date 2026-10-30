@@ -65,7 +65,32 @@ class TermoService
             'observacoes' => !empty($data['observacoes']) ? trim((string) $data['observacoes']) : null,
         ];
 
-        $termoId = $this->repository->create($termoData, $itens, $userId);
+        // Sincronizar transferência no inventário para cada item
+        $processedItens = [];
+        foreach ($itens as $item) {
+            $oldInvId = !empty($item['inventario_id']) ? (int) $item['inventario_id'] : null;
+            if (!$oldInvId && !empty($item['serial'])) {
+                $existingActive = $this->inventoryRepository->findActiveBySerial((string) $item['serial']);
+                if ($existingActive && !empty($existingActive->id)) {
+                    $oldInvId = (int) $existingActive->id;
+                }
+            }
+
+            if ($oldInvId) {
+                $newInvId = $this->inventoryRepository->transferAndCloneItem(
+                    $oldInvId,
+                    $tecnicoNome,
+                    $codigo,
+                    $userId
+                );
+                if ($newInvId) {
+                    $item['inventario_id'] = $newInvId;
+                }
+            }
+            $processedItens[] = $item;
+        }
+
+        $termoId = $this->repository->create($termoData, $processedItens, $userId);
         if ($termoId <= 0) {
             return [
                 'success' => false,
@@ -188,8 +213,12 @@ class TermoService
         $dataRetirada = date('Y-m-d');
         foreach ($termo->itens as $item) {
             if ($item->inventarioId) {
+                $inv = $this->inventoryRepository->findById((int) $item->inventarioId);
+                if ($inv && $inv->tecnicoNome === $termo->tecnico_nome && str_contains((string) $inv->observacoes, $termo->codigo)) {
+                    continue;
+                }
                 $this->inventoryRepository->transferCustody(
-                    $item->inventarioId,
+                    (int) $item->inventarioId,
                     $termo->tecnico_nome,
                     $dataRetirada,
                     $termo->codigo
