@@ -1,0 +1,200 @@
+<div
+  class="min-h-screen dark-gradient"
+  style="
+    background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);
+  "
+>
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div
+      class="px-6 py-2 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 items-center"
+    >
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Solicitações de Compra</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Comercial</p>
+      </div>
+
+      <div class="text-center">
+        <span
+          class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold"
+        >
+          <span id="scCounter">0</span>
+          <span class="ml-1">solicitações</span>
+          <span class="mx-2">—</span>
+          <span id="scOverdue">0</span>
+          <span class="ml-1">em atraso</span>
+        </span>
+      </div>
+
+      <div class="text-right flex items-center justify-end gap-2">
+        <div class="relative group">
+          <button
+            id="scNewBtn"
+            class="flex items-center justify-center bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 p-2 rounded-xl transition-colors"
+            data-role="admin coordenador gerente administrativo"
+          >
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <span
+            class="absolute top-full right-0 mt-2 scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+          >
+            Nova solicitação
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    id="scFilters"
+    class="px-4 py-3 flex flex-wrap gap-3 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 mt-3"
+  >
+    <div class="flex flex-col shrink-0">
+      <label for="scStatusFilter" class="text-xs text-slate-500 mb-1">Status</label>
+      <select
+        id="scStatusFilter"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40"
+      >
+        <option value="">Todos os status</option>
+        <option value="em_cotacao">Em cotação</option>
+        <option value="orcamento_recebido">Orçamento recebido</option>
+        <option value="sc_solicitada">SC solicitada</option>
+        <option value="sc_aprovada">SC aprovada</option>
+        <option value="pc_gerado">PC gerado</option>
+        <option value="material_retirado">Material retirado</option>
+      </select>
+    </div>
+    <div class="flex flex-col relative shrink-0" id="scSiteContainer">
+      <label class="text-xs text-slate-500 mb-1">Site</label>
+      <button
+        type="button"
+        id="scSiteBtn"
+        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40 text-left flex items-center justify-between gap-1"
+      >
+        <span id="scSiteLabel" class="truncate">Todos</span>
+        <svg
+          class="w-4 h-4 shrink-0 text-slate-400"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div
+        id="scSiteDropdown"
+        class="hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
+      ></div>
+    </div>
+    <div class="flex flex-col shrink-0">
+      <button
+        type="button"
+        id="scClearFilters"
+        class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-3 py-1.5 rounded-xl text-sm font-medium self-end"
+      >
+        Limpar
+      </button>
+    </div>
+  </div>
+
+  <main id="scList" class="px-6 py-4 space-y-6"></main>
+
+  <div
+    id="scEmpty"
+    class="hidden px-6 py-12 text-center text-slate-500"
+  >
+    Nenhuma solicitação encontrada
+  </div>
+
+  <!-- Modal de criação/edição -->
+  <div
+    id="modalSc"
+    class="fixed inset-0 z-[99999] hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalScTitle"
+  >
+    <div
+      class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      id="modalScBackdrop"
+    ></div>
+    <div
+      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-2xl shadow-2xl p-6 z-[100000]"
+    >
+      <h2 id="modalScTitle" class="text-xl font-semibold text-slate-900 mb-4">Nova solicitação</h2>
+      <form id="formSc" class="space-y-4" novalidate>
+        <div>
+          <label for="scTitulo" class="block text-sm font-medium text-slate-700 mb-1">Título do e-mail <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            id="scTitulo"
+            required
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-900"
+            placeholder="Ex: Cotação filtros 20x20"
+          />
+        </div>
+        <div class="relative">
+          <label for="scSite" class="block text-sm font-medium text-slate-700 mb-1">Site <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            id="scSite"
+            required
+            autocomplete="off"
+            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-900"
+            placeholder="Digite para buscar..."
+          />
+          <div
+            id="scSiteDropdown"
+            class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
+          ></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="scData" class="block text-sm font-medium text-slate-700 mb-1">Data</label>
+            <input
+              type="date"
+              id="scData"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-900"
+            />
+          </div>
+          <div>
+            <label for="scSla" class="block text-sm font-medium text-slate-700 mb-1">SLA (dias)</label>
+            <input
+              type="number"
+              id="scSla"
+              min="0"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-900"
+              placeholder="Opcional"
+            />
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+          <button
+            type="button"
+            id="modalScCancel"
+            class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-4 py-2 rounded-xl font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-4 py-2 rounded-xl font-medium"
+          >
+            Registrar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
