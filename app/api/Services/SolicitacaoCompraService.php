@@ -87,7 +87,7 @@ class SolicitacaoCompraService
 
     public function save(array $data): int
     {
-        $payload = $this->normalizePayload($data);
+        $payload = $this->enforceEquipmentXor($this->normalizePayload($data), $data);
         $payload['data'] ??= date('Y-m-d');
         $payload['data_status'] ??= $payload['data'];
 
@@ -114,7 +114,10 @@ class SolicitacaoCompraService
             $payload['data_status'] = date('Y-m-d');
         }
 
-        $merged = array_merge($this->editableValues($current), $payload);
+        $merged = $this->enforceEquipmentXor(
+            array_merge($this->editableValues($current), $payload),
+            $payload
+        );
 
         $this->validate($merged, true);
 
@@ -179,12 +182,24 @@ class SolicitacaoCompraService
         }
 
         foreach (['data', 'data_status'] as $dateField) {
-            $value = $data[$dateField] ?? null;
-            if ($value === null || $value === '') {
+            if (!array_key_exists($dateField, $data)) {
                 continue;
+            }
+
+            $value = $data[$dateField];
+            if ($value === null || $value === '') {
+                // Colunas são NOT NULL: aceitar null aqui viraria 500 do MySQL.
+                throw new \InvalidArgumentException('Data é obrigatória.');
             }
             if (!self::isValidDate((string) $value)) {
                 throw new \InvalidArgumentException('Data inválida.');
+            }
+        }
+
+        $equipamentoId = $data['equipamento_id'] ?? null;
+        if ($equipamentoId !== null && $equipamentoId !== '') {
+            if (!is_numeric($equipamentoId) || (int) $equipamentoId <= 0) {
+                throw new \InvalidArgumentException('Equipamento inválido.');
             }
         }
 
@@ -319,6 +334,26 @@ class SolicitacaoCompraService
         }
 
         return $normalized;
+    }
+
+    /**
+     * equipamento_id e equipamento_texto nunca coexistem: o campo enviado vence.
+     *
+     * @param array<string, mixed> $values
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function enforceEquipmentXor(array $values, array $payload): array
+    {
+        if (array_key_exists('equipamento_id', $payload)) {
+            $values['equipamento_id'] = $payload['equipamento_id'];
+            $values['equipamento_texto'] = null;
+        } elseif (array_key_exists('equipamento_texto', $payload)) {
+            $values['equipamento_texto'] = $payload['equipamento_texto'];
+            $values['equipamento_id'] = null;
+        }
+
+        return $values;
     }
 
     private function editableValues(array $row): array

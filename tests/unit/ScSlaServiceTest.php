@@ -62,6 +62,33 @@ class ScSlaServiceTest extends TestCase
         $this->assertStringContainsString('10 dia', $body);
     }
 
+    public function testProcessKeepsGoingWhenMarkingFails(): void
+    {
+        $repo = $this->createMock(SolicitacaoCompraRepository::class);
+        $repo->method('listWithSla')->willReturn([
+            $this->overdueRow(['id' => 1]),
+            $this->overdueRow(['id' => 2]),
+        ]);
+        $repo->method('markSlaNotified')->willReturnCallback(
+            function (int $id): void {
+                if ($id === 1) {
+                    throw new \RuntimeException('deadlock');
+                }
+            }
+        );
+
+        $service = new ScSlaService($repo, fn () => new class {
+            public function send(): bool
+            {
+                return true;
+            }
+        });
+
+        $result = $service->process('2026-10-30');
+
+        $this->assertSame(2, $result['sent']);
+    }
+
     public function testProcessSendsOnlyEligibleAndMarksNotified(): void
     {
         $repo = $this->createMock(SolicitacaoCompraRepository::class);

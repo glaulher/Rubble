@@ -174,6 +174,45 @@ class SolicitacaoCompraServiceTest extends TestCase
         ]);
     }
 
+    public function testValidateRejectsClearingRequiredDate(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Data é obrigatória.');
+
+        $this->service()->validate([
+            'titulo_email' => 'x',
+            'site' => 'BMADTC',
+            'status' => 'em_cotacao',
+            'data' => null,
+        ]);
+    }
+
+    public function testValidateRejectsClearingDataStatus(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Data é obrigatória.');
+
+        $this->service()->validate([
+            'titulo_email' => 'x',
+            'site' => 'BMADTC',
+            'status' => 'em_cotacao',
+            'data_status' => '',
+        ]);
+    }
+
+    public function testValidateRejectsNonNumericEquipamentoId(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Equipamento inválido.');
+
+        $this->service()->validate([
+            'titulo_email' => 'x',
+            'site' => 'BMADTC',
+            'status' => 'em_cotacao',
+            'equipamento_id' => 'abc',
+        ]);
+    }
+
     // --- save ---
 
     public function testSaveNormalizesPvNumberToDigits(): void
@@ -268,6 +307,32 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->expectExceptionMessage('Já existe uma solicitação com esse número de SC.');
 
         $this->service($repo)->update(1, ['numero_sc' => 'SC-1']);
+    }
+
+    public function testEquipmentIdClearsFreeText(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('getById')->willReturn($this->row());
+        $repo->expects($this->once())->method('update')
+            ->with(1, $this->callback(
+                fn ($d) => $d['equipamento_id'] === 5 && $d['equipamento_texto'] === null
+            ))
+            ->willReturn(true);
+
+        $this->service($repo)->update(1, ['equipamento_id' => 5]);
+    }
+
+    public function testEquipmentTextClearsId(): void
+    {
+        $repo = $this->createMockRepo();
+        $repo->method('getById')->willReturn($this->row(['equipamento_id' => 9]));
+        $repo->expects($this->once())->method('update')
+            ->with(1, $this->callback(
+                fn ($d) => $d['equipamento_texto'] === 'Bomba 3' && $d['equipamento_id'] === null
+            ))
+            ->willReturn(true);
+
+        $this->service($repo)->update(1, ['equipamento_texto' => 'Bomba 3']);
     }
 
     // --- updateField ---

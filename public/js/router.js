@@ -13,7 +13,7 @@ import { initPriceForm } from '/public/js/equipment-prices/form.js';
 import { initPriceList } from '/public/js/equipment-prices/list.js';
 import { initPreventiveCycle } from '/public/js/preventive-cycle/list.js?v=19';
 import { initScm } from '/public/js/scm/scm-list.js';
-import { initSc } from '/public/js/sc/list.js';
+import { initSc } from '/public/js/sc/list.js?v=1';
 import { initPlannedActivity } from '/public/js/planned-activity/list.js';
 import { initPlannedSummary } from '/public/js/planned-activity/summary.js';
 import { initPendingTickets } from '/public/js/pending-tickets/list.js';

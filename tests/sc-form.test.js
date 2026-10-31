@@ -21,6 +21,16 @@ describe('SC form', () => {
     expect(p.data_status).toBe(p.data);
   });
 
+  test('buildScCreatePayload respeita a data escolhida no modal', () => {
+    const p = globalThis.buildScCreatePayload({
+      titulo_email: 'Cotação',
+      site: 'BMADTC',
+      data: '2026-10-05',
+    });
+    expect(p.data).toBe('2026-10-05');
+    expect(p.data_status).toBe('2026-10-05');
+  });
+
   test('buildScCreatePayload converte sla vazio em null', () => {
     const p = globalThis.buildScCreatePayload({ titulo_email: 'Cotação', site: 'BMADTC', sla_dias: '' });
     expect(p.sla_dias).toBeNull();

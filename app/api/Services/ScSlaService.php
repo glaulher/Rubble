@@ -41,8 +41,16 @@ class ScSlaService
                 continue;
             }
 
-            $this->repository->markSlaNotified((int) $row['id'], $row['data_status'] ?? null);
+            // Conta como enviado antes de marcar: o e-mail já saiu.
             $sent++;
+
+            try {
+                $this->repository->markSlaNotified((int) $row['id'], $row['data_status'] ?? null);
+            } catch (\Throwable $e) {
+                // Sem a marca o e-mail repete amanhã, mas uma linha com erro
+                // não pode derrubar o lote inteiro do dia.
+                error_log('Falha ao marcar SLA notificado da SC ' . ($row['id'] ?? '?') . ': ' . $e->getMessage());
+            }
         }
 
         return [

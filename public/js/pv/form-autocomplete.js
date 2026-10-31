@@ -3,7 +3,7 @@ import { updateItemUnit } from './form-utils.js';
 import { calculateItemTotal } from './form-item-row.js';
 import { getPvLocalOptions, getPvOsOptions, filterEquipamentos, generateCicloOptions } from './form-utils.js';
 
-import { createAutocomplete } from '/public/js/core/autocomplete.js';
+import { createAutocomplete } from '/public/js/core/autocomplete.js?v=1';
 
 export { createAutocomplete };
 

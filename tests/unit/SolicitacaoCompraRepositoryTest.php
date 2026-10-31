@@ -71,6 +71,21 @@ class SolicitacaoCompraRepositoryTest extends TestCase
         $this->assertSame(2, $this->repo->count('', null, 'ZZSC'));
     }
 
+    public function testListAllAcceptsCommaSeparatedSites(): void
+    {
+        $this->repo->save($this->baseRow(['site' => 'ZZSC-M1']));
+        $this->repo->save($this->baseRow(['site' => 'ZZSC-M2']));
+        $this->repo->save($this->baseRow(['site' => 'ZZSC-M3']));
+
+        $rows = $this->repo->listAll(20, 0, '', null, 'ZZSC-M1,ZZSC-M3');
+
+        $sites = array_column($rows, 'site');
+        sort($sites);
+
+        $this->assertSame(['ZZSC-M1', 'ZZSC-M3'], $sites);
+        $this->assertSame(2, $this->repo->count('', null, 'ZZSC-M1,ZZSC-M3'));
+    }
+
     public function testSearchMatchesTitleSiteAndNumbers(): void
     {
         $this->repo->save($this->baseRow([

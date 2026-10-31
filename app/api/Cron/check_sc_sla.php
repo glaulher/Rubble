@@ -7,6 +7,8 @@ use App\Api\Services\ScSlaService;
 
 Env::load(__DIR__ . '/../../../.env');
 
+date_default_timezone_set('America/Sao_Paulo');
+
 $service = new ScSlaService();
 $result = $service->process();
 

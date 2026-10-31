@@ -5,9 +5,9 @@ import { showToast } from '/public/js/core/dom.js';
 import { apiFetch } from '/public/js/core/auth.js';
 import { PollingManager } from '/public/js/core/polling.js';
 import { debounce } from '/public/js/components/infinite-scroll.js';
-import { createAutocomplete } from '/public/js/core/autocomplete.js';
-import { SC_STATUSES, scSteps, formatPct, scStatusBadgeClass } from './constants.js';
-import { initScForm } from './form.js';
+import { createAutocomplete } from '/public/js/core/autocomplete.js?v=1';
+import { SC_STATUSES, scSteps, formatPct, scStatusBadgeClass } from './constants.js?v=1';
+import { initScForm } from './form.js?v=1';
 
 export const scPollingInterval = 10000;
 
@@ -18,6 +18,8 @@ let _scSearch = '';
 let _scStatusFilter = '';
 let _scSiteFilter = new Set();
 let _scEditingCount = 0;
+let _scSiteDocListenerBound = false;
+const _scOpenEdits = new Set();
 
 let _scSiteOptions = [];
 let _scEquipmentOptions = [];
@@ -32,6 +34,11 @@ export function setScEditing(flag) {
 
 export function isScEditing() {
   return _scEditingCount > 0;
+}
+
+function cancelOpenEdits() {
+  Array.from(_scOpenEdits).forEach((cancel) => cancel());
+  _scOpenEdits.clear();
 }
 
 export function resolveEquipmentPick(items, label) {
@@ -59,7 +66,7 @@ export function resolveEquipmentPick(items, label) {
 function formatDateBr(value) {
   if (!value) return '—';
   const parts = String(value).split('-');
-  if (parts.length !== 3) return value;
+  if (parts.length !== 3) return escapeHtml(String(value));
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
@@ -187,11 +194,17 @@ function setupScSiteFilterAutocomplete() {
     loadSc();
   });
 
-  document.addEventListener('click', (e) => {
-    if (!dropdown.contains(e.target) && !button.contains(e.target)) {
-      dropdown.classList.add('hidden');
-    }
-  });
+  if (!_scSiteDocListenerBound) {
+    _scSiteDocListenerBound = true;
+    document.addEventListener('click', (e) => {
+      const currentButton = document.getElementById('scSiteBtn');
+      const currentDropdown = document.getElementById('scSiteDropdown');
+      if (!currentButton || !currentDropdown) return;
+      if (!currentDropdown.contains(e.target) && !currentButton.contains(e.target)) {
+        currentDropdown.classList.add('hidden');
+      }
+    });
+  }
 
   updateLabel();
 }
@@ -229,11 +242,13 @@ function buildStepsHtml(status) {
     .join('');
 }
 
-function fieldCell(field, label, display, raw) {
+function fieldCell(field, label, display, raw, editable = true) {
+  const pencil = editable ? pencilHtml(field) : '';
+
   return `
     <div>
       <span class="block text-xs text-slate-400">${escapeHtml(label)}</span>
-      <span class="font-medium text-slate-800" data-sc-field="${field}" data-sc-value="${escapeHtml(String(raw ?? ''))}">${display}</span>${pencilHtml(field)}
+      <span class="font-medium text-slate-800" data-sc-field="${field}" data-sc-value="${escapeHtml(String(raw ?? ''))}">${display}</span>${pencil}
     </div>`;
 }
 
@@ -245,7 +260,10 @@ export function buildScCardHtml(item) {
       ? `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-semibold">${overdueDays} dia(s) de atraso</span>`
       : '';
 
-  const slaHtml = item.sla_dias === null || item.sla_dias === undefined ? '—' : `${item.sla_dias} dia(s)`;
+  const slaHtml =
+    item.sla_dias === null || item.sla_dias === undefined
+      ? '—'
+      : `${escapeHtml(String(item.sla_dias))} dia(s)`;
   const equipmentRaw = item.equipamento_texto || equipmentLabel(item);
 
   return `
@@ -275,7 +293,7 @@ export function buildScCardHtml(item) {
         ${fieldCell('numero_pv', 'PV', escapeHtml(item.numero_pv || '—'), item.numero_pv || '')}
         ${fieldCell('sla_dias', 'SLA', slaHtml, item.sla_dias ?? '')}
         ${fieldCell('valor_sc', 'Valor SC', formatMoney(item.valor_sc), item.valor_sc ?? '')}
-        ${fieldCell('pv_valor_total', 'Valor PV', formatMoney(item.pv_valor_total), item.pv_valor_total ?? '')}
+        ${fieldCell('pv_valor_total', 'Valor PV', formatMoney(item.pv_valor_total), item.pv_valor_total ?? '', false)}
         <div>
           <span class="block text-xs text-slate-400">Markup (sobre SC)</span>
           <span class="font-medium ${Number(item.markup_pct) < 0 ? 'text-red-600' : 'text-slate-800'}">${formatPct(item.markup_pct)}</span>
@@ -379,17 +397,23 @@ export function startScEdit(card, field) {
   target.dataset.scEditing = '1';
   target.classList.add('hidden');
   target.insertAdjacentElement('afterend', editor);
-  setScEditing(true);
-  editor.focus();
-  if (editor.select) editor.select();
 
+  let dropdown = null;
   if (field === 'site' || field === 'equipamento') {
     editor.id = `sc-inline-${field}-${id}`;
-    const dropdown = document.createElement('div');
+    dropdown = document.createElement('div');
     dropdown.id = `sc-inline-dd-${field}-${id}`;
     dropdown.className =
       'autocomplete-dropdown hidden absolute z-50 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto min-w-[240px]';
-    editor.insertAdjacentElement('afterend', dropdown);
+
+    // Fica no card (não dentro do <p truncate>) para não ser cortado.
+    card.appendChild(dropdown);
+
+    const inputRect = editor.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    dropdown.style.left = `${Math.max(0, inputRect.left - cardRect.left)}px`;
+    dropdown.style.top = `${inputRect.bottom - cardRect.top + 4}px`;
+    dropdown.style.width = `${Math.max(240, Math.min(360, inputRect.width))}px`;
 
     createAutocomplete({
       inputSelector: `#${editor.id}`,
@@ -402,36 +426,62 @@ export function startScEdit(card, field) {
     });
   }
 
+  setScEditing(true);
+
   let cancelled = false;
   let finished = false;
 
-  const finish = async () => {
-    if (finished) return;
+  const teardown = () => {
     finished = true;
-
     target.dataset.scEditing = '0';
     editor.remove();
+    if (dropdown) dropdown.remove();
     target.classList.remove('hidden');
     setScEditing(false);
+    _scOpenEdits.delete(cancel);
+  };
 
-    if (cancelled) return;
+  // Chamado quando a lista é re-renderizada por outro motivo (polling, save
+  // de outro campo, navegação): descarta a edição em vez de vazar contador.
+  const cancel = () => {
+    if (finished) return;
+    cancelled = true;
+    teardown();
+  };
+
+  _scOpenEdits.add(cancel);
+
+  const finish = async () => {
+    if (finished) return;
 
     const next = editor.value.trim();
-    if (next === current) return;
+    teardown();
+
+    if (cancelled || next === current) return;
 
     if (field === 'equipamento') {
       const pick = resolveEquipmentPick(_scEquipmentOptions, next);
-      if (pick.equipamento_id !== null) {
-        await saveScField(id, 'equipamento_id', pick.equipamento_id);
-        await saveScField(id, 'equipamento_texto', null);
-      } else {
-        await saveScField(id, 'equipamento_texto', pick.equipamento_texto);
-        await saveScField(id, 'equipamento_id', null);
+      const okId = pick.equipamento_id !== null;
+
+      const saved = okId
+        ? await saveScField(id, 'equipamento_id', pick.equipamento_id)
+        : await saveScField(id, 'equipamento_texto', pick.equipamento_texto);
+
+      if (!saved) {
+        await loadSc();
+        return;
       }
+
+      // O service já zera o campo oposto; a segunda chamada só garante o
+      // estado quando o primeiro PATCH não tocou nos dois campos.
+      await saveScField(id, okId ? 'equipamento_texto' : 'equipamento_id', null);
     } else {
       const value = next === '' ? null : next;
       const ok = await saveScField(id, field, value);
-      if (!ok) return;
+      if (!ok) {
+        await loadSc();
+        return;
+      }
     }
 
     await loadSc();
@@ -450,6 +500,9 @@ export function startScEdit(card, field) {
   editor.addEventListener('blur', () => {
     setTimeout(finish, 150);
   });
+
+  editor.focus();
+  if (editor.select) editor.select();
 }
 
 /*
@@ -480,6 +533,8 @@ export async function loadSc(silent = false) {
     const emptyEl = document.getElementById('scEmpty');
 
     if (listEl) {
+      cancelOpenEdits();
+
       if (_scItems.length === 0) {
         listEl.innerHTML = '';
       } else {
@@ -502,7 +557,7 @@ export async function loadSc(silent = false) {
 
     const totalEl = document.getElementById('scCounter') || document.getElementById('scTotal');
     const overdueEl = document.getElementById('scOverdue');
-    if (totalEl) totalEl.textContent = String(_scItems.length);
+    if (totalEl) totalEl.textContent = String(_scTotal);
     if (overdueEl) {
       overdueEl.textContent = String(_scItems.filter((i) => Number(i.overdue_days) > 0).length);
     }
@@ -565,9 +620,19 @@ export async function initSc() {
   const statusFilter = document.getElementById('scStatusFilter');
   const clearBtn = document.getElementById('scClearFilters');
 
+  // A view é remontada a cada navegação: estado de edição não sobrevive.
+  cancelOpenEdits();
+  _scEditingCount = 0;
+
+  // Restaura os filtros ativos (o módulo é singleton entre navegações).
+  if (searchInput) searchInput.value = _scSearch;
+  if (statusFilter) statusFilter.value = _scStatusFilter;
+
   await Promise.all([loadScSiteOptions(), loadScEquipmentOptions()]);
   setupScSiteFilterAutocomplete();
   bindListEvents();
+
+  globalThis.refreshScList = () => loadSc(false);
 
   if (typeof initScForm === 'function') {
     initScForm();

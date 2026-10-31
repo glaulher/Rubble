@@ -15,6 +15,28 @@ class SolicitacaoCompraController
         $this->service = $service ?? new SolicitacaoCompraService();
     }
 
+    /**
+     * mysqli_sql_exception estende Exception, então sem este mapeamento o
+     * catch de negócio devolveria 400 com o texto cru do MySQL (vazamento).
+     */
+    public static function dbErrorMessage(\mysqli_sql_exception $e): string
+    {
+        $sqlMessage = $e->getMessage();
+
+        if (stripos($sqlMessage, 'Duplicate entry') !== false) {
+            return 'Já existe uma solicitação com esse número de SC.';
+        }
+
+        if (
+            stripos($sqlMessage, 'foreign key') !== false
+            || stripos($sqlMessage, 'cannot be null') !== false
+        ) {
+            return 'Dados inválidos para esta solicitação.';
+        }
+
+        return 'Não foi possível salvar a solicitação.';
+    }
+
     public function listAll(): void
     {
         try {
@@ -25,7 +47,7 @@ class SolicitacaoCompraController
             $site = trim((string) ($_GET['site'] ?? ''));
 
             $result = $this->service->listAll(
-                $limit > 0 ? $limit : 500,
+                $limit > 0 ? min($limit, 1000) : 500,
                 $offset > 0 ? $offset : 0,
                 $search,
                 $status !== '' ? $status : null,
@@ -91,6 +113,8 @@ class SolicitacaoCompraController
                 'id' => $id,
             ], 201);
             return;
+        } catch (\mysqli_sql_exception $e) {
+            Response::error(self::dbErrorMessage($e), 400);
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
@@ -119,6 +143,8 @@ class SolicitacaoCompraController
                 'data' => $this->service->getById($id),
             ]);
             return;
+        } catch (\mysqli_sql_exception $e) {
+            Response::error(self::dbErrorMessage($e), 400);
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
@@ -146,6 +172,8 @@ class SolicitacaoCompraController
                 'data' => $data,
             ]);
             return;
+        } catch (\mysqli_sql_exception $e) {
+            Response::error(self::dbErrorMessage($e), 400);
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {
@@ -171,6 +199,8 @@ class SolicitacaoCompraController
                 'message' => 'Solicitação excluída com sucesso',
             ]);
             return;
+        } catch (\mysqli_sql_exception $e) {
+            Response::error(self::dbErrorMessage($e), 400);
         } catch (\Exception $e) {
             Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {

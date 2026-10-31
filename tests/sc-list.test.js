@@ -128,6 +128,18 @@ describe('SC list', () => {
     expect(html).not.toContain('<img src=x');
   });
 
+  test('buildScCardHtml nao oferece lapis para o valor derivado da PV', () => {
+    const html = globalThis.buildScCardHtml(item);
+    expect(html).toContain('data-sc-edit="valor_sc"');
+    expect(html).not.toContain('data-sc-edit="pv_valor_total"');
+  });
+
+  test('buildScCardHtml nao oferece lapis para markup e margem', () => {
+    const html = globalThis.buildScCardHtml(item);
+    expect(html).not.toContain('data-sc-edit="markup_pct"');
+    expect(html).not.toContain('data-sc-edit="margem_pct"');
+  });
+
   test('setScEditing controla a pausa do polling', () => {
     expect(globalThis.isScEditing()).toBe(false);
     globalThis.setScEditing(true);

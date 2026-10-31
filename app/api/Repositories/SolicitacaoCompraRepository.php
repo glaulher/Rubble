@@ -214,9 +214,24 @@ class SolicitacaoCompraRepository extends BaseRepository
 
         $site = $site !== null ? trim($site) : '';
         if ($site !== '') {
-            $conditions[] = "sc.site LIKE ?";
-            $types .= 's';
-            $params[] = '%' . $site . '%';
+            // O filtro do frontend é multi-select e chega como "A,B".
+            $sites = array_values(array_filter(
+                array_map('trim', explode(',', $site)),
+                static fn (string $value): bool => $value !== ''
+            ));
+
+            if (count($sites) === 1) {
+                $conditions[] = "sc.site LIKE ?";
+                $types .= 's';
+                $params[] = '%' . $sites[0] . '%';
+            } elseif ($sites !== []) {
+                $placeholders = implode(', ', array_fill(0, count($sites), '?'));
+                $conditions[] = "sc.site IN ({$placeholders})";
+                $types .= str_repeat('s', count($sites));
+                foreach ($sites as $value) {
+                    $params[] = $value;
+                }
+            }
         }
 
         $where = $conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions);

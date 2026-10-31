@@ -2,7 +2,7 @@
 
 import { showToast } from '/public/js/core/dom.js';
 import { apiFetch } from '/public/js/core/auth.js';
-import { createAutocomplete } from '/public/js/core/autocomplete.js';
+import { createAutocomplete } from '/public/js/core/autocomplete.js?v=1';
 
 let scSiteOptions = [];
 
@@ -34,6 +34,14 @@ function setupScSiteAutocomplete() {
   });
 }
 
+function localToday() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 export function buildScCreatePayload(values) {
   const titulo = (values.titulo_email ?? '').trim();
   const site = (values.site ?? '').trim();
@@ -45,11 +53,8 @@ export function buildScCreatePayload(values) {
     throw new Error('O site é obrigatório.');
   }
 
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  const todayStr = `${year}-${month}-${day}`;
+  const chosen = (values.data ?? '').trim();
+  const dateStr = chosen !== '' ? chosen : localToday();
 
   let sla = values.sla_dias;
   if (sla === '' || sla === undefined || sla === null) {
@@ -62,8 +67,8 @@ export function buildScCreatePayload(values) {
     titulo_email: titulo,
     site: site,
     status: 'em_cotacao',
-    data: todayStr,
-    data_status: todayStr,
+    data: dateStr,
+    data_status: dateStr,
     sla_dias: sla,
   };
 }
@@ -84,7 +89,7 @@ export function initScForm() {
   function openModal() {
     inputTitulo.value = '';
     inputSite.value = '';
-    inputData.value = new Date().toISOString().slice(0, 10);
+    inputData.value = localToday();
     inputSla.value = '';
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -103,15 +108,16 @@ export function initScForm() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const payload = buildScCreatePayload({
-      titulo_email: inputTitulo.value,
-      site: inputSite.value,
-      sla_dias: inputSla.value,
-    });
-
-    showToast('Criando solicitação...', 'loading');
-
     try {
+      const payload = buildScCreatePayload({
+        titulo_email: inputTitulo.value,
+        site: inputSite.value,
+        data: inputData ? inputData.value : '',
+        sla_dias: inputSla.value,
+      });
+
+      showToast('Criando solicitação...', 'loading');
+
       const response = await apiFetch('/app/api/index.php?route=sc', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -123,13 +129,13 @@ export function initScForm() {
         showToast('Solicitação criada com sucesso', 'success');
         closeModal();
         if (typeof globalThis.refreshScList === 'function') {
-          globalThis.refreshScList();
+          await globalThis.refreshScList();
         }
       } else {
         showToast(res.message || 'Erro ao criar solicitação', 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Erro de rede', 'error');
+      showToast(err.message || 'Erro ao criar solicitação', 'error');
     }
   });
 
