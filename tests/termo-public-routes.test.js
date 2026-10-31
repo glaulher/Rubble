@@ -1,9 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { Window } from 'happy-dom';
 
-const domWindow = new Window({ url: 'https://rubble.local/#/login' });
-globalThis.window = domWindow;
-globalThis.document = domWindow.document;
+window.location.hash = '#/login';
 
 // Mock storage
 const storage = {};
@@ -56,7 +53,7 @@ describe('Termo Public Routes Auth Guard', () => {
 describe('Termo Public Sign Page Rendering', () => {
   beforeEach(() => {
     const html = fs.readFileSync('app/Views/termo/public-sign.html', 'utf-8');
-    domWindow.document.body.innerHTML = `<div id="app">${html}</div>`;
+    document.body.innerHTML = `<div id="app">${html}</div>`;
   });
 
   it('renders items list and observations when termo is pending signature', async () => {
@@ -84,10 +81,10 @@ describe('Termo Public Sign Page Rendering', () => {
     const { initPublicSign } = await import('../public/js/termo/public-sign.js');
     await initPublicSign();
 
-    const signState = domWindow.document.getElementById('termoSignState');
+    const signState = document.getElementById('termoSignState');
     expect(signState.classList.contains('hidden')).toBe(false);
 
-    const itemsList = domWindow.document.getElementById('signItemsList');
+    const itemsList = document.getElementById('signItemsList');
     expect(itemsList.children.length).toBe(2);
     expect(itemsList.innerHTML).toContain('Bomba de Vácuo');
     expect(itemsList.innerHTML).toContain('7 CFM');
@@ -95,12 +92,12 @@ describe('Termo Public Sign Page Rendering', () => {
     expect(itemsList.innerHTML).toContain('Recolhedora');
     expect(itemsList.innerHTML).toContain('REC-99');
 
-    const badge = domWindow.document.getElementById('signItemsCountBadge');
+    const badge = document.getElementById('signItemsCountBadge');
     expect(badge.textContent).toBe('2 itens');
 
-    const obs = domWindow.document.getElementById('signObservacoesText');
+    const obs = document.getElementById('signObservacoesText');
     expect(obs.textContent).toBe('Acompanha maleta e cabo de força');
-    expect(domWindow.document.getElementById('signObservacoesContainer').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('signObservacoesContainer').classList.contains('hidden')).toBe(false);
   });
 
   it('renders items list and observations when termo is already signed', async () => {
@@ -128,19 +125,19 @@ describe('Termo Public Sign Page Rendering', () => {
     const { initPublicSign } = await import('../public/js/termo/public-sign.js');
     await initPublicSign();
 
-    const successState = domWindow.document.getElementById('termoSuccessState');
+    const successState = document.getElementById('termoSuccessState');
     expect(successState.classList.contains('hidden')).toBe(false);
 
-    const itemsList = domWindow.document.getElementById('successItemsList');
+    const itemsList = document.getElementById('successItemsList');
     expect(itemsList.children.length).toBe(1);
     expect(itemsList.innerHTML).toContain('Manômetro Digital');
     expect(itemsList.innerHTML).toContain('Testo 550s');
     expect(itemsList.innerHTML).toContain('MAN-550');
 
-    const badge = domWindow.document.getElementById('successItemsCountBadge');
+    const badge = document.getElementById('successItemsCountBadge');
     expect(badge.textContent).toBe('1 item');
 
-    const obs = domWindow.document.getElementById('successObservacoesText');
+    const obs = document.getElementById('successObservacoesText');
     expect(obs.textContent).toBe('Ferramenta testada e calibrada');
   });
 });

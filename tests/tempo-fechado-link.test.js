@@ -10,7 +10,7 @@ const sessionStorageMock = {
   removeItem: (key) => { delete storage[key]; },
   clear: () => { Object.keys(storage).forEach(k => delete storage[k]); },
 };
-try { Object.defineProperty(globalThis, 'sessionStorage', { value: sessionStorageMock, writable: true }); } catch (_) { try { globalThis.sessionStorage = sessionStorageMock; } catch (_) {} }
+try { Object.defineProperty(globalThis, 'sessionStorage', { value: sessionStorageMock, writable: true, configurable: true }); } catch (_) { try { globalThis.sessionStorage = sessionStorageMock; } catch (_) {} }
 
 const localStore = {};
 const localStorageMock = {
@@ -19,7 +19,7 @@ const localStorageMock = {
   removeItem: (key) => { delete localStore[key]; },
   clear: () => { Object.keys(localStore).forEach(k => delete localStore[k]); },
 };
-try { Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true }); } catch (_) { try { globalThis.localStorage = localStorageMock; } catch (_) {} }
+try { Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true, configurable: true }); } catch (_) { try { globalThis.localStorage = localStorageMock; } catch (_) {} }
 
 globalThis.escapeHtml = function (str) {
   if (!str) return '';

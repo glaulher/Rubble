@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { generateTermoPdf } from '../public/js/termo/termo-pdf.js';
 
 describe('Termo PDF Generator', () => {
@@ -21,9 +21,16 @@ describe('Termo PDF Generator', () => {
 
     jsPdfConstructorMock = mock(() => docMock);
 
-    globalThis.window = {
-      jspdf: { jsPDF: jsPdfConstructorMock },
-    };
+    if (!globalThis.window) {
+      globalThis.window = {};
+    }
+    globalThis.window.jspdf = { jsPDF: jsPdfConstructorMock };
+  });
+
+  afterEach(() => {
+    if (globalThis.window) {
+      delete globalThis.window.jspdf;
+    }
   });
 
   it('instantiates jsPDF and generates PDF with signature image', () => {

@@ -6,6 +6,7 @@ namespace Tests\Unit;
 use PHPUnit\Framework\TestCase;
 use App\Api\Controllers\TermoController;
 use App\Api\Services\TermoService;
+use App\Api\Helpers\Response;
 
 class TermoControllerTest extends TestCase
 {
@@ -14,8 +15,20 @@ class TermoControllerTest extends TestCase
 
     protected function setUp(): void
     {
+        parent::setUp();
+        Response::$exitEnabled = false;
+        $_GET = [];
+        $_POST = [];
         $this->serviceMock = $this->createMock(TermoService::class);
         $this->controller = new TermoController($this->serviceMock);
+    }
+
+    protected function tearDown(): void
+    {
+        Response::$exitEnabled = true;
+        $_GET = [];
+        $_POST = [];
+        parent::tearDown();
     }
 
     public function testControllerInstantiation(): void

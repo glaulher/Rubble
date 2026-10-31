@@ -78,8 +78,13 @@ class TermoE2ECycleTest extends TestCase
         $signRes = $this->service->signPublicTermo($token, $fakeSignature, '192.168.1.50', 'Mobile Safari / iOS');
         $this->assertTrue($signRes['success'], "Assinatura deve ser aceita");
 
-        // 5. Verificar se a custódia no inventário foi transferida para o Raphael
-        $invItem = $this->invRepo->findById($invId);
+        // 5. Verificar se a custódia no inventário foi transferida para o Raphael (novo item clonado)
+        $termoAtualizado = $this->termoRepo->findById($termoId);
+        $this->assertNotEmpty($termoAtualizado->itens);
+        $novoInvId = (int) $termoAtualizado->itens[0]->inventarioId;
+        $this->assertGreaterThan(0, $novoInvId);
+
+        $invItem = $this->invRepo->findById($novoInvId);
         $this->assertNotNull($invItem);
         $this->assertSame('Raphael', $invItem->tecnicoNome, "Técnico em posse deve ser Raphael");
         $this->assertSame('em_posse', $invItem->status, "Status do item no inventário deve ser em_posse");
@@ -91,19 +96,19 @@ class TermoE2ECycleTest extends TestCase
         $this->assertSame(409, $reSignRes['code']);
 
         // 7. Raphael devolve a ferramenta -> Registrar Devolução
-        $termoAtualizado = $this->termoRepo->findById($termoId);
         $itemId = (int) $termoAtualizado->itens[0]->id;
 
         $devolucaoRes = $this->service->devolverItens($termoId, [$itemId], date('Y-m-d'), 'Devolvido em perfeito estado');
         $this->assertTrue($devolucaoRes['success']);
 
         // 8. Verificar se o status no inventário passou para devolvido
-        $invItemDevolvido = $this->invRepo->findById($invId);
+        $invItemDevolvido = $this->invRepo->findById($novoInvId);
         $this->assertSame('devolvido', $invItemDevolvido->status, "Status no inventário deve ser devolvido");
         $this->assertSame(date('Y-m-d'), $invItemDevolvido->dataDevolucao);
 
         // Limpeza dos dados de teste
         $this->invRepo->delete($invId);
+        $this->invRepo->delete($novoInvId);
         $this->db->query("DELETE FROM termos_responsabilidade WHERE id = {$termoId}");
     }
 }
