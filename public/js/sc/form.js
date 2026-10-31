@@ -1,15 +1,14 @@
 // public/js/sc/form.js
 
-import { escapeHtml, formatDate } from '/public/js/core/utils.js';
-import { showToast, apiFetch } from '/public/js/core/auth.js';
-import { SC_STATUSES } from './constants.js';
+import { showToast } from '/public/js/core/dom.js';
+import { apiFetch } from '/public/js/core/auth.js';
 import { createAutocomplete } from '/public/js/core/autocomplete.js';
 
 let scSiteOptions = [];
 
 async function loadScSiteOptions() {
   try {
-    const res = await fetch('/app/api/index.php?route=locals');
+    const res = await apiFetch('/app/api/index.php?route=locals');
     const result = await res.json();
     scSiteOptions = result.success ? (result.data || []) : [];
   } catch {
@@ -110,26 +109,27 @@ export function initScForm() {
       sla_dias: inputSla.value,
     });
 
-    showToast('loading', 'Criando solicitação...');
+    showToast('Criando solicitação...', 'loading');
 
     try {
-      const res = await apiFetch('/app/api/index.php?route=sc', {
+      const response = await apiFetch('/app/api/index.php?route=sc', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      const res = await response.json();
 
       if (res.success) {
-        showToast('success', 'Solicitação criada com sucesso');
+        showToast('Solicitação criada com sucesso', 'success');
         closeModal();
         if (typeof globalThis.refreshScList === 'function') {
           globalThis.refreshScList();
         }
       } else {
-        showToast('error', res.message || 'Erro ao criar solicitação');
+        showToast(res.message || 'Erro ao criar solicitação', 'error');
       }
     } catch (err) {
-      showToast('error', err.message || 'Erro de rede');
+      showToast(err.message || 'Erro de rede', 'error');
     }
   });
 
