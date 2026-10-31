@@ -61,4 +61,97 @@ describe('SC inline editing', () => {
     expect(ok).toBe(false);
     expect(toasted).toEqual({ message: 'Campo não editável.', type: 'error' });
   });
+
+  test('normalizeScValue normaliza valores monetários em formato brasileiro', () => {
+    expect(globalThis.normalizeScValue('valor_sc', '1.500,50')).toBe('1500.5');
+    expect(globalThis.normalizeScValue('valor_sc', 'R$ 2.000,00')).toBe('2000');
+    expect(globalThis.normalizeScValue('valor_sc', '150,00')).toBe('150');
+    expect(globalThis.normalizeScValue('valor_sc', '0,00')).toBe('0');
+    expect(globalThis.normalizeScValue('valor_sc', '1250.75')).toBe('1250.75');
+    expect(globalThis.normalizeScValue('valor_sc', '')).toBeNull();
+    expect(globalThis.normalizeScValue('valor_sc', '   ')).toBeNull();
+    expect(() => globalThis.normalizeScValue('valor_sc', 'invalido')).toThrow();
+    expect(() => globalThis.normalizeScValue('valor_sc', '-50')).toThrow();
+  });
+
+  test('normalizeScValue normaliza sla_dias e campos de texto', () => {
+    expect(globalThis.normalizeScValue('sla_dias', '5')).toBe('5');
+    expect(globalThis.normalizeScValue('sla_dias', '')).toBeNull();
+    expect(() => globalThis.normalizeScValue('sla_dias', 'abc')).toThrow();
+    expect(globalThis.normalizeScValue('numero_sc', 'SC-999')).toBe('SC-999');
+    expect(globalThis.normalizeScValue('numero_sc', '   ')).toBeNull();
+  });
+
+  test('startScEdit monta wrapper com botoes salvar/cancelar e esconde lapis', () => {
+    const card = document.createElement('div');
+    card.dataset.scId = '10';
+    card.innerHTML = `
+      <div>
+        <span data-sc-field="numero_sc" data-sc-value="SC-123">SC-123</span>
+        <button type="button" data-sc-edit="numero_sc">Editar</button>
+      </div>
+    `;
+    document.body.appendChild(card);
+
+    globalThis.startScEdit(card, 'numero_sc');
+
+    const wrapper = card.querySelector('.sc-inline-wrap');
+    expect(wrapper).not.toBeNull();
+    const input = wrapper.querySelector('input');
+    expect(input).not.toBeNull();
+    expect(input.value).toBe('SC-123');
+
+    const saveBtn = wrapper.querySelector('button[aria-label="Salvar"]');
+    const cancelBtn = wrapper.querySelector('button[aria-label="Cancelar"]');
+    expect(saveBtn).not.toBeNull();
+    expect(cancelBtn).not.toBeNull();
+
+    const pencil = card.querySelector('[data-sc-edit="numero_sc"]');
+    expect(pencil.classList.contains('hidden')).toBe(true);
+
+    card.remove();
+  });
+
+  test('startScEdit aninha o dropdown dentro do wrapper para site e equipamento', () => {
+    const card = document.createElement('div');
+    card.dataset.scId = '10';
+    card.innerHTML = `
+      <div>
+        <span data-sc-field="equipamento" data-sc-value="Chiller 1">Chiller 1</span>
+        <button type="button" data-sc-edit="equipamento">Editar</button>
+      </div>
+    `;
+    document.body.appendChild(card);
+
+    globalThis.startScEdit(card, 'equipamento');
+
+    const wrapper = card.querySelector('.sc-inline-wrap');
+    expect(wrapper).not.toBeNull();
+    const dropdown = wrapper.querySelector('.autocomplete-dropdown');
+    expect(dropdown).not.toBeNull();
+    expect(dropdown.parentElement).toBe(wrapper);
+
+    card.remove();
+  });
+
+  test('startScEdit nao quebra com campos de data (sem DOMException em select)', () => {
+    const card = document.createElement('div');
+    card.dataset.scId = '10';
+    card.innerHTML = `
+      <div>
+        <span data-sc-field="data" data-sc-value="2026-10-31">31/10/2026</span>
+        <button type="button" data-sc-edit="data">Editar</button>
+      </div>
+    `;
+    document.body.appendChild(card);
+
+    expect(() => globalThis.startScEdit(card, 'data')).not.toThrow();
+
+    const wrapper = card.querySelector('.sc-inline-wrap');
+    expect(wrapper).not.toBeNull();
+    const input = wrapper.querySelector('input[type="date"]');
+    expect(input).not.toBeNull();
+
+    card.remove();
+  });
 });

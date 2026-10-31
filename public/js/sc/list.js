@@ -302,17 +302,20 @@ export function buildScCardHtml(item) {
 
       <div class="sc-details ${isExpanded ? '' : 'hidden'} mt-3 border-t border-slate-100 pt-3 space-y-3" id="scDet${item.id}">
         <header class="flex flex-wrap items-start justify-between gap-3">
-          <div class="min-w-0 flex-1">
-            <h4 class="font-medium text-slate-900 truncate">
+          <div class="min-w-0 flex-1 space-y-1">
+            <h4 class="font-medium text-slate-900">
               <span data-sc-field="titulo_email" data-sc-value="${escapeHtml(item.titulo_email || '')}">${escapeHtml(item.titulo_email || '—')}</span>${pencilHtml('titulo_email')}
             </h4>
-            <p class="text-xs text-slate-500 mt-0.5 truncate">
-              <span class="text-slate-400">Site:</span>
-              <span data-sc-field="site" data-sc-value="${escapeHtml(item.site || '')}">${escapeHtml(item.site || '—')}</span>${pencilHtml('site')}
-              <span aria-hidden="true" class="mx-1">·</span>
-              <span class="text-slate-400">Equipamento:</span>
-              <span data-sc-field="equipamento" data-sc-value="${escapeHtml(equipmentRaw)}">${formatEquipamento(item)}</span>${pencilHtml('equipamento')}
-            </p>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+              <div class="flex items-center gap-1">
+                <span class="text-slate-400">Site:</span>
+                <span data-sc-field="site" data-sc-value="${escapeHtml(item.site || '')}">${escapeHtml(item.site || '—')}</span>${pencilHtml('site')}
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-slate-400">Equipamento:</span>
+                <span data-sc-field="equipamento" data-sc-value="${escapeHtml(equipmentRaw)}">${formatEquipamento(item)}</span>${pencilHtml('equipamento')}
+              </div>
+            </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <span class="text-xs text-slate-400">Status:</span>
@@ -378,6 +381,33 @@ export function buildScGroupHtml(site, items) {
 |--------------------------------------------------------------------------
 */
 
+export function normalizeScValue(field, rawValue) {
+  const trimmed = (rawValue || '').trim();
+  if (trimmed === '') return null;
+
+  if (field === 'valor_sc') {
+    const clean = trimmed
+      .replace(/[R$\s]/g, '')
+      .replace(/\.(?=\d{3})/g, '')
+      .replace(',', '.');
+    const num = parseFloat(clean);
+    if (Number.isNaN(num) || num < 0) {
+      throw new Error('Valor da SC deve ser um número maior ou igual a zero.');
+    }
+    return String(num);
+  }
+
+  if (field === 'sla_dias') {
+    const num = parseInt(trimmed, 10);
+    if (Number.isNaN(num) || num < 0) {
+      throw new Error('SLA deve ser um número inteiro de dias maior ou igual a zero.');
+    }
+    return String(num);
+  }
+
+  return trimmed;
+}
+
 export async function saveScField(id, field, value) {
   try {
     const response = await apiFetch('/app/api/index.php?route=sc', {
@@ -415,6 +445,10 @@ export function startScEdit(card, field) {
   const current = target.dataset.scValue || '';
   const isDate = field === 'data' || field === 'data_status';
   const isLong = field === 'observacao';
+  const pencilBtn = target.parentElement ? target.parentElement.querySelector(`[data-sc-edit="${field}"]`) : null;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'sc-inline-wrap relative flex items-center gap-1.5 w-full my-1';
 
   const editor = document.createElement(isLong ? 'textarea' : 'input');
   if (!isLong) {
@@ -422,14 +456,29 @@ export function startScEdit(card, field) {
   }
   editor.value = current;
   editor.className =
-    'w-full mt-1 px-2 py-1 text-sm border border-sky-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 text-slate-900';
+    'flex-1 min-w-[120px] px-2 py-1 text-sm bg-white dark:bg-[#1a1f2e] border border-sky-400 dark:border-sky-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 text-slate-900 dark:text-slate-100';
   if (isLong) {
     editor.rows = 2;
   }
+  wrapper.appendChild(editor);
 
-  target.dataset.scEditing = '1';
-  target.classList.add('hidden');
-  target.insertAdjacentElement('afterend', editor);
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.className =
+    'p-1.5 rounded-lg bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 transition shrink-0 cursor-pointer';
+  saveBtn.title = 'Salvar';
+  saveBtn.setAttribute('aria-label', 'Salvar');
+  saveBtn.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+  wrapper.appendChild(saveBtn);
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className =
+    'p-1.5 rounded-lg bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 transition shrink-0 cursor-pointer';
+  cancelBtn.title = 'Cancelar';
+  cancelBtn.setAttribute('aria-label', 'Cancelar');
+  cancelBtn.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+  wrapper.appendChild(cancelBtn);
 
   let dropdown = null;
   if (field === 'site' || field === 'equipamento') {
@@ -437,16 +486,9 @@ export function startScEdit(card, field) {
     dropdown = document.createElement('div');
     dropdown.id = `sc-inline-dd-${field}-${id}`;
     dropdown.className =
-      'autocomplete-dropdown hidden absolute z-50 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto min-w-[240px]';
+      'autocomplete-dropdown hidden absolute top-full left-0 z-50 mt-1 w-full min-w-[280px] bg-white dark:bg-[#1a1f2e] border border-slate-200 dark:border-[#3b4459] rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800';
 
-    // Fica no card (não dentro do <p truncate>) para não ser cortado.
-    card.appendChild(dropdown);
-
-    const inputRect = editor.getBoundingClientRect();
-    const cardRect = card.getBoundingClientRect();
-    dropdown.style.left = `${Math.max(0, inputRect.left - cardRect.left)}px`;
-    dropdown.style.top = `${inputRect.bottom - cardRect.top + 4}px`;
-    dropdown.style.width = `${Math.max(240, Math.min(360, inputRect.width))}px`;
+    wrapper.appendChild(dropdown);
 
     createAutocomplete({
       inputSelector: `#${editor.id}`,
@@ -454,32 +496,33 @@ export function startScEdit(card, field) {
       dataSource: () => (field === 'site' ? _scSiteOptions : _scEquipmentOptions.map((o) => o.label)),
       onSelect: (item, input) => {
         input.value = typeof item === 'string' ? item : item.label;
-        input.blur();
+        finish();
       },
       onBlur: ({ hide }) => hide(),
     });
   }
 
+  target.dataset.scEditing = '1';
+  target.classList.add('hidden');
+  if (pencilBtn) pencilBtn.classList.add('hidden');
+  target.insertAdjacentElement('afterend', wrapper);
+
   setScEditing(true);
 
-  let cancelled = false;
   let finished = false;
 
   const teardown = () => {
+    if (finished) return;
     finished = true;
     target.dataset.scEditing = '0';
-    editor.remove();
-    if (dropdown) dropdown.remove();
+    wrapper.remove();
     target.classList.remove('hidden');
+    if (pencilBtn) pencilBtn.classList.remove('hidden');
     setScEditing(false);
     _scOpenEdits.delete(cancel);
   };
 
-  // Chamado quando a lista é re-renderizada por outro motivo (polling, save
-  // de outro campo, navegação): descarta a edição em vez de vazar contador.
   const cancel = () => {
-    if (finished) return;
-    cancelled = true;
     teardown();
   };
 
@@ -488,13 +531,21 @@ export function startScEdit(card, field) {
   const finish = async () => {
     if (finished) return;
 
-    const next = editor.value.trim();
+    const rawNext = editor.value;
     teardown();
 
-    if (cancelled || next === current) return;
+    if (rawNext.trim() === current.trim()) return;
+
+    let next;
+    try {
+      next = normalizeScValue(field, rawNext);
+    } catch (err) {
+      showToast(err.message || 'Valor inválido', 'error');
+      return;
+    }
 
     if (field === 'equipamento') {
-      const pick = resolveEquipmentPick(_scEquipmentOptions, next);
+      const pick = resolveEquipmentPick(_scEquipmentOptions, next || '');
       const okId = pick.equipamento_id !== null;
 
       const saved = okId
@@ -506,12 +557,9 @@ export function startScEdit(card, field) {
         return;
       }
 
-      // O service já zera o campo oposto; a segunda chamada só garante o
-      // estado quando o primeiro PATCH não tocou nos dois campos.
       await saveScField(id, okId ? 'equipamento_texto' : 'equipamento_id', null);
     } else {
-      const value = next === '' ? null : next;
-      const ok = await saveScField(id, field, value);
+      const ok = await saveScField(id, field, next);
       if (!ok) {
         await loadSc();
         return;
@@ -521,22 +569,46 @@ export function startScEdit(card, field) {
     await loadSc();
   };
 
+  saveBtn.addEventListener('mousedown', (e) => e.preventDefault());
+  saveBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    finish();
+  });
+
+  cancelBtn.addEventListener('mousedown', (e) => e.preventDefault());
+  cancelBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    cancel();
+  });
+
   editor.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !isLong) {
       e.preventDefault();
-      editor.blur();
+      finish();
     } else if (e.key === 'Escape') {
-      cancelled = true;
-      editor.blur();
+      e.preventDefault();
+      cancel();
     }
   });
 
   editor.addEventListener('blur', () => {
-    setTimeout(finish, 150);
+    setTimeout(() => {
+      if (finished) return;
+      if (wrapper.contains(document.activeElement)) return;
+      finish();
+    }, 200);
   });
 
   editor.focus();
-  if (editor.select) editor.select();
+  if (!isDate && typeof editor.select === 'function') {
+    try {
+      editor.select();
+    } catch {
+      // Ignore browsers that fail on select
+    }
+  }
 }
 
 /*
@@ -558,6 +630,9 @@ export async function loadSc(silent = false) {
     const response = await apiFetch(`/app/api/index.php?route=sc&${params.toString()}`);
     const res = await response.json();
     if (!res.success) throw new Error(res.message || 'Erro ao carregar solicitações');
+
+    // Se o usuário iniciou uma edição durante o trânsito da requisição silenciosa, aborta
+    if (silent && isScEditing()) return;
 
     _scItems = res.data || [];
     _scTotal = res.total || 0;
@@ -671,6 +746,8 @@ function bindListEvents() {
 
     const trigger = e.target.closest('[data-sc-edit]');
     if (!trigger) return;
+    e.preventDefault();
+    e.stopPropagation();
 
     startScEdit(trigger.closest('[data-sc-id]'), trigger.dataset.scEdit);
   });
