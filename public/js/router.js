@@ -13,6 +13,7 @@ import { initPriceForm } from '/public/js/equipment-prices/form.js';
 import { initPriceList } from '/public/js/equipment-prices/list.js';
 import { initPreventiveCycle } from '/public/js/preventive-cycle/list.js?v=19';
 import { initScm } from '/public/js/scm/scm-list.js';
+import { initSc } from '/public/js/sc/list.js';
 import { initPlannedActivity } from '/public/js/planned-activity/list.js';
 import { initPlannedSummary } from '/public/js/planned-activity/summary.js';
 import { initPendingTickets } from '/public/js/pending-tickets/list.js';
@@ -29,7 +30,7 @@ import { initDiarioList } from '/public/js/diario/list.js';
 import { initTeams } from '/public/js/teams/list.js';
 import { initPublicSign } from '/public/js/termo/public-sign.js?v=32';
 
-const VIEW_VERSION = 55;
+const VIEW_VERSION = 56;
 
 export async function loadPage(url) {
   try {
@@ -169,6 +170,13 @@ export async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/scm/scm.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/sc" || hash.startsWith("#/sc?")) {
+    /*
+    |--------------------------------------------------------------------------
+    | SOLICITACAO DE COMPRA
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/sc/list.html?v=" + VIEW_VERSION);
   } else if (hash === "#/planned-activity") {
     /*
     |--------------------------------------------------------------------------
@@ -324,6 +332,8 @@ export async function router() {
       initPreventiveCycle();
     } else if (hash === "#/scm") {
       initScm();
+    } else if (hash === "#/sc" || hash.startsWith("#/sc?")) {
+      initSc();
     } else if (hash === "#/planned-activity") {
       initPlannedActivity();
     } else if (hash === "#/planned-summary") {

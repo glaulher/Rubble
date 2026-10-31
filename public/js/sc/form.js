@@ -19,7 +19,7 @@ async function loadScSiteOptions() {
 function setupScSiteAutocomplete() {
   createAutocomplete({
     inputSelector: '#scSite',
-    dropdownSelector: '#scSiteDropdown',
+    dropdownSelector: '#scSiteFormDropdown',
     dataSource: () => scSiteOptions,
     filterFn: (items, q) => {
       if (!q) return [...items];

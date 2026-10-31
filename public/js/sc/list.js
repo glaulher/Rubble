@@ -500,7 +500,7 @@ export async function loadSc(silent = false) {
       emptyEl.classList.toggle('hidden', _scItems.length > 0);
     }
 
-    const totalEl = document.getElementById('scTotal');
+    const totalEl = document.getElementById('scCounter') || document.getElementById('scTotal');
     const overdueEl = document.getElementById('scOverdue');
     if (totalEl) totalEl.textContent = String(_scItems.length);
     if (overdueEl) {

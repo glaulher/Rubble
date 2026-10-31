@@ -76,7 +76,7 @@ export function initSidebar() {
       // Fecha outros submenus para evitar sobreposição
       document
         .querySelectorAll(
-          '#dashboardSubmenu, #equipSubmenu, #plannedSubmenu, #toolsSubmenu, #adminSubmenu'
+          '#dashboardSubmenu, #comercialSubmenu, #equipSubmenu, #plannedSubmenu, #toolsSubmenu, #adminSubmenu'
         )
         .forEach((sm) => {
           if (sm !== submenu) {
@@ -130,6 +130,7 @@ export function initSidebar() {
   }
 
   setupSubmenu('dashboardMenuContainer', 'dashboardMenuToggle', 'dashboardSubmenu');
+  setupSubmenu('comercialMenuContainer', 'comercialMenuToggle', 'comercialSubmenu');
   setupSubmenu('equipMenuContainer', 'equipMenuToggle', 'equipSubmenu');
   setupSubmenu('plannedMenuContainer', 'plannedMenuToggle', 'plannedSubmenu');
   setupSubmenu('toolsMenuContainer', 'toolsMenuToggle', 'toolsSubmenu');
@@ -248,6 +249,7 @@ export function initSidebar() {
   function closeSubmenusOutside(e) {
     const containers = [
       document.getElementById('dashboardMenuContainer'),
+      document.getElementById('comercialMenuContainer'),
       document.getElementById('equipMenuContainer'),
       document.getElementById('plannedMenuContainer'),
       document.getElementById('toolsMenuContainer'),
@@ -257,12 +259,12 @@ export function initSidebar() {
     if (!clickedInsideAny) {
       document
         .querySelectorAll(
-          '#dashboardSubmenu, #equipSubmenu, #plannedSubmenu, #toolsSubmenu'
+          '#dashboardSubmenu, #comercialSubmenu, #equipSubmenu, #plannedSubmenu, #toolsSubmenu'
         )
         .forEach((sm) => sm.classList.add('hidden'));
       document
         .querySelectorAll(
-          '#dashboardMenuToggle, #equipMenuToggle, #plannedMenuToggle, #toolsMenuToggle'
+          '#dashboardMenuToggle, #comercialMenuToggle, #equipMenuToggle, #plannedMenuToggle, #toolsMenuToggle'
         )
         .forEach((tg) => tg.setAttribute('aria-expanded', 'false'));
     }
