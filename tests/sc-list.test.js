@@ -179,7 +179,7 @@ describe('SC list', () => {
   test('buildScCardHtml tem topo somente leitura com resumo e botao Ver', () => {
     const html = globalThis.buildScCardHtml(item);
 
-    // O topo contem SC, Valor SC, PV, Valor PV, 2 % e status
+    // O topo contem SC, Valor SC, equipamento, PV, Valor PV, 2 % e status
     expect(html).toContain('SC SC-9001');
     expect(html).toContain('PV 260025');
     expect(html).toContain('Markup: +30,0%');
@@ -187,8 +187,9 @@ describe('SC list', () => {
     expect(html).toContain('data-sc-toggle="1"');
     expect(html).toContain('Ver');
 
-    // A parte superior (antes do container de detalhes) nao tem lapis de edicao nem select
+    // A parte superior (antes do container de detalhes) contem equipamento mas nao tem lapis nem select
     const topPart = html.split('class="mt-3 flex gap-3"')[0];
+    expect(topPart).toContain('WM 01 — 10.00 TR - Container 1');
     expect(topPart).not.toContain('data-sc-edit');
     expect(topPart).not.toContain('<select');
 

@@ -278,10 +278,12 @@ export function buildScCardHtml(item) {
   return `
     <article class="card-item bg-white rounded-xl border border-slate-200 p-4" data-sc-id="${item.id}">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <h3 class="font-bold text-slate-900">${scDisplay}</h3>
           <span class="text-slate-400" aria-hidden="true">—</span>
           <span class="font-semibold text-slate-700 text-sm">${scValorDisplay}</span>
+          <span class="text-slate-400" aria-hidden="true">—</span>
+          <span class="text-xs text-slate-500 font-medium">${formatEquipamento(item)}</span>
         </div>
         <div class="ml-auto flex flex-wrap items-center gap-2">
           <span class="bg-violet-100 text-violet-800 px-2 py-0.5 rounded-xl text-xs font-medium">${pvDisplay}</span>
