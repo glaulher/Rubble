@@ -10,7 +10,12 @@ globalThis.escapeHtml = (s) => String(s)
   .replace(/'/g, '&#39;');
 globalThis.formatDate = (s) => String(s || '');
 globalThis.showToast = () => {};
-globalThis.apiFetch = () => Promise.resolve({ json: () => Promise.resolve({ success: true, data: [], total: 0, status_counts: {} }) });
+globalThis.apiFetch = (url, options) => {
+  if (typeof globalThis._apiFetchImpl === 'function') {
+    return globalThis._apiFetchImpl(url, options);
+  }
+  return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [], total: 0, status_counts: {} }) });
+};
 globalThis.PollingManager = { start: () => {}, stop: () => {} };
 globalThis.createAutocomplete = () => {};
 globalThis.initScForm = () => {};
@@ -26,6 +31,12 @@ globalThis.buttonHtml = (type, label, attrs) => {
   const extra = attrs ? Object.entries(attrs).map(([k, v]) => k + '="' + v + '"').join(' ') : '';
   return '<button class="sc-toggle-btn" ' + extra + '>' + label + '</button>';
 };
+globalThis.iconButtonHtml = (type, tooltip, attrs) => {
+  const extra = attrs ? Object.entries(attrs).map(([k, v]) => k + '="' + v + '"').join(' ') : '';
+  return '<button class="sc-delete-btn" ' + extra + '>' + tooltip + '</button>';
+};
+globalThis.getUser = () => ({ role: 'admin' });
+globalThis.confirmDelete = () => Promise.resolve(true);
 
 const SC_STATUSES = [
   { key: 'em_cotacao', label: 'Em cotação' },
@@ -196,6 +207,47 @@ describe('SC list', () => {
     // O container de detalhes comeca oculto por padrao
     expect(html).toContain('id="scDet1"');
     expect(html).toContain('class="sc-details hidden');
+
+    // Tem classe relative para ancorar dropdowns inline
+    expect(html).toContain('class="card-item relative');
+
+    // Botao de delete para admin
+    expect(html).toContain('data-sc-delete="1"');
+
+    // Nao tem mais a linha redundante de steps com todos os status
+    expect(html).not.toContain('✓');
+    expect(html).not.toContain('○');
+  });
+
+  test('buildScCardHtml nao exibe botao de delete para usuario nao admin', () => {
+    globalThis.getUser = () => ({ role: 'coordenador' });
+    const html = globalThis.buildScCardHtml(item);
+    expect(html).not.toContain('data-sc-delete');
+    globalThis.getUser = () => ({ role: 'admin' });
+  });
+
+  test('deleteSc confirma e envia DELETE para a API', async () => {
+    let confirmCalled = false;
+    globalThis.confirmDelete = (title, msg, name) => {
+      confirmCalled = true;
+      return Promise.resolve(true);
+    };
+
+    const fetchCalls = [];
+    globalThis._apiFetchImpl = (url, options) => {
+      fetchCalls.push({ url, options });
+      return Promise.resolve({
+        json: () => Promise.resolve({ success: true, message: 'Excluído', data: [], total: 0 }),
+      });
+    };
+
+    await globalThis.deleteSc(1);
+    globalThis._apiFetchImpl = null;
+
+    expect(confirmCalled).toBe(true);
+    const deleteCall = fetchCalls.find((c) => c.options && c.options.method === 'DELETE');
+    expect(deleteCall).toBeDefined();
+    expect(JSON.parse(deleteCall.options.body)).toEqual({ id: 1 });
   });
 
   test('exportScCsv gera cabecalho e linhas corretas com downloadCSV', async () => {
@@ -209,7 +261,7 @@ describe('SC list', () => {
       builder((row) => capturedRows.push(row));
     };
 
-    globalThis.apiFetch = () =>
+    globalThis._apiFetchImpl = () =>
       Promise.resolve({
         json: () =>
           Promise.resolve({
@@ -220,6 +272,7 @@ describe('SC list', () => {
       });
 
     await globalThis.exportScCsv();
+    globalThis._apiFetchImpl = null;
 
     expect(capturedFilename).toBe('solicitacoes_compra.csv');
     expect(capturedHeader).toContain('ID;Título;Site;Equipamento;Status;Nº SC;Nº PC;Nº PV');

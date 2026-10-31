@@ -1,12 +1,12 @@
 // public/js/sc/list.js
 
 import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
-import { showToast } from '/public/js/core/dom.js';
-import { apiFetch } from '/public/js/core/auth.js';
+import { showToast, confirmDelete } from '/public/js/core/dom.js';
+import { apiFetch, getUser } from '/public/js/core/auth.js';
 import { PollingManager } from '/public/js/core/polling.js';
 import { debounce } from '/public/js/components/infinite-scroll.js';
 import { createAutocomplete } from '/public/js/core/autocomplete.js?v=1';
-import { buttonHtml } from '/public/js/components/button.js';
+import { buttonHtml, iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
 import { SC_STATUSES, scSteps, formatPct, scStatusBadgeClass } from './constants.js?v=1';
 import { initScForm } from './form.js?v=1';
@@ -276,7 +276,7 @@ export function buildScCardHtml(item) {
   const pvValorDisplay = formatMoney(item.pv_valor_total);
 
   return `
-    <article class="card-item bg-white rounded-xl border border-slate-200 p-4" data-sc-id="${item.id}">
+    <article class="card-item relative bg-white rounded-xl border border-slate-200 p-4" data-sc-id="${item.id}">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2 flex-wrap">
           <h3 class="font-bold text-slate-900">${scDisplay}</h3>
@@ -291,6 +291,8 @@ export function buildScCardHtml(item) {
           <span class="px-2 py-0.5 rounded-xl text-xs font-medium ${Number(item.markup_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}">Markup: ${formatPct(item.markup_pct)}</span>
           <span class="px-2 py-0.5 rounded-xl text-xs font-medium ${Number(item.margem_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}">Margem: ${formatPct(item.margem_pct)}</span>
           <span class="text-xs px-2.5 py-0.5 rounded-xl font-semibold ${scStatusBadgeClass(item.status)}">${escapeHtml(statusLabel)}</span>
+          ${(typeof getUser === 'function' && getUser()?.role === 'admin') ? `
+          ${iconButtonHtml('delete', 'Excluir', { 'class': 'sc-delete-btn', 'data-sc-delete': item.id }, 'right')}` : ''}
         </div>
       </div>
 
@@ -337,10 +339,7 @@ export function buildScCardHtml(item) {
           </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-          ${overdueHtml}
-          <div class="flex flex-wrap gap-1.5">${buildStepsHtml(item.status)}</div>
-        </div>
+        ${overdueHtml ? `<div class="flex flex-wrap items-center gap-2">${overdueHtml}</div>` : ''}
 
         <footer class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-600 border-t border-slate-100 pt-3">
           ${fieldCell('data', 'Data', formatDateBr(item.data), item.data || '')}
@@ -455,6 +454,7 @@ export function startScEdit(card, field) {
       dataSource: () => (field === 'site' ? _scSiteOptions : _scEquipmentOptions.map((o) => o.label)),
       onSelect: (item, input) => {
         input.value = typeof item === 'string' ? item : item.label;
+        input.blur();
       },
       onBlur: ({ hide }) => hide(),
     });
@@ -614,12 +614,42 @@ function updateStatusFilterCounts() {
   });
 }
 
+export async function deleteSc(id) {
+  const ok = await confirmDelete('Excluir Solicitação', 'Tem certeza que deseja excluir esta solicitação de compra?', `SC #${id}`);
+  if (!ok) return;
+
+  try {
+    const response = await apiFetch('/app/api/index.php?route=sc', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: Number(id) }),
+    });
+    const res = await response.json();
+    if (res.success) {
+      showToast('Solicitação excluída com sucesso');
+      _scExpandedCards.delete(Number(id));
+      await loadSc();
+    } else {
+      showToast(res.message || 'Erro ao excluir solicitação', 'error');
+    }
+  } catch (error) {
+    showToast(error.message || 'Erro ao excluir solicitação', 'error');
+  }
+}
+
 function bindListEvents() {
   const listEl = document.getElementById('scList');
   if (!listEl || listEl.dataset.delegated === '1') return;
   listEl.dataset.delegated = '1';
 
   listEl.addEventListener('click', (e) => {
+    const deleteBtn = e.target.closest('.sc-delete-btn');
+    if (deleteBtn) {
+      const id = Number(deleteBtn.dataset.scDelete);
+      deleteSc(id);
+      return;
+    }
+
     const toggleBtn = e.target.closest('.sc-toggle-btn');
     if (toggleBtn) {
       const id = Number(toggleBtn.dataset.scToggle);
