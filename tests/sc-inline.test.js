@@ -181,4 +181,12 @@ describe('SC inline editing', () => {
 
     card.remove();
   });
+
+  test('public/js/sc/list.js nao contem classes utilitarias dark: (regra AGENTS.md)', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const code = fs.readFileSync(path.resolve(__dirname, '../public/js/sc/list.js'), 'utf-8');
+    const darkMatches = code.match(/dark:[a-zA-Z0-9_\-\[\]#\/]+/g) || [];
+    expect(darkMatches).toEqual([]);
+  });
 });

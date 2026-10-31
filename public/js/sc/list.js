@@ -249,12 +249,12 @@ function fieldCell(field, label, display, raw, editable = true) {
   const pencil = editable ? pencilHtml(field) : '';
 
   return `
-    <div class="bg-slate-50 dark:bg-[#1a1f2e] p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-col justify-between">
       <div class="flex items-center justify-between gap-1 mb-1">
         <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">${escapeHtml(label)}</span>
         ${pencil}
       </div>
-      <div class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate" data-sc-field="${field}" data-sc-value="${escapeHtml(String(raw ?? ''))}">${display}</div>
+      <div class="text-sm font-semibold text-slate-800 truncate" data-sc-field="${field}" data-sc-value="${escapeHtml(String(raw ?? ''))}">${display}</div>
     </div>`;
 }
 
@@ -278,22 +278,25 @@ export function buildScCardHtml(item) {
   const pvDisplay = item.numero_pv ? `PV ${escapeHtml(item.numero_pv)}` : 'PV —';
   const pvValorDisplay = formatMoney(item.pv_valor_total);
   const equipFormatted = formatEquipamento(item);
+  const equipDisplay = equipFormatted === '—'
+    ? '<span class="text-xs text-slate-400 italic">Sem equipamento</span>'
+    : `<span class="text-xs text-slate-600 font-medium">${equipFormatted}</span>`;
 
   return `
-    <article class="card-item relative bg-white dark:bg-[#121620] rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm" data-sc-id="${item.id}">
+    <article class="card-item relative bg-white rounded-xl border border-slate-200 p-4 shadow-sm" data-sc-id="${item.id}">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2 flex-wrap">
-          <h3 class="font-bold text-slate-900 dark:text-slate-100">${scDisplay}</h3>
-          <span class="text-slate-300 dark:text-slate-700 font-light" aria-hidden="true">—</span>
-          <span class="font-semibold text-slate-700 dark:text-slate-200 text-sm">${scValorDisplay}</span>
-          <span class="text-slate-300 dark:text-slate-700 font-light" aria-hidden="true">—</span>
-          <span class="text-xs text-slate-600 dark:text-slate-300 font-medium">${equipFormatted}</span>
+          <h3 class="font-bold text-slate-900">${scDisplay}</h3>
+          <span class="text-slate-400 font-light" aria-hidden="true">·</span>
+          <span class="font-semibold text-slate-700 text-sm">${scValorDisplay}</span>
+          <span class="text-slate-400 font-light" aria-hidden="true">·</span>
+          ${equipDisplay}
         </div>
         <div class="ml-auto flex flex-wrap items-center gap-2">
-          <span class="bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-300 px-2.5 py-0.5 rounded-xl text-xs font-medium">${pvDisplay}</span>
-          <span class="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 rounded-xl text-xs font-medium">${pvValorDisplay}</span>
-          <span class="px-2.5 py-0.5 rounded-xl text-xs font-medium ${Number(item.markup_pct) < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}">Markup: ${formatPct(item.markup_pct)}</span>
-          <span class="px-2.5 py-0.5 rounded-xl text-xs font-medium ${Number(item.margem_pct) < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}">Margem: ${formatPct(item.margem_pct)}</span>
+          <span class="bg-violet-100 text-violet-800 px-2.5 py-0.5 rounded-xl text-xs font-medium">${pvDisplay}</span>
+          <span class="bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-xl text-xs font-medium">${pvValorDisplay}</span>
+          <span class="px-2.5 py-0.5 rounded-xl text-xs font-medium ${Number(item.markup_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}">Markup: ${formatPct(item.markup_pct)}</span>
+          <span class="px-2.5 py-0.5 rounded-xl text-xs font-medium ${Number(item.margem_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}">Margem: ${formatPct(item.margem_pct)}</span>
           <span class="text-xs px-2.5 py-0.5 rounded-xl font-semibold ${scStatusBadgeClass(item.status)}">${escapeHtml(statusLabel)}</span>
           ${(typeof getUser === 'function' && getUser()?.role === 'admin') ? `
           ${iconButtonHtml('delete', 'Excluir', { 'class': 'sc-delete-btn', 'data-sc-delete': item.id }, 'right')}` : ''}
@@ -304,34 +307,34 @@ export function buildScCardHtml(item) {
         ${buttonHtml('neutral', isExpanded ? 'Ocultar' : 'Ver', { class: 'sc-toggle-btn text-sm', 'data-sc-toggle': item.id, type: 'button' })}
       </div>
 
-      <div class="sc-details ${isExpanded ? '' : 'hidden'} mt-3 border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3" id="scDet${item.id}">
-        <header class="p-3 bg-slate-50 dark:bg-[#1a1f2e] rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-start justify-between gap-3">
+      <div class="sc-details ${isExpanded ? '' : 'hidden'} mt-3 border-t border-slate-100 pt-3 space-y-3" id="scDet${item.id}">
+        <header class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0 flex-1 space-y-2">
             <div>
               <div class="flex items-center gap-1.5 mb-0.5">
                 <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Título da Solicitação</span>
                 ${pencilHtml('titulo_email')}
               </div>
-              <h4 class="text-base font-bold text-slate-900 dark:text-slate-100">
+              <h4 class="text-base font-bold text-slate-900">
                 <span data-sc-field="titulo_email" data-sc-value="${escapeHtml(item.titulo_email || '')}">${escapeHtml(item.titulo_email || '—')}</span>
               </h4>
             </div>
             <div class="flex flex-wrap items-center gap-2 pt-0.5">
-              <div class="inline-flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
+              <div class="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-lg border border-slate-200 text-xs">
                 <span class="text-slate-400 font-medium">Site:</span>
-                <span class="font-semibold text-slate-800 dark:text-slate-200" data-sc-field="site" data-sc-value="${escapeHtml(item.site || '')}">${escapeHtml(item.site || '—')}</span>
+                <span class="font-semibold text-slate-800" data-sc-field="site" data-sc-value="${escapeHtml(item.site || '')}">${escapeHtml(item.site || '—')}</span>
                 ${pencilHtml('site')}
               </div>
-              <div class="inline-flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
+              <div class="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-lg border border-slate-200 text-xs">
                 <span class="text-slate-400 font-medium">Equipamento:</span>
-                <span class="font-semibold text-slate-800 dark:text-slate-200" data-sc-field="equipamento" data-sc-value="${escapeHtml(equipmentRaw)}">${equipFormatted}</span>
+                <span class="font-semibold text-slate-800" data-sc-field="equipamento" data-sc-value="${escapeHtml(equipmentRaw)}">${equipFormatted}</span>
                 ${pencilHtml('equipamento')}
               </div>
             </div>
           </div>
           <div class="flex flex-col items-end gap-1 shrink-0">
             <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Status</span>
-            <select class="bg-white dark:bg-slate-800 text-xs font-semibold rounded-lg px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 text-slate-800 dark:text-slate-200 cursor-pointer" data-sc-field="status" data-sc-value="${escapeHtml(item.status || '')}" aria-label="Status da solicitação">
+            <select class="bg-white text-xs font-semibold rounded-lg px-2.5 py-1.5 border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-slate-800 cursor-pointer" data-sc-field="status" data-sc-value="${escapeHtml(item.status || '')}" aria-label="Status da solicitação">
               ${buildStatusOptions(item.status)}
             </select>
           </div>
@@ -344,13 +347,13 @@ export function buildScCardHtml(item) {
           ${fieldCell('sla_dias', 'SLA', slaHtml, item.sla_dias ?? '')}
           ${fieldCell('valor_sc', 'Valor SC', formatMoney(item.valor_sc), item.valor_sc ?? '')}
           ${fieldCell('pv_valor_total', 'Valor PV', formatMoney(item.pv_valor_total), item.pv_valor_total ?? '', false)}
-          <div class="bg-slate-50 dark:bg-[#1a1f2e] p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+          <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-col justify-between">
             <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Markup (sobre SC)</span>
-            <span class="text-sm font-bold ${Number(item.markup_pct) < 0 ? 'text-red-600' : 'text-slate-800 dark:text-slate-100'}">${formatPct(item.markup_pct)}</span>
+            <span class="text-sm font-bold ${Number(item.markup_pct) < 0 ? 'text-red-600' : 'text-slate-800'}">${formatPct(item.markup_pct)}</span>
           </div>
-          <div class="bg-slate-50 dark:bg-[#1a1f2e] p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+          <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-col justify-between">
             <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Margem (sobre PV)</span>
-            <span class="text-sm font-bold ${Number(item.margem_pct) < 0 ? 'text-red-600' : 'text-slate-800 dark:text-slate-100'}">${formatPct(item.margem_pct)}</span>
+            <span class="text-sm font-bold ${Number(item.margem_pct) < 0 ? 'text-red-600' : 'text-slate-800'}">${formatPct(item.margem_pct)}</span>
           </div>
         </div>
 
@@ -359,15 +362,15 @@ export function buildScCardHtml(item) {
         <footer class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
           ${fieldCell('data', 'Data da Solicitação', formatDateBr(item.data), item.data || '')}
           ${fieldCell('data_status', 'Data do Status', formatDateBr(item.data_status), item.data_status || '')}
-          <div class="bg-slate-50 dark:bg-[#1a1f2e] p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between">
+          <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-col justify-between">
             <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Atraso</span>
-            <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              ${overdueDays > 0 ? `<span class="text-red-600 dark:text-red-400 font-bold">${overdueDays} dia(s)</span>` : '—'}
+            <div class="text-sm font-semibold text-slate-800">
+              ${overdueDays > 0 ? `<span class="text-red-600 font-bold">${overdueDays} dia(s)</span>` : '—'}
             </div>
           </div>
         </footer>
 
-        <div class="bg-slate-50 dark:bg-[#1a1f2e] p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
           <div class="flex items-center justify-between mb-1">
             <div class="flex items-center gap-1.5">
               <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -375,7 +378,7 @@ export function buildScCardHtml(item) {
             </div>
             ${pencilHtml('observacao')}
           </div>
-          <div class="text-xs text-slate-700 dark:text-slate-200 leading-relaxed min-h-[22px] break-words" data-sc-field="observacao" data-sc-value="${escapeHtml(item.observacao || '')}">
+          <div class="text-xs text-slate-700 leading-relaxed min-h-[22px] break-words" data-sc-field="observacao" data-sc-value="${escapeHtml(item.observacao || '')}">
             ${item.observacao ? escapeHtml(item.observacao) : '<span class="text-slate-400 italic text-xs">Nenhuma observação informada</span>'}
           </div>
         </div>
@@ -479,7 +482,7 @@ export function startScEdit(card, field) {
   }
   editor.value = current;
   editor.className =
-    'flex-1 min-w-[120px] px-2 py-1 text-sm bg-white dark:bg-[#1a1f2e] border border-sky-400 dark:border-sky-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 text-slate-900 dark:text-slate-100';
+    'flex-1 min-w-[120px] px-2 py-1 text-sm bg-white border border-sky-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 text-slate-900';
   if (isLong) {
     editor.rows = 2;
   }
@@ -509,7 +512,7 @@ export function startScEdit(card, field) {
     dropdown = document.createElement('div');
     dropdown.id = `sc-inline-dd-${field}-${id}`;
     dropdown.className =
-      'autocomplete-dropdown hidden absolute top-full left-0 z-50 mt-1 w-full min-w-[280px] bg-white dark:bg-[#1a1f2e] border border-slate-200 dark:border-[#3b4459] rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800';
+      'autocomplete-dropdown hidden absolute top-full left-0 z-50 mt-1 w-full min-w-[280px] bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100';
 
     wrapper.appendChild(dropdown);
   }
@@ -598,8 +601,6 @@ export function startScEdit(card, field) {
         await loadSc();
         return;
       }
-
-      await saveScField(id, okId ? 'equipamento_texto' : 'equipamento_id', null);
     } else {
       const ok = await saveScField(id, field, next);
       if (!ok) {
