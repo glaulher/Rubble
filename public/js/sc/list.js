@@ -1,11 +1,13 @@
 // public/js/sc/list.js
 
-import { escapeHtml } from '/public/js/core/utils.js';
+import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
 import { showToast } from '/public/js/core/dom.js';
 import { apiFetch } from '/public/js/core/auth.js';
 import { PollingManager } from '/public/js/core/polling.js';
 import { debounce } from '/public/js/components/infinite-scroll.js';
 import { createAutocomplete } from '/public/js/core/autocomplete.js?v=1';
+import { buttonHtml } from '/public/js/components/button.js';
+import { downloadCSV } from '/public/js/utils/csv.js';
 import { SC_STATUSES, scSteps, formatPct, scStatusBadgeClass } from './constants.js?v=1';
 import { initScForm } from './form.js?v=1';
 
@@ -20,6 +22,7 @@ let _scSiteFilter = new Set();
 let _scEditingCount = 0;
 let _scSiteDocListenerBound = false;
 const _scOpenEdits = new Set();
+const _scExpandedCards = new Set();
 
 let _scSiteOptions = [];
 let _scEquipmentOptions = [];
@@ -265,62 +268,91 @@ export function buildScCardHtml(item) {
       ? '—'
       : `${escapeHtml(String(item.sla_dias))} dia(s)`;
   const equipmentRaw = item.equipamento_texto || equipmentLabel(item);
+  const isExpanded = _scExpandedCards.has(Number(item.id));
+
+  const scDisplay = item.numero_sc ? `SC ${escapeHtml(item.numero_sc)}` : 'SC —';
+  const scValorDisplay = formatMoney(item.valor_sc);
+  const pvDisplay = item.numero_pv ? `PV ${escapeHtml(item.numero_pv)}` : 'PV —';
+  const pvValorDisplay = formatMoney(item.pv_valor_total);
 
   return `
-    <article class="relative bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-3" data-sc-id="${item.id}">
-      <header class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <h3 class="font-medium text-slate-900 truncate">
-            <span data-sc-field="titulo_email" data-sc-value="${escapeHtml(item.titulo_email || '')}">${escapeHtml(item.titulo_email || '—')}</span>${pencilHtml('titulo_email')}
-          </h3>
-          <p class="text-xs text-slate-500 mt-0.5 truncate">
-            <span data-sc-field="site" data-sc-value="${escapeHtml(item.site || '')}">${escapeHtml(item.site || '—')}</span>${pencilHtml('site')}
-            <span aria-hidden="true" class="mx-1">·</span>
-            <span data-sc-field="equipamento" data-sc-value="${escapeHtml(equipmentRaw)}">${formatEquipamento(item)}</span>${pencilHtml('equipamento')}
-          </p>
+    <article class="card-item bg-white rounded-xl border border-slate-200 p-4" data-sc-id="${item.id}">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <h3 class="font-bold text-slate-900">${scDisplay}</h3>
+          <span class="text-slate-400" aria-hidden="true">—</span>
+          <span class="font-semibold text-slate-700 text-sm">${scValorDisplay}</span>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <span class="${scStatusBadgeClass(item.status)} px-2 py-0.5 rounded-full text-xs font-semibold">${escapeHtml(statusLabel)}</span>
-          <select class="bg-white text-xs rounded-lg px-2 py-1 border border-slate-300 focus:outline-none focus:border-blue-500" data-sc-field="status" data-sc-value="${escapeHtml(item.status || '')}" aria-label="Status da solicitação">
-            ${buildStatusOptions(item.status)}
-          </select>
-        </div>
-      </header>
-
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-        ${fieldCell('numero_sc', 'SC', escapeHtml(item.numero_sc || '—'), item.numero_sc || '')}
-        ${fieldCell('numero_pc', 'PC', escapeHtml(item.numero_pc || '—'), item.numero_pc || '')}
-        ${fieldCell('numero_pv', 'PV', escapeHtml(item.numero_pv || '—'), item.numero_pv || '')}
-        ${fieldCell('sla_dias', 'SLA', slaHtml, item.sla_dias ?? '')}
-        ${fieldCell('valor_sc', 'Valor SC', formatMoney(item.valor_sc), item.valor_sc ?? '')}
-        ${fieldCell('pv_valor_total', 'Valor PV', formatMoney(item.pv_valor_total), item.pv_valor_total ?? '', false)}
-        <div>
-          <span class="block text-xs text-slate-400">Markup (sobre SC)</span>
-          <span class="font-medium ${Number(item.markup_pct) < 0 ? 'text-red-600' : 'text-slate-800'}">${formatPct(item.markup_pct)}</span>
-        </div>
-        <div>
-          <span class="block text-xs text-slate-400">Margem (sobre PV)</span>
-          <span class="font-medium ${Number(item.margem_pct) < 0 ? 'text-red-600' : 'text-slate-800'}">${formatPct(item.margem_pct)}</span>
+        <div class="ml-auto flex flex-wrap items-center gap-2">
+          <span class="bg-violet-100 text-violet-800 px-2 py-0.5 rounded-xl text-xs font-medium">${pvDisplay}</span>
+          <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-xl text-xs font-medium">${pvValorDisplay}</span>
+          <span class="px-2 py-0.5 rounded-xl text-xs font-medium ${Number(item.markup_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}">Markup: ${formatPct(item.markup_pct)}</span>
+          <span class="px-2 py-0.5 rounded-xl text-xs font-medium ${Number(item.margem_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}">Margem: ${formatPct(item.margem_pct)}</span>
+          <span class="text-xs px-2.5 py-0.5 rounded-xl font-semibold ${scStatusBadgeClass(item.status)}">${escapeHtml(statusLabel)}</span>
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
-        ${overdueHtml}
-        <div class="flex flex-wrap gap-1.5">${buildStepsHtml(item.status)}</div>
+      <div class="mt-3 flex gap-3">
+        ${buttonHtml('neutral', isExpanded ? 'Ocultar' : 'Ver', { class: 'sc-toggle-btn text-sm', 'data-sc-toggle': item.id, type: 'button' })}
       </div>
 
-      <footer class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-600 border-t border-slate-100 pt-3">
-        ${fieldCell('data', 'Data', formatDateBr(item.data), item.data || '')}
-        ${fieldCell('data_status', 'Data do status', formatDateBr(item.data_status), item.data_status || '')}
-        <div>
-          <span class="block text-slate-400">Atraso</span>
-          <span>${overdueDays > 0 ? `${overdueDays} dia(s)` : '—'}</span>
+      <div class="sc-details ${isExpanded ? '' : 'hidden'} mt-3 border-t border-slate-100 pt-3 space-y-3" id="scDet${item.id}">
+        <header class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
+            <h4 class="font-medium text-slate-900 truncate">
+              <span data-sc-field="titulo_email" data-sc-value="${escapeHtml(item.titulo_email || '')}">${escapeHtml(item.titulo_email || '—')}</span>${pencilHtml('titulo_email')}
+            </h4>
+            <p class="text-xs text-slate-500 mt-0.5 truncate">
+              <span class="text-slate-400">Site:</span>
+              <span data-sc-field="site" data-sc-value="${escapeHtml(item.site || '')}">${escapeHtml(item.site || '—')}</span>${pencilHtml('site')}
+              <span aria-hidden="true" class="mx-1">·</span>
+              <span class="text-slate-400">Equipamento:</span>
+              <span data-sc-field="equipamento" data-sc-value="${escapeHtml(equipmentRaw)}">${formatEquipamento(item)}</span>${pencilHtml('equipamento')}
+            </p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="text-xs text-slate-400">Status:</span>
+            <select class="bg-white text-xs rounded-lg px-2 py-1 border border-slate-300 focus:outline-none focus:border-blue-500" data-sc-field="status" data-sc-value="${escapeHtml(item.status || '')}" aria-label="Status da solicitação">
+              ${buildStatusOptions(item.status)}
+            </select>
+          </div>
+        </header>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+          ${fieldCell('numero_sc', 'SC', escapeHtml(item.numero_sc || '—'), item.numero_sc || '')}
+          ${fieldCell('numero_pc', 'PC', escapeHtml(item.numero_pc || '—'), item.numero_pc || '')}
+          ${fieldCell('numero_pv', 'PV', escapeHtml(item.numero_pv || '—'), item.numero_pv || '')}
+          ${fieldCell('sla_dias', 'SLA', slaHtml, item.sla_dias ?? '')}
+          ${fieldCell('valor_sc', 'Valor SC', formatMoney(item.valor_sc), item.valor_sc ?? '')}
+          ${fieldCell('pv_valor_total', 'Valor PV', formatMoney(item.pv_valor_total), item.pv_valor_total ?? '', false)}
+          <div>
+            <span class="block text-xs text-slate-400">Markup (sobre SC)</span>
+            <span class="font-medium ${Number(item.markup_pct) < 0 ? 'text-red-600' : 'text-slate-800'}">${formatPct(item.markup_pct)}</span>
+          </div>
+          <div>
+            <span class="block text-xs text-slate-400">Margem (sobre PV)</span>
+            <span class="font-medium ${Number(item.margem_pct) < 0 ? 'text-red-600' : 'text-slate-800'}">${formatPct(item.margem_pct)}</span>
+          </div>
         </div>
-        <div>
-          <span class="block text-slate-400">Observação</span>
-          <span class="line-clamp-2" data-sc-field="observacao" data-sc-value="${escapeHtml(item.observacao || '')}">${escapeHtml(item.observacao || '—')}</span>${pencilHtml('observacao')}
+
+        <div class="flex flex-wrap items-center gap-2">
+          ${overdueHtml}
+          <div class="flex flex-wrap gap-1.5">${buildStepsHtml(item.status)}</div>
         </div>
-      </footer>
+
+        <footer class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-600 border-t border-slate-100 pt-3">
+          ${fieldCell('data', 'Data', formatDateBr(item.data), item.data || '')}
+          ${fieldCell('data_status', 'Data do status', formatDateBr(item.data_status), item.data_status || '')}
+          <div>
+            <span class="block text-slate-400">Atraso</span>
+            <span>${overdueDays > 0 ? `${overdueDays} dia(s)` : '—'}</span>
+          </div>
+          <div>
+            <span class="block text-slate-400">Observação</span>
+            <span class="line-clamp-2" data-sc-field="observacao" data-sc-value="${escapeHtml(item.observacao || '')}">${escapeHtml(item.observacao || '—')}</span>${pencilHtml('observacao')}
+          </div>
+        </footer>
+      </div>
     </article>
   `;
 }
@@ -586,6 +618,25 @@ function bindListEvents() {
   listEl.dataset.delegated = '1';
 
   listEl.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest('.sc-toggle-btn');
+    if (toggleBtn) {
+      const id = Number(toggleBtn.dataset.scToggle);
+      const details = document.getElementById(`scDet${id}`);
+      if (details) {
+        const wasHidden = details.classList.contains('hidden');
+        if (wasHidden) {
+          details.classList.remove('hidden');
+          _scExpandedCards.add(id);
+          toggleBtn.textContent = 'Ocultar';
+        } else {
+          details.classList.add('hidden');
+          _scExpandedCards.delete(id);
+          toggleBtn.textContent = 'Ver';
+        }
+      }
+      return;
+    }
+
     const trigger = e.target.closest('[data-sc-edit]');
     if (!trigger) return;
 
@@ -611,6 +662,111 @@ function bindListEvents() {
 
 /*
 |--------------------------------------------------------------------------
+| EXPORTAÇÃO CSV
+|--------------------------------------------------------------------------
+*/
+
+export async function exportScCsv() {
+  try {
+    const allItems = [];
+    let offset = 0;
+    const limit = 500;
+
+    while (true) {
+      const params = new URLSearchParams({
+        limit: String(limit),
+        offset: String(offset),
+      });
+      if (_scSearch) params.set('search', _scSearch);
+      if (_scStatusFilter) params.set('status', _scStatusFilter);
+      if (_scSiteFilter.size > 0) params.set('site', Array.from(_scSiteFilter).join(','));
+
+      const response = await apiFetch(`/app/api/index.php?route=sc&${params.toString()}`);
+      const res = await response.json();
+      if (!res.success) {
+        showToast(res.message || 'Erro ao exportar CSV', 'error');
+        return;
+      }
+
+      const chunk = res.data || [];
+      allItems.push(...chunk);
+
+      if (chunk.length === 0 || allItems.length >= (res.total || 0)) {
+        break;
+      }
+      offset += chunk.length;
+    }
+
+    if (allItems.length === 0) {
+      showToast('Nenhuma solicitação encontrada para exportar', 'error');
+      return;
+    }
+
+    const header = [
+      'ID',
+      'Título',
+      'Site',
+      'Equipamento',
+      'Status',
+      'Nº SC',
+      'Nº PC',
+      'Nº PV',
+      'Valor SC',
+      'Valor PV',
+      'Markup (%)',
+      'Margem (%)',
+      'SLA (dias)',
+      'Dias em atraso',
+      'Data',
+      'Data do status',
+      'Observação',
+    ].join(';');
+
+    const formatVal = (v) =>
+      v !== null && v !== undefined && v !== ''
+        ? Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '';
+
+    const formatPctVal = (v) =>
+      v !== null && v !== undefined && !Number.isNaN(Number(v))
+        ? Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%'
+        : '';
+
+    const filename = _scSearch ? `sc_${_scSearch.replace(/\s+/g, '_')}.csv` : 'solicitacoes_compra.csv';
+
+    downloadCSV(filename, header, (addRow) => {
+      allItems.forEach((item) => {
+        addRow([
+          String(item.id || ''),
+          sanitizeCSV(item.titulo_email || ''),
+          sanitizeCSV(item.site || ''),
+          sanitizeCSV(item.equipamento_texto || equipmentLabel(item) || ''),
+          sanitizeCSV(currentStatusLabel(item.status)),
+          sanitizeCSV(item.numero_sc || ''),
+          sanitizeCSV(item.numero_pc || ''),
+          sanitizeCSV(item.numero_pv || ''),
+          formatVal(item.valor_sc),
+          formatVal(item.pv_valor_total),
+          formatPctVal(item.markup_pct),
+          formatPctVal(item.margem_pct),
+          item.sla_dias !== null && item.sla_dias !== undefined ? String(item.sla_dias) : '',
+          item.overdue_days !== null && item.overdue_days !== undefined ? String(item.overdue_days) : '0',
+          formatDateBr(item.data),
+          formatDateBr(item.data_status),
+          sanitizeCSV(item.observacao || ''),
+        ]);
+      });
+    });
+
+    showToast(`Relatório CSV gerado: ${allItems.length} solicitações`, 'success');
+  } catch (err) {
+    console.error('Erro ao exportar CSV de SC:', err);
+    showToast('Erro ao exportar CSV', 'error');
+  }
+}
+
+/*
+|--------------------------------------------------------------------------
 | INIT
 |--------------------------------------------------------------------------
 */
@@ -619,10 +775,12 @@ export async function initSc() {
   const searchInput = document.getElementById('scSearch');
   const statusFilter = document.getElementById('scStatusFilter');
   const clearBtn = document.getElementById('scClearFilters');
+  const csvBtn = document.getElementById('scCsvBtn');
 
   // A view é remontada a cada navegação: estado de edição não sobrevive.
   cancelOpenEdits();
   _scEditingCount = 0;
+  _scExpandedCards.clear();
 
   // Restaura os filtros ativos (o módulo é singleton entre navegações).
   if (searchInput) searchInput.value = _scSearch;
@@ -631,6 +789,11 @@ export async function initSc() {
   await Promise.all([loadScSiteOptions(), loadScEquipmentOptions()]);
   setupScSiteFilterAutocomplete();
   bindListEvents();
+
+  if (csvBtn && !csvBtn.dataset.bound) {
+    csvBtn.dataset.bound = '1';
+    csvBtn.addEventListener('click', exportScCsv);
+  }
 
   globalThis.refreshScList = () => loadSc(false);
 

@@ -128,4 +128,40 @@ describe('SC view integration', () => {
     const message = document.getElementById('toastMessage').textContent;
     expect(message).toContain('título');
   });
+
+  test('clicar em Ver expande os detalhes e altera o texto do botao', async () => {
+    mountView();
+    mockApi();
+
+    const list = await import('../public/js/sc/list.js');
+    await list.initSc();
+
+    const toggleBtn = document.querySelector('[data-sc-toggle="1"]');
+    expect(toggleBtn).not.toBeNull();
+    expect(toggleBtn.textContent).toBe('Ver');
+
+    const details = document.getElementById('scDet1');
+    expect(details.classList.contains('hidden')).toBe(true);
+
+    toggleBtn.click();
+
+    expect(details.classList.contains('hidden')).toBe(false);
+    expect(toggleBtn.textContent).toBe('Ocultar');
+
+    toggleBtn.click();
+
+    expect(details.classList.contains('hidden')).toBe(true);
+    expect(toggleBtn.textContent).toBe('Ver');
+  });
+
+  test('botao de exportar CSV esta presente no DOM', async () => {
+    mountView();
+    mockApi();
+
+    const list = await import('../public/js/sc/list.js');
+    await list.initSc();
+
+    const csvBtn = document.getElementById('scCsvBtn');
+    expect(csvBtn).not.toBeNull();
+  });
 });

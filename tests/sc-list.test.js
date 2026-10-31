@@ -10,11 +10,22 @@ globalThis.escapeHtml = (s) => String(s)
   .replace(/'/g, '&#39;');
 globalThis.formatDate = (s) => String(s || '');
 globalThis.showToast = () => {};
-globalThis.apiFetch = () => Promise.resolve({ success: true, data: [], total: 0, status_counts: {} });
+globalThis.apiFetch = () => Promise.resolve({ json: () => Promise.resolve({ success: true, data: [], total: 0, status_counts: {} }) });
 globalThis.PollingManager = { start: () => {}, stop: () => {} };
 globalThis.createAutocomplete = () => {};
 globalThis.initScForm = () => {};
 globalThis.debounce = (fn) => fn;
+globalThis.sanitizeCSV = (s) => String(s || '').replace(/;/g, ' ');
+globalThis.downloadCSV = (filename, header, callback) => {
+  if (globalThis._lastCsv) {
+    globalThis._lastCsv = { filename, header, rows: [] };
+    callback((row) => globalThis._lastCsv.rows.push(row));
+  }
+};
+globalThis.buttonHtml = (type, label, attrs) => {
+  const extra = attrs ? Object.entries(attrs).map(([k, v]) => k + '="' + v + '"').join(' ') : '';
+  return '<button class="sc-toggle-btn" ' + extra + '>' + label + '</button>';
+};
 
 const SC_STATUSES = [
   { key: 'em_cotacao', label: 'Em cotação' },
@@ -163,5 +174,58 @@ describe('SC list', () => {
   test('resolveEquipmentPick vazio devolve dois null', () => {
     expect(globalThis.resolveEquipmentPick([], '')).toEqual({ equipamento_id: null, equipamento_texto: null });
     expect(globalThis.resolveEquipmentPick([], '   ')).toEqual({ equipamento_id: null, equipamento_texto: null });
+  });
+
+  test('buildScCardHtml tem topo somente leitura com resumo e botao Ver', () => {
+    const html = globalThis.buildScCardHtml(item);
+
+    // O topo contem SC, Valor SC, PV, Valor PV, 2 % e status
+    expect(html).toContain('SC SC-9001');
+    expect(html).toContain('PV 260025');
+    expect(html).toContain('Markup: +30,0%');
+    expect(html).toContain('Margem: +23,1%');
+    expect(html).toContain('data-sc-toggle="1"');
+    expect(html).toContain('Ver');
+
+    // A parte superior (antes do container de detalhes) nao tem lapis de edicao nem select
+    const topPart = html.split('class="mt-3 flex gap-3"')[0];
+    expect(topPart).not.toContain('data-sc-edit');
+    expect(topPart).not.toContain('<select');
+
+    // O container de detalhes comeca oculto por padrao
+    expect(html).toContain('id="scDet1"');
+    expect(html).toContain('class="sc-details hidden');
+  });
+
+  test('exportScCsv gera cabecalho e linhas corretas com downloadCSV', async () => {
+    let capturedFilename = null;
+    let capturedHeader = null;
+    const capturedRows = [];
+
+    globalThis.downloadCSV = (filename, header, builder) => {
+      capturedFilename = filename;
+      capturedHeader = header;
+      builder((row) => capturedRows.push(row));
+    };
+
+    globalThis.apiFetch = () =>
+      Promise.resolve({
+        json: () =>
+          Promise.resolve({
+            success: true,
+            total: 1,
+            data: [item],
+          }),
+      });
+
+    await globalThis.exportScCsv();
+
+    expect(capturedFilename).toBe('solicitacoes_compra.csv');
+    expect(capturedHeader).toContain('ID;Título;Site;Equipamento;Status;Nº SC;Nº PC;Nº PV');
+    expect(capturedRows.length).toBe(1);
+    expect(capturedRows[0][0]).toBe('1');
+    expect(capturedRows[0][1]).toBe('Cotação filtros 20x20');
+    expect(capturedRows[0][5]).toBe('SC-9001');
+    expect(capturedRows[0][7]).toBe('260025');
   });
 });
