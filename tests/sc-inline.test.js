@@ -134,6 +134,33 @@ describe('SC inline editing', () => {
     card.remove();
   });
 
+  test('startScEdit inicializa createAutocomplete quando edita site ou equipamento', () => {
+    let acConfig = null;
+    globalThis.createAutocomplete = (cfg) => { acConfig = cfg; };
+
+    const card = document.createElement('div');
+    card.dataset.scId = '10';
+    card.innerHTML = `
+      <div>
+        <span data-sc-field="site" data-sc-value="BMADTC">BMADTC</span>
+        <button type="button" data-sc-edit="site">Editar</button>
+      </div>
+    `;
+    document.body.appendChild(card);
+
+    globalThis.startScEdit(card, 'site');
+
+    expect(acConfig).not.toBeNull();
+    expect(acConfig.inputSelector).toBe('#sc-inline-site-10');
+    expect(acConfig.dropdownSelector).toBe('#sc-inline-dd-site-10');
+
+    // Elementos existem no document no momento da chamada de createAutocomplete
+    expect(document.querySelector(acConfig.inputSelector)).not.toBeNull();
+    expect(document.querySelector(acConfig.dropdownSelector)).not.toBeNull();
+
+    card.remove();
+  });
+
   test('startScEdit nao quebra com campos de data (sem DOMException em select)', () => {
     const card = document.createElement('div');
     card.dataset.scId = '10';
