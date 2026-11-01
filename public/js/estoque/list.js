@@ -132,7 +132,7 @@ export function buildEstoqueRowHtml(item) {
       <!-- AÇÕES -->
       <td class="px-3 py-2.5 text-center">
         <div class="flex items-center justify-center gap-1.5">
-          ${iconButtonHtml('baixa', 'Dar Baixa / Aplicação', { 'data-action': 'baixa', 'data-id': item.id })}
+          ${iconButtonHtml('baixa', 'Dar Baixa', { 'data-action': 'baixa', 'data-id': item.id }, 'right')}
           ${
             isAdmin
               ? iconButtonHtml(
