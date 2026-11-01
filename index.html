@@ -173,8 +173,11 @@
         >
           <a
             href="#"
-            class="sidebar-link flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white font-medium transition whitespace-nowrap relative"
+            class="sidebar-link flex items-center gap-3 px-3 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white font-medium transition whitespace-nowrap relative cursor-pointer"
             id="comercialMenuToggle"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
           >
             <svg
               class="w-5 h-5 shrink-0"
@@ -193,11 +196,6 @@
             <span
               class="sidebar-label transition-opacity duration-300"
               style="display: none; opacity: 0"
-            >
-              Comercial
-            </span>
-            <span
-              class="sidebar-tooltip absolute left-full ml-2 top-1/2 -translate-y-1/2 scale-0 group-hover:scale-100 origin-left transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
             >
               Comercial
             </span>
@@ -822,7 +820,7 @@
     </div>
 
     <!-- SCRIPTS -->
-    <script src="/public/js/components/sidebar.js?v=11" type="module"></script>
+    <script src="/public/js/components/sidebar.js?v=12" type="module"></script>
     <script src="/public/js/lib/chart.umd.min.js?v=1" defer></script>
     <script src="/public/js/lib/html2canvas.min.js?v=1" defer></script>
     <script src="/public/js/lib/jspdf.umd.min.js?v=1" defer></script>

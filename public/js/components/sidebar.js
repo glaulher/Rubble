@@ -65,6 +65,7 @@ export function initSidebar() {
       } else if (e.type === 'click') {
         if (touchHandled) {
           e.preventDefault();
+          e.stopPropagation();
           return;
         }
       }
@@ -253,18 +254,19 @@ export function initSidebar() {
       document.getElementById('equipMenuContainer'),
       document.getElementById('plannedMenuContainer'),
       document.getElementById('toolsMenuContainer'),
+      document.getElementById('adminMenuContainer'),
     ];
 
     const clickedInsideAny = containers.some((c) => c && c.contains(e.target));
     if (!clickedInsideAny) {
       document
         .querySelectorAll(
-          '#dashboardSubmenu, #comercialSubmenu, #equipSubmenu, #plannedSubmenu, #toolsSubmenu'
+          '#dashboardSubmenu, #comercialSubmenu, #equipSubmenu, #plannedSubmenu, #toolsSubmenu, #adminSubmenu'
         )
         .forEach((sm) => sm.classList.add('hidden'));
       document
         .querySelectorAll(
-          '#dashboardMenuToggle, #comercialMenuToggle, #equipMenuToggle, #plannedMenuToggle, #toolsMenuToggle'
+          '#dashboardMenuToggle, #comercialMenuToggle, #equipMenuToggle, #plannedMenuToggle, #toolsMenuToggle, #adminMenuToggle'
         )
         .forEach((tg) => tg.setAttribute('aria-expanded', 'false'));
     }
