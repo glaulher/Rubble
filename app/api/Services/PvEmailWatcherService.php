@@ -169,7 +169,9 @@ class PvEmailWatcherService
 
             $isApproved = $this->isApprovalMessage($bodyText);
 
-            error_log("PvEmailWatcher DEBUG: uid=$uid pvs=" . implode(',', $pvNumbers) . " subject='" . substr($subject, 0, 120) . "' bodyLen=" . strlen($bodyText) . " approved=" . ($isApproved ? 'YES' : 'NO'));
+            if (Env::get('APP_DEBUG') === 'true') {
+                error_log("PvEmailWatcher: uid=$uid pvs=" . implode(',', $pvNumbers) . " subject='" . substr($subject, 0, 120) . "' bodyLen=" . strlen($bodyText) . " approved=" . ($isApproved ? 'YES' : 'NO'));
+            }
 
             if ($isApproved) {
                 foreach ($pvNumbers as $pvNumber) {
