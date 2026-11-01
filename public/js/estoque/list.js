@@ -17,6 +17,7 @@ let _estoqueSearch = '';
 let _estoqueStatusFilter = '';
 let _estoquePvFilter = '';
 let _currentDeleteId = null;
+let _currentSelectedItem = null;
 
 let _siteOptions = [];
 let _equipmentCatalog = [];
@@ -85,7 +86,7 @@ export function buildEstoqueRowHtml(item) {
   const pvItemExibicao = item.pv_item_descricao ? item.pv_item_descricao : '—';
 
   return `
-    <tr class="hover:bg-slate-50/80 transition-colors" data-id="${item.id}">
+    <tr class="border-b border-slate-100 hover:bg-slate-100 transition cursor-pointer" data-id="${item.id}" title="Clique para Dar Baixa neste material">
       <!-- ENTRADA -->
       <td class="px-3 py-2.5">
         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusInfo.badge}">
@@ -128,19 +129,19 @@ export function buildEstoqueRowHtml(item) {
       </td>
 
       <!-- AÇÕES -->
-      <td class="px-3 py-2.5 text-center">
+      <td class="px-3 py-2.5 text-center" onclick="event.stopPropagation()">
         <div class="flex items-center justify-center gap-1.5">
           <button
             type="button"
-            data-action="edit"
+            data-action="baixa"
             data-id="${item.id}"
             class="p-1.5 rounded-lg text-blue-600 hover:bg-blue-100 transition-colors"
-            title="Editar item"
-            aria-label="Editar item"
+            title="Dar Baixa / Aplicação"
+            aria-label="Dar Baixa / Aplicação"
           >
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
             </svg>
           </button>
 
@@ -394,7 +395,7 @@ async function loadCatalogs() {
 }
 
 async function handlePvLookup(numeroPv) {
-  const pvItemSelect = document.getElementById('formPvItemId');
+  const pvItemSelect = document.getElementById('baixaPvItemId');
   if (!pvItemSelect) return;
 
   const digits = String(numeroPv || '').replace(/\D/g, '');
@@ -429,90 +430,155 @@ async function handlePvLookup(numeroPv) {
   }
 }
 
-function openModal(item = null) {
-  const modal = document.getElementById('estoqueModal');
-  const title = document.getElementById('estoqueModalTitle');
-  const form = document.getElementById('estoqueForm');
+function updateBaixaCalculations() {
+  if (!_currentSelectedItem) return;
 
+  const qtdVal = parseFloat(document.getElementById('baixaQuantidade')?.value || _currentSelectedItem.quantidade || '1');
+  const precoCompra = parseFloat(_currentSelectedItem.preco_compra || '0');
+  const precoVendaRaw = document.getElementById('baixaPrecoVenda')?.value;
+
+  const totalCompra = qtdVal * precoCompra;
+  let totalVenda = null;
+  let lucro = null;
+  let margem = null;
+  let markup = null;
+
+  if (precoVendaRaw !== '' && precoVendaRaw !== null && !isNaN(parseFloat(precoVendaRaw))) {
+    const precoVenda = parseFloat(precoVendaRaw);
+    totalVenda = qtdVal * precoVenda;
+    lucro = totalVenda - totalCompra;
+    if (precoVenda > 0) {
+      margem = ((precoVenda - precoCompra) / precoVenda) * 100;
+    }
+    if (precoCompra > 0) {
+      markup = ((precoVenda - precoCompra) / precoCompra) * 100;
+    }
+  }
+
+  const elTotalCompra = document.getElementById('baixaCalcTotalCompra');
+  const elTotalVenda = document.getElementById('baixaCalcTotalVenda');
+  const elLucro = document.getElementById('baixaCalcLucro');
+  const elMargem = document.getElementById('baixaCalcMargem');
+  const elMarkup = document.getElementById('baixaCalcMarkup');
+
+  if (elTotalCompra) elTotalCompra.textContent = formatMoney(totalCompra);
+  if (elTotalVenda) elTotalVenda.textContent = totalVenda !== null ? formatMoney(totalVenda) : '—';
+  if (elLucro) {
+    elLucro.textContent = lucro !== null ? formatMoney(lucro) : '—';
+    elLucro.className = `font-mono font-bold ${lucro > 0 ? 'text-emerald-600' : (lucro < 0 ? 'text-red-600' : 'text-slate-800')}`;
+  }
+  if (elMargem) elMargem.textContent = formatPctEstoque(margem);
+  if (elMarkup) elMarkup.textContent = formatPctEstoque(markup);
+}
+
+// ----------------------------------------------------
+// MODAL 1: ENTRADA DE MATERIAL
+// ----------------------------------------------------
+function openEntradaModal() {
+  const modal = document.getElementById('estoqueEntradaModal');
+  const form = document.getElementById('estoqueEntradaForm');
   if (!modal || !form) return;
 
   form.reset();
 
-  const idInput = document.getElementById('estoqueFormId');
-  const matInput = document.getElementById('formMaterialDescricao');
-  const statusSelect = document.getElementById('formStatus');
-  const qtdInput = document.getElementById('formQuantidade');
-  const unInput = document.getElementById('formUnidade');
-  const compraInput = document.getElementById('formPrecoCompra');
-  const dataEntradaInput = document.getElementById('formDataEntrada');
-  const fornecedorInput = document.getElementById('formFornecedorNf');
+  const idInput = document.getElementById('entradaFormId');
+  const qtdInput = document.getElementById('entradaQuantidade');
+  const unInput = document.getElementById('entradaUnidade');
+  const compraInput = document.getElementById('entradaPrecoCompra');
+  const dataEntradaInput = document.getElementById('entradaDataEntrada');
+  const siteInput = document.getElementById('entradaSite');
 
-  const dataSaidaInput = document.getElementById('formDataSaida');
-  const tecnicoInput = document.getElementById('formTecnicoNome');
-  const osInput = document.getElementById('formNumeroOs');
-  const siteInput = document.getElementById('formSite');
-  const eqInput = document.getElementById('formEquipamento');
-  const eqIdInput = document.getElementById('formEquipamentoId');
-
-  const pvInput = document.getElementById('formNumeroPv');
-  const pvItemSelect = document.getElementById('formPvItemId');
-  const vendaInput = document.getElementById('formPrecoVenda');
-  const obsInput = document.getElementById('formObservacoes');
-
-  if (item) {
-    if (title) title.textContent = 'Editar Material no Estoque';
-    if (idInput) idInput.value = item.id;
-    if (matInput) matInput.value = item.material_descricao || '';
-    if (statusSelect) statusSelect.value = item.status || 'em_estoque';
-    if (qtdInput) qtdInput.value = item.quantidade;
-    if (unInput) unInput.value = item.unidade || 'UN';
-    if (compraInput) compraInput.value = item.preco_compra ?? 0.00;
-    if (dataEntradaInput) dataEntradaInput.value = item.data_entrada || '';
-    if (fornecedorInput) fornecedorInput.value = item.fornecedor_nf || '';
-
-    if (dataSaidaInput) dataSaidaInput.value = item.data_saida || '';
-    if (tecnicoInput) tecnicoInput.value = item.tecnico_nome || '';
-    if (osInput) osInput.value = item.numero_os || '';
-    if (siteInput) siteInput.value = item.site || '';
-
-    if (item.equipamento_id) {
-      if (eqIdInput) eqIdInput.value = item.equipamento_id;
-      const found = _equipmentCatalog.find((e) => e.id === item.equipamento_id);
-      if (eqInput) eqInput.value = found ? found.label : (item.equipamento || '');
-    } else {
-      if (eqIdInput) eqIdInput.value = '';
-      if (eqInput) eqInput.value = item.equipamento_texto || '';
-    }
-
-    if (pvInput) pvInput.value = item.numero_pv || '';
-    if (vendaInput) vendaInput.value = item.preco_venda ?? '';
-    if (obsInput) obsInput.value = item.observacoes || '';
-
-    if (item.numero_pv) {
-      handlePvLookup(item.numero_pv).then(() => {
-        if (pvItemSelect && item.pv_item_id) {
-          pvItemSelect.value = String(item.pv_item_id);
-        }
-      });
-    }
-  } else {
-    if (title) title.textContent = 'Nova Entrada de Material';
-    if (idInput) idInput.value = '';
-    if (statusSelect) statusSelect.value = 'em_estoque';
-    if (qtdInput) qtdInput.value = '1.00';
-    if (unInput) unInput.value = 'UN';
-    if (compraInput) compraInput.value = '0.00';
-    if (dataEntradaInput) dataEntradaInput.value = new Date().toISOString().slice(0, 10);
-    if (eqIdInput) eqIdInput.value = '';
-    if (pvItemSelect) pvItemSelect.innerHTML = '<option value="">Nenhum item selecionado</option>';
-  }
+  if (idInput) idInput.value = '';
+  if (qtdInput) qtdInput.value = '1.00';
+  if (unInput) unInput.value = 'UN';
+  if (compraInput) compraInput.value = '0.00';
+  if (dataEntradaInput) dataEntradaInput.value = new Date().toISOString().slice(0, 10);
+  if (siteInput) siteInput.value = 'Estoque Central';
 
   modal.classList.remove('hidden');
 }
 
-function closeModal() {
-  const modal = document.getElementById('estoqueModal');
+function closeEntradaModal() {
+  const modal = document.getElementById('estoqueEntradaModal');
   if (modal) modal.classList.add('hidden');
+}
+
+// ----------------------------------------------------
+// MODAL 2: DAR BAIXA / APLICAÇÃO (CLICANDO NA LINHA)
+// ----------------------------------------------------
+function openBaixaModal(item) {
+  _currentSelectedItem = item;
+  const modal = document.getElementById('estoqueBaixaModal');
+  const form = document.getElementById('estoqueBaixaForm');
+  if (!modal || !form || !item) return;
+
+  form.reset();
+
+  // Cabeçalho / Resumo do item
+  const tituloEl = document.getElementById('baixaMaterialTitulo');
+  const infoQtd = document.getElementById('baixaInfoQtd');
+  const infoPrecoCompra = document.getElementById('baixaInfoPrecoCompra');
+  const infoTotalCompra = document.getElementById('baixaInfoTotalCompra');
+
+  if (tituloEl) tituloEl.textContent = item.material_descricao;
+  if (infoQtd) infoQtd.textContent = `${Number(item.quantidade).toFixed(2)} ${item.unidade || 'UN'}`;
+  if (infoPrecoCompra) infoPrecoCompra.textContent = formatMoney(item.preco_compra);
+  if (infoTotalCompra) infoTotalCompra.textContent = formatMoney(item.total_compra);
+
+  // Preenchimento dos campos da baixa
+  const idInput = document.getElementById('baixaFormId');
+  const dataSaidaInput = document.getElementById('baixaDataSaida');
+  const tecnicoInput = document.getElementById('baixaTecnicoNome');
+  const osInput = document.getElementById('baixaNumeroOs');
+  const siteInput = document.getElementById('baixaSite');
+  const eqInput = document.getElementById('baixaEquipamento');
+  const eqIdInput = document.getElementById('baixaEquipamentoId');
+  const pvInput = document.getElementById('baixaNumeroPv');
+  const pvItemSelect = document.getElementById('baixaPvItemId');
+  const vendaInput = document.getElementById('baixaPrecoVenda');
+  const statusSelect = document.getElementById('baixaStatus');
+  const qtdInput = document.getElementById('baixaQuantidade');
+  const obsInput = document.getElementById('baixaObservacoes');
+
+  if (idInput) idInput.value = item.id;
+  if (dataSaidaInput) dataSaidaInput.value = item.data_saida || new Date().toISOString().slice(0, 10);
+  if (tecnicoInput) tecnicoInput.value = item.tecnico_nome || '';
+  if (osInput) osInput.value = item.numero_os || '';
+  if (siteInput) siteInput.value = (item.site && item.site !== 'Estoque Central') ? item.site : '';
+
+  if (item.equipamento_id) {
+    if (eqIdInput) eqIdInput.value = item.equipamento_id;
+    const found = _equipmentCatalog.find((e) => e.id === item.equipamento_id);
+    if (eqInput) eqInput.value = found ? found.label : (item.equipamento || '');
+  } else {
+    if (eqIdInput) eqIdInput.value = '';
+    if (eqInput) eqInput.value = item.equipamento_texto || '';
+  }
+
+  if (pvInput) pvInput.value = item.numero_pv || '';
+  if (vendaInput) vendaInput.value = item.preco_venda !== null && item.preco_venda !== undefined ? item.preco_venda : '';
+  if (statusSelect) statusSelect.value = item.status === 'em_estoque' ? 'aplicado' : item.status;
+  if (qtdInput) qtdInput.value = item.quantidade;
+  if (obsInput) obsInput.value = item.observacoes || '';
+
+  if (item.numero_pv) {
+    handlePvLookup(item.numero_pv).then(() => {
+      if (pvItemSelect && item.pv_item_id) {
+        pvItemSelect.value = String(item.pv_item_id);
+      }
+    });
+  } else if (pvItemSelect) {
+    pvItemSelect.innerHTML = '<option value="">Nenhum item selecionado</option>';
+  }
+
+  updateBaixaCalculations();
+  modal.classList.remove('hidden');
+}
+
+function closeBaixaModal() {
+  const modal = document.getElementById('estoqueBaixaModal');
+  if (modal) modal.classList.add('hidden');
+  _currentSelectedItem = null;
 }
 
 export function initEstoqueList() {
@@ -595,99 +661,213 @@ export function initEstoqueList() {
     });
   }
 
-  // New Button
+  // New Button -> Opens Modal 1 (Entrada)
   const newBtn = document.getElementById('estoqueNewBtn');
   if (newBtn) {
-    newBtn.addEventListener('click', () => openModal(null));
+    newBtn.addEventListener('click', openEntradaModal);
   }
 
-  // Modal close buttons
-  const modalCloseBtn = document.getElementById('estoqueModalCloseBtn');
-  if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
+  // Entrada Modal close handlers
+  const entradaCloseBtn = document.getElementById('estoqueEntradaModalCloseBtn');
+  if (entradaCloseBtn) entradaCloseBtn.addEventListener('click', closeEntradaModal);
 
-  const modalCancelBtn = document.getElementById('estoqueModalCancelBtn');
-  if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeModal);
+  const entradaCancelBtn = document.getElementById('estoqueEntradaCancelBtn');
+  if (entradaCancelBtn) entradaCancelBtn.addEventListener('click', closeEntradaModal);
 
-  // PV Input reactive change in modal
-  const pvInput = document.getElementById('formNumeroPv');
-  if (pvInput) {
-    pvInput.addEventListener('blur', (e) => {
+  // Baixa Modal close handlers
+  const baixaCloseBtn = document.getElementById('estoqueBaixaModalCloseBtn');
+  if (baixaCloseBtn) baixaCloseBtn.addEventListener('click', closeBaixaModal);
+
+  const baixaCancelBtn = document.getElementById('estoqueBaixaCancelBtn');
+  if (baixaCancelBtn) baixaCancelBtn.addEventListener('click', closeBaixaModal);
+
+  // ----------------------------------------------------
+  // CONFIGURAÇÃO DOS AUTOCOMPLETES (SITE & EQUIPAMENTO)
+  // Aceitam seleção do dropdown OU digitação livre!
+  // ----------------------------------------------------
+
+  // Autocomplete Site na Entrada
+  if (typeof createAutocomplete === 'function') {
+    createAutocomplete({
+      inputSelector: '#entradaSite',
+      dropdownSelector: '#entradaSiteDropdown',
+      dataSource: () => _siteOptions,
+      filterFn: (items, q) => {
+        if (!q) return [...items];
+        const lower = q.toLowerCase();
+        return items.filter((item) => item.toLowerCase().includes(lower));
+      },
+      formatItem: (item) => item,
+      onSelect: (selected, input) => {
+        input.value = selected;
+      },
+      onBlur: ({ hide }) => {
+        hide();
+      },
+    });
+
+    // Autocomplete Site na Baixa (aceita texto livre)
+    createAutocomplete({
+      inputSelector: '#baixaSite',
+      dropdownSelector: '#baixaSiteDropdown',
+      dataSource: () => _siteOptions,
+      filterFn: (items, q) => {
+        if (!q) return [...items];
+        const lower = q.toLowerCase();
+        return items.filter((item) => item.toLowerCase().includes(lower));
+      },
+      formatItem: (item) => item,
+      onSelect: (selected, input) => {
+        input.value = selected;
+      },
+      onBlur: ({ hide }) => {
+        hide();
+      },
+    });
+
+    // Autocomplete Equipamento na Baixa (aceita catálogo ou texto livre)
+    createAutocomplete({
+      inputSelector: '#baixaEquipamento',
+      dropdownSelector: '#baixaEquipamentoDropdown',
+      dataSource: () => {
+        const currentSite = (document.getElementById('baixaSite')?.value || '').trim().toUpperCase();
+        if (currentSite) {
+          const filtered = _equipmentCatalog.filter((e) => (e.site || '').toUpperCase() === currentSite);
+          if (filtered.length > 0) return filtered.map((e) => e.label);
+        }
+        return _equipmentCatalog.map((e) => e.label);
+      },
+      filterFn: (items, q) => {
+        if (!q) return [...items];
+        const lower = q.toLowerCase();
+        return items.filter((item) => item.toLowerCase().includes(lower));
+      },
+      formatItem: (item) => item,
+      onSelect: (selected, input) => {
+        input.value = selected;
+        const res = resolveEquipmentPick(_equipmentCatalog, selected);
+        const eqIdInput = document.getElementById('baixaEquipamentoId');
+        if (eqIdInput) eqIdInput.value = res.equipamento_id || '';
+      },
+      onBlur: ({ hide }) => {
+        hide();
+      },
+    });
+  }
+
+  // Se o usuário editar/digitar livremente no campo de equipamento, limpa o ID do catálogo
+  const baixaEqInput = document.getElementById('baixaEquipamento');
+  if (baixaEqInput) {
+    baixaEqInput.addEventListener('input', () => {
+      const eqIdInput = document.getElementById('baixaEquipamentoId');
+      if (eqIdInput) eqIdInput.value = '';
+    });
+  }
+
+  // PV Input reactive change no modal de baixa
+  const baixaPvInput = document.getElementById('baixaNumeroPv');
+  if (baixaPvInput) {
+    baixaPvInput.addEventListener('blur', (e) => {
       handlePvLookup(e.target.value);
     });
   }
 
-  // PV Item selection auto-fills price and description
-  const pvItemSelect = document.getElementById('formPvItemId');
-  if (pvItemSelect) {
-    pvItemSelect.addEventListener('change', (e) => {
+  // Ao selecionar item da proposta da PV, auto-preenche o preço de venda da LPU
+  const baixaPvItemSelect = document.getElementById('baixaPvItemId');
+  if (baixaPvItemSelect) {
+    baixaPvItemSelect.addEventListener('change', (e) => {
       const selectedOption = e.target.options[e.target.selectedIndex];
       if (!selectedOption || !selectedOption.value) return;
 
       const valor = selectedOption.getAttribute('data-valor');
-      const desc = selectedOption.getAttribute('data-desc');
-
-      const precoVendaInput = document.getElementById('formPrecoVenda');
+      const precoVendaInput = document.getElementById('baixaPrecoVenda');
       if (precoVendaInput && valor !== null && valor !== undefined) {
         precoVendaInput.value = parseFloat(valor).toFixed(2);
-      }
-
-      const matInput = document.getElementById('formMaterialDescricao');
-      if (matInput && !matInput.value.trim() && desc) {
-        matInput.value = desc;
+        updateBaixaCalculations();
       }
     });
   }
 
-  // Autocomplete Site & Equipment in modal
-  const siteInput = document.getElementById('formSite');
-  const siteSug = document.getElementById('formSiteSuggestions');
-  if (siteInput && siteSug && typeof createAutocomplete === 'function') {
-    createAutocomplete(siteInput, siteSug, () => _siteOptions);
+  // Recalcula rentabilidade em tempo real ao alterar preço de venda ou quantidade na baixa
+  const baixaPrecoVendaInput = document.getElementById('baixaPrecoVenda');
+  if (baixaPrecoVendaInput) {
+    baixaPrecoVendaInput.addEventListener('input', updateBaixaCalculations);
+  }
+  const baixaQtdInput = document.getElementById('baixaQuantidade');
+  if (baixaQtdInput) {
+    baixaQtdInput.addEventListener('input', updateBaixaCalculations);
   }
 
-  const eqInput = document.getElementById('formEquipamento');
-  const eqIdInput = document.getElementById('formEquipamentoId');
-  const eqSug = document.getElementById('formEquipamentoSuggestions');
-  if (eqInput && eqSug && typeof createAutocomplete === 'function') {
-    createAutocomplete(
-      eqInput,
-      eqSug,
-      () => {
-        const currentSite = siteInput ? siteInput.value.trim().toUpperCase() : '';
-        if (currentSite) {
-          return _equipmentCatalog.filter((e) => (e.site || '').toUpperCase() === currentSite).map((e) => e.label);
-        }
-        return _equipmentCatalog.map((e) => e.label);
-      },
-      (selected) => {
-        const res = resolveEquipmentPick(_equipmentCatalog, selected);
-        if (eqIdInput) eqIdInput.value = res.equipamento_id || '';
-      }
-    );
-  }
-
-  // Modal Form Submit
-  const form = document.getElementById('estoqueForm');
-  if (form) {
-    form.addEventListener('submit', async (e) => {
+  // ----------------------------------------------------
+  // SUBMIT DO FORM 1: ENTRADA DE MATERIAL
+  // ----------------------------------------------------
+  const entradaForm = document.getElementById('estoqueEntradaForm');
+  if (entradaForm) {
+    entradaForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const id = document.getElementById('estoqueFormId')?.value;
-      const mat = document.getElementById('formMaterialDescricao')?.value.trim();
-      const status = document.getElementById('formStatus')?.value;
-      const qtd = parseFloat(document.getElementById('formQuantidade')?.value || '1');
-      const un = document.getElementById('formUnidade')?.value.trim() || 'UN';
-      const precoCompra = parseFloat(document.getElementById('formPrecoCompra')?.value || '0');
-      const dataEntrada = document.getElementById('formDataEntrada')?.value;
-      const fornecedor = document.getElementById('formFornecedorNf')?.value.trim();
+      const mat = document.getElementById('entradaMaterialDescricao')?.value.trim();
+      const status = document.getElementById('entradaStatus')?.value || 'em_estoque';
+      const qtd = parseFloat(document.getElementById('entradaQuantidade')?.value || '1');
+      const un = document.getElementById('entradaUnidade')?.value.trim() || 'UN';
+      const precoCompra = parseFloat(document.getElementById('entradaPrecoCompra')?.value || '0');
+      const dataEntrada = document.getElementById('entradaDataEntrada')?.value;
+      const fornecedor = document.getElementById('entradaFornecedorNf')?.value.trim() || null;
+      const site = document.getElementById('entradaSite')?.value.trim() || 'Estoque Central';
+      const observacoes = document.getElementById('entradaObservacoes')?.value.trim() || null;
 
-      const dataSaida = document.getElementById('formDataSaida')?.value || null;
-      const tecnico = document.getElementById('formTecnicoNome')?.value.trim() || null;
-      const numeroOs = document.getElementById('formNumeroOs')?.value.trim() || null;
-      const site = document.getElementById('formSite')?.value.trim();
+      const payload = {
+        material_descricao: mat,
+        status: status,
+        quantidade: qtd,
+        unidade: un,
+        preco_compra: precoCompra,
+        data_entrada: dataEntrada,
+        fornecedor_nf: fornecedor,
+        site: site,
+        observacoes: observacoes,
+      };
 
-      const eqTextoRaw = document.getElementById('formEquipamento')?.value.trim();
-      const eqIdRaw = document.getElementById('formEquipamentoId')?.value;
+      try {
+        const res = await apiFetch(`/app/api/index.php?route=estoque`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          showToast('Material cadastrado no estoque com sucesso!', 'success');
+          closeEntradaModal();
+          fetchEstoqueData();
+        } else {
+          showToast(json.message || 'Erro ao salvar entrada', 'error');
+        }
+      } catch (err) {
+        console.error('Erro ao salvar entrada:', err);
+        showToast('Falha na comunicação com o servidor', 'error');
+      }
+    });
+  }
+
+  // ----------------------------------------------------
+  // SUBMIT DO FORM 2: DAR BAIXA / APLICAÇÃO
+  // ----------------------------------------------------
+  const baixaForm = document.getElementById('estoqueBaixaForm');
+  if (baixaForm) {
+    baixaForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const id = document.getElementById('baixaFormId')?.value;
+      if (!id) return;
+
+      const dataSaida = document.getElementById('baixaDataSaida')?.value || null;
+      const tecnico = document.getElementById('baixaTecnicoNome')?.value.trim() || null;
+      const numeroOs = document.getElementById('baixaNumeroOs')?.value.trim() || null;
+      const site = document.getElementById('baixaSite')?.value.trim();
+
+      const eqTextoRaw = document.getElementById('baixaEquipamento')?.value.trim();
+      const eqIdRaw = document.getElementById('baixaEquipamentoId')?.value;
 
       let equipamentoId = null;
       let equipamentoTexto = null;
@@ -700,22 +880,18 @@ export function initEstoqueList() {
         equipamentoTexto = pick.equipamento_texto;
       }
 
-      const numeroPv = document.getElementById('formNumeroPv')?.value.trim() || null;
-      const pvItemIdRaw = document.getElementById('formPvItemId')?.value;
+      const numeroPv = document.getElementById('baixaNumeroPv')?.value.trim() || null;
+      const pvItemIdRaw = document.getElementById('baixaPvItemId')?.value;
       const pvItemId = pvItemIdRaw ? parseInt(pvItemIdRaw, 10) : null;
 
-      const precoVendaRaw = document.getElementById('formPrecoVenda')?.value;
+      const precoVendaRaw = document.getElementById('baixaPrecoVenda')?.value;
       const precoVenda = precoVendaRaw !== '' && precoVendaRaw !== null ? parseFloat(precoVendaRaw) : null;
-      const observacoes = document.getElementById('formObservacoes')?.value.trim() || null;
+      const status = document.getElementById('baixaStatus')?.value || 'aplicado';
+      const qtd = parseFloat(document.getElementById('baixaQuantidade')?.value || (_currentSelectedItem?.quantidade ?? '1'));
+      const observacoes = document.getElementById('baixaObservacoes')?.value.trim() || null;
 
       const payload = {
-        material_descricao: mat,
-        status: status || 'em_estoque',
-        quantidade: qtd,
-        unidade: un,
-        preco_compra: precoCompra,
-        data_entrada: dataEntrada,
-        fornecedor_nf: fornecedor || null,
+        id: parseInt(id, 10),
         data_saida: dataSaida,
         tecnico_nome: tecnico,
         numero_os: numeroOs,
@@ -725,53 +901,41 @@ export function initEstoqueList() {
         numero_pv: numeroPv,
         pv_item_id: pvItemId,
         preco_venda: precoVenda,
+        status: status,
+        quantidade: qtd,
         observacoes: observacoes,
       };
 
       try {
-        let res;
-        if (id) {
-          payload.id = parseInt(id, 10);
-          res = await apiFetch(`/app/api/index.php?route=estoque`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-        } else {
-          res = await apiFetch(`/app/api/index.php?route=estoque`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-        }
+        const res = await apiFetch(`/app/api/index.php?route=estoque`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
         const json = await res.json();
         if (json.success) {
-          showToast(id ? 'Material atualizado com sucesso' : 'Material adicionado com sucesso', 'success');
-          closeModal();
+          showToast('Baixa realizada com sucesso!', 'success');
+          closeBaixaModal();
           fetchEstoqueData();
         } else {
-          showToast(json.message || 'Erro ao salvar material', 'error');
+          showToast(json.message || 'Erro ao realizar baixa', 'error');
         }
       } catch (err) {
-        console.error('Erro ao salvar material:', err);
+        console.error('Erro ao realizar baixa:', err);
         showToast('Falha na comunicação com o servidor', 'error');
       }
     });
   }
 
-  // Delegated clicks for Edit and Delete in Table
+  // ----------------------------------------------------
+  // CLIQUE NA LINHA DA TABELA OU BOTÕES DE AÇÃO
+  // Clicando em qualquer lugar da linha abre o Modal de Baixa!
+  // ----------------------------------------------------
   const tbody = document.getElementById('estoqueTableBody');
   if (tbody) {
     tbody.addEventListener('click', (e) => {
-      const editBtn = e.target.closest('[data-action="edit"]');
-      if (editBtn) {
-        const id = parseInt(editBtn.getAttribute('data-id'), 10);
-        const item = _estoqueItems.find((it) => it.id === id);
-        if (item) openModal(item);
-        return;
-      }
-
+      // Se clicou no botão de exclusão
       const deleteBtn = e.target.closest('[data-action="delete"]');
       if (deleteBtn) {
         const id = parseInt(deleteBtn.getAttribute('data-id'), 10);
@@ -782,6 +946,17 @@ export function initEstoqueList() {
         const descEl = document.getElementById('estoqueDeleteDesc');
         if (descEl) descEl.textContent = desc;
         if (deleteModal) deleteModal.classList.remove('hidden');
+        return;
+      }
+
+      // Clicou na linha inteira ou no botão "baixa"
+      const row = e.target.closest('tr[data-id]');
+      if (row) {
+        const id = parseInt(row.getAttribute('data-id'), 10);
+        const item = _estoqueItems.find((it) => it.id === id);
+        if (item) {
+          openBaixaModal(item);
+        }
       }
     });
   }

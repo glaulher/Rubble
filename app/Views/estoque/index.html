@@ -202,6 +202,17 @@
         Limpar
       </button>
     </div>
+
+    <div class="ml-auto text-xs text-slate-400 self-center hidden sm:block">
+      <span class="inline-flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        Dica: clique em qualquer linha para <strong>Dar Baixa</strong> no material.
+      </span>
+    </div>
   </div>
 
   <!-- Tabela / Grade Interativa -->
@@ -273,12 +284,20 @@
     </div>
   </main>
 
-  <!-- Modal Cadastro / Edição -->
-  <div id="estoqueModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-      <div class="bg-slate-900 text-white px-6 py-3 flex items-center justify-between">
-        <h3 id="estoqueModalTitle" class="text-lg font-medium">Entrada de Material</h3>
-        <button type="button" id="estoqueModalCloseBtn" class="text-slate-400 hover:text-white transition-colors">
+  <!-- Modal 1: Entrada de Material no Almoxarifado -->
+  <div id="estoqueEntradaModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="bg-slate-900 text-white px-6 py-3.5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </div>
+          <h3 id="estoqueEntradaModalTitle" class="text-base font-medium">Nova Entrada de Material no Estoque</h3>
+        </div>
+        <button type="button" id="estoqueEntradaModalCloseBtn" class="text-slate-400 hover:text-white transition-colors">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -286,139 +305,222 @@
         </button>
       </div>
 
-      <form id="estoqueForm" class="p-6 space-y-5">
-        <input type="hidden" id="estoqueFormId" />
+      <form id="estoqueEntradaForm" class="p-6 space-y-4">
+        <input type="hidden" id="entradaFormId" />
 
-        <!-- Seção 1: Entrada no Estoque -->
-        <div>
-          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            1. Dados da Entrada no Almoxarifado
-          </h4>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div class="sm:col-span-2">
-              <label for="formMaterialDescricao" class="block text-xs font-medium text-slate-600 mb-1">Descrição do Material *</label>
-              <input type="text" id="formMaterialDescricao" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: Filtro G4 500x500x50, Gás R410A..." />
-            </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label for="entradaMaterialDescricao" class="block text-xs font-medium text-slate-600 mb-1">Descrição do Material *</label>
+            <input type="text" id="entradaMaterialDescricao" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: Filtro G4 500x500x50, Gás R410A..." />
+          </div>
 
-            <div>
-              <label for="formStatus" class="block text-xs font-medium text-slate-600 mb-1">Status Operacional</label>
-              <select id="formStatus" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-                <option value="em_estoque">Em Estoque</option>
-                <option value="aguardando_chegada">Aguardando Chegada</option>
-                <option value="reservado">Reservado PV</option>
-                <option value="aplicado">Aplicado</option>
-                <option value="devolvido">Devolvido / Sobra</option>
-              </select>
-            </div>
+          <div>
+            <label for="entradaStatus" class="block text-xs font-medium text-slate-600 mb-1">Status Operacional</label>
+            <select id="entradaStatus" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+              <option value="em_estoque">Em Estoque</option>
+              <option value="aguardando_chegada">Aguardando Chegada</option>
+            </select>
+          </div>
 
-            <div>
-              <label for="formQuantidade" class="block text-xs font-medium text-slate-600 mb-1">Quantidade *</label>
-              <input type="number" step="0.01" min="0.01" id="formQuantidade" value="1.00" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-            </div>
+          <div>
+            <label for="entradaQuantidade" class="block text-xs font-medium text-slate-600 mb-1">Quantidade *</label>
+            <input type="number" step="0.01" min="0.01" id="entradaQuantidade" value="1.00" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+          </div>
 
-            <div>
-              <label for="formUnidade" class="block text-xs font-medium text-slate-600 mb-1">Unidade</label>
-              <input type="text" id="formUnidade" value="UN" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="UN, M, KG, PC..." />
-            </div>
+          <div>
+            <label for="entradaUnidade" class="block text-xs font-medium text-slate-600 mb-1">Unidade</label>
+            <input type="text" id="entradaUnidade" value="UN" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="UN, M, KG, PC..." />
+          </div>
 
-            <div>
-              <label for="formPrecoCompra" class="block text-xs font-medium text-slate-600 mb-1">Preço Compra Unit. (R$)</label>
-              <input type="number" step="0.01" min="0" id="formPrecoCompra" value="0.00" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-            </div>
+          <div>
+            <label for="entradaPrecoCompra" class="block text-xs font-medium text-slate-600 mb-1">Preço Compra Unit. (R$) *</label>
+            <input type="number" step="0.01" min="0" id="entradaPrecoCompra" value="0.00" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+          </div>
 
-            <div>
-              <label for="formDataEntrada" class="block text-xs font-medium text-slate-600 mb-1">Data de Entrada *</label>
-              <input type="date" id="formDataEntrada" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-            </div>
+          <div>
+            <label for="entradaDataEntrada" class="block text-xs font-medium text-slate-600 mb-1">Data de Entrada *</label>
+            <input type="date" id="entradaDataEntrada" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+          </div>
 
-            <div class="sm:col-span-2">
-              <label for="formFornecedorNf" class="block text-xs font-medium text-slate-600 mb-1">Fornecedor / NF</label>
-              <input type="text" id="formFornecedorNf" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: Frigelar - NF 12345" />
-            </div>
+          <div>
+            <label for="entradaFornecedorNf" class="block text-xs font-medium text-slate-600 mb-1">Fornecedor / NF</label>
+            <input type="text" id="entradaFornecedorNf" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: Frigelar - NF 12345" />
+          </div>
+
+          <!-- Almoxarifado / Local de Entrada -->
+          <div class="relative">
+            <label for="entradaSite" class="block text-xs font-medium text-slate-600 mb-1">Almoxarifado / Local *</label>
+            <input type="text" id="entradaSite" required autocomplete="off" value="Estoque Central" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Estoque Central, ES, RJ..." />
+            <div id="entradaSiteDropdown" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto autocomplete-dropdown"></div>
+          </div>
+
+          <div class="sm:col-span-3">
+            <label for="entradaObservacoes" class="block text-xs font-medium text-slate-600 mb-1">Observações da Entrada</label>
+            <textarea id="entradaObservacoes" rows="2" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Informações do lote, recebimento fiscal, etc."></textarea>
           </div>
         </div>
 
-        <hr class="border-slate-200" />
-
-        <!-- Seção 2: Baixa / Aplicação -->
-        <div>
-          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-blue-400"></span>
-            2. Aplicação / Baixa no Site e Equipamento (Opcional na Entrada)
-          </h4>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label for="formDataSaida" class="block text-xs font-medium text-slate-600 mb-1">Data de Saída</label>
-              <input type="date" id="formDataSaida" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-            </div>
-
-            <div>
-              <label for="formTecnicoNome" class="block text-xs font-medium text-slate-600 mb-1">Técnico Responsável</label>
-              <input type="text" id="formTecnicoNome" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Nome do técnico" />
-            </div>
-
-            <div>
-              <label for="formNumeroOs" class="block text-xs font-medium text-slate-600 mb-1">Número da OS</label>
-              <input type="text" id="formNumeroOs" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: 123456" />
-            </div>
-
-            <!-- Autocomplete Site -->
-            <div class="relative">
-              <label for="formSite" class="block text-xs font-medium text-slate-600 mb-1">Site *</label>
-              <input type="text" id="formSite" required autocomplete="off" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Digite o site..." />
-              <div id="formSiteSuggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"></div>
-            </div>
-
-            <!-- Autocomplete Equipamento -->
-            <div class="relative sm:col-span-2">
-              <label for="formEquipamento" class="block text-xs font-medium text-slate-600 mb-1">Equipamento (Catálogo ou Texto Livre)</label>
-              <input type="text" id="formEquipamento" autocomplete="off" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Selecione do catálogo ou digite avulso..." />
-              <input type="hidden" id="formEquipamentoId" />
-              <div id="formEquipamentoSuggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"></div>
-            </div>
-          </div>
-        </div>
-
-        <hr class="border-slate-200" />
-
-        <!-- Seção 3: Amarração com a PV e Preço de Venda -->
-        <div>
-          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
-            3. Proposta Comercial / PV (Faturamento e Margem)
-          </h4>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label for="formNumeroPv" class="block text-xs font-medium text-slate-600 mb-1">Número da PV</label>
-              <input type="text" id="formNumeroPv" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: 260232" />
-            </div>
-
-            <div>
-              <label for="formPvItemId" class="block text-xs font-medium text-slate-600 mb-1">Item da PV</label>
-              <select id="formPvItemId" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-                <option value="">Nenhum item selecionado</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="formPrecoVenda" class="block text-xs font-medium text-slate-600 mb-1">Preço Venda Unit. (R$)</label>
-              <input type="number" step="0.01" min="0" id="formPrecoVenda" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="0.00" />
-            </div>
-
-            <div class="sm:col-span-3">
-              <label for="formObservacoes" class="block text-xs font-medium text-slate-600 mb-1">Observações Gerais</label>
-              <textarea id="formObservacoes" rows="2" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Anotações internas, motivo da substituição, etc."></textarea>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-end gap-3 pt-3">
-          <button type="button" id="estoqueModalCancelBtn" class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+          <button type="button" id="estoqueEntradaCancelBtn" class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
             Cancelar
           </button>
           <button type="submit" class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-5 py-2 rounded-xl text-sm font-medium transition-colors">
-            Salvar Material
+            Salvar Entrada
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Dar Baixa / Aplicação de Material -->
+  <div id="estoqueBaixaModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="bg-slate-900 text-white px-6 py-3.5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="p-1.5 bg-blue-500/20 text-blue-400 rounded-lg">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-medium">Dar Baixa / Aplicação de Material</h3>
+            <p class="text-xs text-slate-400">Registre o atendimento em campo e vincule à PV para apuração de lucro</p>
+          </div>
+        </div>
+        <button type="button" id="estoqueBaixaModalCloseBtn" class="text-slate-400 hover:text-white transition-colors">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Resumo do Material Selecionado -->
+      <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div>
+          <span class="text-slate-400 uppercase font-semibold text-[10px] tracking-wider block">Material</span>
+          <span id="baixaMaterialTitulo" class="font-bold text-sm text-slate-800"></span>
+        </div>
+        <div class="flex items-center gap-4 text-slate-600">
+          <div>
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Qtd Total</span>
+            <span class="font-mono font-semibold text-slate-800" id="baixaInfoQtd"></span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Custo Compra Unit.</span>
+            <span class="font-mono font-semibold text-slate-800" id="baixaInfoPrecoCompra"></span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Total Investido</span>
+            <span class="font-mono font-semibold text-slate-800" id="baixaInfoTotalCompra"></span>
+          </div>
+        </div>
+      </div>
+
+      <form id="estoqueBaixaForm" class="p-6 space-y-4">
+        <input type="hidden" id="baixaFormId" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label for="baixaDataSaida" class="block text-xs font-medium text-slate-600 mb-1">Data da Saída / Aplicação *</label>
+            <input type="date" id="baixaDataSaida" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+          </div>
+
+          <div>
+            <label for="baixaTecnicoNome" class="block text-xs font-medium text-slate-600 mb-1">Técnico Responsável</label>
+            <input type="text" id="baixaTecnicoNome" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Nome do técnico" />
+          </div>
+
+          <div>
+            <label for="baixaNumeroOs" class="block text-xs font-medium text-slate-600 mb-1">Número da OS</label>
+            <input type="text" id="baixaNumeroOs" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: 123456" />
+          </div>
+
+          <!-- Autocomplete Site com Texto Livre -->
+          <div class="relative">
+            <label for="baixaSite" class="block text-xs font-medium text-slate-600 mb-1">Site de Aplicação *</label>
+            <input type="text" id="baixaSite" required autocomplete="off" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Digite ou selecione o site..." />
+            <div id="baixaSiteDropdown" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto autocomplete-dropdown"></div>
+          </div>
+
+          <!-- Autocomplete Equipamento com Texto Livre -->
+          <div class="relative sm:col-span-2">
+            <label for="baixaEquipamento" class="block text-xs font-medium text-slate-600 mb-1">Equipamento (Catálogo ou Texto Livre)</label>
+            <input type="text" id="baixaEquipamento" autocomplete="off" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Digite ou selecione do catálogo..." />
+            <input type="hidden" id="baixaEquipamentoId" />
+            <div id="baixaEquipamentoDropdown" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto autocomplete-dropdown"></div>
+          </div>
+
+          <!-- PV e Proposta -->
+          <div>
+            <label for="baixaNumeroPv" class="block text-xs font-medium text-slate-600 mb-1">Número da PV (opcional)</label>
+            <input type="text" id="baixaNumeroPv" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: 260232" />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label for="baixaPvItemId" class="block text-xs font-medium text-slate-600 mb-1">Item da Proposta da PV</label>
+            <select id="baixaPvItemId" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+              <option value="">Nenhum item selecionado</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="baixaPrecoVenda" class="block text-xs font-medium text-slate-600 mb-1">Preço Venda Unit. LPU (R$)</label>
+            <input type="number" step="0.01" min="0" id="baixaPrecoVenda" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="0.00" />
+          </div>
+
+          <div>
+            <label for="baixaStatus" class="block text-xs font-medium text-slate-600 mb-1">Status após a Baixa</label>
+            <select id="baixaStatus" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+              <option value="aplicado">Aplicado (Baixado)</option>
+              <option value="reservado">Reservado PV</option>
+              <option value="devolvido">Devolvido / Sobra</option>
+              <option value="em_estoque">Em Estoque</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="baixaQuantidade" class="block text-xs font-medium text-slate-600 mb-1">Qtd Baixada</label>
+            <input type="number" step="0.01" min="0.01" id="baixaQuantidade" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+          </div>
+
+          <div class="sm:col-span-3">
+            <label for="baixaObservacoes" class="block text-xs font-medium text-slate-600 mb-1">Observações da Aplicação</label>
+            <textarea id="baixaObservacoes" rows="2" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Motivo da substituição, dados do equipamento, etc."></textarea>
+          </div>
+        </div>
+
+        <!-- Painel de Rentabilidade Calculado em Tempo Real -->
+        <div class="bg-blue-50/60 rounded-xl p-3.5 border border-blue-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase font-semibold">Total Compra</span>
+            <span class="font-mono font-bold text-slate-800" id="baixaCalcTotalCompra">R$ 0,00</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase font-semibold">Total Venda Previsto</span>
+            <span class="font-mono font-bold text-blue-700" id="baixaCalcTotalVenda">R$ 0,00</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase font-semibold">Lucro Bruto</span>
+            <span class="font-mono font-bold" id="baixaCalcLucro">R$ 0,00</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase font-semibold">% Margem</span>
+            <span class="font-mono font-bold text-emerald-700" id="baixaCalcMargem">—</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase font-semibold">% Markup</span>
+            <span class="font-mono font-bold text-indigo-700" id="baixaCalcMarkup">—</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+          <button type="button" id="estoqueBaixaCancelBtn" class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+            Cancelar
+          </button>
+          <button type="submit" class="bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 px-5 py-2 rounded-xl text-sm font-semibold transition-colors">
+            Confirmar Baixa
           </button>
         </div>
       </form>

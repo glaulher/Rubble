@@ -27,14 +27,33 @@ class EstoqueMaterialServiceTest extends TestCase
         ]);
     }
 
-    public function testValidateRejectsMissingSite(): void
+    public function testSaveDefaultsSiteToEstoqueCentral(): void
+    {
+        $repoMock = $this->createMock(EstoqueMaterialRepository::class);
+        $repoMock->expects($this->once())
+            ->method('save')
+            ->with($this->callback(function (array $data) {
+                return $data['site'] === 'Estoque Central';
+            }))
+            ->willReturn(1);
+
+        $service = new EstoqueMaterialService($repoMock);
+        $id = $service->save([
+            'material_descricao' => 'Filtro G4',
+            'quantidade' => 5,
+            'data_entrada' => '2026-11-01',
+        ]);
+
+        $this->assertSame(1, $id);
+    }
+
+    public function testUpdateRejectsEmptySite(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Site é obrigatório.');
 
-        $this->service->save([
-            'material_descricao' => 'Filtro G4',
-            'data_entrada' => '2026-11-01',
+        $this->service->update(1, [
+            'site' => '   ',
         ]);
     }
 

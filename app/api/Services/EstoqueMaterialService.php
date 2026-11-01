@@ -83,6 +83,9 @@ class EstoqueMaterialService
         $payload['data_entrada'] ??= date('Y-m-d');
         $payload['status'] ??= 'em_estoque';
         $payload['unidade'] ??= 'UN';
+        if (empty(trim((string) ($payload['site'] ?? '')))) {
+            $payload['site'] = 'Estoque Central';
+        }
 
         $this->validate($payload);
 

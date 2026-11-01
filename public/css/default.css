@@ -502,3 +502,9 @@ button:disabled { cursor: not-allowed; }
   color: #94a3b8 !important;
   border-color: #1f2937 !important;
 }
+
+/* Estoque Table Row Hover in Dark Mode (matching PV) */
+.dark #estoqueTable tbody tr:hover,
+.dark #estoqueTable tbody tr.hover\:bg-slate-100:hover {
+  background-color: #1e2536 !important;
+}
