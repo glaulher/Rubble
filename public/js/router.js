@@ -177,6 +177,13 @@ export async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/sc/list.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/estoque" || hash.startsWith("#/estoque?")) {
+    /*
+    |--------------------------------------------------------------------------
+    | ESTOQUE DE MATERIAIS
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/estoque/index.html?v=" + VIEW_VERSION);
   } else if (hash === "#/planned-activity") {
     /*
     |--------------------------------------------------------------------------
@@ -334,6 +341,8 @@ export async function router() {
       initScm();
     } else if (hash === "#/sc" || hash.startsWith("#/sc?")) {
       initSc();
+    } else if (hash === "#/estoque" || hash.startsWith("#/estoque?")) {
+      initEstoqueList();
     } else if (hash === "#/planned-activity") {
       initPlannedActivity();
     } else if (hash === "#/planned-summary") {

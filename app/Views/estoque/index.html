@@ -1,0 +1,453 @@
+<div
+  class="min-h-screen dark-gradient"
+  style="
+    background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);
+  "
+>
+  <!-- Sub-header centralizado -->
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div
+      class="px-6 py-2 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 items-center"
+    >
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Estoque de Materiais</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Comercial &bull; Gestão e Baixa de Peças</p>
+      </div>
+
+      <div class="text-center">
+        <span
+          class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold"
+        >
+          <span id="estoqueCounter">0</span>
+          <span class="ml-1">itens</span>
+          <span class="mx-2">&bull;</span>
+          <span id="estoqueEmEstoqueCounter">0</span>
+          <span class="ml-1">em estoque</span>
+        </span>
+      </div>
+
+      <div class="text-right flex items-center justify-end gap-2">
+        <input
+          type="text"
+          id="estoqueSearch"
+          placeholder="Buscar material, site, PV, OS..."
+          aria-label="Buscar materiais"
+          class="bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-slate-500 w-56"
+        />
+
+        <div class="relative group">
+          <button
+            id="estoqueCsvBtn"
+            class="flex items-center justify-center bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 p-2 rounded-xl transition-colors"
+            title="Baixar CSV"
+            aria-label="Baixar CSV"
+          >
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </button>
+          <span
+            class="absolute top-full right-0 mt-2 scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+          >
+            Baixar CSV
+          </span>
+        </div>
+
+        <div class="relative group">
+          <button
+            id="estoqueNewBtn"
+            class="flex items-center justify-center bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 p-2 rounded-xl transition-colors"
+            data-role="admin coordenador gerente"
+            title="Nova Entrada de Material"
+            aria-label="Nova Entrada de Material"
+          >
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <span
+            class="absolute top-full right-0 mt-2 scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+          >
+            + Nova Entrada
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards de Totais / Indicadores Financeiros -->
+  <div class="px-6 mt-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Card Itens -->
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Itens Registrados</p>
+          <p id="cardTotalItens" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+          <p class="text-xs text-slate-400 mt-0.5"><span id="cardItensEmEstoque">0</span> disponíveis fisicamente</p>
+        </div>
+        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Card Custo Total Compra -->
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Custo Total Compra</p>
+          <p id="cardTotalCompra" class="text-2xl font-bold text-slate-800 mt-1">R$ 0,00</p>
+          <p class="text-xs text-slate-400 mt-0.5">Capital investido</p>
+        </div>
+        <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Card Venda Prevista / Faturada -->
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Venda Prevista / Faturada</p>
+          <p id="cardTotalVenda" class="text-2xl font-bold text-slate-800 mt-1">R$ 0,00</p>
+          <p class="text-xs text-slate-400 mt-0.5">Faturamento LPU das PVs</p>
+        </div>
+        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+            <polyline points="17 6 23 6 23 12"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Card Margem Média -->
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Margem Média</p>
+          <p id="cardMargemMedia" class="text-2xl font-bold text-slate-800 mt-1">—</p>
+          <p class="text-xs text-slate-400 mt-0.5">Lucro: <span id="cardLucroBruto" class="font-medium text-emerald-600">R$ 0,00</span></p>
+        </div>
+        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 20V10"></path>
+            <path d="M12 20V4"></path>
+            <path d="M6 20v-6"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros -->
+  <div
+    id="estoqueFilters"
+    class="px-4 py-3 flex flex-wrap gap-3 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 mt-4"
+  >
+    <div class="flex flex-col shrink-0">
+      <label for="estoqueStatusFilter" class="text-xs text-slate-500 mb-1 font-medium">Status Operacional</label>
+      <select
+        id="estoqueStatusFilter"
+        class="bg-white text-sm rounded-xl px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-48"
+      >
+        <option value="">Todos os status</option>
+        <option value="em_estoque">Em Estoque</option>
+        <option value="aguardando_chegada">Aguardando Chegada</option>
+        <option value="reservado">Reservado PV</option>
+        <option value="aplicado">Aplicado</option>
+        <option value="devolvido">Devolvido / Sobra</option>
+      </select>
+    </div>
+
+    <div class="flex flex-col shrink-0">
+      <label for="estoquePvFilter" class="text-xs text-slate-500 mb-1 font-medium">Vínculo com PV</label>
+      <select
+        id="estoquePvFilter"
+        class="bg-white text-sm rounded-xl px-3 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-36"
+      >
+        <option value="">Todas</option>
+        <option value="com_pv">Com PV</option>
+        <option value="sem_pv">Sem PV</option>
+      </select>
+    </div>
+
+    <div class="flex flex-col shrink-0">
+      <button
+        type="button"
+        id="estoqueClearFilters"
+        class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-4 py-1.5 rounded-xl text-sm font-medium self-end transition-colors"
+      >
+        Limpar
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabela / Grade Interativa -->
+  <main class="px-6 py-4">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs whitespace-nowrap" id="estoqueTable">
+          <thead>
+            <!-- Linha de agrupamento dos cabeçalhos -->
+            <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold tracking-wider text-[11px] uppercase">
+              <th colspan="7" class="px-4 py-2 text-center border-r border-slate-300 bg-slate-200/60">
+                &darr; ENTRADA NO ESTOQUE
+              </th>
+              <th colspan="12" class="px-4 py-2 text-center border-r border-slate-300 bg-blue-100/50 text-blue-900">
+                &darr; BAIXA / APLICAÇÃO &bull; RENTABILIDADE
+              </th>
+              <th rowspan="2" class="px-4 py-3 text-center w-24">Ações</th>
+            </tr>
+            <!-- Linha com nomes de colunas individuais -->
+            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-medium">
+              <!-- Entrada -->
+              <th class="px-3 py-2.5">Status</th>
+              <th class="px-3 py-2.5 min-w-[200px]">Material / Descrição</th>
+              <th class="px-3 py-2.5 text-right">Qtd</th>
+              <th class="px-3 py-2.5">Un</th>
+              <th class="px-3 py-2.5 text-right">Preço Compra</th>
+              <th class="px-3 py-2.5 text-right">Total Compra</th>
+              <th class="px-3 py-2.5 border-r border-slate-300">Data Entrada</th>
+
+              <!-- Baixa / Aplicação -->
+              <th class="px-3 py-2.5">Data Saída</th>
+              <th class="px-3 py-2.5">Técnico</th>
+              <th class="px-3 py-2.5">OS</th>
+              <th class="px-3 py-2.5">Site</th>
+              <th class="px-3 py-2.5">Equipamento</th>
+              <th class="px-3 py-2.5">PV</th>
+              <th class="px-3 py-2.5 min-w-[160px]">Item PV</th>
+              <th class="px-3 py-2.5 text-right">Preço Venda</th>
+              <th class="px-3 py-2.5 text-right">Total Venda</th>
+              <th class="px-3 py-2.5 text-right">Lucro Bruto</th>
+              <th class="px-3 py-2.5 text-right">% Margem</th>
+              <th class="px-3 py-2.5 text-right border-r border-slate-300">% Markup</th>
+            </tr>
+          </thead>
+          <tbody id="estoqueTableBody" class="divide-y divide-slate-100 text-slate-700">
+            <!-- Linhas geradas via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Estado vazio -->
+      <div id="estoqueEmpty" class="hidden py-16 text-center text-slate-400">
+        <svg class="w-12 h-12 mx-auto mb-3 opacity-40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <p class="text-sm font-medium text-slate-500">Nenhum material encontrado no estoque.</p>
+        <p class="text-xs text-slate-400 mt-1">Clique em "+ Nova Entrada" para cadastrar itens.</p>
+      </div>
+
+      <!-- Paginação -->
+      <div id="estoquePagination" class="px-6 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+        <div>
+          Mostrando <span id="estoquePageStart" class="font-semibold text-slate-700">0</span> a <span id="estoquePageEnd" class="font-semibold text-slate-700">0</span> de <span id="estoquePageTotal" class="font-semibold text-slate-700">0</span> itens
+        </div>
+        <div class="flex gap-1" id="estoquePaginationBtns"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Cadastro / Edição -->
+  <div id="estoqueModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="bg-slate-900 text-white px-6 py-3 flex items-center justify-between">
+        <h3 id="estoqueModalTitle" class="text-lg font-medium">Entrada de Material</h3>
+        <button type="button" id="estoqueModalCloseBtn" class="text-slate-400 hover:text-white transition-colors">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="estoqueForm" class="p-6 space-y-5">
+        <input type="hidden" id="estoqueFormId" />
+
+        <!-- Seção 1: Entrada no Estoque -->
+        <div>
+          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            1. Dados da Entrada no Almoxarifado
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-2">
+              <label for="formMaterialDescricao" class="block text-xs font-medium text-slate-600 mb-1">Descrição do Material *</label>
+              <input type="text" id="formMaterialDescricao" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: Filtro G4 500x500x50, Gás R410A..." />
+            </div>
+
+            <div>
+              <label for="formStatus" class="block text-xs font-medium text-slate-600 mb-1">Status Operacional</label>
+              <select id="formStatus" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                <option value="em_estoque">Em Estoque</option>
+                <option value="aguardando_chegada">Aguardando Chegada</option>
+                <option value="reservado">Reservado PV</option>
+                <option value="aplicado">Aplicado</option>
+                <option value="devolvido">Devolvido / Sobra</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="formQuantidade" class="block text-xs font-medium text-slate-600 mb-1">Quantidade *</label>
+              <input type="number" step="0.01" min="0.01" id="formQuantidade" value="1.00" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+            </div>
+
+            <div>
+              <label for="formUnidade" class="block text-xs font-medium text-slate-600 mb-1">Unidade</label>
+              <input type="text" id="formUnidade" value="UN" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="UN, M, KG, PC..." />
+            </div>
+
+            <div>
+              <label for="formPrecoCompra" class="block text-xs font-medium text-slate-600 mb-1">Preço Compra Unit. (R$)</label>
+              <input type="number" step="0.01" min="0" id="formPrecoCompra" value="0.00" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+            </div>
+
+            <div>
+              <label for="formDataEntrada" class="block text-xs font-medium text-slate-600 mb-1">Data de Entrada *</label>
+              <input type="date" id="formDataEntrada" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+            </div>
+
+            <div class="sm:col-span-2">
+              <label for="formFornecedorNf" class="block text-xs font-medium text-slate-600 mb-1">Fornecedor / NF</label>
+              <input type="text" id="formFornecedorNf" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: Frigelar - NF 12345" />
+            </div>
+          </div>
+        </div>
+
+        <hr class="border-slate-200" />
+
+        <!-- Seção 2: Baixa / Aplicação -->
+        <div>
+          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+            2. Aplicação / Baixa no Site e Equipamento (Opcional na Entrada)
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label for="formDataSaida" class="block text-xs font-medium text-slate-600 mb-1">Data de Saída</label>
+              <input type="date" id="formDataSaida" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+            </div>
+
+            <div>
+              <label for="formTecnicoNome" class="block text-xs font-medium text-slate-600 mb-1">Técnico Responsável</label>
+              <input type="text" id="formTecnicoNome" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Nome do técnico" />
+            </div>
+
+            <div>
+              <label for="formNumeroOs" class="block text-xs font-medium text-slate-600 mb-1">Número da OS</label>
+              <input type="text" id="formNumeroOs" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: 123456" />
+            </div>
+
+            <!-- Autocomplete Site -->
+            <div class="relative">
+              <label for="formSite" class="block text-xs font-medium text-slate-600 mb-1">Site *</label>
+              <input type="text" id="formSite" required autocomplete="off" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Digite o site..." />
+              <div id="formSiteSuggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"></div>
+            </div>
+
+            <!-- Autocomplete Equipamento -->
+            <div class="relative sm:col-span-2">
+              <label for="formEquipamento" class="block text-xs font-medium text-slate-600 mb-1">Equipamento (Catálogo ou Texto Livre)</label>
+              <input type="text" id="formEquipamento" autocomplete="off" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Selecione do catálogo ou digite avulso..." />
+              <input type="hidden" id="formEquipamentoId" />
+              <div id="formEquipamentoSuggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"></div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="border-slate-200" />
+
+        <!-- Seção 3: Amarração com a PV e Preço de Venda -->
+        <div>
+          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+            3. Proposta Comercial / PV (Faturamento e Margem)
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label for="formNumeroPv" class="block text-xs font-medium text-slate-600 mb-1">Número da PV</label>
+              <input type="text" id="formNumeroPv" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Ex: 260232" />
+            </div>
+
+            <div>
+              <label for="formPvItemId" class="block text-xs font-medium text-slate-600 mb-1">Item da PV</label>
+              <select id="formPvItemId" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                <option value="">Nenhum item selecionado</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="formPrecoVenda" class="block text-xs font-medium text-slate-600 mb-1">Preço Venda Unit. (R$)</label>
+              <input type="number" step="0.01" min="0" id="formPrecoVenda" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="0.00" />
+            </div>
+
+            <div class="sm:col-span-3">
+              <label for="formObservacoes" class="block text-xs font-medium text-slate-600 mb-1">Observações Gerais</label>
+              <textarea id="formObservacoes" rows="2" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Anotações internas, motivo da substituição, etc."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3">
+          <button type="button" id="estoqueModalCancelBtn" class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+            Cancelar
+          </button>
+          <button type="submit" class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-5 py-2 rounded-xl text-sm font-medium transition-colors">
+            Salvar Material
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Confirm Delete (Admin apenas) -->
+  <div id="estoqueDeleteModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center gap-3 text-red-600 mb-3">
+        <div class="p-2 bg-red-100 rounded-xl">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900">Excluir Item do Estoque</h3>
+      </div>
+      <p class="text-sm text-slate-600 mb-5">
+        Tem certeza que deseja excluir o registro <strong id="estoqueDeleteDesc" class="text-slate-800"></strong>? Esta ação é irreversível e remove o item do controle financeiro.
+      </p>
+      <div class="flex items-center justify-end gap-3">
+        <button type="button" id="estoqueDeleteCancelBtn" class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+          Cancelar
+        </button>
+        <button type="button" id="estoqueDeleteConfirmBtn" class="bg-red-300 hover:bg-red-400 active:bg-red-500 text-red-800 px-5 py-2 rounded-xl text-sm font-medium transition-colors">
+          Excluir
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
