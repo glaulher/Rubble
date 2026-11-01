@@ -287,7 +287,9 @@ button:disabled { cursor: not-allowed; }
 .dark .border-emerald-200 { border-color: #065f46 !important; }
 .dark .border-emerald-800 { border-color: #065f46 !important; }
 .dark .border-sky-200 { border-color: #0369a1 !important; }
+.dark .border-blue-100 { border-color: #252d3d !important; }
 .dark .bg-sky-50 { background-color: #151922 !important; }
+.dark .bg-blue-50 { background-color: #151922 !important; }
 .dark .text-sky-950 { color: #bae6fd !important; }
 .dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #252d3d !important; }
 

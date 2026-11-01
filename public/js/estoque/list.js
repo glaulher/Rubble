@@ -1,8 +1,9 @@
 // public/js/estoque/list.js
 
 import { escapeHtml, sanitizeCSV } from '/public/js/core/utils.js';
-import { showToast, confirmDelete } from '/public/js/core/dom.js';
+import { showToast, showModal, hideModal, confirmDelete } from '/public/js/core/dom.js';
 import { apiFetch, getUser } from '/public/js/core/auth.js';
+import { iconButtonHtml } from '/public/js/components/button.js';
 import { debounce } from '/public/js/components/infinite-scroll.js';
 import { createAutocomplete } from '/public/js/core/autocomplete.js?v=1';
 import { downloadCSV } from '/public/js/utils/csv.js';
@@ -129,40 +130,21 @@ export function buildEstoqueRowHtml(item) {
       </td>
 
       <!-- AÇÕES -->
-      <td class="px-3 py-2.5 text-center" onclick="event.stopPropagation()">
+      <td class="px-3 py-2.5 text-center">
         <div class="flex items-center justify-center gap-1.5">
-          <button
-            type="button"
-            data-action="baixa"
-            data-id="${item.id}"
-            class="p-1.5 rounded-lg text-blue-600 hover:bg-blue-100 transition-colors"
-            title="Dar Baixa / Aplicação"
-            aria-label="Dar Baixa / Aplicação"
-          >
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-              <polyline points="17 6 23 6 23 12"></polyline>
-            </svg>
-          </button>
-
+          ${iconButtonHtml('baixa', 'Dar Baixa / Aplicação', { 'data-action': 'baixa', 'data-id': item.id })}
           ${
             isAdmin
-              ? `
-            <button
-              type="button"
-              data-action="delete"
-              data-id="${item.id}"
-              data-desc="${escapeHtml(item.material_descricao)}"
-              class="p-1.5 rounded-lg text-red-600 hover:bg-red-100 transition-colors"
-              title="Excluir item"
-              aria-label="Excluir item"
-            >
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 6h18"></path>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
-          `
+              ? iconButtonHtml(
+                  'delete',
+                  'Excluir item',
+                  {
+                    'data-action': 'delete',
+                    'data-id': item.id,
+                    'data-desc': item.material_descricao,
+                  },
+                  'right'
+                )
               : ''
           }
         </div>
@@ -495,12 +477,11 @@ function openEntradaModal() {
   if (dataEntradaInput) dataEntradaInput.value = new Date().toISOString().slice(0, 10);
   if (siteInput) siteInput.value = 'Estoque Central';
 
-  modal.classList.remove('hidden');
+  showModal('estoqueEntradaModal');
 }
 
 function closeEntradaModal() {
-  const modal = document.getElementById('estoqueEntradaModal');
-  if (modal) modal.classList.add('hidden');
+  hideModal('estoqueEntradaModal');
 }
 
 // ----------------------------------------------------
@@ -572,12 +553,11 @@ function openBaixaModal(item) {
   }
 
   updateBaixaCalculations();
-  modal.classList.remove('hidden');
+  showModal('estoqueBaixaModal');
 }
 
 function closeBaixaModal() {
-  const modal = document.getElementById('estoqueBaixaModal');
-  if (modal) modal.classList.add('hidden');
+  hideModal('estoqueBaixaModal');
   _currentSelectedItem = null;
 }
 
@@ -935,24 +915,26 @@ export function initEstoqueList() {
   const tbody = document.getElementById('estoqueTableBody');
   if (tbody) {
     tbody.addEventListener('click', (e) => {
-      // Se clicou no botão de exclusão
+      // 1. Se clicou no botão de exclusão (Admin)
       const deleteBtn = e.target.closest('[data-action="delete"]');
       if (deleteBtn) {
+        e.stopPropagation();
         const id = parseInt(deleteBtn.getAttribute('data-id'), 10);
         const desc = deleteBtn.getAttribute('data-desc') || '';
         _currentDeleteId = id;
 
-        const deleteModal = document.getElementById('estoqueDeleteModal');
         const descEl = document.getElementById('estoqueDeleteDesc');
         if (descEl) descEl.textContent = desc;
-        if (deleteModal) deleteModal.classList.remove('hidden');
+        showModal('estoqueDeleteModal');
         return;
       }
 
-      // Clicou na linha inteira ou no botão "baixa"
+      // 2. Clicou no botão de baixa OU em qualquer outro lugar da linha
+      const baixaBtn = e.target.closest('[data-action="baixa"]');
       const row = e.target.closest('tr[data-id]');
-      if (row) {
-        const id = parseInt(row.getAttribute('data-id'), 10);
+      if (baixaBtn || row) {
+        const targetEl = baixaBtn || row;
+        const id = parseInt(targetEl.getAttribute('data-id'), 10);
         const item = _estoqueItems.find((it) => it.id === id);
         if (item) {
           openBaixaModal(item);
@@ -965,8 +947,7 @@ export function initEstoqueList() {
   const deleteCancelBtn = document.getElementById('estoqueDeleteCancelBtn');
   if (deleteCancelBtn) {
     deleteCancelBtn.addEventListener('click', () => {
-      const deleteModal = document.getElementById('estoqueDeleteModal');
-      if (deleteModal) deleteModal.classList.add('hidden');
+      hideModal('estoqueDeleteModal');
       _currentDeleteId = null;
     });
   }
@@ -984,8 +965,7 @@ export function initEstoqueList() {
         });
 
         const json = await res.json();
-        const deleteModal = document.getElementById('estoqueDeleteModal');
-        if (deleteModal) deleteModal.classList.add('hidden');
+        hideModal('estoqueDeleteModal');
 
         if (json.success) {
           showToast('Item excluído com sucesso', 'success');
@@ -1000,6 +980,20 @@ export function initEstoqueList() {
       }
     });
   }
+
+  // Fechamento de modal ao clicar no backdrop escuro
+  ['estoqueEntradaModal', 'estoqueBaixaModal', 'estoqueDeleteModal'].forEach((id) => {
+    const modalEl = document.getElementById(id);
+    if (modalEl) {
+      modalEl.addEventListener('click', (e) => {
+        if (e.target === modalEl) {
+          hideModal(id);
+          if (id === 'estoqueBaixaModal') _currentSelectedItem = null;
+          if (id === 'estoqueDeleteModal') _currentDeleteId = null;
+        }
+      });
+    }
+  });
 }
 
 // Global exposure for testing and inline calls

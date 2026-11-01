@@ -42,6 +42,9 @@ describe('iconButtonHtml', function () {
 
     var termoHtml = iconButtonHtml('termo', 'Emitir Termo');
     expect(termoHtml.indexOf('bg-sky-100')).not.toBe(-1);
+
+    var baixaHtml = iconButtonHtml('baixa', 'Baixa');
+    expect(baixaHtml.indexOf('bg-blue-100')).not.toBe(-1);
   });
 
   it('applies custom attrs', function () {

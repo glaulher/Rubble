@@ -29,6 +29,15 @@ globalThis.downloadCSV = (filename, header, callback) => {
 globalThis._currentUser = { role: 'admin' };
 globalThis.getUser = () => globalThis._currentUser;
 globalThis.confirmDelete = () => Promise.resolve(true);
+globalThis.showModal = () => {};
+globalThis.hideModal = () => {};
+globalThis.iconButtonHtml = (type, tooltip, attrs, tooltipPos) => {
+  let extra = '';
+  if (attrs) {
+    extra = Object.entries(attrs).map(([k, v]) => k + '="' + v + '"').join(' ');
+  }
+  return '<div class="relative group"><button class="p-2 rounded-xl" ' + extra + '>' + type + '</button><span class="tooltip">' + tooltip + '</span></div>';
+};
 `;
 
 evalModule('../public/js/estoque/list.js', HELPERS);
