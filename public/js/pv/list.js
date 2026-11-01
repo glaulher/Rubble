@@ -94,6 +94,44 @@ export function getAssuntoEmailBadge(assuntoKey) {
   }
 }
 
+export function renderOsCell(osString) {
+  if (!osString || typeof osString !== 'string') return '-';
+  const trimmed = osString.trim();
+  if (trimmed === '' || trimmed === '-') return '-';
+
+  const osList = trimmed
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s !== '' && s !== '-');
+
+  if (osList.length === 0) return '-';
+
+  return osList
+    .map((os) => {
+      const escapedOs = escapeHtml(os);
+      const encodedOs = encodeURIComponent(os);
+      return (
+        '<span class="inline-flex items-center gap-1 whitespace-nowrap">' +
+        `<a href="/OS/${encodedOs}.pdf" target="_blank" rel="noopener noreferrer" ` +
+        'class="text-blue-600 hover:text-blue-800 hover:underline font-medium transition" ' +
+        `title="Abrir PDF da OS">${escapedOs}</a>` +
+        `<button type="button" data-action="copy-os" data-os="${escapedOs}" ` +
+        'class="relative group p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded transition cursor-pointer" ' +
+        'aria-label="Copiar número da OS" title="Copiar OS">' +
+        '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>' +
+        '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' +
+        '</svg>' +
+        '<span class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 origin-bottom scale-0 group-hover:scale-100 transition-transform duration-150 bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded shadow border border-slate-700 pointer-events-none whitespace-nowrap z-50">' +
+        'Copiar OS' +
+        '</span>' +
+        '</button>' +
+        '</span>'
+      );
+    })
+    .join(', ');
+}
+
 export function buildPvRowHtml(pv) {
   const itensCount = pv.itens_count || 0;
   const valorTotal =
@@ -111,9 +149,7 @@ export function buildPvRowHtml(pv) {
     </td>
     <td class="px-4 py-4 text-sm font-semibold text-slate-900">${escapeHtml(pv.numero_pv)}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${pv.data ? formatDate(pv.data) : '-'}</td>
-    <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">
-      <span class="relative group inline-flex cursor-pointer hover:text-blue-600 hover:underline transition" data-action="copy-os" data-os="${escapeHtml(pv.os || '')}" aria-label="Clique para copiar">${escapeHtml(pv.os || '-')}<span class="absolute top-full mt-2 left-1/2 -translate-x-1/2 origin-top scale-0 group-hover:scale-100 transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">Clique para copiar</span></span>
-    </td>
+    <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${renderOsCell(pv.os)}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${escapeHtml(pv.local)}</td>
     <td class="hidden md:table-cell px-4 py-4 text-sm text-slate-700">${escapeHtml(pv.equipamento || '-')}</td>
     <td class="px-4 py-4 text-sm">${getStatusBadge(pv.worst_status)}</td>
