@@ -21,19 +21,30 @@ class PvEmailWatcherServiceTest extends TestCase
         $this->assertEquals('hello world', $method->invoke($this->service, 'hello world', 0));
     }
 
+    public function testDecodeBody8BitDoesNotCorruptText(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('decodeBody');
+        $text = 'Aprovado aquisição de material e serviço!';
+        // Encoding 1 (8BIT) não deve passar por base64_decode
+        $this->assertEquals($text, $method->invoke($this->service, $text, 1));
+    }
+
     public function testDecodeBodyBase64(): void
     {
         $reflection = new \ReflectionClass($this->service);
         $method = $reflection->getMethod('decodeBody');
-        $this->assertEquals('hello world', $method->invoke($this->service, base64_encode('hello world'), 1));
+        // Encoding 3 é ENCBASE64
+        $this->assertEquals('hello world', $method->invoke($this->service, base64_encode('hello world'), 3));
     }
 
     public function testDecodeBodyQuotedPrintable(): void
     {
         $reflection = new \ReflectionClass($this->service);
         $method = $reflection->getMethod('decodeBody');
+        // Encoding 4 é ENCQUOTEDPRINTABLE
         $encoded = quoted_printable_encode('hello world');
-        $this->assertEquals('hello world', $method->invoke($this->service, $encoded, 2));
+        $this->assertEquals('hello world', $method->invoke($this->service, $encoded, 4));
     }
 
     public function testResolveMailboxesDefaultsToInbox(): void
@@ -184,5 +195,193 @@ class PvEmailWatcherServiceTest extends TestCase
         $service = (new \ReflectionClass($this->service))->newInstanceWithoutConstructor();
         $method = new \ReflectionMethod($service, 'buildMailboxKey');
         $this->assertEquals('', $method->invoke($service));
+    }
+
+    public function testExtractPvNumbersSingleAndBatch(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('extractPvNumbers');
+
+        // Individual com dois pontos
+        $this->assertEquals(['260025'], $method->invoke($this->service, 'PV: 260025 - Sala A'));
+
+        // Individual sem dois pontos
+        $this->assertEquals(['260025'], $method->invoke($this->service, 'PV260025 - Sala A'));
+
+        // Lote com PVs:
+        $this->assertEquals(['260025', '260026'], $method->invoke($this->service, 'PVs: 260025, 260026 - Aquisição'));
+
+        // Resposta em lote (Re: / RES:)
+        $this->assertEquals(
+            ['260025', '260026', '260027'],
+            $method->invoke($this->service, 'RES: PVs: 260025, 260026, 260027 - Servicos')
+        );
+    }
+
+    public function testExtractPvNumbersFromBody(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('extractPvNumbersFromBody');
+
+        $body = "Bom dia,\nSegue aprovação conforme solicitado para a PV: 260099.\nAtenciosamente,";
+        $this->assertEquals(['260099'], $method->invoke($this->service, $body));
+
+        $batchBody = "Aprovado as PVs: 260010, 260011.";
+        $this->assertEquals(['260010', '260011'], $method->invoke($this->service, $batchBody));
+    }
+
+    public function testIsApprovalMessagePositive(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('isApprovalMessage');
+
+        $this->assertTrue($method->invoke($this->service, 'Aprovado aquisição de material'));
+        $this->assertTrue($method->invoke($this->service, 'Aprovada a solicitação da proposta'));
+        $this->assertTrue($method->invoke($this->service, 'Aprovo a realização do serviço'));
+        $this->assertTrue($method->invoke($this->service, 'Aprovamos os itens'));
+        $this->assertTrue($method->invoke($this->service, 'De acordo com o orçamento apresentado'));
+        $this->assertTrue($method->invoke($this->service, 'Autorizado o faturamento'));
+        $this->assertTrue($method->invoke($this->service, 'Autorizo a continuidade do reparo'));
+    }
+
+    public function testIsApprovalMessageNegative(): void
+    {
+        $reflection = new \ReflectionClass($this->service);
+        $method = $reflection->getMethod('isApprovalMessage');
+
+        $this->assertFalse($method->invoke($this->service, 'Reprovado o orçamento devido ao valor'));
+        $this->assertFalse($method->invoke($this->service, 'Não aprovado pelo gerente'));
+        $this->assertFalse($method->invoke($this->service, 'Nao aprovado'));
+        $this->assertFalse($method->invoke($this->service, 'Recusado o orçamento'));
+        $this->assertFalse($method->invoke($this->service, 'Não autorizo este serviço'));
+        $this->assertFalse($method->invoke($this->service, 'Favor enviar maiores esclarecimentos'));
+    }
+
+    public function testNestedMultipartExtraction(): void
+    {
+        // Cria estrutura aninhada real:
+        // multipart/mixed (nível 1)
+        //   part 1: multipart/alternative (nível 1.1)
+        //     part 1.1: text/plain (nível 1.1.1)
+        //     part 1.2: text/html  (nível 1.1.2)
+        //   part 2: application/pdf (anexo)
+        $subSubPlain = (object) [
+            'type' => 0,
+            'subtype' => 'PLAIN',
+            'encoding' => 0,
+            'parameters' => [(object) ['attribute' => 'charset', 'value' => 'UTF-8']]
+        ];
+
+        $subSubHtml = (object) [
+            'type' => 0,
+            'subtype' => 'HTML',
+            'encoding' => 0,
+            'parameters' => [(object) ['attribute' => 'charset', 'value' => 'UTF-8']]
+        ];
+
+        $subAlternative = (object) [
+            'type' => 1,
+            'subtype' => 'ALTERNATIVE',
+            'parts' => [$subSubPlain, $subSubHtml]
+        ];
+
+        $attachment = (object) [
+            'type' => 3,
+            'subtype' => 'OCTET-STREAM',
+            'encoding' => 3,
+        ];
+
+        $rootMixed = (object) [
+            'type' => 1,
+            'subtype' => 'MIXED',
+            'parts' => [$subAlternative, $attachment]
+        ];
+
+        $watcher = new class extends PvEmailWatcherService {
+            public function __construct() {}
+            public array $parts = [];
+            protected function getPartBody($mbox, int $uid, string $partNum): string|false
+            {
+                return $this->parts[$partNum] ?? false;
+            }
+        };
+
+        $watcher->parts['1.1'] = "Aprovado o serviço solicitado na PV.";
+        $watcher->parts['1.2'] = "<p>Aprovado o serviço solicitado na PV.</p>";
+
+        $reflection = new \ReflectionClass(PvEmailWatcherService::class);
+        $collectMethod = $reflection->getMethod('collectTextParts');
+
+        $plainParts = [];
+        $htmlParts = [];
+        $collectMethod->invokeArgs($watcher, [null, 1, $rootMixed, '', &$plainParts, &$htmlParts]);
+
+        $this->assertCount(1, $plainParts);
+        $this->assertEquals("Aprovado o serviço solicitado na PV.", $plainParts[0]);
+        $this->assertCount(1, $htmlParts);
+        $this->assertEquals("<p>Aprovado o serviço solicitado na PV.</p>", $htmlParts[0]);
+    }
+
+    public function testDeepNestedThreeLevelMultipartExtraction(): void
+    {
+        // Estrutura com 3 níveis de profundidade:
+        // mixed (root)
+        //   part 1: mixed
+        //     part 1.1: alternative
+        //       part 1.1.1: text/plain
+        //       part 1.1.2: text/html
+        $plain = (object) [
+            'type' => 0,
+            'subtype' => 'PLAIN',
+            'encoding' => 0,
+        ];
+
+        $html = (object) [
+            'type' => 0,
+            'subtype' => 'HTML',
+            'encoding' => 0,
+        ];
+
+        $alternative = (object) [
+            'type' => 1,
+            'subtype' => 'ALTERNATIVE',
+            'parts' => [$plain, $html],
+        ];
+
+        $innerMixed = (object) [
+            'type' => 1,
+            'subtype' => 'MIXED',
+            'parts' => [$alternative],
+        ];
+
+        $root = (object) [
+            'type' => 1,
+            'subtype' => 'MIXED',
+            'parts' => [$innerMixed],
+        ];
+
+        $watcher = new class extends PvEmailWatcherService {
+            public function __construct() {}
+            public array $parts = [];
+            protected function getPartBody($mbox, int $uid, string $partNum): string|false
+            {
+                return $this->parts[$partNum] ?? false;
+            }
+        };
+
+        $watcher->parts['1.1.1'] = "Aprovado em 3 níveis!";
+        $watcher->parts['1.1.2'] = "<p>Aprovado em 3 níveis!</p>";
+
+        $reflection = new \ReflectionClass(PvEmailWatcherService::class);
+        $collectMethod = $reflection->getMethod('collectTextParts');
+
+        $plainParts = [];
+        $htmlParts = [];
+        $collectMethod->invokeArgs($watcher, [null, 1, $root, '', &$plainParts, &$htmlParts]);
+
+        $this->assertCount(1, $plainParts);
+        $this->assertEquals("Aprovado em 3 níveis!", $plainParts[0]);
+        $this->assertCount(1, $htmlParts);
+        $this->assertEquals("<p>Aprovado em 3 níveis!</p>", $htmlParts[0]);
     }
 }

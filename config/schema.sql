@@ -768,6 +768,7 @@ CREATE TABLE IF NOT EXISTS `email_processed` (
   `uid` INT UNSIGNED NOT NULL,
   `mailbox` VARCHAR(190) NOT NULL DEFAULT '',
   `pv_number` VARCHAR(10) NOT NULL,
+  `approved` TINYINT(1) NOT NULL DEFAULT 0,
   `processed_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `uk_email_mailbox_uid` (`mailbox`, `uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

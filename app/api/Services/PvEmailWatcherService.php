@@ -121,18 +121,20 @@ class PvEmailWatcherService
 
     private function searchUnseen($mbox, string $mailboxKey, array &$result): void
     {
-        $uids = @imap_search($mbox, 'UNSEEN SUBJECT "PV:"', SE_UID);
+        $uids = @imap_search($mbox, 'UNSEEN SUBJECT "PV"', SE_UID);
         if ($uids === false || $uids === []) return;
 
         foreach ($uids as $uid) {
-            $this->processUid($mbox, (int) $uid, $mailboxKey, $result);
+            $uidInt = (int) $uid;
+            if ($this->isAlreadyProcessed($uidInt, $mailboxKey)) continue;
+            $this->processUid($mbox, $uidInt, $mailboxKey, $result);
         }
     }
 
     private function searchRecentSeen($mbox, string $mailboxKey, array &$result): void
     {
         $since = date('d-M-Y', strtotime('-' . self::RECENT_DAYS . ' days'));
-        $uids = @imap_search($mbox, 'SINCE ' . $since . ' SEEN SUBJECT "PV:"', SE_UID);
+        $uids = @imap_search($mbox, 'SINCE ' . $since . ' SEEN SUBJECT "PV"', SE_UID);
         if ($uids === false || $uids === []) return;
 
         foreach ($uids as $uid) {
@@ -145,29 +147,42 @@ class PvEmailWatcherService
     private function processUid($mbox, int $uid, string $mailboxKey, array &$result): void
     {
         try {
+            if ($this->isAlreadyProcessed($uid, $mailboxKey)) return;
+
             $header = @imap_fetchheader($mbox, $uid, FT_UID);
             if ($header === false) return;
 
             $subject = $this->decodeSubject($header);
-
-            $pvNumber = $this->extractPvNumber($subject);
-            if ($pvNumber === null) return;
-
-            if ($this->isAlreadyProcessed($uid, $mailboxKey)) return;
+            $pvNumbers = $this->extractPvNumbers($subject);
 
             $bodyText = $this->fetchBodyText($mbox, $uid);
-            $isApproved = preg_match($this->getBodySearchPattern(), $bodyText) === 1;
 
-            error_log("PvEmailWatcher DEBUG: uid=$uid pv=$pvNumber subject='" . substr($subject, 0, 120) . "' bodyLen=" . strlen($bodyText) . " approved=" . ($isApproved ? 'YES' : 'NO'));
+            if (empty($pvNumbers)) {
+                $pvNumbers = $this->extractPvNumbersFromBody($bodyText);
+            }
+
+            if (empty($pvNumbers)) {
+                $this->markProcessed($uid, '', $mailboxKey, false);
+                $result['checked']++;
+                return;
+            }
+
+            $isApproved = $this->isApprovalMessage($bodyText);
+
+            error_log("PvEmailWatcher DEBUG: uid=$uid pvs=" . implode(',', $pvNumbers) . " subject='" . substr($subject, 0, 120) . "' bodyLen=" . strlen($bodyText) . " approved=" . ($isApproved ? 'YES' : 'NO'));
 
             if ($isApproved) {
-                $pv = $this->repository->getByNumberPv($pvNumber);
-                if ($pv !== null) {
-                    $this->repository->updateItemsStatusByPvId($pv->id, self::APPROVED_TARGET_STATUS);
-                    $result['approved']++;
+                foreach ($pvNumbers as $pvNumber) {
+                    $pv = $this->repository->getByNumberPv($pvNumber);
+                    if ($pv !== null) {
+                        $this->repository->updateItemsStatusByPvId($pv->id, self::APPROVED_TARGET_STATUS);
+                        $result['approved']++;
+                    }
                 }
-                $this->markProcessed($uid, $pvNumber, $mailboxKey);
             }
+
+            $primaryPv = $pvNumbers[0] ?? '';
+            $this->markProcessed($uid, $primaryPv, $mailboxKey, $isApproved);
 
             $result['checked']++;
 
@@ -250,10 +265,33 @@ class PvEmailWatcherService
 
     private function extractPvNumber(string $subject): ?string
     {
-        if (!preg_match('/PV:?\s*(\d{6})/', $subject, $pvMatch)) {
-            return null;
+        $numbers = $this->extractPvNumbers($subject);
+        return $numbers[0] ?? null;
+    }
+
+    private function extractPvNumbers(string $subject): array
+    {
+        if (preg_match('/PVs?:?\s*([\d\s,;\/-]+)/i', $subject, $match)) {
+            if (preg_match_all('/\b(\d{6})\b/', $match[1], $numMatches)) {
+                return array_values(array_unique($numMatches[1]));
+            }
         }
-        return $pvMatch[1];
+
+        if (preg_match_all('/PV\D*?(\d{6})/i', $subject, $matches)) {
+            return array_values(array_unique($matches[1]));
+        }
+
+        return [];
+    }
+
+    private function extractPvNumbersFromBody(string $body): array
+    {
+        if (preg_match('/PVs?:?\s*([\d\s,;\/-]+)/i', $body, $match)) {
+            if (preg_match_all('/\b(\d{6})\b/', $match[1], $numMatches)) {
+                return array_values(array_unique($numMatches[1]));
+            }
+        }
+        return [];
     }
 
     private function fetchBodyText($mbox, int $uid): string
@@ -261,73 +299,102 @@ class PvEmailWatcherService
         $structure = @imap_fetchstructure($mbox, $uid, FT_UID);
         if (!$structure) return '';
 
-        $text = '';
-        $hasPlain = false;
+        $plainParts = [];
+        $htmlParts = [];
 
-        if (isset($structure->parts) && count($structure->parts) > 0) {
-            for ($i = 1; $i <= count($structure->parts); $i++) {
-                $partIdx = $i - 1;
-                $part = $structure->parts[$partIdx];
-                $subtype = strtolower($part->subtype ?? '');
+        $this->collectTextParts($mbox, $uid, $structure, '', $plainParts, $htmlParts);
 
-                if ($subtype === 'plain') {
-                    $body = @imap_fetchbody($mbox, $uid, $i, FT_UID);
-                    if ($body !== false) {
-                        $decoded = $this->decodeBody($body, $part->encoding ?? 0);
-                        $text .= $decoded . "\n";
-                        if (trim($decoded) !== '') $hasPlain = true;
-                    }
-                }
-
-                if ($this->hasSubparts($part)) {
-                    $text .= $this->fetchSubparts($mbox, $uid, $i, $part);
-                }
-            }
-
-            if (!$hasPlain && trim($text) === '') {
-                for ($i = 1; $i <= count($structure->parts); $i++) {
-                    $partIdx = $i - 1;
-                    $part = $structure->parts[$partIdx];
-                    $subtype = strtolower($part->subtype ?? '');
-
-                    if ($subtype === 'html') {
-                        $body = @imap_fetchbody($mbox, $uid, $i, FT_UID);
-                        if ($body !== false) {
-                            $decoded = $this->decodeBody($body, $part->encoding ?? 0);
-                            $text .= strip_tags(html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8')) . "\n";
-                        }
-                    }
-                }
-            }
-        } else {
-            $body = @imap_fetchbody($mbox, $uid, 1, FT_UID);
-            if ($body !== false) {
-                $text = $this->decodeBody($body, $structure->encoding ?? 0);
+        if (!empty($plainParts)) {
+            $fullPlain = trim(implode("\n", $plainParts));
+            if ($fullPlain !== '') {
+                return $fullPlain;
             }
         }
 
-        return $text;
+        if (!empty($htmlParts)) {
+            $fullHtml = implode("\n", $htmlParts);
+            $cleanHtml = preg_replace('/<(?:br|div|p|tr|li)[\s\/]*>/i', "\n", $fullHtml);
+            $decoded = html_entity_decode($cleanHtml, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $text = strip_tags($decoded);
+            $text = preg_replace("/[\r\n]{2,}/", "\n", $text);
+            return trim($text);
+        }
+
+        return '';
     }
 
-    private function hasSubparts(object $part): bool
+    protected function getPartBody($mbox, int $uid, string $partNum): string|false
     {
-        return isset($part->parts) && count($part->parts) > 0;
+        return @imap_fetchbody($mbox, $uid, $partNum, FT_UID);
     }
 
-    private function fetchSubparts($mbox, int $uid, int $parentPart, object $part): string
+    private function collectTextParts($mbox, int $uid, object $part, string $partNum, array &$plainParts, array &$htmlParts): void
     {
-        $text = '';
-        foreach ($part->parts as $subIdx => $subPart) {
-            $partNum = $parentPart . '.' . ($subIdx + 1);
-            $subtype = strtolower($subPart->subtype ?? '');
-            if (in_array($subtype, ['plain', 'html'], true)) {
-                $body = @imap_fetchbody($mbox, $uid, $partNum, FT_UID);
-                if ($body !== false) {
-                    $text .= $this->decodeBody($body, $subPart->encoding ?? 0) . "\n";
+        $isMultipart = (isset($part->type) && (int) $part->type === 1)
+            || (isset($part->parts) && is_array($part->parts) && !empty($part->parts));
+
+        if ($isMultipart) {
+            foreach ($part->parts as $idx => $subPart) {
+                $subNum = $partNum === '' ? (string) ($idx + 1) : $partNum . '.' . ($idx + 1);
+                $this->collectTextParts($mbox, $uid, $subPart, $subNum, $plainParts, $htmlParts);
+            }
+            return;
+        }
+
+        $subtype = strtolower($part->subtype ?? '');
+        $type = isset($part->type) ? (int) $part->type : 0;
+
+        if ($type === 0 || in_array($subtype, ['plain', 'html'], true)) {
+            $numToFetch = $partNum === '' ? '1' : $partNum;
+            $rawBody = $this->getPartBody($mbox, $uid, $numToFetch);
+            if ($rawBody === false || $rawBody === '') {
+                return;
+            }
+
+            $decoded = $this->decodeBody($rawBody, $part->encoding ?? 0);
+            $charset = $this->extractCharset($part);
+            if ($charset !== '' && !in_array(strtolower($charset), ['utf-8', 'us-ascii'], true) && function_exists('mb_convert_encoding')) {
+                $converted = @mb_convert_encoding($decoded, 'UTF-8', $charset);
+                if ($converted !== false && $converted !== '') {
+                    $decoded = $converted;
+                }
+            }
+
+            if ($subtype === 'plain' || ($type === 0 && $subtype !== 'html')) {
+                $plainParts[] = $decoded;
+            } elseif ($subtype === 'html') {
+                $htmlParts[] = $decoded;
+            }
+        }
+    }
+
+    private function extractCharset(object $part): string
+    {
+        if (isset($part->parameters) && is_array($part->parameters)) {
+            foreach ($part->parameters as $param) {
+                if (strtolower($param->attribute ?? '') === 'charset') {
+                    return trim((string) ($param->value ?? ''));
                 }
             }
         }
-        return $text;
+        return '';
+    }
+
+    private function isApprovalMessage(string $bodyText): bool
+    {
+        if (preg_match('/\b(reprovad[oa]s?|recusad[oa]s?|desaprovad[oa]s?|n[aã]o\s+aprovad[oa]s?|n[aã]o\s+aprovo|n[aã]o\s+autorizad[oa]s?|n[aã]o\s+autorizo)\b/ui', $bodyText)) {
+            return false;
+        }
+
+        if (preg_match($this->getBodySearchPattern(), $bodyText)) {
+            return true;
+        }
+
+        if (preg_match('/\b(aprovo|aprovamos|autorizad[oa]s?|autorizo|de\s+acordo)\b/ui', $bodyText)) {
+            return true;
+        }
+
+        return false;
     }
 
     private function getBodySearchPattern(): string
@@ -345,25 +412,36 @@ class PvEmailWatcherService
         return $result->fetch_row() !== null;
     }
 
-    private function markProcessed(int $uid, string $pvNumber, string $mailboxKey): void
+    private function markProcessed(int $uid, string $pvNumber, string $mailboxKey, bool $approved = false): void
     {
-        $sql = "INSERT IGNORE INTO email_processed (uid, mailbox, pv_number, processed_at) VALUES (?, ?, ?, NOW())";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param('iss', $uid, $mailboxKey, $pvNumber);
-        $stmt->execute();
+        $approvedInt = $approved ? 1 : 0;
+        $sql = "INSERT IGNORE INTO email_processed (uid, mailbox, pv_number, approved, processed_at) VALUES (?, ?, ?, ?, NOW())";
+        $stmt = @$this->conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param('issi', $uid, $mailboxKey, $pvNumber, $approvedInt);
+            $stmt->execute();
+        } else {
+            $sqlLegacy = "INSERT IGNORE INTO email_processed (uid, mailbox, pv_number, processed_at) VALUES (?, ?, ?, NOW())";
+            $stmtLegacy = $this->conn->prepare($sqlLegacy);
+            if ($stmtLegacy) {
+                $stmtLegacy->bind_param('iss', $uid, $mailboxKey, $pvNumber);
+                $stmtLegacy->execute();
+            }
+        }
     }
 
     private function decodeBody(string $body, int $encoding): string
     {
         switch ($encoding) {
-            case 1:
-                return base64_decode($body) ?: '';
-            case 2:
+            case 3: // BASE64 (PHP IMAP constant ENCBASE64 = 3)
+                $clean = preg_replace('/\s+/', '', $body);
+                $decoded = base64_decode($clean, true);
+                return $decoded !== false ? $decoded : base64_decode($body);
+            case 4: // QUOTED-PRINTABLE (PHP IMAP constant ENCQUOTEDPRINTABLE = 4)
                 return quoted_printable_decode($body);
-            case 3:
-                return base64_decode($body) ?: '';
-            case 4:
-                return quoted_printable_decode($body);
+            case 0: // 7BIT (ENC7BIT = 0)
+            case 1: // 8BIT (ENC8BIT = 1)
+            case 2: // BINARY (ENCBINARY = 2)
             default:
                 return $body;
         }
