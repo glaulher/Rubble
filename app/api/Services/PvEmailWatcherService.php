@@ -415,18 +415,27 @@ class PvEmailWatcherService
     private function markProcessed(int $uid, string $pvNumber, string $mailboxKey, bool $approved = false): void
     {
         $approvedInt = $approved ? 1 : 0;
-        $sql = "INSERT IGNORE INTO email_processed (uid, mailbox, pv_number, approved, processed_at) VALUES (?, ?, ?, ?, NOW())";
-        $stmt = @$this->conn->prepare($sql);
-        if ($stmt) {
-            $stmt->bind_param('issi', $uid, $mailboxKey, $pvNumber, $approvedInt);
-            $stmt->execute();
-        } else {
+        try {
+            $sql = "INSERT IGNORE INTO email_processed (uid, mailbox, pv_number, approved, processed_at) VALUES (?, ?, ?, ?, NOW())";
+            $stmt = $this->conn->prepare($sql);
+            if ($stmt) {
+                $stmt->bind_param('issi', $uid, $mailboxKey, $pvNumber, $approvedInt);
+                $stmt->execute();
+                return;
+            }
+        } catch (\Throwable) {
+            // Se a coluna 'approved' ainda não existir na tabela email_processed
+        }
+
+        try {
             $sqlLegacy = "INSERT IGNORE INTO email_processed (uid, mailbox, pv_number, processed_at) VALUES (?, ?, ?, NOW())";
             $stmtLegacy = $this->conn->prepare($sqlLegacy);
             if ($stmtLegacy) {
                 $stmtLegacy->bind_param('iss', $uid, $mailboxKey, $pvNumber);
                 $stmtLegacy->execute();
             }
+        } catch (\Throwable $e) {
+            error_log('PvEmailWatcher markProcessed error: ' . $e->getMessage());
         }
     }
 
