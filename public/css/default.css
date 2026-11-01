@@ -480,3 +480,25 @@ button:disabled { cursor: not-allowed; }
 .dark .diario-autocomplete-dropdown .diario-autocomplete-item:hover {
   background-color: #334155 !important;
 }
+
+/* Estoque Table Group Headers (Dark Mode) */
+.dark #estoqueTable thead .estoque-header-entrada,
+.dark .estoque-header-entrada {
+  background-color: #111827 !important;
+  color: #94a3b8 !important;
+  border-color: #1f2937 !important;
+}
+
+.dark #estoqueTable thead .estoque-header-baixa,
+.dark .estoque-header-baixa {
+  background-color: #0f172a !important;
+  color: #93c5fd !important;
+  border-color: #1e293b !important;
+}
+
+.dark #estoqueTable thead .estoque-header-acoes,
+.dark .estoque-header-acoes {
+  background-color: #111827 !important;
+  color: #94a3b8 !important;
+  border-color: #1f2937 !important;
+}
