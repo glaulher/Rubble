@@ -8,6 +8,8 @@ globalThis.HTMLElement = window.HTMLElement;
 globalThis.HTMLCanvasElement = window.HTMLCanvasElement;
 globalThis.Event = window.Event;
 globalThis.EventTarget = window.EventTarget;
+globalThis.sessionStorage = window.sessionStorage;
+globalThis.localStorage = window.localStorage;
 
 document.body.innerHTML = "";
 

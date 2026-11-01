@@ -1,6 +1,7 @@
 import { createInfiniteScroll, debounce } from '/public/js/components/infinite-scroll.js';
 import { showToast, confirmAction } from '/public/js/core/dom.js';
 import { escapeHtml } from '/public/js/core/utils.js';
+import { getToken } from '/public/js/core/auth.js';
 import { iconButtonHtml } from '/public/js/components/button.js';
 import { PV_STATUSES } from './constants.js';
 import { formatDate, getStatusBadge, generateCicloOptions, updatePvCounter } from './form-utils.js';
@@ -94,6 +95,77 @@ export function getAssuntoEmailBadge(assuntoKey) {
   }
 }
 
+function getAuthToken() {
+  try {
+    if (typeof getToken === 'function') {
+      return getToken() || '';
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem('rubble_token') || '';
+    }
+  } catch {}
+  return '';
+}
+
+export async function openOsPdf(os) {
+  if (!os || os === '-') return;
+
+  const newTab = window.open('', '_blank');
+  if (newTab && newTab.document) {
+    newTab.document.write(
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Abrindo OS...</title>' +
+      '<style>body{font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0f172a;color:#f8fafc;}' +
+      '.box{text-align:center;padding:2rem;background:#1e293b;border-radius:1rem;box-shadow:0 10px 25px rgba(0,0,0,0.3);max-width:420px;}' +
+      'h1{font-size:1.25rem;margin-bottom:0.5rem;color:#38bdf8;}' +
+      'p{color:#94a3b8;font-size:0.9rem;margin:0;}</style></head>' +
+      '<body><div class="box"><h1>Abrindo PDF da OS ' +
+      escapeHtml(os) +
+      '</h1><p>Carregando documento seguro...</p></div></body></html>'
+    );
+  }
+
+  try {
+    const token = getAuthToken();
+    const headers = token ? { Authorization: 'Bearer ' + token } : {};
+    const res = await fetch(
+      `/app/api/index.php?route=pv&action=view-os&os=${encodeURIComponent(os)}`,
+      { headers }
+    );
+
+    if (!res.ok) {
+      let errorMsg = `PDF da OS ${os} não encontrado no servidor.`;
+      try {
+        const data = await res.json();
+        if (data && data.message) errorMsg = data.message;
+      } catch {}
+
+      if (newTab && newTab.document && newTab.document.body) {
+        newTab.document.body.innerHTML =
+          '<div class="box"><h1 style="color:#f87171;">Documento não encontrado</h1><p>' +
+          escapeHtml(errorMsg) +
+          '</p></div>';
+      }
+      if (typeof showToast === 'function') {
+        showToast(errorMsg, 'error');
+      }
+      return;
+    }
+
+    const blob = await res.blob();
+    const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    if (newTab) {
+      newTab.location.href = blobUrl;
+    }
+  } catch (err) {
+    console.error(err);
+    if (newTab) newTab.close();
+    if (typeof showToast === 'function') {
+      showToast('Erro ao carregar PDF da OS', 'error');
+    }
+  }
+}
+
 export function renderOsCell(osString) {
   if (!osString || typeof osString !== 'string') return '-';
   const trimmed = osString.trim();
@@ -109,12 +181,11 @@ export function renderOsCell(osString) {
   return osList
     .map((os) => {
       const escapedOs = escapeHtml(os);
-      const encodedOs = encodeURIComponent(os);
       return (
         '<span class="inline-flex items-center gap-1 whitespace-nowrap">' +
-        `<a href="/OS/${encodedOs}.pdf" target="_blank" rel="noopener noreferrer" ` +
-        'class="text-blue-600 hover:text-blue-800 hover:underline font-medium transition" ' +
-        `title="Abrir PDF da OS">${escapedOs}</a>` +
+        `<button type="button" data-action="open-os" data-os="${escapedOs}" ` +
+        'class="text-blue-600 hover:text-blue-800 hover:underline font-medium transition cursor-pointer" ' +
+        `title="Abrir PDF da OS">${escapedOs}</button>` +
         `<button type="button" data-action="copy-os" data-os="${escapedOs}" ` +
         'class="relative group p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded transition cursor-pointer" ' +
         'aria-label="Copiar número da OS" title="Copiar OS">' +
@@ -204,6 +275,9 @@ export function createPvRow(pv) {
     if (actionEl) {
       e.stopPropagation();
       switch (actionEl.dataset.action) {
+        case 'open-os':
+          openOsPdf(actionEl.dataset.os);
+          return;
         case 'copy-os':
           copyOs(actionEl.dataset.os);
           return;

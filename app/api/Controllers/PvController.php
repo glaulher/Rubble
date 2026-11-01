@@ -3,6 +3,7 @@
 namespace App\Api\Controllers;
 
 use App\Api\Services\PvService;
+use App\Api\Repositories\PvRepository;
 use App\Api\Helpers\Response;
 use App\Api\Helpers\Request;
 use App\Api\Helpers\Validator;
@@ -17,9 +18,9 @@ class PvController
 
     private PvService $service;
 
-    public function __construct()
+    public function __construct(?PvService $service = null)
     {
-        $this->service = new PvService();
+        $this->service = $service ?? new PvService();
     }
 
     /*
@@ -616,6 +617,55 @@ class PvController
         } catch (\Throwable $e) {
             error_log('Erro ao listar PVs por IDs: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
             Response::error('Erro ao carregar PVs', 400);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | VIEW OS PDF
+    |--------------------------------------------------------------------------
+    */
+
+    public function viewOs(): void
+    {
+        try {
+            $os = preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['os'] ?? '');
+            if (empty($os)) {
+                Response::error('Número da OS não informado ou inválido', 400);
+                return;
+            }
+
+            $path = PvRepository::OS_DIR . '/' . $os . '.pdf';
+
+            if (!file_exists($path)) {
+                http_response_code(404);
+                header('Content-Type: text/html; charset=UTF-8');
+                echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>OS não encontrada</title>'
+                    . '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0f172a;color:#f8fafc;}'
+                    . '.box{text-align:center;padding:2rem;background:#1e293b;border-radius:1rem;box-shadow:0 10px 25px rgba(0,0,0,0.3);max-width:420px;}'
+                    . 'h1{font-size:1.4rem;margin-bottom:0.5rem;color:#f87171;}'
+                    . 'p{color:#94a3b8;font-size:0.95rem;line-height:1.5;}</style></head>'
+                    . '<body><div class="box"><h1>PDF não encontrado</h1><p>O arquivo PDF para a OS <strong>' . htmlspecialchars($os, ENT_QUOTES, 'UTF-8') . '</strong> não foi localizado no servidor.</p></div></body></html>';
+                if (Response::$exitEnabled) {
+                    exit;
+                }
+                return;
+            }
+
+            if (Response::$exitEnabled && ob_get_level()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $os . '.pdf"');
+            header('Content-Length: ' . (string) filesize($path));
+            header('Cache-Control: private, max-age=3600');
+            readfile($path);
+            if (Response::$exitEnabled) {
+                exit;
+            }
+        } catch (\Throwable $e) {
+            Response::serverError($e);
         }
     }
 }

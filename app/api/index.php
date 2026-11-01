@@ -114,6 +114,8 @@ $router->addRoute('pv', 'GET', function () use ($auth) {
         (new ExportController())->exportCsv();
     } elseif ($action === 'list-by-ids') {
         $controller->listByIds();
+    } elseif ($action === 'view-os') {
+        $controller->viewOs();
     } elseif (isset($_GET['id'])) {
         $controller->getById();
     } else {
