@@ -14,6 +14,7 @@ class RateLimitMiddleware
         'equipment-management' => ['POST' => 10, 'PUT' => 10, 'DELETE' => 10],
         'scm'                  => ['POST' => 5, 'DELETE' => 10],
         'sc'                   => ['POST' => 10, 'PUT' => 10, 'PATCH' => 30, 'DELETE' => 10],
+        'estoque'              => ['POST' => 10, 'PUT' => 10, 'PATCH' => 30, 'DELETE' => 10],
         'preventive-cycle'     => ['POST' => 10],
         'auth'                 => ['POST' => 5],
         'planned-activities'   => ['POST' => 10, 'DELETE' => 10],

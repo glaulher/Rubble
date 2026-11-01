@@ -14,7 +14,7 @@ use App\Api\Controllers\{
     PlannedActivityController, PreventivaController, FilterExchangeController,
     PendingTicketsController, PreventivaDashboardController, InventoryController,
     AdminAuditController, PreditivaParseController, DiarioController, TeamController,
-    TermoController, SolicitacaoCompraController
+    TermoController, SolicitacaoCompraController, EstoqueMaterialController
 };
 Env::load(__DIR__ . '/../../.env');
 
@@ -293,6 +293,28 @@ $router->addRoute('sc', 'POST', fn () => (new SolicitacaoCompraController())->sa
 $router->addRoute('sc', 'PUT', fn () => (new SolicitacaoCompraController())->update());
 $router->addRoute('sc', 'PATCH', fn () => (new SolicitacaoCompraController())->updateField());
 $router->addRoute('sc', 'DELETE', fn () => (new SolicitacaoCompraController())->delete());
+
+// Estoque de Materiais
+$router->addRoute('estoque', 'GET', function () {
+    $ctrl = new EstoqueMaterialController();
+    $action = $_GET['action'] ?? null;
+
+    if ($action === 'totals') {
+        $ctrl->getTotals();
+    } elseif ($action === 'pv-items') {
+        $ctrl->getPvItems();
+    } elseif ($action === 'export-csv') {
+        $ctrl->exportCsv();
+    } elseif (isset($_GET['id'])) {
+        $ctrl->getById();
+    } else {
+        $ctrl->listAll();
+    }
+});
+$router->addRoute('estoque', 'POST', fn () => (new EstoqueMaterialController())->save());
+$router->addRoute('estoque', 'PUT', fn () => (new EstoqueMaterialController())->update());
+$router->addRoute('estoque', 'PATCH', fn () => (new EstoqueMaterialController())->updateField());
+$router->addRoute('estoque', 'DELETE', fn () => (new EstoqueMaterialController())->delete());
 
 // Teams
 $router->addRoute('teams', 'GET', fn () => (new TeamController())->listAll());
