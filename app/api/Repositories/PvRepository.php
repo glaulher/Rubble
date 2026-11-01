@@ -752,6 +752,55 @@ class PvRepository extends BaseRepository
         return $row ? (int) $row['id'] : null;
     }
 
+    public function syncTicketsStatusByPvId(int $pvId, string $status = 'Concluído'): int
+    {
+        $sql = "
+            UPDATE registros r
+            JOIN pv_os po ON po.registro_id = r.id
+            SET r.status = ?,
+                r.data_concluido = COALESCE(r.data_concluido, CURRENT_DATE())
+            WHERE po.pv_id = ?
+        ";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('si', $status, $pvId);
+        $stmt->execute();
+        return $stmt->affected_rows;
+    }
+
+    public function syncTicketStatusById(int $ticketId, string $status = 'Concluído'): bool
+    {
+        $sql = "
+            UPDATE registros
+            SET status = ?,
+                data_concluido = COALESCE(data_concluido, CURRENT_DATE())
+            WHERE id = ?
+        ";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('si', $status, $ticketId);
+        return $stmt->execute();
+    }
+
+    public function syncAllApprovedPvTickets(): int
+    {
+        $sql = "
+            UPDATE registros r
+            JOIN pv_os po ON po.registro_id = r.id
+            JOIN (
+                SELECT pi.pv_id
+                FROM pv_item pi
+                GROUP BY pi.pv_id
+                HAVING COUNT(CASE WHEN pi.status NOT IN ('SCM aprovado', 'Cancelado') THEN 1 END) = 0
+                   AND COUNT(CASE WHEN pi.status = 'SCM aprovado' THEN 1 END) > 0
+            ) pv_app ON pv_app.pv_id = po.pv_id
+            SET r.status = 'Concluído',
+                r.data_concluido = COALESCE(r.data_concluido, CURRENT_DATE())
+            WHERE r.status != 'Concluído' AND r.status != 'concluido'
+        ";
+        $stmt = $this->safePrepare($sql);
+        $stmt->execute();
+        return $stmt->affected_rows;
+    }
+
     public function getListByIds(array $ids): array
     {
         if (empty($ids)) {

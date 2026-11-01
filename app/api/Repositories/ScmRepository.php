@@ -276,6 +276,20 @@ class ScmRepository extends BaseRepository
         return $stmt->affected_rows;
     }
 
+    public function findPvIdsByScmCode(string $scmCode): array
+    {
+        $sql = "SELECT DISTINCT pv_id FROM pv_item WHERE scm = ?";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('s', $scmCode);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $pvIds = [];
+        while ($row = $result->fetch_assoc()) {
+            $pvIds[] = (int) $row['pv_id'];
+        }
+        return $pvIds;
+    }
+
     public function delete(int $id): bool
     {
         $sql = "DELETE FROM scm WHERE id = ?";

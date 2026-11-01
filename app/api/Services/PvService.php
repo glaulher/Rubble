@@ -239,6 +239,10 @@ class PvService
                 $this->repository->saveOsLinks($pvId, $data['ticket_ids']);
             }
 
+            if (isset($worstStatus) && mb_strtolower(trim($worstStatus), 'UTF-8') === 'scm aprovado') {
+                $this->repository->syncTicketsStatusByPvId($pvId, 'Concluído');
+            }
+
             $this->repository->commit();
             return $pvId;
         } catch (\Throwable $e) {
@@ -284,6 +288,10 @@ class PvService
                 $this->repository->saveOsLinks((int) $data['id'], $data['ticket_ids']);
             }
 
+            if ($worstStatus !== null && mb_strtolower(trim($worstStatus), 'UTF-8') === 'scm aprovado') {
+                $this->repository->syncTicketsStatusByPvId((int) $data['id'], 'Concluído');
+            }
+
             $this->repository->commit();
             return $result;
         } catch (\Throwable $e) {
@@ -299,14 +307,21 @@ class PvService
 
     public function updateItemsByWorstStatus(int $pvId, string $status): bool
     {
-        return $this->repository->updateItemsByWorstStatus($pvId, $status);
+        $updated = $this->repository->updateItemsByWorstStatus($pvId, $status);
+        if ($updated && mb_strtolower(trim($status), 'UTF-8') === 'scm aprovado') {
+            $worstStatus = $this->repository->getWorstStatus($pvId);
+            if ($worstStatus !== null && mb_strtolower(trim($worstStatus), 'UTF-8') === 'scm aprovado') {
+                $this->repository->syncTicketsStatusByPvId($pvId, 'Concluído');
+            }
+        }
+        return $updated;
     }
 
     public function updateItemsByWorstStatusBatch(array $ids, string $status): bool
     {
         $allOk = true;
         foreach ($ids as $id) {
-            if (!$this->repository->updateItemsByWorstStatus((int) $id, $status)) {
+            if (!$this->updateItemsByWorstStatus((int) $id, $status)) {
                 $allOk = false;
             }
         }
@@ -440,6 +455,9 @@ class PvService
 
             if ($found) {
                 $ticketIds[] = (int) $found['id'];
+                if ($registroStatus === 'Concluído' || $registroStatus === "Conclu\xc3\xaddo") {
+                    $this->repository->syncTicketStatusById((int) $found['id'], 'Concluído');
+                }
                 continue;
             }
 

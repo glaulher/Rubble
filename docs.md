@@ -265,7 +265,7 @@ Módulo de importação e auditoria das planilhas de medição fornecidas pelo c
 #### Operações:
 1. **Importação de CSV:** Clique em `Importar CSV`. O sistema detecta automaticamente o delimitador (vírgula ou ponto-e-vírgula), converte encoding (UTF-8 com suporte a Latin-1/BOM) e realiza o parse dos registros.
 2. **Mapeamento de Status:** Converte os status brutos da planilha (`GERADO` → `SCM aprovado`, `NEGADO` → `SCM negado`, `CONFERIDO` → `SCM verificado`, `EXECUTADO` → `SCM enviado`).
-3. **Sincronização com PV:** Propaga os status do SCM para os itens de PV vinculados pelo número SCM.
+3. **Sincronização com PV:** Propaga os status do SCM para os itens de PV vinculados pelo número SCM. Quando uma PV atinge o status consolidado de `SCM aprovado`, todas as OSs vinculadas a ela na tabela de chamados (`registros`) são automaticamente atualizadas para o status `Concluído` com preenchimento da data de conclusão.
 4. **Diagnóstico de Mercado:** Realiza a conferência cruzada entre o campo `origem` do SCM e o `mercado` cadastrado no equipamento. Exibe badge de alerta vermelho caso haja divergência de faturamento.
 
 ---

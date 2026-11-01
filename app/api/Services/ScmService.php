@@ -3,6 +3,7 @@
 namespace App\Api\Services;
 
 use App\Api\Repositories\ScmRepository;
+use App\Api\Repositories\PvRepository;
 
 class ScmService
 {
@@ -20,13 +21,26 @@ class ScmService
 
     private ScmRepository $repository;
     private PreventiveCycleService $preventiveCycleService;
+    private ?PvRepository $pvRepository = null;
 
     private const PV_SYNC_STATUSES = ['SCM aprovado', 'SCM negado', 'SCM enviado'];
 
-    public function __construct(?ScmRepository $repository = null, ?PreventiveCycleService $preventiveCycleService = null)
-    {
+    public function __construct(
+        ?ScmRepository $repository = null,
+        ?PreventiveCycleService $preventiveCycleService = null,
+        ?PvRepository $pvRepository = null
+    ) {
         $this->repository = $repository ?? new ScmRepository();
         $this->preventiveCycleService = $preventiveCycleService ?? new PreventiveCycleService();
+        $this->pvRepository = $pvRepository;
+    }
+
+    private function getPvRepository(): PvRepository
+    {
+        if ($this->pvRepository === null) {
+            $this->pvRepository = new PvRepository();
+        }
+        return $this->pvRepository;
     }
 
     public function listAll(int $limit, int $offset, string $search = '', ?string $dateFrom = null, ?string $dateTo = null, array $segments = [], ?string $status = null, array $sites = [], ?string $ciclo = null): array
@@ -136,7 +150,17 @@ class ScmService
                 $this->repository->upsertItems($scmId, $itemRows);
 
                 if (in_array($mappedStatus, self::PV_SYNC_STATUSES, true)) {
+                    $affectedPvIds = $this->repository->findPvIdsByScmCode($parentData['scm']);
                     $this->repository->updatePvItemStatusByScm($parentData['scm'], $mappedStatus);
+                    if ($mappedStatus === 'SCM aprovado') {
+                        $pvRepo = $this->getPvRepository();
+                        foreach ($affectedPvIds as $pvId) {
+                            $worst = $pvRepo->getWorstStatus((int) $pvId);
+                            if ($worst !== null && mb_strtolower(trim($worst), 'UTF-8') === 'scm aprovado') {
+                                $pvRepo->syncTicketsStatusByPvId((int) $pvId, 'Concluído');
+                            }
+                        }
+                    }
                 }
 
                 $isPreventiva = str_contains(mb_strtoupper($parentData['segmento']), 'PREVENTIVA')
