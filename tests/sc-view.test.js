@@ -164,4 +164,49 @@ describe('SC view integration', () => {
     const csvBtn = document.getElementById('scCsvBtn');
     expect(csvBtn).not.toBeNull();
   });
+
+  test('filtro de status customizado abre dropdown, seleciona opcao e atualiza label e select oculto', async () => {
+    mountView();
+    mockApi();
+
+    const list = await import('../public/js/sc/list.js');
+    await list.initSc();
+
+    const statusBtn = document.getElementById('scStatusBtn');
+    const statusDropdown = document.getElementById('scStatusDropdown');
+    const statusLabel = document.getElementById('scStatusLabel');
+    const hiddenSelect = document.getElementById('scStatusFilter');
+
+    expect(statusBtn).not.toBeNull();
+    expect(statusDropdown).not.toBeNull();
+    expect(statusDropdown.classList.contains('hidden')).toBe(true);
+
+    // Clicar no botão abre o dropdown
+    statusBtn.click();
+    expect(statusDropdown.classList.contains('hidden')).toBe(false);
+
+    // Encontra opção sc_aprovada
+    const opt = statusDropdown.querySelector('[data-value="sc_aprovada"]');
+    expect(opt).not.toBeNull();
+    expect(opt.textContent).toContain('SC aprovada');
+
+    // Clicar na opção fecha o dropdown e seleciona
+    opt.click();
+    expect(statusDropdown.classList.contains('hidden')).toBe(true);
+    expect(hiddenSelect.value).toBe('sc_aprovada');
+    expect(statusLabel.textContent).toContain('SC aprovada');
+
+    // Clicar em Limpar reseta o filtro
+    const clearBtn = document.getElementById('scClearFilters');
+    clearBtn.click();
+    expect(hiddenSelect.value).toBe('');
+    expect(statusLabel.textContent).toBe('Todos os status');
+  });
+
+  test('default.css possui regras de hover dark unificadas para scStatusDropdown e scSiteDropdown', () => {
+    const css = readFileSync(resolve(import.meta.dir, '../public/css/default.css'), 'utf-8');
+    expect(css).toContain('.dark #scStatusDropdown .sc-status-opt:hover');
+    expect(css).toContain('rgba(14, 116, 144, 0.3)');
+    expect(css).toContain('#7dd3fc');
+  });
 });

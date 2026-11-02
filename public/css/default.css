@@ -299,15 +299,22 @@ button:disabled { cursor: not-allowed; }
 .dark .hover\:bg-white:hover { background-color: #222838 !important; }
 .dark .hover\:bg-sky-50:hover { background-color: #1e2536 !important; }
 .dark .hover\:bg-sky-100:hover,
-.dark #scSiteDropdown label:hover {
+.dark #scSiteDropdown label:hover,
+.dark #scStatusDropdown .sc-status-opt:hover,
+.dark #scStatusDropdown label:hover {
   background-color: rgba(14, 116, 144, 0.3) !important;
   color: #7dd3fc !important;
 }
-.dark #scSiteDropdown label {
+.dark #scSiteDropdown label,
+.dark #scStatusDropdown .sc-status-opt {
   color: #cbd5e1 !important;
 }
-.dark #scSiteDropdown label:hover span {
+.dark #scSiteDropdown label:hover span,
+.dark #scStatusDropdown .sc-status-opt:hover span {
   color: #7dd3fc !important;
+}
+.dark #scStatusDropdown .text-sky-600 {
+  color: #38bdf8 !important;
 }
 .dark .text-indigo-800,
 .dark .text-indigo-700 { color: #a5b4fc !important; }

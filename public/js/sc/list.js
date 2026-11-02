@@ -21,6 +21,7 @@ let _scStatusFilter = '';
 let _scSiteFilter = new Set();
 let _scEditingCount = 0;
 let _scSiteDocListenerBound = false;
+let _scStatusDocListenerBound = false;
 const _scOpenEdits = new Set();
 const _scExpandedCards = new Set();
 
@@ -145,6 +146,93 @@ async function loadScEquipmentOptions() {
 |--------------------------------------------------------------------------
 */
 
+function updateStatusLabel() {
+  const label = document.getElementById('scStatusLabel');
+  if (!label) return;
+  if (!_scStatusFilter) {
+    label.textContent = 'Todos os status';
+    return;
+  }
+  const found = SC_STATUSES.find((s) => s.key === _scStatusFilter);
+  const base = found ? found.label : _scStatusFilter;
+  const count = _scStatusCounts[_scStatusFilter];
+  label.textContent = typeof count === 'number' ? `${base} (${count})` : base;
+}
+
+function setupScStatusFilterDropdown() {
+  const button = document.getElementById('scStatusBtn');
+  const dropdown = document.getElementById('scStatusDropdown');
+  const select = document.getElementById('scStatusFilter');
+
+  if (!button || !dropdown) return;
+
+  function renderDropdown() {
+    const options = [
+      { key: '', label: 'Todos os status', count: null },
+      ...SC_STATUSES.map((s) => ({
+        key: s.key,
+        label: s.label,
+        count: _scStatusCounts[s.key] ?? 0,
+      })),
+    ];
+
+    dropdown.innerHTML = options
+      .map((opt) => {
+        const isSelected = _scStatusFilter === opt.key;
+        const countDisplay = opt.count !== null ? ` (${opt.count})` : '';
+        const activeClass = isSelected ? ' font-semibold' : '';
+        return `
+          <div
+            data-value="${escapeHtml(opt.key)}"
+            class="sc-status-opt px-3 py-2 text-sm text-slate-700 hover:bg-sky-100 cursor-pointer flex items-center justify-between${activeClass}"
+          >
+            <span class="truncate">${escapeHtml(opt.label)}${countDisplay}</span>
+            ${isSelected ? '<span class="text-sky-600 font-bold ml-2">✓</span>' : ''}
+          </div>
+        `;
+      })
+      .join('');
+    dropdown.classList.remove('hidden');
+  }
+
+  button.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const otherDropdown = document.getElementById('scSiteDropdown');
+    if (otherDropdown) otherDropdown.classList.add('hidden');
+    if (dropdown.classList.contains('hidden')) {
+      renderDropdown();
+    } else {
+      dropdown.classList.add('hidden');
+    }
+  });
+
+  dropdown.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const item = e.target.closest('.sc-status-opt');
+    if (!item) return;
+
+    _scStatusFilter = item.dataset.value || '';
+    if (select) select.value = _scStatusFilter;
+    updateStatusLabel();
+    dropdown.classList.add('hidden');
+    loadSc();
+  });
+
+  if (!_scStatusDocListenerBound) {
+    _scStatusDocListenerBound = true;
+    document.addEventListener('click', (e) => {
+      const currentButton = document.getElementById('scStatusBtn');
+      const currentDropdown = document.getElementById('scStatusDropdown');
+      if (!currentButton || !currentDropdown) return;
+      if (!currentDropdown.contains(e.target) && !currentButton.contains(e.target)) {
+        currentDropdown.classList.add('hidden');
+      }
+    });
+  }
+
+  updateStatusLabel();
+}
+
 function setupScSiteFilterAutocomplete() {
   const button = document.getElementById('scSiteBtn');
   const dropdown = document.getElementById('scSiteDropdown');
@@ -179,6 +267,8 @@ function setupScSiteFilterAutocomplete() {
 
   button.addEventListener('click', (e) => {
     e.stopPropagation();
+    const otherDropdown = document.getElementById('scStatusDropdown');
+    if (otherDropdown) otherDropdown.classList.add('hidden');
     renderDropdown();
   });
 
@@ -741,14 +831,44 @@ export async function loadSc(silent = false) {
 
 function updateStatusFilterCounts() {
   const select = document.getElementById('scStatusFilter');
-  if (!select) return;
+  if (select) {
+    select.querySelectorAll('option').forEach((option) => {
+      const key = option.value;
+      const baseLabel = option.dataset.label || option.textContent.replace(/ \(\d+\)$/, '');
+      option.dataset.label = baseLabel;
+      option.textContent = key ? `${baseLabel} (${_scStatusCounts[key] || 0})` : baseLabel;
+    });
+  }
 
-  select.querySelectorAll('option').forEach((option) => {
-    const key = option.value;
-    const baseLabel = option.dataset.label || option.textContent.replace(/ \(\d+\)$/, '');
-    option.dataset.label = baseLabel;
-    option.textContent = key ? `${baseLabel} (${_scStatusCounts[key] || 0})` : baseLabel;
-  });
+  updateStatusLabel();
+
+  const dropdown = document.getElementById('scStatusDropdown');
+  if (dropdown && !dropdown.classList.contains('hidden')) {
+    const options = [
+      { key: '', label: 'Todos os status', count: null },
+      ...SC_STATUSES.map((s) => ({
+        key: s.key,
+        label: s.label,
+        count: _scStatusCounts[s.key] ?? 0,
+      })),
+    ];
+    dropdown.innerHTML = options
+      .map((opt) => {
+        const isSelected = _scStatusFilter === opt.key;
+        const countDisplay = opt.count !== null ? ` (${opt.count})` : '';
+        const activeClass = isSelected ? ' font-semibold' : '';
+        return `
+          <div
+            data-value="${escapeHtml(opt.key)}"
+            class="sc-status-opt px-3 py-2 text-sm text-slate-700 hover:bg-sky-100 cursor-pointer flex items-center justify-between${activeClass}"
+          >
+            <span class="truncate">${escapeHtml(opt.label)}${countDisplay}</span>
+            ${isSelected ? '<span class="text-sky-600 font-bold ml-2">✓</span>' : ''}
+          </div>
+        `;
+      })
+      .join('');
+  }
 }
 
 export async function deleteSc(id) {
@@ -956,8 +1076,10 @@ export async function initSc() {
   // Restaura os filtros ativos (o módulo é singleton entre navegações).
   if (searchInput) searchInput.value = _scSearch;
   if (statusFilter) statusFilter.value = _scStatusFilter;
+  updateStatusLabel();
 
   await Promise.all([loadScSiteOptions(), loadScEquipmentOptions()]);
+  setupScStatusFilterDropdown();
   setupScSiteFilterAutocomplete();
   bindListEvents();
 
@@ -985,6 +1107,7 @@ export async function initSc() {
   if (statusFilter) {
     statusFilter.addEventListener('change', () => {
       _scStatusFilter = statusFilter.value;
+      updateStatusLabel();
       loadSc();
     });
   }
@@ -996,6 +1119,7 @@ export async function initSc() {
       _scSiteFilter.clear();
       if (searchInput) searchInput.value = '';
       if (statusFilter) statusFilter.value = '';
+      updateStatusLabel();
       const label = document.getElementById('scSiteLabel');
       if (label) label.textContent = 'Todos';
       loadSc();
