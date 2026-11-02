@@ -282,6 +282,10 @@ export function buildScCardHtml(item) {
     ? '<span class="text-xs text-slate-400 italic">Sem equipamento</span>'
     : `<span class="text-xs text-slate-600 font-medium">${equipFormatted}</span>`;
 
+  const scCount = Number(item.pv_sc_count) || 0;
+  const hasMultipleSc = scCount > 1 && Boolean(item.numero_pv);
+  const totalScPvDisplay = hasMultipleSc ? formatMoney(item.pv_sc_total_valor) : null;
+
   return `
     <article class="card-item relative bg-white rounded-xl border border-slate-200 p-4 shadow-sm" data-sc-id="${item.id}">
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -295,8 +299,15 @@ export function buildScCardHtml(item) {
         <div class="ml-auto flex flex-wrap items-center gap-2">
           <span class="bg-violet-100 text-violet-800 px-2.5 py-0.5 rounded-xl text-xs font-medium">${pvDisplay}</span>
           <span class="bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-xl text-xs font-medium">${pvValorDisplay}</span>
-          <span class="px-2.5 py-0.5 rounded-xl text-xs font-medium ${Number(item.markup_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}">Markup: ${formatPct(item.markup_pct)}</span>
-          <span class="px-2.5 py-0.5 rounded-xl text-xs font-medium ${Number(item.margem_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}">Margem: ${formatPct(item.margem_pct)}</span>
+          ${
+            hasMultipleSc
+              ? `<span class="bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded-xl text-xs font-medium" title="Soma de ${scCount} SCs vinculadas à PV ${escapeHtml(item.numero_pv)}: ${totalScPvDisplay}">
+                  ${scCount} SCs na PV (Total: ${totalScPvDisplay})
+                </span>`
+              : ''
+          }
+          <span class="px-2.5 py-0.5 rounded-xl text-xs font-medium ${Number(item.markup_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}" title="${hasMultipleSc ? 'Markup calculado sobre o valor total acumulado das ' + scCount + ' SCs vinculadas' : ''}">Markup: ${formatPct(item.markup_pct)}</span>
+          <span class="px-2.5 py-0.5 rounded-xl text-xs font-medium ${Number(item.margem_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}" title="${hasMultipleSc ? 'Margem calculada sobre o valor total acumulado das ' + scCount + ' SCs vinculadas' : ''}">Margem: ${formatPct(item.margem_pct)}</span>
           <span class="text-xs px-2.5 py-0.5 rounded-xl font-semibold ${scStatusBadgeClass(item.status)}">${escapeHtml(statusLabel)}</span>
           ${(typeof getUser === 'function' && getUser()?.role === 'admin') ? `
           ${iconButtonHtml('delete', 'Excluir', { 'class': 'sc-delete-btn', 'data-sc-delete': item.id }, 'right')}` : ''}
@@ -345,14 +356,22 @@ export function buildScCardHtml(item) {
           ${fieldCell('numero_pc', 'PC', escapeHtml(item.numero_pc || '—'), item.numero_pc || '')}
           ${fieldCell('numero_pv', 'PV', escapeHtml(item.numero_pv || '—'), item.numero_pv || '')}
           ${fieldCell('sla_dias', 'SLA', slaHtml, item.sla_dias ?? '')}
-          ${fieldCell('valor_sc', 'Valor SC', formatMoney(item.valor_sc), item.valor_sc ?? '')}
+          ${fieldCell('valor_sc', hasMultipleSc ? 'Valor SC (desta)' : 'Valor SC', formatMoney(item.valor_sc), item.valor_sc ?? '')}
+          ${
+            hasMultipleSc
+              ? `<div class="bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-200 flex flex-col justify-between">
+                  <span class="text-[11px] font-semibold text-indigo-500 uppercase tracking-wider mb-1">Total SCs da PV (${scCount})</span>
+                  <span class="text-sm font-bold text-indigo-700 font-mono">${totalScPvDisplay}</span>
+                </div>`
+              : ''
+          }
           ${fieldCell('pv_valor_total', 'Valor PV', formatMoney(item.pv_valor_total), item.pv_valor_total ?? '', false)}
           <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-col justify-between">
-            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Markup (sobre SC)</span>
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Markup ${hasMultipleSc ? '(total SCs)' : '(sobre SC)'}</span>
             <span class="text-sm font-bold ${Number(item.markup_pct) < 0 ? 'text-red-600' : 'text-slate-800'}">${formatPct(item.markup_pct)}</span>
           </div>
           <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-col justify-between">
-            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Margem (sobre PV)</span>
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Margem ${hasMultipleSc ? '(total SCs)' : '(sobre PV)'}</span>
             <span class="text-sm font-bold ${Number(item.margem_pct) < 0 ? 'text-red-600' : 'text-slate-800'}">${formatPct(item.margem_pct)}</span>
           </div>
         </div>

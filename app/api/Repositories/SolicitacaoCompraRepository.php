@@ -5,12 +5,20 @@ namespace App\Api\Repositories;
 class SolicitacaoCompraRepository extends BaseRepository
 {
     private const SELECT_BASE = "SELECT sc.*, e.equipamento, e.capacidade, e.local, e.localidade,
-               pvt.pv_valor_total
+               pvt.pv_valor_total,
+               sc_totais.pv_sc_total_valor,
+               sc_totais.pv_sc_count
         FROM solicitacao_compra sc
         LEFT JOIN equipamentos e ON e.id = sc.equipamento_id
         LEFT JOIN (SELECT p.numero_pv, SUM(pi.valor_total) AS pv_valor_total
                    FROM pv p JOIN pv_item pi ON pi.pv_id = p.id
-                   GROUP BY p.numero_pv) pvt ON pvt.numero_pv = sc.numero_pv";
+                   GROUP BY p.numero_pv) pvt ON pvt.numero_pv = sc.numero_pv
+        LEFT JOIN (SELECT sc_sub.numero_pv,
+                          SUM(sc_sub.valor_sc) AS pv_sc_total_valor,
+                          COUNT(*) AS pv_sc_count
+                   FROM solicitacao_compra sc_sub
+                   WHERE sc_sub.numero_pv IS NOT NULL AND TRIM(sc_sub.numero_pv) != ''
+                   GROUP BY sc_sub.numero_pv) sc_totais ON sc_totais.numero_pv = sc.numero_pv";
 
     private const WRITABLE_FIELDS = [
         'titulo_email' => 's',

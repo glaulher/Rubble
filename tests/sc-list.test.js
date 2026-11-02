@@ -127,6 +127,23 @@ describe('SC list', () => {
     expect(html).toContain('+23,1%');
   });
 
+  test('buildScCardHtml mostra badge de SCs complementares quando pv_sc_count > 1', () => {
+    const itemMultiple = {
+      ...item,
+      valor_sc: '300.00',
+      pv_sc_count: 2,
+      pv_sc_total_valor: 700.00,
+      markup_pct: 42.9,
+      margem_pct: 30.0,
+    };
+    const html = globalThis.buildScCardHtml(itemMultiple);
+    expect(html).toContain('2 SCs na PV');
+    expect(html).toContain('700,00');
+    expect(html).toContain('Total SCs da PV (2)');
+    expect(html).toContain('+42,9%');
+    expect(html).toContain('+30,0%');
+  });
+
   test('buildScCardHtml mostra tracejado quando nao ha PV', () => {
     const html = globalThis.buildScCardHtml({ ...item, pv_valor_total: null, markup_pct: null, margem_pct: null });
     expect(html).toContain('—');

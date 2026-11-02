@@ -418,4 +418,24 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->assertNull($out['margem_pct']);
         $this->assertSame(0, $out['overdue_days']);
     }
+
+    public function testEnrichUsesConsolidatedScTotalWhenMultipleScsSharePv(): void
+    {
+        // Duas SCs para a mesma PV: SC1 custa 300, SC2 custa 400. Total SC = 700. PV = 1000.
+        $out = $this->service()->enrich([
+            'status' => 'sc_aprovada',
+            'numero_pv' => '260025',
+            'valor_sc' => '300.00',
+            'pv_valor_total' => '1000.00',
+            'pv_sc_count' => 2,
+            'pv_sc_total_valor' => '700.00',
+        ]);
+
+        // Margem real = (1000 - 700) / 1000 = 30.0% (se fosse isolada seria 70.0%)
+        $this->assertSame(30.0, $out['margem_pct']);
+        // Markup real = (1000 - 700) / 700 = 42.9% (se fosse isolada seria 233.3%)
+        $this->assertSame(42.9, $out['markup_pct']);
+        $this->assertSame(2, $out['pv_sc_count']);
+        $this->assertSame(700.0, $out['pv_sc_total_valor']);
+    }
 }

@@ -216,8 +216,13 @@ class SolicitacaoCompraService
     {
         $today ??= date('Y-m-d');
 
+        $scCount = (int) ($row['pv_sc_count'] ?? 0);
+        $scTotalParaCalculo = ($scCount > 1 && array_key_exists('pv_sc_total_valor', $row) && $row['pv_sc_total_valor'] !== null)
+            ? self::toFloat($row['pv_sc_total_valor'])
+            : self::toFloat($row['valor_sc'] ?? null);
+
         $margins = self::computeMargins(
-            self::toFloat($row['valor_sc'] ?? null),
+            $scTotalParaCalculo,
             self::toFloat($row['pv_valor_total'] ?? null)
         );
 
@@ -225,6 +230,8 @@ class SolicitacaoCompraService
         $row['markup_pct'] = $margins['markup_pct'];
         $row['margem_pct'] = $margins['margem_pct'];
         $row['overdue_days'] = self::overdueDays($row, $today);
+        $row['pv_sc_count'] = $scCount;
+        $row['pv_sc_total_valor'] = isset($row['pv_sc_total_valor']) ? self::toFloat($row['pv_sc_total_valor']) : null;
 
         return $row;
     }

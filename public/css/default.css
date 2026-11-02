@@ -298,6 +298,21 @@ button:disabled { cursor: not-allowed; }
 .dark .hover\:bg-slate-50:hover { background-color: #1e2536 !important; }
 .dark .hover\:bg-white:hover { background-color: #222838 !important; }
 .dark .hover\:bg-sky-50:hover { background-color: #1e2536 !important; }
+.dark .hover\:bg-sky-100:hover,
+.dark #scSiteDropdown label:hover {
+  background-color: rgba(14, 116, 144, 0.3) !important;
+  color: #7dd3fc !important;
+}
+.dark #scSiteDropdown label {
+  color: #cbd5e1 !important;
+}
+.dark #scSiteDropdown label:hover span {
+  color: #7dd3fc !important;
+}
+.dark .text-indigo-800,
+.dark .text-indigo-700 { color: #a5b4fc !important; }
+.dark .border-indigo-200 { border-color: rgba(79, 70, 229, 0.4) !important; }
+.dark [class*="bg-indigo-50"] { background-color: rgba(49, 46, 129, 0.25) !important; }
 .dark .hover\:bg-emerald-100:hover,
 .dark .bg-emerald-50:hover { background-color: rgba(6, 95, 70, 0.6) !important; }
 
