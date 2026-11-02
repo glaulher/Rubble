@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from 'bun:test';
+import { describe, test, expect } from 'bun:test';
 import { evalModule } from './helpers/eval-module.js';
 
 const HELPERS = `
@@ -43,16 +43,30 @@ globalThis.iconButtonHtml = (type, tooltip, attrs, tooltipPos) => {
 evalModule('../public/js/estoque/list.js', HELPERS);
 
 describe('Estoque list module', () => {
-  const itemMock = {
+  const loteMock = {
     id: 10,
     status: 'em_estoque',
     material_descricao: 'Filtro G4 500x500',
     quantidade: 4.0,
+    quantidade_disponivel: 3.0,
+    quantidade_baixada: 1.0,
     unidade: 'UN',
     preco_compra: 50.0,
     total_compra: 200.0,
     data_entrada: '2026-11-01',
     fornecedor_nf: 'NF 12345',
+    site: 'Estoque Central',
+    observacoes: 'Lote recebido em perfeito estado',
+  };
+
+  const saidaMock = {
+    id: 101,
+    estoque_material_id: 10,
+    material_descricao: 'Filtro G4 500x500',
+    quantidade_saida: 1.0,
+    unidade: 'UN',
+    preco_compra: 50.0,
+    total_compra: 50.0,
     data_saida: '2026-11-02',
     tecnico_nome: 'Carlos',
     numero_os: '98765',
@@ -63,11 +77,11 @@ describe('Estoque list module', () => {
     capacidade: '10.00',
     localidade: 'Container 1',
     numero_pv: '260232',
-    pv_item_id: 101,
+    pv_item_id: 201,
     pv_item_descricao: 'Troca de filtros',
     preco_venda: 100.0,
-    total_venda: 400.0,
-    lucro_bruto: 200.0,
+    total_venda: 100.0,
+    lucro_bruto: 50.0,
     margem_percent: 50.0,
     markup_percent: 100.0,
     observacoes: 'Substituição preventiva',
@@ -103,34 +117,64 @@ describe('Estoque list module', () => {
     expect(globalThis.formatPctEstoque(NaN)).toBe('—');
   });
 
-  test('buildEstoqueRowHtml renderiza colunas de entrada, baixa e porcentagens', () => {
+  test('buildEstoqueRowHtml renderiza colunas da entrada, saldo disponível e ações', () => {
     globalThis._currentUser = { role: 'admin' };
-    const html = globalThis.buildEstoqueRowHtml(itemMock);
+    const html = globalThis.buildEstoqueRowHtml(loteMock);
+
+    expect(html).toContain('Filtro G4 500x500');
+    expect(html).toContain('Estoque Central');
+    expect(html).toContain('4.00'); // Qtd entrada
+    expect(html).toContain('3.00'); // Saldo disponível
+    expect(html).toContain('1.00'); // Qtd baixada
+    expect(html).toContain('R$');
+    expect(html).toContain('NF 12345');
+    // Como tem saldo disponível, deve ter botão de Dar Baixa
+    expect(html).toContain('data-action="baixa"');
+    // Admin deve ter botão de exclusão
+    expect(html).toContain('data-action="delete-entrada"');
+  });
+
+  test('buildEstoqueRowHtml não exibe botão de baixa quando lote está esgotado (saldo 0)', () => {
+    globalThis._currentUser = { role: 'admin' };
+    const loteEsgotado = {
+      ...loteMock,
+      quantidade_disponivel: 0.0,
+      quantidade_baixada: 4.0,
+      status: 'aplicado',
+    };
+
+    const html = globalThis.buildEstoqueRowHtml(loteEsgotado);
+    expect(html).not.toContain('data-action="baixa"');
+  });
+
+  test('buildEstoqueRowHtml oculta botão deletar para usuários não-admin', () => {
+    globalThis._currentUser = { role: 'coordenador' };
+    const htmlCoord = globalThis.buildEstoqueRowHtml(loteMock);
+    expect(htmlCoord).not.toContain('data-action="delete-entrada"');
+
+    globalThis._currentUser = { role: 'gerente' };
+    const htmlGerente = globalThis.buildEstoqueRowHtml(loteMock);
+    expect(htmlGerente).not.toContain('data-action="delete-entrada"');
+  });
+
+  test('buildSaidaRowHtml renderiza linha da saída com site destino, PV, técnico e rentabilidade', () => {
+    globalThis._currentUser = { role: 'admin' };
+    const html = globalThis.buildSaidaRowHtml(saidaMock);
 
     expect(html).toContain('Filtro G4 500x500');
     expect(html).toContain('BMADTC');
     expect(html).toContain('AC-01');
+    expect(html).toContain('Carlos');
+    expect(html).toContain('98765');
     expect(html).toContain('260232');
     expect(html).toContain('50,0%');
     expect(html).toContain('100,0%');
-    expect(html).toContain('R$');
-    // Admin deve ter botão de exclusão
-    expect(html).toContain('data-action="delete"');
+    expect(html).toContain('data-action="delete-saida"');
   });
 
-  test('buildEstoqueRowHtml oculta botao deletar para usuarios nao-admin', () => {
-    globalThis._currentUser = { role: 'coordenador' };
-    const htmlCoord = globalThis.buildEstoqueRowHtml(itemMock);
-    expect(htmlCoord).not.toContain('data-action="delete"');
-
-    globalThis._currentUser = { role: 'gerente' };
-    const htmlGerente = globalThis.buildEstoqueRowHtml(itemMock);
-    expect(htmlGerente).not.toContain('data-action="delete"');
-  });
-
-  test('buildEstoqueRowHtml exibe traço quando preco_venda for nulo sem gerar NaN/Infinity', () => {
-    const itemSemVenda = {
-      ...itemMock,
+  test('buildSaidaRowHtml exibe traço quando preco_venda for nulo sem gerar NaN/Infinity', () => {
+    const saidaSemVenda = {
+      ...saidaMock,
       preco_venda: null,
       total_venda: null,
       lucro_bruto: null,
@@ -138,22 +182,36 @@ describe('Estoque list module', () => {
       markup_percent: null,
     };
 
-    const html = globalThis.buildEstoqueRowHtml(itemSemVenda);
+    const html = globalThis.buildSaidaRowHtml(saidaSemVenda);
     expect(html).toContain('—');
     expect(html).not.toContain('NaN');
     expect(html).not.toContain('Infinity');
   });
 
-  test('exportEstoqueCsv exporta colunas corretas com BOM e separador', () => {
-    const items = [itemMock];
+  test('exportEstoqueCsv exporta colunas corretas de lotes com saldo e custo', () => {
+    const items = [loteMock];
     globalThis.triggerEstoqueCsvExport(items);
 
     expect(globalThis._lastCsv).not.toBeNull();
-    expect(globalThis._lastCsv.filename).toContain('estoque_materiais');
+    expect(globalThis._lastCsv.filename).toContain('estoque_entradas');
     expect(globalThis._lastCsv.header).toContain('Material');
+    expect(globalThis._lastCsv.header).toContain('Qtd Entrada');
+    expect(globalThis._lastCsv.header).toContain('Saldo Disponível');
     expect(globalThis._lastCsv.header).toContain('Total Compra');
-    expect(globalThis._lastCsv.header).toContain('% Margem');
     expect(globalThis._lastCsv.rows.length).toBe(1);
     expect(globalThis._lastCsv.rows[0]).toContain('Filtro G4 500x500');
+  });
+
+  test('exportSaidasCsv exporta colunas corretas de saídas com rentabilidade e site', () => {
+    const items = [saidaMock];
+    globalThis.triggerSaidasCsvExport(items);
+
+    expect(globalThis._lastCsv).not.toBeNull();
+    expect(globalThis._lastCsv.filename).toContain('estoque_saidas');
+    expect(globalThis._lastCsv.header).toContain('Material');
+    expect(globalThis._lastCsv.header).toContain('Site de Destino');
+    expect(globalThis._lastCsv.header).toContain('% Margem');
+    expect(globalThis._lastCsv.rows.length).toBe(1);
+    expect(globalThis._lastCsv.rows[0]).toContain('BMADTC');
   });
 });

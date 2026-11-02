@@ -3,13 +3,16 @@
 namespace Tests\Unit;
 
 use App\Api\Entities\EstoqueMaterial;
+use App\Api\Entities\EstoqueSaida;
 use App\Api\Repositories\EstoqueMaterialRepository;
+use App\Api\Repositories\EstoqueSaidaRepository;
 use App\Config\Database;
 use PHPUnit\Framework\TestCase;
 
 class EstoqueMaterialRepositoryTest extends TestCase
 {
     private EstoqueMaterialRepository $repo;
+    private EstoqueSaidaRepository $saidaRepo;
 
     protected function setUp(): void
     {
@@ -21,7 +24,13 @@ class EstoqueMaterialRepositoryTest extends TestCase
             $this->markTestSkipped('migration 073 não aplicada');
         }
 
+        $checkSaidas = $conn->query("SHOW TABLES LIKE 'estoque_saidas'");
+        if ($checkSaidas === false || $checkSaidas->num_rows === 0) {
+            $this->markTestSkipped('migration 074 não aplicada');
+        }
+
         $this->repo = new EstoqueMaterialRepository();
+        $this->saidaRepo = new EstoqueSaidaRepository();
         $this->repo->beginTransaction();
     }
 
@@ -33,71 +42,46 @@ class EstoqueMaterialRepositoryTest extends TestCase
         parent::tearDown();
     }
 
-    public function testEntityCalculatesTotalsAndPercentages(): void
+    public function testEntityCalculatesTotalsAndDisponivel(): void
     {
         $entity = new EstoqueMaterial([
             'id' => 1,
             'status' => 'em_estoque',
             'material_descricao' => 'Filtro G4 500x500',
             'quantidade' => 10,
+            'quantidade_baixada' => 3,
             'unidade' => 'UN',
             'preco_compra' => 50.00,
             'data_entrada' => '2026-11-01',
             'site' => 'BMADTC',
-            'preco_venda' => 100.00,
         ]);
 
         $arr = $entity->toArray();
 
         $this->assertSame(10.0, $arr['quantidade']);
+        $this->assertSame(3.0, $arr['quantidade_baixada']);
+        $this->assertSame(7.0, $arr['quantidade_disponivel']);
         $this->assertSame(50.0, $arr['preco_compra']);
         $this->assertSame(500.0, $arr['total_compra']);
-        $this->assertSame(100.0, $arr['preco_venda']);
-        $this->assertSame(1000.0, $arr['total_venda']);
-        $this->assertSame(500.0, $arr['lucro_bruto']);
-        $this->assertEqualsWithDelta(50.0, $arr['margem_percent'], 0.01);
-        $this->assertEqualsWithDelta(100.0, $arr['markup_percent'], 0.01);
     }
 
-    public function testEntityHandlesZeroDivisionGracefully(): void
+    public function testEntityHandlesZeroQuantities(): void
     {
         $entity = new EstoqueMaterial([
             'id' => 2,
             'material_descricao' => 'Cabo Flexível 2.5mm',
             'quantidade' => 5,
+            'quantidade_baixada' => 5,
             'preco_compra' => 0.00,
             'data_entrada' => '2026-11-01',
             'site' => 'RJOCRT',
-            'preco_venda' => 0.00,
         ]);
 
         $arr = $entity->toArray();
 
         $this->assertSame(0.0, $arr['total_compra']);
-        $this->assertSame(0.0, $arr['total_venda']);
-        $this->assertNull($arr['margem_percent']);
-        $this->assertNull($arr['markup_percent']);
-    }
-
-    public function testEntityHandlesNullPrecoVenda(): void
-    {
-        $entity = new EstoqueMaterial([
-            'id' => 3,
-            'material_descricao' => 'Contatora 3TS',
-            'quantidade' => 2,
-            'preco_compra' => 150.00,
-            'data_entrada' => '2026-11-01',
-            'site' => 'RJOCRT',
-            'preco_venda' => null,
-        ]);
-
-        $arr = $entity->toArray();
-
-        $this->assertSame(300.0, $arr['total_compra']);
-        $this->assertNull($arr['total_venda']);
-        $this->assertNull($arr['lucro_bruto']);
-        $this->assertNull($arr['margem_percent']);
-        $this->assertNull($arr['markup_percent']);
+        $this->assertSame(0.0, $arr['quantidade_disponivel']);
+        $this->assertSame(5.0, $arr['quantidade_baixada']);
     }
 
     private function baseRow(array $over = []): array
@@ -105,7 +89,7 @@ class EstoqueMaterialRepositoryTest extends TestCase
         return array_merge([
             'status' => 'em_estoque',
             'material_descricao' => 'Gás Refrigerante R410A',
-            'quantidade' => 3.0,
+            'quantidade' => 4.0,
             'unidade' => 'KG',
             'preco_compra' => 80.00,
             'data_entrada' => '2026-11-01',
@@ -123,7 +107,7 @@ class EstoqueMaterialRepositoryTest extends TestCase
         $this->assertNotNull($row);
         $this->assertSame('Sensor NTC 10k', $row['material_descricao']);
         $this->assertSame('em_estoque', $row['status']);
-        $this->assertEqualsWithDelta(3.0, (float) $row['quantidade'], 0.001);
+        $this->assertEqualsWithDelta(4.0, (float) $row['quantidade'], 0.001);
         $this->assertSame('BMADTC', $row['site']);
     }
 
@@ -133,29 +117,17 @@ class EstoqueMaterialRepositoryTest extends TestCase
             'material_descricao' => 'Peça Alfa 111',
             'status' => 'em_estoque',
             'site' => 'SITE_A',
-            'numero_pv' => null,
         ]));
 
         $this->repo->save($this->baseRow([
             'material_descricao' => 'Peça Beta 222',
             'status' => 'aplicado',
             'site' => 'SITE_B',
-            'numero_pv' => '260999',
-            'preco_venda' => 200.00,
         ]));
 
         $listAll = $this->repo->listAll(10, 0, 'Peça Alfa');
         $this->assertCount(1, $listAll);
         $this->assertSame('Peça Alfa 111', $listAll[0]['material_descricao']);
-
-        $listComPv = $this->repo->listAll(10, 0, '', null, 'com_pv');
-        $hasBeta = false;
-        foreach ($listComPv as $item) {
-            if ($item['material_descricao'] === 'Peça Beta 222') {
-                $hasBeta = true;
-            }
-        }
-        $this->assertTrue($hasBeta);
     }
 
     public function testUpdateField(): void
@@ -185,12 +157,55 @@ class EstoqueMaterialRepositoryTest extends TestCase
             'material_descricao' => 'Totais Item 1',
             'quantidade' => 2.0,
             'preco_compra' => 50.0,
-            'preco_venda' => 100.0,
         ]));
 
         $totals = $this->repo->getTotals('Totais Item 1');
-        $this->assertSame(1, (int) $totals['total_itens']);
+        $this->assertSame(1, (int) $totals['total_lotes']);
+        $this->assertEqualsWithDelta(2.0, (float) $totals['total_itens_entrada'], 0.01);
         $this->assertEqualsWithDelta(100.0, (float) $totals['total_compra'], 0.01);
-        $this->assertEqualsWithDelta(200.0, (float) $totals['total_venda'], 0.01);
+    }
+
+    public function testSaidaReducesSaldoDisponivel(): void
+    {
+        // 1. Cadastra entrada de 4 unidades
+        $materialId = $this->repo->save($this->baseRow([
+            'material_descricao' => 'Disjuntor Motor MPW40',
+            'quantidade' => 4.0,
+            'preco_compra' => 100.0,
+        ]));
+
+        $itemAntes = $this->repo->getById($materialId);
+        $this->assertEqualsWithDelta(4.0, (float) $itemAntes['quantidade_disponivel'], 0.01);
+        $this->assertEqualsWithDelta(0.0, (float) $itemAntes['quantidade_baixada'], 0.01);
+
+        // 2. Registra primeira saída de 1 unidade para Site A
+        $saida1Id = $this->saidaRepo->save([
+            'estoque_material_id' => $materialId,
+            'quantidade_saida' => 1.0,
+            'data_saida' => '2026-11-02',
+            'site' => 'Site A',
+            'tecnico_nome' => 'João',
+        ]);
+        $this->assertGreaterThan(0, $saida1Id);
+
+        // 3. Registra segunda saída de 2 unidades para Site B
+        $saida2Id = $this->saidaRepo->save([
+            'estoque_material_id' => $materialId,
+            'quantidade_saida' => 2.0,
+            'data_saida' => '2026-11-02',
+            'site' => 'Site B',
+            'tecnico_nome' => 'Maria',
+        ]);
+        $this->assertGreaterThan(0, $saida2Id);
+
+        // 4. Verifica saldo após as duas saídas (4 - (1 + 2) = 1 disponível)
+        $itemDepois = $this->repo->getById($materialId);
+        $this->assertEqualsWithDelta(3.0, (float) $itemDepois['quantidade_baixada'], 0.01);
+        $this->assertEqualsWithDelta(1.0, (float) $itemDepois['quantidade_disponivel'], 0.01);
+        $this->assertSame(2, (int) $itemDepois['total_saidas']);
+
+        // 5. Verifica saídas listadas
+        $saidas = $this->saidaRepo->getByMaterialId($materialId);
+        $this->assertCount(2, $saidas);
     }
 }

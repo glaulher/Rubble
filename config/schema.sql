@@ -972,7 +972,26 @@ CREATE TABLE IF NOT EXISTS `estoque_materiais` (
   `preco_compra` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   `data_entrada` DATE NOT NULL,
   `fornecedor_nf` VARCHAR(150) DEFAULT NULL,
-  `data_saida` DATE DEFAULT NULL,
+  `site` VARCHAR(100) NOT NULL,
+  `observacoes` TEXT DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_estoque_status` (`status`),
+  KEY `idx_estoque_site` (`site`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `estoque_saidas`
+--
+
+CREATE TABLE IF NOT EXISTS `estoque_saidas` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `estoque_material_id` INT(11) NOT NULL,
+  `quantidade_saida` DECIMAL(10,2) NOT NULL DEFAULT 1.00,
+  `data_saida` DATE NOT NULL,
   `tecnico_nome` VARCHAR(100) DEFAULT NULL,
   `numero_os` VARCHAR(50) DEFAULT NULL,
   `site` VARCHAR(100) NOT NULL,
@@ -985,13 +1004,14 @@ CREATE TABLE IF NOT EXISTS `estoque_materiais` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_estoque_status` (`status`),
-  KEY `idx_estoque_site` (`site`),
-  KEY `idx_estoque_numero_pv` (`numero_pv`),
-  KEY `idx_estoque_pv_item` (`pv_item_id`),
-  KEY `idx_estoque_equipamento` (`equipamento_id`),
-  CONSTRAINT `fk_estoque_equipamento` FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_estoque_pv_item` FOREIGN KEY (`pv_item_id`) REFERENCES `pv_item` (`id`) ON DELETE SET NULL
+  KEY `idx_saidas_material` (`estoque_material_id`),
+  KEY `idx_saidas_site` (`site`),
+  KEY `idx_saidas_numero_pv` (`numero_pv`),
+  KEY `idx_saidas_pv_item` (`pv_item_id`),
+  KEY `idx_saidas_equipamento` (`equipamento_id`),
+  CONSTRAINT `fk_saidas_material` FOREIGN KEY (`estoque_material_id`) REFERENCES `estoque_materiais` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_saidas_equipamento` FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_saidas_pv_item` FOREIGN KEY (`pv_item_id`) REFERENCES `pv_item` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 COMMIT;

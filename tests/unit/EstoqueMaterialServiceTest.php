@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Api\Repositories\EstoqueMaterialRepository;
+use App\Api\Repositories\EstoqueSaidaRepository;
 use App\Api\Services\EstoqueMaterialService;
 use PHPUnit\Framework\TestCase;
 
@@ -50,7 +51,7 @@ class EstoqueMaterialServiceTest extends TestCase
     public function testUpdateRejectsEmptySite(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Site é obrigatório.');
+        $this->expectExceptionMessage('Site / Almoxarifado é obrigatório.');
 
         $this->service->update(1, [
             'site' => '   ',
@@ -67,6 +68,24 @@ class EstoqueMaterialServiceTest extends TestCase
             'site' => 'BMADTC',
             'data_entrada' => '2026-11-01',
             'quantidade' => -5,
+        ]);
+    }
+
+    public function testUpdateRejectsQuantityLowerThanAlreadyExited(): void
+    {
+        $materialRepoMock = $this->createMock(EstoqueMaterialRepository::class);
+        $saidaRepoMock = $this->createMock(EstoqueSaidaRepository::class);
+
+        // Simulamos que já foram baixadas 3 unidades deste lote
+        $saidaRepoMock->method('sumSaidasByMaterialId')->with(1)->willReturn(3.0);
+
+        $service = new EstoqueMaterialService($materialRepoMock, $saidaRepoMock);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('A quantidade (2) não pode ser inferior ao total já baixado em saídas (3).');
+
+        $service->update(1, [
+            'quantidade' => 2.0,
         ]);
     }
 
@@ -96,25 +115,15 @@ class EstoqueMaterialServiceTest extends TestCase
                 'id' => 1,
                 'status' => 'em_estoque',
                 'material_descricao' => '=Filtro Especial',
-                'quantidade' => '2.00',
+                'quantidade' => '4.00',
+                'quantidade_disponivel' => '3.00',
+                'quantidade_baixada' => '1.00',
+                'total_saidas' => 1,
                 'unidade' => 'UN',
                 'preco_compra' => '100.00',
                 'data_entrada' => '2026-11-01',
                 'fornecedor_nf' => 'NF 123',
-                'data_saida' => null,
-                'tecnico_nome' => null,
-                'numero_os' => null,
                 'site' => 'BMADTC',
-                'equipamento_id' => null,
-                'equipamento_texto' => 'AC-01',
-                'equipamento' => null,
-                'capacidade' => null,
-                'local' => null,
-                'localidade' => null,
-                'numero_pv' => null,
-                'pv_item_id' => null,
-                'pv_item_descricao' => null,
-                'preco_venda' => null,
                 'observacoes' => 'Obs de teste',
                 'created_at' => '2026-11-01 10:00:00',
                 'updated_at' => '2026-11-01 10:00:00',
@@ -127,7 +136,7 @@ class EstoqueMaterialServiceTest extends TestCase
         // Check UTF-8 BOM
         $this->assertStringStartsWith("\xEF\xBB\xBF", $csv);
         // Check delimiter and headers
-        $this->assertStringContainsString('"Status";"Material";', $csv);
+        $this->assertStringContainsString('"Status";"Material / Descrição";', $csv);
         // Check CSV injection sanitization in content
         $this->assertStringContainsString(';"\'=Filtro Especial";', $csv);
     }

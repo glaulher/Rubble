@@ -5,11 +5,18 @@ namespace App\Api\Repositories;
 class EstoqueMaterialRepository extends BaseRepository
 {
     private const SELECT_BASE = "SELECT em.*,
-               e.equipamento, e.capacidade, e.local, e.localidade,
-               pi.descricao AS pv_item_descricao, pi.valor AS pv_item_valor
+               COALESCE(s.quantidade_baixada, 0) AS quantidade_baixada,
+               ROUND(em.quantidade - COALESCE(s.quantidade_baixada, 0), 2) AS quantidade_disponivel,
+               COALESCE(s.total_saidas, 0) AS total_saidas
         FROM estoque_materiais em
-        LEFT JOIN equipamentos e ON e.id = em.equipamento_id
-        LEFT JOIN pv_item pi ON pi.id = em.pv_item_id";
+        LEFT JOIN (
+            SELECT 
+                estoque_material_id,
+                SUM(quantidade_saida) AS quantidade_baixada,
+                COUNT(*) AS total_saidas
+            FROM estoque_saidas
+            GROUP BY estoque_material_id
+        ) s ON s.estoque_material_id = em.id";
 
     private const WRITABLE_FIELDS = [
         'status' => 's',
@@ -19,15 +26,7 @@ class EstoqueMaterialRepository extends BaseRepository
         'preco_compra' => 'd',
         'data_entrada' => 's',
         'fornecedor_nf' => 's',
-        'data_saida' => 's',
-        'tecnico_nome' => 's',
-        'numero_os' => 's',
         'site' => 's',
-        'equipamento_id' => 'i',
-        'equipamento_texto' => 's',
-        'numero_pv' => 's',
-        'pv_item_id' => 'i',
-        'preco_venda' => 'd',
         'observacoes' => 's',
     ];
 
@@ -36,23 +35,20 @@ class EstoqueMaterialRepository extends BaseRepository
         int $offset = 0,
         string $search = '',
         ?string $status = null,
-        ?string $comPv = null,
         string $sortBy = 'id',
         string $sortDir = 'DESC'
     ): array {
-        [$where, $types, $params] = $this->buildFilterClause($search, $status, $comPv);
+        [$where, $types, $params] = $this->buildFilterClause($search, $status);
 
         $allowedSort = [
             'id' => 'em.id',
             'data_entrada' => 'em.data_entrada',
-            'data_saida' => 'em.data_saida',
             'material_descricao' => 'em.material_descricao',
             'status' => 'em.status',
             'site' => 'em.site',
-            'numero_pv' => 'em.numero_pv',
             'quantidade' => 'em.quantidade',
             'preco_compra' => 'em.preco_compra',
-            'preco_venda' => 'em.preco_venda',
+            'quantidade_disponivel' => 'quantidade_disponivel',
         ];
 
         $column = $allowedSort[$sortBy] ?? 'em.id';
@@ -71,13 +67,11 @@ class EstoqueMaterialRepository extends BaseRepository
         return $this->fetchAll($stmt->get_result());
     }
 
-    public function count(string $search = '', ?string $status = null, ?string $comPv = null): int
+    public function count(string $search = '', ?string $status = null): int
     {
-        [$where, $types, $params] = $this->buildFilterClause($search, $status, $comPv);
+        [$where, $types, $params] = $this->buildFilterClause($search, $status);
 
-        $sql = "SELECT COUNT(*) AS total
-                FROM estoque_materiais em
-                LEFT JOIN equipamentos e ON e.id = em.equipamento_id" . $where;
+        $sql = "SELECT COUNT(*) AS total FROM estoque_materiais em" . $where;
 
         $stmt = $this->safePrepare($sql);
         if ($types !== '') {
@@ -89,16 +83,22 @@ class EstoqueMaterialRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
-    public function getTotals(string $search = '', ?string $status = null, ?string $comPv = null): array
+    public function getTotals(string $search = '', ?string $status = null): array
     {
-        [$where, $types, $params] = $this->buildFilterClause($search, $status, $comPv);
+        [$where, $types, $params] = $this->buildFilterClause($search, $status);
 
         $sql = "SELECT 
-                    COUNT(*) AS total_itens,
+                    COUNT(*) AS total_lotes,
+                    COALESCE(SUM(em.quantidade), 0) AS total_itens_entrada,
                     COALESCE(SUM(em.quantidade * em.preco_compra), 0) AS total_compra,
-                    COALESCE(SUM(CASE WHEN em.preco_venda IS NOT NULL THEN em.quantidade * em.preco_venda ELSE 0 END), 0) AS total_venda
+                    COALESCE(SUM(s.quantidade_baixada), 0) AS total_itens_baixados,
+                    COALESCE(SUM(ROUND(em.quantidade - COALESCE(s.quantidade_baixada, 0), 2)), 0) AS total_itens_disponiveis
                 FROM estoque_materiais em
-                LEFT JOIN equipamentos e ON e.id = em.equipamento_id" . $where;
+                LEFT JOIN (
+                    SELECT estoque_material_id, SUM(quantidade_saida) AS quantidade_baixada
+                    FROM estoque_saidas
+                    GROUP BY estoque_material_id
+                ) s ON s.estoque_material_id = em.id" . $where;
 
         $stmt = $this->safePrepare($sql);
         if ($types !== '') {
@@ -107,18 +107,18 @@ class EstoqueMaterialRepository extends BaseRepository
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
 
-        $totalItens = (int) ($row['total_itens'] ?? 0);
+        $totalLotes = (int) ($row['total_lotes'] ?? 0);
+        $totalEntrada = round((float) ($row['total_itens_entrada'] ?? 0), 2);
         $totalCompra = round((float) ($row['total_compra'] ?? 0), 2);
-        $totalVenda = round((float) ($row['total_venda'] ?? 0), 2);
-        $lucroBruto = round($totalVenda - $totalCompra, 2);
-        $margemMedia = $totalVenda > 0 ? round((($totalVenda - $totalCompra) / $totalVenda) * 100, 2) : null;
+        $totalBaixados = round((float) ($row['total_itens_baixados'] ?? 0), 2);
+        $totalDisponiveis = round((float) ($row['total_itens_disponiveis'] ?? 0), 2);
 
         return [
-            'total_itens' => $totalItens,
+            'total_lotes' => $totalLotes,
+            'total_itens_entrada' => $totalEntrada,
             'total_compra' => $totalCompra,
-            'total_venda' => $totalVenda,
-            'lucro_bruto' => $lucroBruto,
-            'margem_media' => $margemMedia,
+            'total_itens_baixados' => $totalBaixados,
+            'total_itens_disponiveis' => $totalDisponiveis,
         ];
     }
 
@@ -233,10 +233,32 @@ class EstoqueMaterialRepository extends BaseRepository
         return $counts;
     }
 
+    public function syncStatus(int $materialId): void
+    {
+        $item = $this->getById($materialId);
+        if (!$item) {
+            return;
+        }
+
+        $disponivel = (float) ($item['quantidade_disponivel'] ?? 0);
+        $currentStatus = (string) ($item['status'] ?? '');
+
+        // Não altera status reservados ou aguardando chegada automaticamente
+        if ($currentStatus === 'reservado' || $currentStatus === 'aguardando_chegada') {
+            return;
+        }
+
+        if ($disponivel <= 0 && $currentStatus !== 'aplicado') {
+            $this->updateField($materialId, 'status', 'aplicado');
+        } elseif ($disponivel > 0 && $currentStatus === 'aplicado') {
+            $this->updateField($materialId, 'status', 'em_estoque');
+        }
+    }
+
     /**
      * @return array{0: string, 1: string, 2: array}
      */
-    private function buildFilterClause(string $search, ?string $status, ?string $comPv): array
+    private function buildFilterClause(string $search, ?string $status): array
     {
         $conditions = [];
         $types = '';
@@ -247,17 +269,9 @@ class EstoqueMaterialRepository extends BaseRepository
             $like = '%' . $search . '%';
             $conditions[] = "(em.material_descricao LIKE ?
                 OR em.site LIKE ?
-                OR em.tecnico_nome LIKE ?
-                OR em.numero_os LIKE ?
-                OR em.numero_pv LIKE ?
                 OR em.fornecedor_nf LIKE ?
-                OR e.equipamento LIKE ?
-                OR em.equipamento_texto LIKE ?)";
-            $types .= 'ssssssss';
-            $params[] = $like;
-            $params[] = $like;
-            $params[] = $like;
-            $params[] = $like;
+                OR em.observacoes LIKE ?)";
+            $types .= 'ssss';
             $params[] = $like;
             $params[] = $like;
             $params[] = $like;
@@ -268,12 +282,6 @@ class EstoqueMaterialRepository extends BaseRepository
             $conditions[] = "em.status = ?";
             $types .= 's';
             $params[] = $status;
-        }
-
-        if ($comPv === 'com_pv') {
-            $conditions[] = "(em.numero_pv IS NOT NULL AND em.numero_pv != '')";
-        } elseif ($comPv === 'sem_pv') {
-            $conditions[] = "(em.numero_pv IS NULL OR em.numero_pv = '')";
         }
 
         $where = !empty($conditions) ? ' WHERE ' . implode(' AND ', $conditions) : '';

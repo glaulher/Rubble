@@ -108,12 +108,12 @@ class AuthService
                 'write' => ['equipment', 'tickets', 'pending-tickets', 'filter-exchanges', 'inventory', 'termo', 'preditiva-parse', 'diario'],
             ],
             'coordenador' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'sc', 'estoque', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory', 'termo', 'preditiva-parse', 'diario', 'equipes', 'teams'],
-                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'sc', 'estoque', 'planned-activities', 'preventiva', 'pending-tickets', 'filter-exchanges', 'inventory', 'termo', 'preditiva-parse', 'diario', 'equipes', 'teams'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'sc', 'estoque', 'estoque-saidas', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory', 'termo', 'preditiva-parse', 'diario', 'equipes', 'teams'],
+                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'sc', 'estoque', 'estoque-saidas', 'planned-activities', 'preventiva', 'pending-tickets', 'filter-exchanges', 'inventory', 'termo', 'preditiva-parse', 'diario', 'equipes', 'teams'],
             ],
             'gerente' => [
-                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'sc', 'estoque', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory', 'termo', 'preditiva-parse', 'diario', 'equipes', 'teams'],
-                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'sc', 'estoque', 'planned-activities', 'preventiva', 'pending-tickets', 'filter-exchanges', 'inventory', 'termo', 'preditiva-parse', 'diario'],
+                'read' => ['equipment', 'tickets', 'dashboard', 'os-dashboard', 'preventiva-dashboard', 'pv', 'pv-dashboard', 'locals', 'notify', 'auth', 'equipment-management', 'scm', 'sc', 'estoque', 'estoque-saidas', 'preventive-cycle', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'inventory', 'termo', 'preditiva-parse', 'diario', 'equipes', 'teams'],
+                'write' => ['equipment', 'tickets', 'pv', 'equipment-management', 'scm', 'sc', 'estoque', 'estoque-saidas', 'planned-activities', 'preventiva', 'pending-tickets', 'filter-exchanges', 'inventory', 'termo', 'preditiva-parse', 'diario'],
             ],
             'administrativo' => [
                 'read' => ['pdf-audit', 'auth', 'os-dashboard', 'planned-activities', 'pending-tickets', 'filter-exchanges', 'preditiva-parse', 'equipes', 'teams', 'sc'],
@@ -145,7 +145,7 @@ class AuthService
             if ($method === 'DELETE' && $route === 'sc') {
                 return $role === 'admin';
             }
-            if ($method === 'DELETE' && $route === 'estoque') {
+            if ($method === 'DELETE' && ($route === 'estoque' || $route === 'estoque-saidas')) {
                 return $role === 'admin';
             }
             if ($method === 'DELETE' && $route === 'filter-exchanges') {

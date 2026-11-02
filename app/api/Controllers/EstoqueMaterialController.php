@@ -36,7 +36,6 @@ class EstoqueMaterialController
             $offset = (int) ($_GET['offset'] ?? 0);
             $search = trim((string) ($_GET['search'] ?? ''));
             $status = trim((string) ($_GET['status'] ?? ''));
-            $comPv = trim((string) ($_GET['com_pv'] ?? ''));
             $sortBy = trim((string) ($_GET['sort_by'] ?? 'id'));
             $sortDir = trim((string) ($_GET['sort_dir'] ?? 'DESC'));
 
@@ -45,7 +44,6 @@ class EstoqueMaterialController
                 $offset >= 0 ? $offset : 0,
                 $search,
                 $status !== '' ? $status : null,
-                $comPv !== '' ? $comPv : null,
                 $sortBy,
                 $sortDir
             );
@@ -70,12 +68,10 @@ class EstoqueMaterialController
         try {
             $search = trim((string) ($_GET['search'] ?? ''));
             $status = trim((string) ($_GET['status'] ?? ''));
-            $comPv = trim((string) ($_GET['com_pv'] ?? ''));
 
             $totals = $this->service->getTotals(
                 $search,
-                $status !== '' ? $status : null,
-                $comPv !== '' ? $comPv : null
+                $status !== '' ? $status : null
             );
 
             Response::json([
@@ -231,7 +227,7 @@ class EstoqueMaterialController
                 return;
             }
 
-            $items = $this->service->getPvItems($numeroPv);
+            $items = (new \App\Api\Services\EstoqueSaidaService())->getPvItems($numeroPv);
 
             Response::json([
                 'success' => true,
@@ -248,12 +244,10 @@ class EstoqueMaterialController
         try {
             $search = trim((string) ($_GET['search'] ?? ''));
             $status = trim((string) ($_GET['status'] ?? ''));
-            $comPv = trim((string) ($_GET['com_pv'] ?? ''));
 
             $csv = $this->service->exportCsv(
                 $search,
-                $status !== '' ? $status : null,
-                $comPv !== '' ? $comPv : null
+                $status !== '' ? $status : null
             );
 
             $filename = 'estoque_materiais_' . date('Ymd_His') . '.csv';

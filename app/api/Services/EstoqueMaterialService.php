@@ -4,7 +4,7 @@ namespace App\Api\Services;
 
 use App\Api\Entities\EstoqueMaterial;
 use App\Api\Repositories\EstoqueMaterialRepository;
-use App\Config\Database;
+use App\Api\Repositories\EstoqueSaidaRepository;
 
 class EstoqueMaterialService
 {
@@ -24,23 +24,19 @@ class EstoqueMaterialService
         'preco_compra',
         'data_entrada',
         'fornecedor_nf',
-        'data_saida',
-        'tecnico_nome',
-        'numero_os',
         'site',
-        'equipamento_id',
-        'equipamento_texto',
-        'numero_pv',
-        'pv_item_id',
-        'preco_venda',
         'observacoes',
     ];
 
     private EstoqueMaterialRepository $repository;
+    private EstoqueSaidaRepository $saidaRepository;
 
-    public function __construct(?EstoqueMaterialRepository $repository = null)
-    {
+    public function __construct(
+        ?EstoqueMaterialRepository $repository = null,
+        ?EstoqueSaidaRepository $saidaRepository = null
+    ) {
         $this->repository = $repository ?? new EstoqueMaterialRepository();
+        $this->saidaRepository = $saidaRepository ?? new EstoqueSaidaRepository();
     }
 
     public function listAll(
@@ -48,14 +44,13 @@ class EstoqueMaterialService
         int $offset = 0,
         string $search = '',
         ?string $status = null,
-        ?string $comPv = null,
         string $sortBy = 'id',
         string $sortDir = 'DESC'
     ): array {
-        $rows = $this->repository->listAll($limit, $offset, $search, $status, $comPv, $sortBy, $sortDir);
-        $total = $this->repository->count($search, $status, $comPv);
+        $rows = $this->repository->listAll($limit, $offset, $search, $status, $sortBy, $sortDir);
+        $total = $this->repository->count($search, $status);
         $statusCounts = $this->repository->statusCounts();
-        $totals = $this->repository->getTotals($search, $status, $comPv);
+        $totals = $this->repository->getTotals($search, $status);
 
         return [
             'items' => array_map(fn (array $row) => (new EstoqueMaterial($row))->toArray(), $rows),
@@ -65,9 +60,9 @@ class EstoqueMaterialService
         ];
     }
 
-    public function getTotals(string $search = '', ?string $status = null, ?string $comPv = null): array
+    public function getTotals(string $search = '', ?string $status = null): array
     {
-        return $this->repository->getTotals($search, $status, $comPv);
+        return $this->repository->getTotals($search, $status);
     }
 
     public function getById(int $id): ?array
@@ -79,7 +74,7 @@ class EstoqueMaterialService
 
     public function save(array $data): int
     {
-        $payload = $this->enforceEquipmentXor($this->normalizePayload($data), $data);
+        $payload = $this->normalizePayload($data);
         $payload['data_entrada'] ??= date('Y-m-d');
         $payload['status'] ??= 'em_estoque';
         $payload['unidade'] ??= 'UN';
@@ -94,19 +89,35 @@ class EstoqueMaterialService
 
     public function update(int $id, array $data): bool
     {
-        $payload = $this->enforceEquipmentXor($this->normalizePayload($data), $data);
+        $payload = $this->normalizePayload($data);
 
         if (array_key_exists('material_descricao', $payload) && trim((string) $payload['material_descricao']) === '') {
             throw new \InvalidArgumentException('Material é obrigatório.');
         }
         if (array_key_exists('site', $payload) && trim((string) $payload['site']) === '') {
-            throw new \InvalidArgumentException('Site é obrigatório.');
+            throw new \InvalidArgumentException('Site / Almoxarifado é obrigatório.');
         }
         if (array_key_exists('quantidade', $payload) && (float) $payload['quantidade'] <= 0) {
             throw new \InvalidArgumentException('Quantidade deve ser maior que zero.');
         }
 
-        return $this->repository->update($id, $payload);
+        // Valida se a nova quantidade não é inferior ao total já baixado
+        if (array_key_exists('quantidade', $payload)) {
+            $jaBaixado = $this->saidaRepository->sumSaidasByMaterialId($id);
+            $novaQtd = (float) $payload['quantidade'];
+            if ($novaQtd < $jaBaixado) {
+                throw new \InvalidArgumentException(
+                    "A quantidade ({$novaQtd}) não pode ser inferior ao total já baixado em saídas ({$jaBaixado})."
+                );
+            }
+        }
+
+        $updated = $this->repository->update($id, $payload);
+        if ($updated) {
+            $this->repository->syncStatus($id);
+        }
+
+        return $updated;
     }
 
     public function updateField(int $id, string $field, mixed $value): array
@@ -119,30 +130,30 @@ class EstoqueMaterialService
             throw new \InvalidArgumentException('Material é obrigatório.');
         }
         if ($field === 'site' && trim((string) $value) === '') {
-            throw new \InvalidArgumentException('Site é obrigatório.');
+            throw new \InvalidArgumentException('Site / Almoxarifado é obrigatório.');
         }
-        if ($field === 'quantidade' && (float) $value <= 0) {
-            throw new \InvalidArgumentException('Quantidade deve ser maior que zero.');
-        }
-
-        if ($field === 'equipamento_id') {
-            $eqId = ($value !== null && $value !== '') ? (int) $value : null;
-            $this->repository->updateField($id, 'equipamento_id', $eqId);
-            $this->repository->updateField($id, 'equipamento_texto', null);
-        } elseif ($field === 'equipamento_texto') {
-            $eqTxt = ($value !== null && trim((string) $value) !== '') ? trim((string) $value) : null;
-            $this->repository->updateField($id, 'equipamento_texto', $eqTxt);
-            $this->repository->updateField($id, 'equipamento_id', null);
-        } else {
-            $this->repository->updateField($id, $field, $value);
+        if ($field === 'quantidade') {
+            $qtd = (float) $value;
+            if ($qtd <= 0) {
+                throw new \InvalidArgumentException('Quantidade deve ser maior que zero.');
+            }
+            $jaBaixado = $this->saidaRepository->sumSaidasByMaterialId($id);
+            if ($qtd < $jaBaixado) {
+                throw new \InvalidArgumentException(
+                    "A quantidade ({$qtd}) não pode ser inferior ao total já baixado ({$jaBaixado})."
+                );
+            }
         }
 
-        $updated = $this->getById($id);
-        if ($updated === null) {
+        $this->repository->updateField($id, $field, $value);
+        $this->repository->syncStatus($id);
+
+        $item = $this->getById($id);
+        if ($item === null) {
             throw new \RuntimeException('Item não encontrado após atualização.');
         }
 
-        return $updated;
+        return $item;
     }
 
     public function delete(int $id): bool
@@ -150,78 +161,22 @@ class EstoqueMaterialService
         return $this->repository->delete($id);
     }
 
-    public function getPvItems(string $numeroPv): array
+    public function exportCsv(string $search = '', ?string $status = null): string
     {
-        $digits = preg_replace('/\D/', '', $numeroPv);
-        if ($digits === '') {
-            return [];
-        }
-
-        $conn = Database::connect();
-        $sql = "SELECT pi.id, pi.numero_item, pi.descricao, pi.descricao_lpu,
-                       pi.quantidade, pi.valor, pi.valor_total, pi.status
-                FROM pv_item pi
-                JOIN pv p ON p.id = pi.pv_id
-                WHERE p.numero_pv = ?
-                ORDER BY pi.numero_item ASC, pi.id ASC";
-
-        $stmt = $conn->prepare($sql);
-        if ($stmt === false) {
-            return [];
-        }
-
-        $stmt->bind_param('s', $digits);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        $items = [];
-        while ($row = $result->fetch_assoc()) {
-            $desc = !empty(trim((string) $row['descricao']))
-                ? trim((string) $row['descricao'])
-                : trim((string) $row['descricao_lpu']);
-
-            $items[] = [
-                'id' => (int) $row['id'],
-                'numero_item' => $row['numero_item'] !== null ? (int) $row['numero_item'] : null,
-                'descricao' => $desc,
-                'quantidade' => (float) ($row['quantidade'] ?? 1),
-                'valor' => (float) ($row['valor'] ?? 0),
-                'valor_total' => (float) ($row['valor_total'] ?? 0),
-                'status' => (string) ($row['status'] ?? ''),
-            ];
-        }
-
-        return $items;
-    }
-
-    public function exportCsv(
-        string $search = '',
-        ?string $status = null,
-        ?string $comPv = null
-    ): string {
-        $rows = $this->repository->listAll(10000, 0, $search, $status, $comPv, 'id', 'DESC');
+        $rows = $this->repository->listAll(10000, 0, $search, $status, 'id', 'DESC');
 
         $headers = [
             'Status',
-            'Material',
-            'Qtd',
+            'Material / Descrição',
+            'Qtd Entrada',
+            'Qtd Disponível',
+            'Qtd Baixada',
             'Unidade',
             'Preço Compra Unit.',
             'Total Compra',
             'Data Entrada',
+            'Almoxarifado / Local',
             'Fornecedor / NF',
-            'Data Saída',
-            'Técnico',
-            'OS',
-            'Site',
-            'Equipamento',
-            'PV',
-            'Item PV',
-            'Preço Venda Unit.',
-            'Total Venda',
-            'Lucro Bruto',
-            '% Margem',
-            '% Markup',
             'Observações',
         ];
 
@@ -230,33 +185,20 @@ class EstoqueMaterialService
 
         foreach ($rows as $row) {
             $entity = (new EstoqueMaterial($row))->toArray();
-
             $statusLabel = self::STATUSES[$entity['status']] ?? $entity['status'];
-            $equipamentoExibicao = !empty($entity['equipamento'])
-                ? $entity['equipamento']
-                : ($entity['equipamento_texto'] ?? '');
 
             $line = [
                 $statusLabel,
                 $entity['material_descricao'],
                 number_format((float) $entity['quantidade'], 2, ',', ''),
+                number_format((float) $entity['quantidade_disponivel'], 2, ',', ''),
+                number_format((float) $entity['quantidade_baixada'], 2, ',', ''),
                 $entity['unidade'],
                 number_format((float) $entity['preco_compra'], 2, ',', '.'),
                 number_format((float) $entity['total_compra'], 2, ',', '.'),
                 $entity['data_entrada'] ? date('d/m/Y', strtotime($entity['data_entrada'])) : '',
-                $entity['fornecedor_nf'] ?? '',
-                $entity['data_saida'] ? date('d/m/Y', strtotime($entity['data_saida'])) : '',
-                $entity['tecnico_nome'] ?? '',
-                $entity['numero_os'] ?? '',
                 $entity['site'],
-                $equipamentoExibicao,
-                $entity['numero_pv'] ?? '',
-                $entity['pv_item_descricao'] ?? '',
-                $entity['preco_venda'] !== null ? number_format((float) $entity['preco_venda'], 2, ',', '.') : '',
-                $entity['total_venda'] !== null ? number_format((float) $entity['total_venda'], 2, ',', '.') : '',
-                $entity['lucro_bruto'] !== null ? number_format((float) $entity['lucro_bruto'], 2, ',', '.') : '',
-                $entity['margem_percent'] !== null ? number_format((float) $entity['margem_percent'], 2, ',', '') . '%' : '',
-                $entity['markup_percent'] !== null ? number_format((float) $entity['markup_percent'], 2, ',', '') . '%' : '',
+                $entity['fornecedor_nf'] ?? '',
                 $entity['observacoes'] ?? '',
             ];
 
@@ -296,7 +238,7 @@ class EstoqueMaterialService
         }
 
         if (empty(trim((string) ($data['site'] ?? '')))) {
-            throw new \InvalidArgumentException('Site é obrigatório.');
+            throw new \InvalidArgumentException('Site / Almoxarifado é obrigatório.');
         }
 
         if (empty(trim((string) ($data['data_entrada'] ?? '')))) {
@@ -325,12 +267,6 @@ class EstoqueMaterialService
 
             $value = $data[$field];
 
-            if ($field === 'numero_pv') {
-                $digits = preg_replace('/\D/', '', (string) ($value ?? ''));
-                $normalized[$field] = $digits === '' ? null : $digits;
-                continue;
-            }
-
             if (is_string($value)) {
                 $value = trim($value);
                 $normalized[$field] = $value === '' ? null : $value;
@@ -341,18 +277,5 @@ class EstoqueMaterialService
         }
 
         return $normalized;
-    }
-
-    private function enforceEquipmentXor(array $values, array $payload): array
-    {
-        if (array_key_exists('equipamento_id', $payload) && !empty($payload['equipamento_id'])) {
-            $values['equipamento_id'] = (int) $payload['equipamento_id'];
-            $values['equipamento_texto'] = null;
-        } elseif (array_key_exists('equipamento_texto', $payload) && trim((string) $payload['equipamento_texto']) !== '') {
-            $values['equipamento_texto'] = trim((string) $payload['equipamento_texto']);
-            $values['equipamento_id'] = null;
-        }
-
-        return $values;
     }
 }
