@@ -130,8 +130,12 @@ describe('Estoque list module', () => {
     expect(html).toContain('NF 12345');
     // Como tem saldo disponível, deve ter botão de Dar Baixa
     expect(html).toContain('data-action="baixa"');
+    // Coordenador/Admin deve ter botão de editar entrada
+    expect(html).toContain('data-action="edit-entrada"');
     // Admin deve ter botão de exclusão
     expect(html).toContain('data-action="delete-entrada"');
+    // Não pode ter event.stopPropagation no wrapper das ações para não bloquear delegação de cliques
+    expect(html).not.toContain('onclick="event.stopPropagation()"');
   });
 
   test('buildEstoqueRowHtml não exibe botão de baixa quando lote está esgotado (saldo 0)', () => {
@@ -169,7 +173,10 @@ describe('Estoque list module', () => {
     expect(html).toContain('260232');
     expect(html).toContain('50,0%');
     expect(html).toContain('100,0%');
+    expect(html).toContain('data-action="edit-saida"');
     expect(html).toContain('data-action="delete-saida"');
+    // Não pode ter event.stopPropagation no wrapper das ações
+    expect(html).not.toContain('onclick="event.stopPropagation()"');
   });
 
   test('buildSaidaRowHtml exibe traço quando preco_venda for nulo sem gerar NaN/Infinity', () => {

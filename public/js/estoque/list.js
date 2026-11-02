@@ -130,7 +130,7 @@ export function buildEstoqueRowHtml(item) {
         ${escapeHtml(item.fornecedor_nf || '—')}
       </td>
       <td class="px-3 py-2.5 text-center">
-        <div class="flex items-center justify-center gap-1.5" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-center gap-1.5">
           ${
             temSaldo
               ? iconButtonHtml('baixa', 'Dar Baixa', { 'data-action': 'baixa', 'data-id': item.id }, 'right')
@@ -204,7 +204,7 @@ export function buildSaidaRowHtml(saida) {
         ${formatPctEstoque(saida.markup_percent)}
       </td>
       <td class="px-3 py-2.5 text-center">
-        <div class="flex items-center justify-center gap-1.5" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-center gap-1.5">
           ${
             isCoordOrGerente
               ? iconButtonHtml('edit', 'Editar saída', { 'data-action': 'edit-saida', 'data-id': saida.id }, 'right')
@@ -658,12 +658,29 @@ function switchTab(targetTab) {
   const painelEntradas = document.getElementById('painelEntradas');
   const painelSaidas = document.getElementById('painelSaidas');
 
+  const badgeEntradas = document.getElementById('badgeEntradasCount');
+  const badgeSaidas = document.getElementById('badgeSaidasCount');
+
+  const activeClasses =
+    'flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 shadow-xs cursor-pointer';
+  const inactiveClasses =
+    'flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700/50 cursor-pointer';
+
+  const activeBadgeClasses = 'bg-sky-400/50 text-sky-950 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold';
+  const inactiveBadgeClasses = 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full text-[10px] font-mono';
+
   if (targetTab === 'entradas') {
     if (tabEntradasBtn) {
-      tabEntradasBtn.className = 'flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-slate-900 text-white shadow-sm dark:bg-blue-600';
+      tabEntradasBtn.className = activeClasses;
+    }
+    if (badgeEntradas) {
+      badgeEntradas.className = activeBadgeClasses;
     }
     if (tabSaidasBtn) {
-      tabSaidasBtn.className = 'flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold transition-all text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white';
+      tabSaidasBtn.className = inactiveClasses;
+    }
+    if (badgeSaidas) {
+      badgeSaidas.className = inactiveBadgeClasses;
     }
 
     if (cardsEntradas) cardsEntradas.classList.remove('hidden');
@@ -678,10 +695,16 @@ function switchTab(targetTab) {
     fetchEstoqueData();
   } else {
     if (tabSaidasBtn) {
-      tabSaidasBtn.className = 'flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold transition-all bg-slate-900 text-white shadow-sm dark:bg-blue-600';
+      tabSaidasBtn.className = activeClasses;
+    }
+    if (badgeSaidas) {
+      badgeSaidas.className = activeBadgeClasses;
     }
     if (tabEntradasBtn) {
-      tabEntradasBtn.className = 'flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold transition-all text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white';
+      tabEntradasBtn.className = inactiveClasses;
+    }
+    if (badgeEntradas) {
+      badgeEntradas.className = inactiveBadgeClasses;
     }
 
     if (cardsEntradas) cardsEntradas.classList.add('hidden');
@@ -1382,12 +1405,32 @@ export function initEstoqueList() {
         return;
       }
 
-      // 3. Dar Baixa ou Clique na Linha
+      // 3. Dar Baixa no Lote
       const baixaBtn = e.target.closest('[data-action="baixa"]');
+      if (baixaBtn) {
+        e.stopPropagation();
+        const id = parseInt(baixaBtn.getAttribute('data-id'), 10);
+        const item = _estoqueItems.find((it) => it.id === id);
+        if (item) {
+          const saldo = Number(item.quantidade_disponivel ?? item.quantidade ?? 0);
+          if (saldo <= 0) {
+            showToast('Este lote já está 100% baixado (sem saldo disponível).', 'warning');
+            return;
+          }
+          openBaixaModal(item);
+        }
+        return;
+      }
+
+      // 4. Ignora cliques na coluna de ações ou botões não tratados
+      if (e.target.closest('button') || e.target.closest('td:last-child')) {
+        return;
+      }
+
+      // 5. Clique no corpo da linha (atalho para dar baixa)
       const row = e.target.closest('tr[data-id]');
-      if (baixaBtn || row) {
-        const targetEl = baixaBtn || row;
-        const id = parseInt(targetEl.getAttribute('data-id'), 10);
+      if (row) {
+        const id = parseInt(row.getAttribute('data-id'), 10);
         const item = _estoqueItems.find((it) => it.id === id);
         if (item) {
           const saldo = Number(item.quantidade_disponivel ?? item.quantidade ?? 0);
@@ -1417,15 +1460,39 @@ export function initEstoqueList() {
         return;
       }
 
-      // 2. Editar Saída ou Clique na Linha
+      // 2. Editar Saída
       const editBtn = e.target.closest('[data-action="edit-saida"]');
-      const row = e.target.closest('tr[data-id]');
-      if (editBtn || row) {
-        const targetEl = editBtn || row;
-        const saidaId = parseInt(targetEl.getAttribute('data-id'), 10);
+      if (editBtn) {
+        e.stopPropagation();
+        const saidaId = parseInt(editBtn.getAttribute('data-id'), 10);
         const saida = _saidasItems.find((s) => s.id === saidaId);
         if (saida) {
-          // Busca o lote pai correspondente
+          try {
+            const res = await apiFetch(`/app/api/index.php?route=estoque&id=${saida.estoque_material_id}`);
+            const json = await res.json();
+            if (json.success && json.data) {
+              openBaixaModal(json.data, saida);
+            } else {
+              showToast('Lote de origem não encontrado', 'error');
+            }
+          } catch (err) {
+            console.error('Erro ao buscar dados do lote pai:', err);
+          }
+        }
+        return;
+      }
+
+      // 3. Ignora cliques na coluna de ações ou botões não tratados
+      if (e.target.closest('button') || e.target.closest('td:last-child')) {
+        return;
+      }
+
+      // 4. Clique no corpo da linha (atalho para editar saída)
+      const row = e.target.closest('tr[data-id]');
+      if (row) {
+        const saidaId = parseInt(row.getAttribute('data-id'), 10);
+        const saida = _saidasItems.find((s) => s.id === saidaId);
+        if (saida) {
           try {
             const res = await apiFetch(`/app/api/index.php?route=estoque&id=${saida.estoque_material_id}`);
             const json = await res.json();
