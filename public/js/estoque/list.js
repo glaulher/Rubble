@@ -1576,23 +1576,6 @@ export function initEstoqueList() {
       }
     });
   }
-
-  // Fechamento ao clicar fora (backdrop)
-  ['estoqueEntradaModal', 'estoqueBaixaModal', 'estoqueDeleteModal'].forEach((id) => {
-    const modalEl = document.getElementById(id);
-    if (modalEl) {
-      modalEl.addEventListener('click', (e) => {
-        if (e.target === modalEl) {
-          hideModal(id);
-          if (id === 'estoqueBaixaModal') {
-            _currentSelectedItem = null;
-            _currentSelectedSaida = null;
-          }
-          if (id === 'estoqueDeleteModal') _currentDelete = null;
-        }
-      });
-    }
-  });
 }
 
 // Global exposure for testing and inline calls

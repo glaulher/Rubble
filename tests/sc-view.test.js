@@ -209,4 +209,36 @@ describe('SC view integration', () => {
     expect(css).toContain('rgba(14, 116, 144, 0.3)');
     expect(css).toContain('#7dd3fc');
   });
+
+  test('modalSc nao fecha ao clicar no backdrop (apenas no botao Cancelar ou Fechar)', async () => {
+    mountView();
+    mockApi();
+
+    const list = await import('../public/js/sc/list.js');
+    await list.initSc();
+
+    const newBtn = document.getElementById('scNewBtn');
+    const modal = document.getElementById('modalSc');
+    const backdrop = document.getElementById('modalScBackdrop');
+    const cancelBtn = document.getElementById('modalScCancel');
+
+    newBtn.click();
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    // Clicar no backdrop NÃO deve fechar o modal
+    backdrop.click();
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    // Clicar em Cancelar deve fechar o modal
+    cancelBtn.click();
+    expect(modal.classList.contains('hidden')).toBe(true);
+
+    // Reabrir e testar fechar pelo botão X
+    newBtn.click();
+    expect(modal.classList.contains('hidden')).toBe(false);
+    const closeBtn = document.getElementById('modalScCloseBtn');
+    expect(closeBtn).not.toBeNull();
+    closeBtn.click();
+    expect(modal.classList.contains('hidden')).toBe(true);
+  });
 });

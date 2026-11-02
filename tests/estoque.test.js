@@ -221,4 +221,31 @@ describe('Estoque list module', () => {
     expect(globalThis._lastCsv.rows.length).toBe(1);
     expect(globalThis._lastCsv.rows[0]).toContain('BMADTC');
   });
+
+  test('modais de estoque nao fecham ao clicar no backdrop (apenas no botao Cancelar ou Fechar)', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const viewHtml = fs.readFileSync(path.resolve(__dirname, '../app/Views/estoque/index.html'), 'utf-8');
+    document.body.innerHTML = viewHtml;
+
+    const hiddenModals = [];
+    globalThis.hideModal = (id) => {
+      hiddenModals.push(id);
+    };
+
+    globalThis.initEstoqueList();
+
+    const entradaModal = document.getElementById('estoqueEntradaModal');
+    const baixaModal = document.getElementById('estoqueBaixaModal');
+    const deleteModal = document.getElementById('estoqueDeleteModal');
+
+    // Simula clique no backdrop dos modais (onde e.target === modalEl)
+    entradaModal.dispatchEvent(new Event('click', { bubbles: true }));
+    baixaModal.dispatchEvent(new Event('click', { bubbles: true }));
+    deleteModal.dispatchEvent(new Event('click', { bubbles: true }));
+
+    expect(hiddenModals).not.toContain('estoqueEntradaModal');
+    expect(hiddenModals).not.toContain('estoqueBaixaModal');
+    expect(hiddenModals).not.toContain('estoqueDeleteModal');
+  });
 });

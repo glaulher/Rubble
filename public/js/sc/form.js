@@ -75,10 +75,10 @@ export function buildScCreatePayload(values) {
 
 export function initScForm() {
   const modal = document.getElementById('modalSc');
-  const backdrop = document.getElementById('modalScBackdrop');
   const form = document.getElementById('formSc');
   const btnNew = document.getElementById('scNewBtn');
   const btnCancel = document.getElementById('modalScCancel');
+  const btnClose = document.getElementById('modalScCloseBtn');
   const inputTitulo = document.getElementById('scTitulo');
   const inputSite = document.getElementById('scSite');
   const inputData = document.getElementById('scData');
@@ -103,7 +103,7 @@ export function initScForm() {
 
   btnNew.addEventListener('click', openModal);
   btnCancel.addEventListener('click', closeModal);
-  backdrop.addEventListener('click', closeModal);
+  if (btnClose) btnClose.addEventListener('click', closeModal);
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
