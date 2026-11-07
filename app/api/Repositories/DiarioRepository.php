@@ -11,9 +11,9 @@ class DiarioRepository extends BaseRepository
 {
     public const ALLOWED_SORT = [
         'id', 'site', 'equipamento', 'equipamento_id', 'equipamento_nome',
-        'localidade', 'os', 'data', 'categoria', 'status', 'equipe', 'created_at',
+        'localidade', 'os', 'data', 'categoria', 'status', 'equipe', 'obs', 'created_at', 'created_by',
         'd.id', 'd.site', 'd.localidade', 'd.os', 'd.data', 'd.categoria',
-        'd.status', 'd.equipe', 'd.created_at', 'e.equipamento'
+        'd.status', 'd.equipe', 'd.obs', 'd.created_at', 'e.equipamento', 'created_by_name'
     ];
 
     public const ALLOWED_FIELDS = [
@@ -44,7 +44,10 @@ class DiarioRepository extends BaseRepository
             'categoria' => 'd.categoria',
             'status' => 'd.status',
             'equipe' => 'd.equipe',
+            'obs' => 'd.obs',
             'created_at' => 'd.created_at',
+            'created_by' => 'created_by_name',
+            'created_by_name' => 'created_by_name',
             'd.id' => 'd.id',
             'd.site' => 'd.site',
             'd.localidade' => 'd.localidade',
@@ -53,6 +56,7 @@ class DiarioRepository extends BaseRepository
             'd.categoria' => 'd.categoria',
             'd.status' => 'd.status',
             'd.equipe' => 'd.equipe',
+            'd.obs' => 'd.obs',
             'd.created_at' => 'd.created_at',
             'e.equipamento' => 'e.equipamento',
         ];
@@ -255,14 +259,27 @@ class DiarioRepository extends BaseRepository
 
         if (!empty($filters['search'])) {
             $term = '%' . trim((string) $filters['search']) . '%';
-            $where[] = '(d.site LIKE ? OR d.os LIKE ? OR d.localidade LIKE ? OR e.equipamento LIKE ? OR d.obs LIKE ? OR d.equipe LIKE ?)';
-            $params[] = $term;
-            $params[] = $term;
-            $params[] = $term;
-            $params[] = $term;
-            $params[] = $term;
-            $params[] = $term;
-            $types .= 'ssssss';
+            $where[] = '(
+                d.site LIKE ?
+                OR d.os LIKE ?
+                OR d.localidade LIKE ?
+                OR e.equipamento LIKE ?
+                OR CAST(e.capacidade AS CHAR) LIKE ?
+                OR CONCAT(COALESCE(e.equipamento, \'\'), \' \', COALESCE(e.capacidade, \'\'), \' TR\') LIKE ?
+                OR d.categoria LIKE ?
+                OR d.status LIKE ?
+                OR d.equipe LIKE ?
+                OR d.obs LIKE ?
+                OR d.data LIKE ?
+                OR DATE_FORMAT(d.data, \'%d/%m/%Y\') LIKE ?
+                OR u.nome LIKE ?
+                OR u.username LIKE ?
+            )';
+            $searchFieldCount = 14;
+            for ($i = 0; $i < $searchFieldCount; $i++) {
+                $params[] = $term;
+                $types .= 's';
+            }
         }
 
         if (!empty($filters['status'])) {

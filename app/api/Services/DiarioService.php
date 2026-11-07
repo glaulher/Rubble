@@ -24,9 +24,9 @@ class DiarioService
 
     public const ALLOWED_SORT = [
         'id', 'site', 'equipamento', 'equipamento_id', 'equipamento_nome',
-        'localidade', 'os', 'data', 'categoria', 'status', 'equipe', 'created_at',
+        'localidade', 'os', 'data', 'categoria', 'status', 'equipe', 'obs', 'created_at', 'created_by',
         'd.id', 'd.site', 'd.localidade', 'd.os', 'd.data', 'd.categoria',
-        'd.status', 'd.equipe', 'd.created_at', 'e.equipamento'
+        'd.status', 'd.equipe', 'd.obs', 'd.created_at', 'e.equipamento', 'created_by_name'
     ];
 
     public const ALLOWED_DIRS = ['ASC', 'DESC'];

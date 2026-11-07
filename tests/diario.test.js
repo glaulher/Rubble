@@ -4,16 +4,17 @@ import { resolve } from "path";
 import { evalModule } from "./helpers/eval-module.js";
 
 var mockInfiniteScroll = `
+  var _scrollCalls = { reset: 0, init: 0, destroy: 0 };
   function createInfiniteScroll(opts) {
     return {
-      init: function () { if (opts.fetchFn) opts.fetchFn({ limit: 20, offset: 0, data: [] }, {}); return this; },
-      destroy: function () {},
-      reset: function () { return this; },
+      init: function () { _scrollCalls.init++; if (opts.fetchFn) opts.fetchFn({ limit: 20, offset: 0, data: [] }, {}); return this; },
+      destroy: function () { _scrollCalls.destroy++; },
+      reset: function () { _scrollCalls.reset++; return this; },
       load: function () {},
       getState: function () { return { data: [], page: 0, allLoaded: false, loading: false, total: 0 }; },
     };
   }
-  function debounce(fn, delay) { var t; return function () { clearTimeout(t); t = setTimeout(fn, delay); }; }
+  function debounce(fn, delay) { return fn; }
 `;
 
 var DIARIO_HELPERS =
@@ -49,7 +50,7 @@ function setupDiarioDOM() {
             <th data-sort="categoria">Categoria <span class="sort-icon"></span></th>
             <th data-sort="status">Status <span class="sort-icon"></span></th>
             <th data-sort="equipe">Equipe <span class="sort-icon"></span></th>
-            <th>Observação</th>
+            <th data-sort="obs">Observação <span class="sort-icon"></span></th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -392,6 +393,97 @@ describe("diario/list.js unit & integration", function () {
     inputSite.value = 'N/A';
     await globalThis.saveDiarioField(tdSite);
     expect(calls.some(c => c.field === 'site' && c.value === null)).toBe(true);
+  });
+
+  it("exports refreshDiarioList which clears tbody and reinitializes infinite scroll", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.initDiarioList();
+    const tbody = document.getElementById('diarioTableBody');
+    tbody.innerHTML = '<tr class="diario-row"><td>teste</td></tr>';
+    expect(tbody.querySelectorAll('tr.diario-row').length).toBe(1);
+
+    const initCallsBefore = globalThis._scrollCalls ? globalThis._scrollCalls.init : 0;
+    globalThis.refreshDiarioList();
+
+    expect(tbody.querySelectorAll('tr.diario-row').length).toBe(0);
+    if (globalThis._scrollCalls) {
+      expect(globalThis._scrollCalls.reset).toBeGreaterThan(0);
+      expect(globalThis._scrollCalls.init).toBeGreaterThan(initCallsBefore);
+    }
+  });
+
+  it("builds query with sort=data&dir=DESC initially and handles __none__ for empty selections", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.initDiarioList();
+    const defaultQuery = globalThis.buildDiarioQuery(20, 0);
+    expect(defaultQuery).toContain('sort=data');
+    expect(defaultQuery).toContain('dir=DESC');
+
+    // Uncheck "Todos" in status dropdown so 0 are selected
+    const statusTodosCb = document.getElementById('diarioStatusTodos');
+    if (statusTodosCb) {
+      statusTodosCb.checked = false;
+      statusTodosCb.dispatchEvent(new Event('change', { bubbles: true }));
+      const emptyStatusQuery = globalThis.buildDiarioQuery(20, 0);
+      expect(emptyStatusQuery).toContain('status[]=__none__');
+    }
+
+    // Uncheck "Todas" in category dropdown so 0 are selected
+    const catTodosCb = document.getElementById('diarioCatTodos');
+    if (catTodosCb) {
+      catTodosCb.checked = false;
+      catTodosCb.dispatchEvent(new Event('change', { bubbles: true }));
+      const emptyCatQuery = globalThis.buildDiarioQuery(20, 0);
+      expect(emptyCatQuery).toContain('categoria[]=__none__');
+    }
+  });
+
+  it("handles header sorting: sets initial icon, toggles ASC/DESC, and updates icons", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.initDiarioList();
+
+    const dataTh = document.querySelector('th[data-sort="data"]');
+    const dataIcon = dataTh.querySelector('.sort-icon');
+    // Initial icon should indicate DESC (set on init)
+    expect(dataIcon.textContent).toContain('\u2193');
+
+    // Clicking Data toggles to ASC
+    dataTh.click();
+    expect(dataIcon.textContent).toContain('\u2191');
+    let q = globalThis.buildDiarioQuery(20, 0);
+    expect(q).toContain('sort=data');
+    expect(q).toContain('dir=ASC');
+
+    // Clicking Data again toggles to DESC
+    dataTh.click();
+    expect(dataIcon.textContent).toContain('\u2193');
+    q = globalThis.buildDiarioQuery(20, 0);
+    expect(q).toContain('sort=data');
+    expect(q).toContain('dir=DESC');
+
+    // Clicking Site switches column and sets ASC
+    const siteTh = document.querySelector('th[data-sort="site"]');
+    const siteIcon = siteTh.querySelector('.sort-icon');
+    siteTh.click();
+    expect(siteIcon.textContent).toContain('\u2191');
+    expect(dataIcon.textContent).toBe('');
+    q = globalThis.buildDiarioQuery(20, 0);
+    expect(q).toContain('sort=site');
+    expect(q).toContain('dir=ASC');
+
+    // Clicking Observação header (obs)
+    const obsTh = document.querySelector('th[data-sort="obs"]');
+    expect(obsTh).not.toBeNull();
+    obsTh.click();
+    q = globalThis.buildDiarioQuery(20, 0);
+    expect(q).toContain('sort=obs');
+    expect(q).toContain('dir=ASC');
   });
 
   it("does not re-declare imported identifiers in public/js/diario/list.js", function () {

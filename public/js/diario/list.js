@@ -26,11 +26,20 @@ var diarioCategoryFilter = new Set();
 var diarioCategoryTodosChecked = true;
 var diarioDateFrom = '';
 var diarioDateTo = '';
-var diarioSortBy = 'd.data';
+var diarioSortBy = 'data';
 var diarioSortDir = 'DESC';
 var _diarioItemsById = {};
 var _localsCache = null;
 var _equipmentsCache = null;
+
+export function refreshDiarioList() {
+  var tbody = document.getElementById('diarioTableBody');
+  if (tbody) tbody.innerHTML = '';
+  _diarioItemsById = {};
+  if (_diarioScroll) {
+    _diarioScroll.reset().init();
+  }
+}
 
 export function getDiarioStatusBadgeClass(status) {
   var s = (status || '').toLowerCase().trim();
@@ -962,16 +971,24 @@ export function buildDiarioQuery(limit, offset) {
   if (diarioDateFrom) url += '&data_from=' + encodeURIComponent(diarioDateFrom);
   if (diarioDateTo) url += '&data_to=' + encodeURIComponent(diarioDateTo);
 
-  if (!diarioStatusTodosChecked && diarioStatusFilter.size > 0) {
-    Array.from(diarioStatusFilter).forEach(function (st) {
-      url += '&status[]=' + encodeURIComponent(st);
-    });
+  if (!diarioStatusTodosChecked) {
+    if (diarioStatusFilter.size > 0) {
+      Array.from(diarioStatusFilter).forEach(function (st) {
+        url += '&status[]=' + encodeURIComponent(st);
+      });
+    } else {
+      url += '&status[]=__none__';
+    }
   }
 
-  if (!diarioCategoryTodosChecked && diarioCategoryFilter.size > 0) {
-    Array.from(diarioCategoryFilter).forEach(function (cat) {
-      url += '&categoria[]=' + encodeURIComponent(cat);
-    });
+  if (!diarioCategoryTodosChecked) {
+    if (diarioCategoryFilter.size > 0) {
+      Array.from(diarioCategoryFilter).forEach(function (cat) {
+        url += '&categoria[]=' + encodeURIComponent(cat);
+      });
+    } else {
+      url += '&categoria[]=__none__';
+    }
   }
 
   url += '&sort=' + encodeURIComponent(diarioSortBy) + '&dir=' + encodeURIComponent(diarioSortDir);
@@ -1106,6 +1123,11 @@ export function initDiarioList() {
   renderDiarioStatusDropdown();
   updateDiarioStatusLabel();
 
+  // Set initial sort icon
+  document.querySelectorAll('#diarioTable thead th .sort-icon').forEach(function (el) { el.textContent = ''; });
+  var initialSortTh = document.querySelector('#diarioTable thead th[data-sort="' + diarioSortBy + '"] .sort-icon');
+  if (initialSortTh) initialSortTh.textContent = diarioSortDir === 'ASC' ? ' \u2191' : ' \u2193';
+
   // New line button
   var newBtn = document.getElementById('diarioNewBtn');
   if (newBtn && !newBtn._bound) {
@@ -1126,7 +1148,7 @@ export function initDiarioList() {
     searchInput._bound = true;
     searchInput.addEventListener('input', debounce(function () {
       diarioSearch = searchInput.value.trim();
-      if (_diarioScroll) _diarioScroll.reset();
+      refreshDiarioList();
     }, 300));
   }
 
@@ -1136,7 +1158,7 @@ export function initDiarioList() {
     dateFromInput._bound = true;
     dateFromInput.addEventListener('change', function () {
       diarioDateFrom = dateFromInput.value;
-      if (_diarioScroll) _diarioScroll.reset();
+      refreshDiarioList();
     });
   }
 
@@ -1145,7 +1167,7 @@ export function initDiarioList() {
     dateToInput._bound = true;
     dateToInput.addEventListener('change', function () {
       diarioDateTo = dateToInput.value;
-      if (_diarioScroll) _diarioScroll.reset();
+      refreshDiarioList();
     });
   }
 
@@ -1207,7 +1229,7 @@ export function initDiarioList() {
         renderDiarioCategoryDropdown();
       }
       updateDiarioCategoryLabel();
-      if (_diarioScroll) _diarioScroll.reset();
+      refreshDiarioList();
     });
   }
 
@@ -1237,7 +1259,7 @@ export function initDiarioList() {
         renderDiarioStatusDropdown();
       }
       updateDiarioStatusLabel();
-      if (_diarioScroll) _diarioScroll.reset();
+      refreshDiarioList();
     });
   }
 
@@ -1259,7 +1281,7 @@ export function initDiarioList() {
       var icon = th.querySelector('.sort-icon');
       if (icon) icon.textContent = diarioSortDir === 'ASC' ? ' \u2191' : ' \u2193';
 
-      if (_diarioScroll) _diarioScroll.reset();
+      refreshDiarioList();
     });
   });
 
@@ -1352,6 +1374,10 @@ export function initDiarioList() {
   }
 
   // Infinite scroll initialization
+  if (_diarioScroll) {
+    _diarioScroll.destroy();
+    _diarioScroll = null;
+  }
   _diarioScroll = createInfiniteScroll({
     sentinelId: 'diarioSentinel',
     scrollContainerId: 'diarioScrollContainer',

@@ -114,6 +114,78 @@ class DiarioRepositoryTest extends TestCase
         $this->assertSame(1, $count);
     }
 
+    public function testSearchAcrossAllFields(): void
+    {
+        $id = $this->repo->create([
+            'site' => 'SEARCH_SITE',
+            'localidade' => 'Sala VIP',
+            'os' => 'OS9876',
+            'data' => '2026-11-05',
+            'categoria' => 'preventiva',
+            'status' => 'Projeto Clean up',
+            'equipe' => 'Equipe Alpha',
+            'obs' => 'Observacao especial de teste',
+        ], 1);
+
+        // Search by status
+        $res = $this->repo->list(['search' => 'Clean up']);
+        $this->assertTrue(in_array($id, array_column($res, 'id'), true), 'Should match by status');
+
+        // Search by categoria
+        $res = $this->repo->list(['search' => 'preventiva']);
+        $this->assertTrue(in_array($id, array_column($res, 'id'), true), 'Should match by categoria');
+
+        // Search by date Brazilian format DD/MM/YYYY
+        $res = $this->repo->list(['search' => '05/11/2026']);
+        $this->assertTrue(in_array($id, array_column($res, 'id'), true), 'Should match by Brazilian date DD/MM/YYYY');
+
+        // Search by date Brazilian format DD/MM
+        $res = $this->repo->list(['search' => '05/11']);
+        $this->assertTrue(in_array($id, array_column($res, 'id'), true), 'Should match by date DD/MM');
+
+        // Search by equipe
+        $res = $this->repo->list(['search' => 'Alpha']);
+        $this->assertTrue(in_array($id, array_column($res, 'id'), true), 'Should match by equipe');
+
+        // Search by obs
+        $res = $this->repo->list(['search' => 'especial de teste']);
+        $this->assertTrue(in_array($id, array_column($res, 'id'), true), 'Should match by obs');
+    }
+
+    public function testSortByObsAndData(): void
+    {
+        $idA = $this->repo->create([
+            'site' => 'SORT_A',
+            'data' => '2026-01-01',
+            'obs' => 'AAA primeira obs',
+        ], 1);
+        $idZ = $this->repo->create([
+            'site' => 'SORT_Z',
+            'data' => '2026-12-31',
+            'obs' => 'ZZZ ultima obs',
+        ], 1);
+
+        // Sort by obs ASC
+        $resObsAsc = $this->repo->list(['search' => 'SORT_'], 20, 0, 'obs', 'ASC');
+        $this->assertCount(2, $resObsAsc);
+        $this->assertSame($idA, $resObsAsc[0]['id']);
+        $this->assertSame($idZ, $resObsAsc[1]['id']);
+
+        // Sort by obs DESC
+        $resObsDesc = $this->repo->list(['search' => 'SORT_'], 20, 0, 'obs', 'DESC');
+        $this->assertCount(2, $resObsDesc);
+        $this->assertSame($idZ, $resObsDesc[0]['id']);
+        $this->assertSame($idA, $resObsDesc[1]['id']);
+
+        // Sort by data ASC
+        $resDataAsc = $this->repo->list(['search' => 'SORT_'], 20, 0, 'data', 'ASC');
+        $this->assertSame($idA, $resDataAsc[0]['id']);
+
+        // Sort by data DESC
+        $resDataDesc = $this->repo->list(['search' => 'SORT_'], 20, 0, 'data', 'DESC');
+        $this->assertSame($idZ, $resDataDesc[0]['id']);
+    }
+
     public function testUpdateField(): void
     {
         $id = $this->repo->create([
