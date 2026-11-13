@@ -10,7 +10,7 @@ import { buttonHtml, iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
 import { SC_STATUSES, scSteps, formatPct, scStatusBadgeClass } from './constants.js?v=2';
 import { initScForm, openScModal } from './form.js?v=2';
-import { initSmEmailModal, openSmEmailModal } from './modal-email.js?v=1';
+import { initSmEmailModal, openSmEmailModal } from './modal-email.js?v=2';
 
 export const scPollingInterval = 10000;
 export const SC_PAGE_LIMIT = 25;
