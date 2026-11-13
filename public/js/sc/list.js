@@ -410,19 +410,19 @@ export function buildSmRowHtml(item) {
       <td class="w-10 px-3 py-3.5 text-center">
         <input type="checkbox" class="sm-checkbox rounded border-slate-300 text-sky-600 focus:ring-sky-500 cursor-pointer" data-id="${item.id}" ${isSelected ? 'checked' : ''}>
       </td>
-      <td class="px-4 py-3.5 text-sm whitespace-nowrap">
+      <td class="px-3 py-3.5 text-sm whitespace-nowrap">
         ${renderNumberWithCopy(item.numero_sm, 'SM', true)}
       </td>
-      <td class="px-4 py-3.5 text-sm whitespace-nowrap">
+      <td class="px-2.5 py-3.5 text-sm whitespace-nowrap">
         ${renderNumberWithCopy(item.numero_pv, 'PV')}
       </td>
-      <td class="px-4 py-3.5 text-sm whitespace-nowrap">
+      <td class="px-2.5 py-3.5 text-sm whitespace-nowrap">
         ${renderNumberWithCopy(item.numero_sc, 'SC')}
       </td>
-      <td class="px-4 py-3.5 text-sm whitespace-nowrap">
+      <td class="px-2.5 py-3.5 text-sm whitespace-nowrap">
         ${renderNumberWithCopy(item.numero_pc, 'PC')}
       </td>
-      <td class="px-4 py-3.5 text-sm whitespace-nowrap">
+      <td class="px-2.5 py-3.5 text-sm whitespace-nowrap">
         ${renderNumberWithCopy(item.os || item.numero_os, 'OS')}
       </td>
       <td class="hidden md:table-cell px-4 py-3.5 text-sm text-slate-600 whitespace-nowrap">
@@ -440,8 +440,8 @@ export function buildSmRowHtml(item) {
       <td class="hidden lg:table-cell px-4 py-3.5 text-sm font-medium text-slate-700 whitespace-nowrap">
         ${formatMoney(item.valor_sc)}
       </td>
-      <td class="px-4 py-3.5 text-sm text-right whitespace-nowrap w-44 min-w-[150px]">
-        <div class="flex items-center justify-end gap-2 shrink-0">
+      <td class="col-actions-sticky px-3 py-3.5 text-sm text-right whitespace-nowrap">
+        <div class="flex items-center justify-end gap-1.5 shrink-0 pr-1">
           ${iconButtonHtml('edit', 'Editar', { 'class': 'sm-edit-btn', 'data-action': 'edit', 'data-id': item.id })}
           ${iconButtonHtml('status', 'Alterar status', { 'class': 'sm-status-btn', 'data-action': 'status', 'data-id': item.id, 'data-sm-numero': escapeHtml(item.numero_sm || '') }, isAdmin ? undefined : 'right')}
           ${isAdmin ? iconButtonHtml('delete', 'Excluir', { 'class': 'sm-delete-btn', 'data-action': 'delete', 'data-id': item.id }, 'right') : ''}

@@ -13,7 +13,7 @@ import { initPriceForm } from '/public/js/equipment-prices/form.js';
 import { initPriceList } from '/public/js/equipment-prices/list.js';
 import { initPreventiveCycle } from '/public/js/preventive-cycle/list.js?v=19';
 import { initScm } from '/public/js/scm/scm-list.js';
-import { initSc } from '/public/js/sc/list.js?v=4';
+import { initSc } from '/public/js/sc/list.js?v=6';
 import { initEstoqueList } from '/public/js/estoque/list.js';
 import { initPlannedActivity } from '/public/js/planned-activity/list.js';
 import { initPlannedSummary } from '/public/js/planned-activity/summary.js';
@@ -31,7 +31,7 @@ import { initDiarioList } from '/public/js/diario/list.js';
 import { initTeams } from '/public/js/teams/list.js';
 import { initPublicSign } from '/public/js/termo/public-sign.js?v=32';
 
-const VIEW_VERSION = 56;
+const VIEW_VERSION = 57;
 
 export async function loadPage(url) {
   try {
