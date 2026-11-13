@@ -41,4 +41,13 @@ describe('SC form', () => {
     const p4 = globalThis.buildScCreatePayload({ titulo_email: 'Cotação', site: 'BMADTC', sla_dias: '5' });
     expect(p4.sla_dias).toBe(5);
   });
+
+  test('buildScCreatePayload inclui numero_pc quando preenchido', () => {
+    const p = globalThis.buildScCreatePayload({
+      titulo_email: 'Cotação',
+      site: 'BMADTC',
+      numero_pc: 'PC-112',
+    });
+    expect(p.numero_pc).toBe('PC-112');
+  });
 });

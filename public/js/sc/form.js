@@ -140,6 +140,11 @@ export function buildScCreatePayload(values) {
     payload.numero_sc = sc;
   }
 
+  const pc = (values.numero_pc ?? '').trim();
+  if (pc) {
+    payload.numero_pc = pc;
+  }
+
   const os = (values.numero_os ?? values.os ?? '').trim();
   if (os) {
     payload.numero_os = os;
@@ -164,6 +169,7 @@ export function openScModal(item = null) {
   const inputEquip = document.getElementById('scEquip');
   const inputPv = document.getElementById('scPv');
   const inputSc = document.getElementById('scSc');
+  const inputPc = document.getElementById('scPc');
   const inputOs = document.getElementById('scOs');
   const inputData = document.getElementById('scData');
   const inputSla = document.getElementById('scSla');
@@ -187,6 +193,7 @@ export function openScModal(item = null) {
     }
     if (inputPv) inputPv.value = item.numero_pv || '';
     if (inputSc) inputSc.value = item.numero_sc || '';
+    if (inputPc) inputPc.value = item.numero_pc || '';
     if (inputOs) inputOs.value = item.numero_os || item.os || '';
     inputData.value = item.data || localToday();
     inputSla.value = item.sla_dias !== null && item.sla_dias !== undefined ? String(item.sla_dias) : '';
@@ -203,6 +210,7 @@ export function openScModal(item = null) {
     }
     if (inputPv) inputPv.value = '';
     if (inputSc) inputSc.value = '';
+    if (inputPc) inputPc.value = '';
     if (inputOs) inputOs.value = '';
     inputData.value = localToday();
     inputSla.value = '';
@@ -234,6 +242,7 @@ export function initScForm() {
   const inputEquip = document.getElementById('scEquip');
   const inputPv = document.getElementById('scPv');
   const inputSc = document.getElementById('scSc');
+  const inputPc = document.getElementById('scPc');
   const inputOs = document.getElementById('scOs');
   const inputData = document.getElementById('scData');
   const inputSla = document.getElementById('scSla');
@@ -256,6 +265,7 @@ export function initScForm() {
         equipamento_texto: inputEquip?.value,
         numero_pv: inputPv ? inputPv.value : '',
         numero_sc: inputSc ? inputSc.value : '',
+        numero_pc: inputPc ? inputPc.value : '',
         numero_os: inputOs ? inputOs.value : '',
         data: inputData ? inputData.value : '',
         sla_dias: inputSla.value,

@@ -89,7 +89,7 @@ describe('SM Table Columns and Detail Modal', () => {
     mountView();
   });
 
-  test('scTable thead contains PV, SC, and OS columns', () => {
+  test('scTable thead contains PV, SC, PC, and OS columns', () => {
     const thead = document.querySelector('#scTable thead');
     expect(thead).not.toBeNull();
     const ths = Array.from(thead.querySelectorAll('th')).map((th) => th.textContent.trim());
@@ -97,11 +97,12 @@ describe('SM Table Columns and Detail Modal', () => {
     expect(ths).toContain('SM');
     expect(ths).toContain('PV');
     expect(ths).toContain('SC');
+    expect(ths).toContain('PC');
     expect(ths).toContain('OS');
     expect(ths).toContain('Ações');
   });
 
-  test('buildSmRowHtml renders copy buttons for SM, PV, SC, and OS, and omits inline email button', async () => {
+  test('buildSmRowHtml renders copy buttons for SM, PV, SC, PC, and OS, and omits inline email button', async () => {
     mockApi();
     const list = await import('../public/js/sc/list.js');
     await list.initSc();
@@ -111,12 +112,13 @@ describe('SM Table Columns and Detail Modal', () => {
 
     // Verifique botões de cópia
     const copyButtons = row.querySelectorAll('[data-action="copy-num"]');
-    expect(copyButtons.length).toBeGreaterThanOrEqual(4);
+    expect(copyButtons.length).toBeGreaterThanOrEqual(5);
 
     const tipos = Array.from(copyButtons).map((btn) => btn.getAttribute('data-tipo'));
     expect(tipos).toContain('SM');
     expect(tipos).toContain('PV');
     expect(tipos).toContain('SC');
+    expect(tipos).toContain('PC');
     expect(tipos).toContain('OS');
 
     // Botão de email não deve mais existir na linha
@@ -135,8 +137,8 @@ describe('SM Table Columns and Detail Modal', () => {
     const row = document.querySelector('tr[data-sm-row="42"]');
     expect(row).not.toBeNull();
 
-    // Clica na linha (em uma célula de texto, não em botão)
-    const tdSite = row.querySelector('td:nth-child(7)');
+    // Clica na linha (em uma célula de texto do site, não em botão)
+    const tdSite = row.querySelector('td:nth-child(8)');
     tdSite.click();
     await new Promise((r) => setTimeout(r, 20));
 
@@ -151,6 +153,7 @@ describe('SM Table Columns and Detail Modal', () => {
     const infoBody = document.getElementById('smDetailInfoBody');
     expect(infoBody.innerHTML).toContain('Solicitação de Peças e Filtros');
     expect(infoBody.innerHTML).toContain('SC-5501');
+    expect(infoBody.innerHTML).toContain('PC-112');
     expect(infoBody.innerHTML).toContain('998877');
 
     // Botão Enviar E-mail no modal
@@ -184,6 +187,7 @@ describe('SM Table Columns and Detail Modal', () => {
     const modalSc = document.getElementById('modalSc');
     expect(modalSc.classList.contains('hidden')).toBe(false);
     expect(document.getElementById('scTitulo').value).toBe('Solicitação de Peças e Filtros');
+    expect(document.getElementById('scPc').value).toBe('PC-112');
 
     // Botão Cancelar fecha o modalSc
     const cancelModalSc = document.getElementById('modalScCancel');

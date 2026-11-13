@@ -420,6 +420,9 @@ export function buildSmRowHtml(item) {
         ${renderNumberWithCopy(item.numero_sc, 'SC')}
       </td>
       <td class="px-4 py-3.5 text-sm whitespace-nowrap">
+        ${renderNumberWithCopy(item.numero_pc, 'PC')}
+      </td>
+      <td class="px-4 py-3.5 text-sm whitespace-nowrap">
         ${renderNumberWithCopy(item.os || item.numero_os, 'OS')}
       </td>
       <td class="hidden md:table-cell px-4 py-3.5 text-sm text-slate-600 whitespace-nowrap">
@@ -503,20 +506,24 @@ export async function openSmDetailModal(item) {
       <tr class="border-b border-slate-100">
         <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Nº SC</td>
         <td class="w-1/4 px-4 py-2.5 sm-detail-value">${renderNumberWithCopy(item.numero_sc, 'SC')}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Nº PC</td>
+        <td class="w-1/4 px-4 py-2.5 sm-detail-value">${renderNumberWithCopy(item.numero_pc, 'PC')}</td>
+      </tr>
+      <tr class="border-b border-slate-100">
         <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Nº OS</td>
         <td class="w-1/4 px-4 py-2.5 sm-detail-value">${renderNumberWithCopy(osVal, 'OS')}</td>
-      </tr>
-      <tr class="border-b border-slate-100">
         <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Data da Solicitação</td>
         <td class="w-1/4 px-4 py-2.5 text-slate-800 sm-detail-value">${formatDateBr(item.data)}</td>
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">SLA</td>
-        <td class="w-1/4 px-4 py-2.5 text-slate-800 sm-detail-value">${slaVal}</td>
       </tr>
       <tr class="border-b border-slate-100">
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">SLA</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 sm-detail-value">${slaVal}</td>
         <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Valor SC</td>
         <td class="w-1/4 px-4 py-2.5 text-slate-800 font-semibold sm-detail-value">${formatMoney(item.valor_sc)}</td>
+      </tr>
+      <tr class="border-b border-slate-100">
         <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Valor Total PV</td>
-        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-semibold sm-detail-value">${formatMoney(item.pv_valor_total)}</td>
+        <td class="px-4 py-2.5 text-slate-800 font-semibold sm-detail-value" colspan="3">${formatMoney(item.pv_valor_total)}</td>
       </tr>
       <tr>
         <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Materiais / Observações</td>

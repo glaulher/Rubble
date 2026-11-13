@@ -196,6 +196,13 @@
                 <span class="sort-icon"></span>
               </th>
               <th
+                data-sort="sc.numero_pc"
+                class="text-left px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+              >
+                PC
+                <span class="sort-icon"></span>
+              </th>
+              <th
                 class="text-left px-4 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
               >
                 OS
@@ -556,7 +563,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <label for="scPv" class="block text-sm font-medium text-slate-700 mb-1">
               PV Vinculada
@@ -580,6 +587,19 @@
               autocomplete="off"
               class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 text-slate-900"
               placeholder="Ex: SC-10293"
+            />
+          </div>
+
+          <div>
+            <label for="scPc" class="block text-sm font-medium text-slate-700 mb-1">
+              Nº PC
+            </label>
+            <input
+              type="text"
+              id="scPc"
+              autocomplete="off"
+              class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 text-slate-900"
+              placeholder="Ex: PC-112"
             />
           </div>
 
