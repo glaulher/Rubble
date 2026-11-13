@@ -177,7 +177,8 @@ button:disabled { cursor: not-allowed; }
 .dark body .bg-gray-100,
 .dark .bg-gray-100 { background-color: #0f1117 !important; }
 .dark body .bg-slate-50,
-.dark .bg-slate-50 { background-color: #151922 !important; }
+.dark .bg-slate-50,
+.dark [class*="bg-slate-50/"] { background-color: #151922 !important; }
 .dark body .bg-slate-100,
 .dark .bg-slate-100 { background-color: #1e2536 !important; }
 .dark body .bg-red-50,
@@ -322,6 +323,30 @@ button:disabled { cursor: not-allowed; }
 .dark [class*="bg-indigo-50"] { background-color: rgba(49, 46, 129, 0.25) !important; }
 .dark .hover\:bg-emerald-100:hover,
 .dark .bg-emerald-50:hover { background-color: rgba(6, 95, 70, 0.6) !important; }
+
+/* SM Detail & Email Modals (dark mode) */
+.dark #smDetailModal .sm-detail-label {
+  background-color: #151922 !important;
+  color: #94a3b8 !important;
+}
+.dark #smDetailModal .sm-detail-value {
+  background-color: #1a1f2e !important;
+  color: #e2e8f0 !important;
+}
+.dark #smDetailModal table,
+.dark #smDetailModal tr,
+.dark #smDetailModal td,
+.dark #smDetailModal th {
+  border-color: #2d3548 !important;
+}
+.dark #smDetailModal .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #252d3d !important;
+}
+.dark #smEmailModal #smEmailSubject {
+  background-color: #151922 !important;
+  border-color: #2d3548 !important;
+  color: #cbd5e1 !important;
+}
 
 /* Input fields */
 .dark input[type="text"],

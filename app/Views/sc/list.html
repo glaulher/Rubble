@@ -393,7 +393,7 @@
             </h3>
             <div id="smDetailStatusBadge"></div>
           </div>
-          <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50">
+          <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">
             <table class="w-full text-sm">
               <tbody id="smDetailInfoBody" class="divide-y divide-slate-100 bg-white"></tbody>
             </table>
@@ -430,7 +430,7 @@
 
         <!-- Rodapé do modal de detalhes -->
         <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
-          <div class="flex items-center gap-3">
+          <div>
             <button
               type="button"
               id="btnSmDetailEmail"
@@ -442,10 +442,12 @@
               </svg>
               <span>Enviar E-mail</span>
             </button>
+          </div>
+          <div class="flex items-center gap-3">
             <button
               type="button"
               id="btnSmDetailEdit"
-              class="bg-blue-300 hover:bg-blue-400 active:bg-blue-500 text-blue-800 px-5 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center gap-2"
+              class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-5 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center gap-2"
             >
               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -453,14 +455,14 @@
               </svg>
               <span>Editar</span>
             </button>
+            <button
+              type="button"
+              id="btnCloseSmDetail"
+              class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-6 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer"
+            >
+              Fechar
+            </button>
           </div>
-          <button
-            type="button"
-            id="btnCloseSmDetail"
-            class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-6 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer"
-          >
-            Fechar
-          </button>
         </div>
       </div>
     </div>

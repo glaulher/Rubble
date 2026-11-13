@@ -485,42 +485,42 @@ export async function openSmDetailModal(item) {
 
     infoBody.innerHTML = `
       <tr class="border-b border-slate-100">
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Título</td>
-        <td class="px-4 py-2.5 text-slate-800 font-medium" colspan="3">${escapeHtml(item.titulo_email || '—')}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Título</td>
+        <td class="px-4 py-2.5 text-slate-800 font-medium sm-detail-value" colspan="3">${escapeHtml(item.titulo_email || '—')}</td>
       </tr>
       <tr class="border-b border-slate-100">
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Site</td>
-        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">${escapeHtml(item.site || '—')}</td>
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Equipamento</td>
-        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">${equip}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Site</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium sm-detail-value">${escapeHtml(item.site || '—')}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Equipamento</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium sm-detail-value">${equip}</td>
       </tr>
       <tr class="border-b border-slate-100">
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Nº SM</td>
-        <td class="w-1/4 px-4 py-2.5">${renderNumberWithCopy(item.numero_sm, 'SM', true)}</td>
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Nº PV</td>
-        <td class="w-1/4 px-4 py-2.5">${renderNumberWithCopy(item.numero_pv, 'PV')}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Nº SM</td>
+        <td class="w-1/4 px-4 py-2.5 sm-detail-value">${renderNumberWithCopy(item.numero_sm, 'SM', true)}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Nº PV</td>
+        <td class="w-1/4 px-4 py-2.5 sm-detail-value">${renderNumberWithCopy(item.numero_pv, 'PV')}</td>
       </tr>
       <tr class="border-b border-slate-100">
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Nº SC</td>
-        <td class="w-1/4 px-4 py-2.5">${renderNumberWithCopy(item.numero_sc, 'SC')}</td>
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Nº OS</td>
-        <td class="w-1/4 px-4 py-2.5">${renderNumberWithCopy(osVal, 'OS')}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Nº SC</td>
+        <td class="w-1/4 px-4 py-2.5 sm-detail-value">${renderNumberWithCopy(item.numero_sc, 'SC')}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Nº OS</td>
+        <td class="w-1/4 px-4 py-2.5 sm-detail-value">${renderNumberWithCopy(osVal, 'OS')}</td>
       </tr>
       <tr class="border-b border-slate-100">
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Data da Solicitação</td>
-        <td class="w-1/4 px-4 py-2.5 text-slate-800">${formatDateBr(item.data)}</td>
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">SLA</td>
-        <td class="w-1/4 px-4 py-2.5 text-slate-800">${slaVal}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Data da Solicitação</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 sm-detail-value">${formatDateBr(item.data)}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">SLA</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 sm-detail-value">${slaVal}</td>
       </tr>
       <tr class="border-b border-slate-100">
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Valor SC</td>
-        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-semibold">${formatMoney(item.valor_sc)}</td>
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Valor Total PV</td>
-        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-semibold">${formatMoney(item.pv_valor_total)}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Valor SC</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-semibold sm-detail-value">${formatMoney(item.valor_sc)}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Valor Total PV</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-semibold sm-detail-value">${formatMoney(item.pv_valor_total)}</td>
       </tr>
       <tr>
-        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Materiais / Observações</td>
-        <td class="px-4 py-2.5 text-slate-700 leading-relaxed" colspan="3">${obsVal}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Materiais / Observações</td>
+        <td class="px-4 py-2.5 text-slate-700 leading-relaxed sm-detail-value" colspan="3">${obsVal}</td>
       </tr>
     `;
   }

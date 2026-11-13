@@ -156,10 +156,38 @@ describe('SM Table Columns and Detail Modal', () => {
     // Botão Enviar E-mail no modal
     const emailBtn = document.getElementById('btnSmDetailEmail');
     expect(emailBtn).not.toBeNull();
+    expect(emailBtn.classList.contains('bg-sky-300')).toBe(true);
 
-    // Botão Fechar fecha o modal
+    // Botão Editar com cor esmeralda e posicionado junto com Fechar
+    const editBtn = document.getElementById('btnSmDetailEdit');
+    expect(editBtn).not.toBeNull();
+    expect(editBtn.classList.contains('bg-emerald-300')).toBe(true);
+    expect(editBtn.classList.contains('text-emerald-800')).toBe(true);
+    expect(editBtn.classList.contains('bg-blue-300')).toBe(false);
+
     const closeBtn = document.getElementById('btnCloseSmDetail');
-    closeBtn.click();
+    expect(closeBtn).not.toBeNull();
+    expect(editBtn.parentElement).toBe(closeBtn.parentElement);
+
+    // Labels da tabela usam sm-detail-label e bg-slate-50
+    const labelCells = infoBody.querySelectorAll('.sm-detail-label');
+    expect(labelCells.length).toBeGreaterThan(0);
+    labelCells.forEach((cell) => {
+      expect(cell.classList.contains('bg-slate-50')).toBe(true);
+      expect(cell.className.includes('/70')).toBe(false);
+    });
+
+    // Clicar em Editar fecha o modal de detalhes e abre o modal de edição modalSc
+    editBtn.click();
+    await new Promise((r) => setTimeout(r, 20));
     expect(modal.classList.contains('hidden')).toBe(true);
+    const modalSc = document.getElementById('modalSc');
+    expect(modalSc.classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('scTitulo').value).toBe('Solicitação de Peças e Filtros');
+
+    // Botão Cancelar fecha o modalSc
+    const cancelModalSc = document.getElementById('modalScCancel');
+    cancelModalSc.click();
+    expect(modalSc.classList.contains('hidden')).toBe(true);
   });
 });
