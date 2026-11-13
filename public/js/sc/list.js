@@ -440,10 +440,10 @@ export function buildSmRowHtml(item) {
       <td class="hidden lg:table-cell px-4 py-3.5 text-sm font-medium text-slate-700 whitespace-nowrap">
         ${formatMoney(item.valor_sc)}
       </td>
-      <td class="px-4 py-3.5 text-sm text-right whitespace-nowrap">
-        <div class="flex items-center justify-end gap-2">
+      <td class="px-4 py-3.5 text-sm text-right whitespace-nowrap w-44 min-w-[150px]">
+        <div class="flex items-center justify-end gap-2 shrink-0">
           ${iconButtonHtml('edit', 'Editar', { 'class': 'sm-edit-btn', 'data-action': 'edit', 'data-id': item.id })}
-          ${iconButtonHtml('status', 'Alterar status', { 'class': 'sm-status-btn', 'data-action': 'status', 'data-id': item.id, 'data-sm-numero': escapeHtml(item.numero_sm || '') })}
+          ${iconButtonHtml('status', 'Alterar status', { 'class': 'sm-status-btn', 'data-action': 'status', 'data-id': item.id, 'data-sm-numero': escapeHtml(item.numero_sm || '') }, isAdmin ? undefined : 'right')}
           ${isAdmin ? iconButtonHtml('delete', 'Excluir', { 'class': 'sm-delete-btn', 'data-action': 'delete', 'data-id': item.id }, 'right') : ''}
         </div>
       </td>
