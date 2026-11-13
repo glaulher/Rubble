@@ -4,54 +4,111 @@ namespace App\Api\Repositories;
 
 class SolicitacaoCompraRepository extends BaseRepository
 {
-    private const SELECT_BASE = "SELECT sc.*, e.equipamento, e.capacidade, e.local, e.localidade,
-               pvt.pv_valor_total,
-               pvt.pv_os,
-               COALESCE(NULLIF(TRIM(sc.numero_os), ''), pvt.pv_os) AS os,
-               sc_totais.pv_sc_total_valor,
-               sc_totais.pv_sc_count
-        FROM solicitacao_compra sc
-        LEFT JOIN equipamentos e ON e.id = sc.equipamento_id
-        LEFT JOIN (SELECT p.numero_pv,
-                          SUM(pi.valor_total) AS pv_valor_total,
-                          GROUP_CONCAT(DISTINCT r.os ORDER BY r.os SEPARATOR ', ') AS pv_os
-                   FROM pv p
-                   LEFT JOIN pv_item pi ON pi.pv_id = p.id
-                   LEFT JOIN pv_os po ON po.pv_id = p.id
-                   LEFT JOIN registros r ON r.id = po.registro_id
-                   GROUP BY p.numero_pv) pvt ON pvt.numero_pv = sc.numero_pv
-        LEFT JOIN (SELECT sc_sub.numero_pv,
-                          SUM(sc_sub.valor_sc) AS pv_sc_total_valor,
-                          COUNT(*) AS pv_sc_count
-                   FROM solicitacao_compra sc_sub
-                   WHERE sc_sub.numero_pv IS NOT NULL AND TRIM(sc_sub.numero_pv) != ''
-                   GROUP BY sc_sub.numero_pv) sc_totais ON sc_totais.numero_pv = sc.numero_pv";
-
     public const IMAGE_DIR = __DIR__ . '/../../../IMAGE';
 
-    private const WRITABLE_FIELDS = [
-        'numero_sm' => 's',
-        'titulo_email' => 's',
-        'status' => 's',
-        'site' => 's',
-        'equipamento_id' => 'i',
-        'equipamento_texto' => 's',
-        'numero_sc' => 's',
-        'numero_os' => 's',
-        'numero_pc' => 's',
-        'numero_pv' => 's',
-        'valor_sc' => 'd',
-        'data' => 's',
-        'data_status' => 's',
-        'sla_dias' => 'i',
-        'observacao' => 's',
-    ];
+    private static bool $schemaEnsured = false;
+    private static bool $hasNumeroOs = false;
+    private static bool $hasNumeroSm = false;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->ensureColumns();
+    }
+
+    private function ensureColumns(): void
+    {
+        if (self::$schemaEnsured) {
+            return;
+        }
+
+        try {
+            $resSm = $this->conn->query("SHOW COLUMNS FROM `solicitacao_compra` LIKE 'numero_sm'");
+            if ($resSm && $resSm->num_rows === 0) {
+                $this->conn->query("ALTER TABLE `solicitacao_compra` ADD COLUMN `numero_sm` VARCHAR(50) DEFAULT NULL AFTER `id`, ADD UNIQUE KEY `uk_solicitacao_compra_sm` (`numero_sm`)");
+                self::$hasNumeroSm = true;
+            } else {
+                self::$hasNumeroSm = (bool) ($resSm && $resSm->num_rows > 0);
+            }
+
+            $resOs = $this->conn->query("SHOW COLUMNS FROM `solicitacao_compra` LIKE 'numero_os'");
+            if ($resOs && $resOs->num_rows === 0) {
+                $this->conn->query("ALTER TABLE `solicitacao_compra` ADD COLUMN `numero_os` VARCHAR(50) DEFAULT NULL AFTER `numero_sc`, ADD KEY `idx_solicitacao_compra_numero_os` (`numero_os`)");
+                self::$hasNumeroOs = true;
+            } else {
+                self::$hasNumeroOs = (bool) ($resOs && $resOs->num_rows > 0);
+            }
+
+            self::$schemaEnsured = true;
+        } catch (\Throwable $e) {
+            error_log("SolicitacaoCompraRepository ensureColumns aviso: " . $e->getMessage());
+        }
+    }
+
+    private function getSelectBase(): string
+    {
+        $osExpr = self::$hasNumeroOs
+            ? "COALESCE(NULLIF(TRIM(sc.numero_os), ''), pvos.pv_os) AS os"
+            : "pvos.pv_os AS os";
+
+        return "SELECT sc.*, e.equipamento, e.capacidade, e.local, e.localidade,
+                   pvt.pv_valor_total,
+                   pvos.pv_os,
+                   {$osExpr},
+                   sc_totais.pv_sc_total_valor,
+                   sc_totais.pv_sc_count
+            FROM solicitacao_compra sc
+            LEFT JOIN equipamentos e ON e.id = sc.equipamento_id
+            LEFT JOIN (SELECT p.numero_pv, SUM(pi.valor_total) AS pv_valor_total
+                       FROM pv p JOIN pv_item pi ON pi.pv_id = p.id
+                       GROUP BY p.numero_pv) pvt ON pvt.numero_pv = sc.numero_pv
+            LEFT JOIN (SELECT p.numero_pv, GROUP_CONCAT(DISTINCT r.os ORDER BY r.os SEPARATOR ', ') AS pv_os
+                       FROM pv p
+                       JOIN pv_os po ON po.pv_id = p.id
+                       JOIN registros r ON r.id = po.registro_id
+                       GROUP BY p.numero_pv) pvos ON pvos.numero_pv = sc.numero_pv
+            LEFT JOIN (SELECT sc_sub.numero_pv,
+                              SUM(sc_sub.valor_sc) AS pv_sc_total_valor,
+                              COUNT(*) AS pv_sc_count
+                       FROM solicitacao_compra sc_sub
+                       WHERE sc_sub.numero_pv IS NOT NULL AND TRIM(sc_sub.numero_pv) != ''
+                       GROUP BY sc_sub.numero_pv) sc_totais ON sc_totais.numero_pv = sc.numero_pv";
+    }
+
+    private function getWritableFields(): array
+    {
+        $fields = [
+            'titulo_email' => 's',
+            'status' => 's',
+            'site' => 's',
+            'equipamento_id' => 'i',
+            'equipamento_texto' => 's',
+            'numero_sc' => 's',
+            'numero_pc' => 's',
+            'numero_pv' => 's',
+            'valor_sc' => 'd',
+            'data' => 's',
+            'data_status' => 's',
+            'sla_dias' => 'i',
+            'observacao' => 's',
+        ];
+
+        if (self::$hasNumeroSm) {
+            $fields = ['numero_sm' => 's'] + $fields;
+        }
+
+        if (self::$hasNumeroOs) {
+            $fields['numero_os'] = 's';
+        }
+
+        return $fields;
+    }
 
     public function listAll(int $limit, int $offset, string $search = '', ?string $status = null, ?string $site = null): array
     {
         [$where, $types, $params] = $this->buildFilterClause($search, $status, $site);
 
-        $sql = self::SELECT_BASE . $where . " ORDER BY sc.id DESC LIMIT ? OFFSET ?";
+        $sql = $this->getSelectBase() . $where . " ORDER BY sc.id DESC LIMIT ? OFFSET ?";
 
         $types .= 'ii';
         $params[] = $limit;
@@ -99,7 +156,7 @@ class SolicitacaoCompraRepository extends BaseRepository
 
     public function getById(int $id): ?array
     {
-        $sql = self::SELECT_BASE . " WHERE sc.id = ? LIMIT 1";
+        $sql = $this->getSelectBase() . " WHERE sc.id = ? LIMIT 1";
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('i', $id);
         $stmt->execute();
@@ -110,7 +167,7 @@ class SolicitacaoCompraRepository extends BaseRepository
 
     public function listWithSla(): array
     {
-        $sql = self::SELECT_BASE . " WHERE sc.sla_dias IS NOT NULL ORDER BY sc.id";
+        $sql = $this->getSelectBase() . " WHERE sc.sla_dias IS NOT NULL ORDER BY sc.id";
         $stmt = $this->safePrepare($sql);
         $stmt->execute();
 
@@ -119,11 +176,12 @@ class SolicitacaoCompraRepository extends BaseRepository
 
     public function save(array $data): int
     {
-        $fields = array_keys(self::WRITABLE_FIELDS);
+        $writable = $this->getWritableFields();
+        $fields = array_keys($writable);
         $types = '';
         $params = [];
 
-        foreach (self::WRITABLE_FIELDS as $field => $type) {
+        foreach ($writable as $field => $type) {
             $types .= $type;
             $params[] = $this->normalizeValue($field, $data[$field] ?? null);
         }
@@ -141,11 +199,12 @@ class SolicitacaoCompraRepository extends BaseRepository
 
     public function update(int $id, array $data): bool
     {
+        $writable = $this->getWritableFields();
         $assignments = [];
         $types = '';
         $params = [];
 
-        foreach (self::WRITABLE_FIELDS as $field => $type) {
+        foreach ($writable as $field => $type) {
             $assignments[] = "{$field} = ?";
             $types .= $type;
             $params[] = $this->normalizeValue($field, $data[$field] ?? null);
@@ -213,17 +272,26 @@ class SolicitacaoCompraRepository extends BaseRepository
         $search = trim($search);
         if ($search !== '') {
             $like = '%' . $search . '%';
-            $conditions[] = "(sc.numero_sm LIKE ?
-                OR sc.titulo_email LIKE ?
-                OR sc.site LIKE ?
-                OR sc.numero_sc LIKE ?
-                OR sc.numero_os LIKE ?
-                OR sc.numero_pc LIKE ?
-                OR sc.numero_pv LIKE ?
-                OR sc.equipamento_texto LIKE ?
-                OR e.equipamento LIKE ?)";
-            $types .= 'sssssssss';
-            array_push($params, $like, $like, $like, $like, $like, $like, $like, $like, $like);
+            $fields = [
+                'sc.titulo_email',
+                'sc.site',
+                'sc.numero_sc',
+                'sc.numero_pc',
+                'sc.numero_pv',
+                'sc.equipamento_texto',
+                'e.equipamento',
+            ];
+            if (self::$hasNumeroSm) {
+                array_unshift($fields, 'sc.numero_sm');
+            }
+            if (self::$hasNumeroOs) {
+                $fields[] = 'sc.numero_os';
+            }
+            $conditions[] = '(' . implode(' LIKE ? OR ', $fields) . ' LIKE ?)';
+            $types .= str_repeat('s', count($fields));
+            for ($i = 0; $i < count($fields); $i++) {
+                $params[] = $like;
+            }
         }
 
         $status = $status !== null ? trim($status) : '';
@@ -266,7 +334,8 @@ class SolicitacaoCompraRepository extends BaseRepository
             return null;
         }
 
-        $type = self::WRITABLE_FIELDS[$field];
+        $writable = $this->getWritableFields();
+        $type = $writable[$field] ?? 's';
 
         if ($type === 'i') {
             return (int) $value;
@@ -281,6 +350,10 @@ class SolicitacaoCompraRepository extends BaseRepository
 
     public function getMaxNumberSm(string $yearPrefix): ?string
     {
+        if (!self::$hasNumeroSm) {
+            return null;
+        }
+
         $sql = "SELECT MAX(numero_sm) AS max_num
                 FROM solicitacao_compra
                 WHERE numero_sm LIKE ?";
@@ -294,7 +367,11 @@ class SolicitacaoCompraRepository extends BaseRepository
 
     public function getByNumberSm(string $numeroSm): ?array
     {
-        $sql = self::SELECT_BASE . " WHERE sc.numero_sm = ? LIMIT 1";
+        if (!self::$hasNumeroSm) {
+            return null;
+        }
+
+        $sql = $this->getSelectBase() . " WHERE sc.numero_sm = ? LIMIT 1";
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('s', $numeroSm);
         $stmt->execute();
