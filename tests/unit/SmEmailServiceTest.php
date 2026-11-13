@@ -134,4 +134,17 @@ class SmEmailServiceTest extends TestCase
         $this->expectExceptionMessageMatches('/tipo.*inválido|formato.*aceito/i');
         $service->validatePhotos($files);
     }
+
+    public function test_send_suporta_singular_e_plural_de_sm_emails(): void
+    {
+        $service = new SmEmailService();
+        $ref = new \ReflectionClass($service);
+        $method = $ref->getMethod('configureAndSend');
+        $method->setAccessible(true);
+
+        // Sem destinatários configurados
+        $res = $method->invoke($service, 'Assunto', 'Corpo', [], []);
+        $this->assertFalse($res['success']);
+        $this->assertStringContainsString('SM_EMAILS', $res['message']);
+    }
 }

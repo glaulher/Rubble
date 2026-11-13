@@ -231,12 +231,14 @@ class SmEmailService
     private function configureAndSend(string $subject, string $body, array $pdfPaths, array $photoPaths): array
     {
         $toEmails = [];
-        foreach (explode(',', Env::get('SM_EMAILS', '')) as $email) {
+        $rawTo = (string) (Env::get('SM_EMAILS') ?: Env::get('SM_EMAIL', ''));
+        foreach (explode(',', $rawTo) as $email) {
             $email = trim($email);
             if ($email !== '') $toEmails[] = $email;
         }
         $ccEmails = [];
-        foreach (explode(',', Env::get('SM_EMAILS_CC', '')) as $email) {
+        $rawCc = (string) (Env::get('SM_EMAILS_CC') ?: Env::get('SM_EMAIL_CC', ''));
+        foreach (explode(',', $rawCc) as $email) {
             $email = trim($email);
             if ($email !== '') $ccEmails[] = $email;
         }
