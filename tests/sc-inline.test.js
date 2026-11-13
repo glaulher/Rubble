@@ -15,12 +15,13 @@ globalThis.createAutocomplete = () => {};
 globalThis.initScForm = () => {};
 globalThis.debounce = (fn) => fn;
 globalThis.SC_STATUSES = [
-  { key: 'em_cotacao', label: 'Em cotação' },
+  { key: 'solicitada_cotacao', label: 'Solicitada cotação' },
   { key: 'orcamento_recebido', label: 'Orçamento recebido' },
   { key: 'sc_solicitada', label: 'SC solicitada' },
   { key: 'sc_aprovada', label: 'SC aprovada' },
   { key: 'pc_gerado', label: 'PC gerado' },
   { key: 'material_retirado', label: 'Material retirado' },
+  { key: 'sc_cancelada', label: 'SC cancelada' },
 ];
 globalThis.scSteps = (status) => globalThis.SC_STATUSES.map((s, i) => ({
   key: s.key,

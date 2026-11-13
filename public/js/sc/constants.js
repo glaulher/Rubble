@@ -2,22 +2,23 @@ export const SC_STATUSES = [
   { key: 'enviar_email', label: 'Enviar e-mail' },
   { key: 'solicitada_cotacao', label: 'Solicitada cotação' },
   { key: 'orcamento_recebido', label: 'Orçamento recebido' },
-  { key: 'em_cotacao', label: 'Em cotação' },
   { key: 'sc_solicitada', label: 'SC solicitada' },
   { key: 'sc_aprovada', label: 'SC aprovada' },
   { key: 'pc_gerado', label: 'PC gerado' },
   { key: 'material_retirado', label: 'Material retirado' },
+  { key: 'sc_cancelada', label: 'SC cancelada' },
 ];
 
 const SC_STATUS_BADGES = {
   enviar_email: 'bg-sky-100 text-sky-700',
   solicitada_cotacao: 'bg-blue-100 text-blue-700',
   orcamento_recebido: 'bg-violet-100 text-violet-700',
-  em_cotacao: 'bg-sky-100 text-sky-600',
   sc_solicitada: 'bg-amber-100 text-amber-700',
   sc_aprovada: 'bg-emerald-100 text-emerald-700',
   pc_gerado: 'bg-emerald-100 text-emerald-700',
   material_retirado: 'bg-slate-200 text-slate-700',
+  sc_cancelada: 'bg-red-100 text-red-700',
+  em_cotacao: 'bg-sky-100 text-sky-600',
 };
 
 export function scStepIndex(status) {

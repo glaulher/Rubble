@@ -10,22 +10,22 @@ class SolicitacaoCompraService
         'enviar_email',
         'solicitada_cotacao',
         'orcamento_recebido',
-        'em_cotacao',
         'sc_solicitada',
         'sc_aprovada',
         'pc_gerado',
         'material_retirado',
+        'sc_cancelada',
     ];
 
     public const STATUS_LABELS = [
         'enviar_email' => 'Enviar e-mail',
         'solicitada_cotacao' => 'Solicitada cotação',
         'orcamento_recebido' => 'Orçamento recebido',
-        'em_cotacao' => 'Em cotação',
         'sc_solicitada' => 'SC solicitada',
         'sc_aprovada' => 'SC aprovada',
         'pc_gerado' => 'PC gerado',
         'material_retirado' => 'Material retirado',
+        'sc_cancelada' => 'SC cancelada',
     ];
 
     public const EDITABLE_FIELDS = [
@@ -60,7 +60,7 @@ class SolicitacaoCompraService
     */
 
     /**
-     * @return array{items: array, total: int, status_counts: array}
+     * @return array{items: array, total: int, total_valor: float, status_counts: array}
      */
     public function listAll(
         int $limit,
@@ -74,6 +74,7 @@ class SolicitacaoCompraService
         return [
             'items' => array_map(fn (array $row) => $this->enrich($row), $rows),
             'total' => $this->repository->count($search, $status, $site),
+            'total_valor' => $this->repository->totalValor($search, $status, $site),
             'status_counts' => $this->repository->statusCounts(),
         ];
     }

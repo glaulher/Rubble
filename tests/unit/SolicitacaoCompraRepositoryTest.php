@@ -34,7 +34,7 @@ class SolicitacaoCompraRepositoryTest extends TestCase
     {
         return array_merge([
             'titulo_email' => 'Cotação de teste',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'site' => 'BMADTC',
             'data' => '2026-10-01',
             'data_status' => '2026-10-01',
@@ -48,7 +48,7 @@ class SolicitacaoCompraRepositoryTest extends TestCase
         $row = $this->repo->getById($id);
 
         $this->assertSame('ZZSC Filtros 20x20', $row['titulo_email']);
-        $this->assertSame('em_cotacao', $row['status']);
+        $this->assertSame('solicitada_cotacao', $row['status']);
     }
 
     public function testListAllFiltersByStatusAndSite(): void
@@ -57,7 +57,7 @@ class SolicitacaoCompraRepositoryTest extends TestCase
         $siteB = 'ZZSC-B';
 
         $this->repo->save($this->baseRow(['status' => 'sc_aprovada', 'site' => $siteA]));
-        $this->repo->save($this->baseRow(['status' => 'em_cotacao', 'site' => $siteB]));
+        $this->repo->save($this->baseRow(['status' => 'solicitada_cotacao', 'site' => $siteB]));
 
         $byStatus = $this->repo->listAll(20, 0, '', 'sc_aprovada', $siteA);
         $this->assertCount(1, $byStatus);
@@ -65,7 +65,7 @@ class SolicitacaoCompraRepositoryTest extends TestCase
 
         $bySite = $this->repo->listAll(20, 0, '', null, $siteB);
         $this->assertCount(1, $bySite);
-        $this->assertSame('em_cotacao', $bySite[0]['status']);
+        $this->assertSame('solicitada_cotacao', $bySite[0]['status']);
 
         $this->assertSame(1, $this->repo->count('', 'sc_aprovada', $siteA));
         $this->assertSame(2, $this->repo->count('', null, 'ZZSC'));
@@ -134,6 +134,16 @@ class SolicitacaoCompraRepositoryTest extends TestCase
         $counts = $this->repo->statusCounts();
 
         $this->assertSame(1, $counts['pc_gerado']);
+    }
+
+    public function testTotalValorReturnsSumOfValorSc(): void
+    {
+        $this->repo->save($this->baseRow(['valor_sc' => '250.50', 'site' => 'ZZSC-TOTAL']));
+        $this->repo->save($this->baseRow(['valor_sc' => '750.50', 'site' => 'ZZSC-TOTAL']));
+
+        $total = $this->repo->totalValor('', null, 'ZZSC-TOTAL');
+
+        $this->assertEquals(1001.0, $total);
     }
 
     public function testUpdateAndDelete(): void

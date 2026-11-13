@@ -23,7 +23,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         return array_merge([
             'id' => 1,
             'titulo_email' => 'Cotação filtros',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'site' => 'BMADTC',
             'equipamento_id' => null,
             'equipamento_texto' => null,
@@ -44,18 +44,19 @@ class SolicitacaoCompraServiceTest extends TestCase
     public function testStatusIndexAndSteps(): void
     {
         $this->assertSame(0, SolicitacaoCompraService::statusIndex('enviar_email'));
-        $this->assertSame(3, SolicitacaoCompraService::statusIndex('em_cotacao'));
-        $this->assertSame(5, SolicitacaoCompraService::statusIndex('sc_aprovada'));
+        $this->assertSame(1, SolicitacaoCompraService::statusIndex('solicitada_cotacao'));
+        $this->assertSame(4, SolicitacaoCompraService::statusIndex('sc_aprovada'));
+        $this->assertSame(7, SolicitacaoCompraService::statusIndex('sc_cancelada'));
         $this->assertSame(-1, SolicitacaoCompraService::statusIndex('inventado'));
 
         $steps = SolicitacaoCompraService::stepsFor('sc_solicitada');
         $this->assertTrue($steps['enviar_email']);
         $this->assertTrue($steps['solicitada_cotacao']);
-        $this->assertTrue($steps['em_cotacao']);
         $this->assertTrue($steps['orcamento_recebido']);
         $this->assertTrue($steps['sc_solicitada']);
         $this->assertFalse($steps['sc_aprovada']);
         $this->assertFalse($steps['material_retirado']);
+        $this->assertFalse($steps['sc_cancelada']);
     }
 
     public function testStepsForUnknownStatusMarksNothing(): void
@@ -119,7 +120,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('O título da solicitação é obrigatório.');
 
-        $this->service()->validate(['site' => 'BMADTC', 'status' => 'em_cotacao']);
+        $this->service()->validate(['site' => 'BMADTC', 'status' => 'solicitada_cotacao']);
     }
 
     public function testValidateRejectsMissingSite(): void
@@ -127,7 +128,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('O site é obrigatório.');
 
-        $this->service()->validate(['titulo_email' => 'x', 'site' => '  ', 'status' => 'em_cotacao']);
+        $this->service()->validate(['titulo_email' => 'x', 'site' => '  ', 'status' => 'solicitada_cotacao']);
     }
 
     public function testValidateRejectsUnknownStatus(): void
@@ -146,7 +147,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->service()->validate([
             'titulo_email' => 'x',
             'site' => 'BMADTC',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'sla_dias' => -1,
         ]);
     }
@@ -159,7 +160,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->service()->validate([
             'titulo_email' => 'x',
             'site' => 'BMADTC',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'valor_sc' => -5,
         ]);
     }
@@ -172,7 +173,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->service()->validate([
             'titulo_email' => 'x',
             'site' => 'BMADTC',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'data' => '30/10/2026',
         ]);
     }
@@ -185,7 +186,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->service()->validate([
             'titulo_email' => 'x',
             'site' => 'BMADTC',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'data' => null,
         ]);
     }
@@ -198,7 +199,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->service()->validate([
             'titulo_email' => 'x',
             'site' => 'BMADTC',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'data_status' => '',
         ]);
     }
@@ -211,7 +212,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->service()->validate([
             'titulo_email' => 'x',
             'site' => 'BMADTC',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'equipamento_id' => 'abc',
         ]);
     }
@@ -228,7 +229,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->service($repo)->save([
             'titulo_email' => 'x',
             'site' => 'BMADTC',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'numero_pv' => 'PV 260025',
         ]);
     }
@@ -245,7 +246,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->service($repo)->save([
             'titulo_email' => 'x',
             'site' => 'BMADTC',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
         ]);
     }
 
@@ -260,7 +261,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $this->service($repo)->save([
             'titulo_email' => 'x',
             'site' => 'BMADTC',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'numero_sc' => 'SC-1',
         ]);
     }
@@ -270,7 +271,7 @@ class SolicitacaoCompraServiceTest extends TestCase
     public function testStatusChangeSetsDataStatusToToday(): void
     {
         $repo = $this->createMockRepo();
-        $repo->method('getById')->willReturn($this->row(['status' => 'em_cotacao', 'data_status' => '2026-10-01']));
+        $repo->method('getById')->willReturn($this->row(['status' => 'solicitada_cotacao', 'data_status' => '2026-10-01']));
         $repo->expects($this->once())->method('update')
             ->with(1, $this->callback(fn ($d) => $d['data_status'] === date('Y-m-d')))
             ->willReturn(true);
@@ -281,18 +282,18 @@ class SolicitacaoCompraServiceTest extends TestCase
     public function testSameStatusKeepsDataStatus(): void
     {
         $repo = $this->createMockRepo();
-        $repo->method('getById')->willReturn($this->row(['status' => 'em_cotacao', 'data_status' => '2026-10-01']));
+        $repo->method('getById')->willReturn($this->row(['status' => 'solicitada_cotacao', 'data_status' => '2026-10-01']));
         $repo->expects($this->once())->method('update')
             ->with(1, $this->callback(fn ($d) => $d['data_status'] === '2026-10-01'))
             ->willReturn(true);
 
-        $this->service($repo)->update(1, ['status' => 'em_cotacao']);
+        $this->service($repo)->update(1, ['status' => 'solicitada_cotacao']);
     }
 
     public function testExplicitDataStatusIsKept(): void
     {
         $repo = $this->createMockRepo();
-        $repo->method('getById')->willReturn($this->row(['status' => 'em_cotacao', 'data_status' => '2026-10-01']));
+        $repo->method('getById')->willReturn($this->row(['status' => 'solicitada_cotacao', 'data_status' => '2026-10-01']));
         $repo->expects($this->once())->method('update')
             ->with(1, $this->callback(fn ($d) => $d['data_status'] === '2026-10-20'))
             ->willReturn(true);
@@ -351,7 +352,7 @@ class SolicitacaoCompraServiceTest extends TestCase
     public function testUpdateFieldStatusAlsoSetsDataStatus(): void
     {
         $repo = $this->createMockRepo();
-        $repo->method('getById')->willReturn($this->row(['status' => 'em_cotacao', 'data_status' => '2026-10-01']));
+        $repo->method('getById')->willReturn($this->row(['status' => 'solicitada_cotacao', 'data_status' => '2026-10-01']));
         $repo->expects($this->once())->method('update')
             ->with(1, $this->callback(
                 fn ($d) => $d['status'] === 'sc_aprovada' && $d['data_status'] === date('Y-m-d')
@@ -370,7 +371,7 @@ class SolicitacaoCompraServiceTest extends TestCase
         $out = $this->service($repo)->updateField(1, 'titulo_email', 'Novo título');
 
         $this->assertSame(30.0, $out['markup_pct']);
-        $this->assertTrue($out['steps']['em_cotacao']);
+        $this->assertTrue($out['steps']['solicitada_cotacao']);
     }
 
     // --- listAll / enrich ---
@@ -382,12 +383,14 @@ class SolicitacaoCompraServiceTest extends TestCase
             $this->row(['valor_sc' => '1000.00', 'pv_valor_total' => '1300.00']),
         ]);
         $repo->method('count')->willReturn(1);
-        $repo->method('statusCounts')->willReturn(['em_cotacao' => 1]);
+        $repo->method('totalValor')->willReturn(1000.0);
+        $repo->method('statusCounts')->willReturn(['solicitada_cotacao' => 1]);
 
         $out = $this->service($repo)->listAll(500, 0, '', null, null);
 
         $this->assertSame(1, $out['total']);
-        $this->assertSame(['em_cotacao' => 1], $out['status_counts']);
+        $this->assertSame(1000.0, $out['total_valor']);
+        $this->assertSame(['solicitada_cotacao' => 1], $out['status_counts']);
         $this->assertCount(1, $out['items']);
         $this->assertSame(23.1, $out['items'][0]['margem_pct']);
     }
@@ -412,7 +415,7 @@ class SolicitacaoCompraServiceTest extends TestCase
     public function testEnrichLeavesMarginsNullWithoutPv(): void
     {
         $out = $this->service()->enrich([
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'valor_sc' => '1000.00',
             'pv_valor_total' => null,
         ], '2026-10-30');

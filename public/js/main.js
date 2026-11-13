@@ -1,1 +1,1 @@
-import '/public/js/router.js?v=35';
+import '/public/js/router.js?v=36';

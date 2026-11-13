@@ -42,11 +42,11 @@ const SC_STATUSES = [
   { key: 'enviar_email', label: 'Enviar e-mail' },
   { key: 'solicitada_cotacao', label: 'Solicitada cotação' },
   { key: 'orcamento_recebido', label: 'Orçamento recebido' },
-  { key: 'em_cotacao', label: 'Em cotação' },
   { key: 'sc_solicitada', label: 'SC solicitada' },
   { key: 'sc_aprovada', label: 'SC aprovada' },
   { key: 'pc_gerado', label: 'PC gerado' },
   { key: 'material_retirado', label: 'Material retirado' },
+  { key: 'sc_cancelada', label: 'SC cancelada' },
 ];
 
 function scStepIndex(status) {
@@ -76,6 +76,7 @@ function scStatusBadgeClass(status) {
     sc_aprovada: 'bg-emerald-100 text-emerald-700',
     pc_gerado: 'bg-emerald-100 text-emerald-700',
     material_retirado: 'bg-slate-200 text-slate-700',
+    sc_cancelada: 'bg-red-100 text-red-700',
   };
   return badges[status] || 'bg-slate-100 text-slate-600';
 }

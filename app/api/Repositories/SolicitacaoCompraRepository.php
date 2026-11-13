@@ -139,6 +139,24 @@ class SolicitacaoCompraRepository extends BaseRepository
         return (int) ($row['total'] ?? 0);
     }
 
+    public function totalValor(string $search = '', ?string $status = null, ?string $site = null): float
+    {
+        [$where, $types, $params] = $this->buildFilterClause($search, $status, $site);
+
+        $sql = "SELECT COALESCE(SUM(sc.valor_sc), 0) AS total_valor
+                FROM solicitacao_compra sc
+                LEFT JOIN equipamentos e ON e.id = sc.equipamento_id" . $where;
+
+        $stmt = $this->safePrepare($sql);
+        if ($types !== '') {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+
+        return (float) ($row['total_valor'] ?? 0.0);
+    }
+
     public function statusCounts(): array
     {
         $sql = "SELECT status, COUNT(*) AS total FROM solicitacao_compra GROUP BY status";

@@ -14,7 +14,7 @@ class ScSlaServiceTest extends TestCase
             'id' => 1,
             'titulo_email' => 'Cotação filtros',
             'site' => 'BMADTC',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'sla_dias' => 3,
             'data_status' => '2026-10-20',
             'sla_notificado_em' => null,

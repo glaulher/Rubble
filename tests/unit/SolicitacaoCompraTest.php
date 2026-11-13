@@ -12,7 +12,7 @@ class SolicitacaoCompraTest extends TestCase
         $e = new SolicitacaoCompra([
             'id' => '7',
             'titulo_email' => 'Cotação filtros',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'site' => 'BMADTC',
             'valor_sc' => '1500.50',
             'sla_dias' => '5',
@@ -22,7 +22,7 @@ class SolicitacaoCompraTest extends TestCase
 
         $this->assertSame(7, $arr['id']);
         $this->assertSame('Cotação filtros', $arr['titulo_email']);
-        $this->assertSame('em_cotacao', $arr['status']);
+        $this->assertSame('solicitada_cotacao', $arr['status']);
         $this->assertSame('BMADTC', $arr['site']);
         $this->assertSame(1500.5, $arr['valor_sc']);
         $this->assertSame(5, $arr['sla_dias']);
@@ -33,7 +33,7 @@ class SolicitacaoCompraTest extends TestCase
         $e = new SolicitacaoCompra([
             'id' => '1',
             'titulo_email' => 'x',
-            'status' => 'em_cotacao',
+            'status' => 'solicitada_cotacao',
             'site' => 'Y',
         ]);
 

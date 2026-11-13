@@ -17,7 +17,7 @@ const SAMPLE_SM = {
   id: 42,
   numero_sm: '260042',
   titulo_email: 'Solicitação de Peças e Filtros',
-  status: 'em_cotacao',
+  status: 'solicitada_cotacao',
   site: 'BMADTC',
   equipamento: 'Chiller 01',
   equipamento_texto: null,
@@ -72,7 +72,7 @@ function mockApi(items = [SAMPLE_SM]) {
         json: async () => ({
           success: true,
           total: items.length,
-          status_counts: { em_cotacao: items.length },
+          status_counts: { solicitada_cotacao: items.length },
           data: items,
         }),
       };

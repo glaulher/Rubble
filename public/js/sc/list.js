@@ -8,7 +8,7 @@ import { debounce } from '/public/js/components/infinite-scroll.js';
 import { createAutocomplete } from '/public/js/core/autocomplete.js?v=1';
 import { buttonHtml, iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
-import { SC_STATUSES, scSteps, formatPct, scStatusBadgeClass } from './constants.js?v=1';
+import { SC_STATUSES, scSteps, formatPct, scStatusBadgeClass } from './constants.js?v=2';
 import { initScForm, openScModal } from './form.js?v=1';
 import { initSmEmailModal, openSmEmailModal } from './modal-email.js?v=1';
 
@@ -17,6 +17,7 @@ export const SC_PAGE_LIMIT = 25;
 
 let _scItems = [];
 let _scTotal = 0;
+let _scTotalValor = 0;
 let _scStatusCounts = {};
 let _scSearch = '';
 let _scStatusFilter = '';
@@ -1125,7 +1126,13 @@ export async function saveScField(id, field, value) {
 
     const index = _scItems.findIndex((item) => Number(item.id) === Number(id));
     if (index >= 0 && res.data) {
+      if (field === 'valor_sc') {
+        const oldVal = parseFloat(_scItems[index].valor_sc) || 0;
+        const newVal = parseFloat(res.data.valor_sc) || 0;
+        _scTotalValor = Math.max(0, _scTotalValor - oldVal + newVal);
+      }
       _scItems[index] = res.data;
+      updateScBadge();
     }
 
     return true;
@@ -1380,11 +1387,22 @@ export function renderScTable(items, append = false) {
 export function updateScBadge(opts = {}) {
   const total = typeof opts === 'object' && opts !== null ? opts.total : opts;
   if (total !== undefined) _scTotal = total;
+  if (typeof opts === 'object' && opts !== null && opts.totalValor !== undefined) {
+    _scTotalValor = Number(opts.totalValor) || 0;
+  }
   const totalEl = document.getElementById('scCounter') || document.getElementById('scTotal');
   const overdueEl = document.getElementById('scOverdue');
+  const valueEl = document.getElementById('scTotalValue');
   if (totalEl) totalEl.textContent = String(_scTotal);
   if (overdueEl) {
     overdueEl.textContent = String(_scItems.filter((i) => Number(i.overdue_days) > 0).length);
+  }
+  if (valueEl) {
+    const val = Number(_scTotalValor || 0);
+    valueEl.textContent = val.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
   }
 }
 
@@ -1448,9 +1466,12 @@ async function loadMoreSc() {
     if (res.total !== undefined) {
       _scTotal = res.total;
     }
+    if (res.total_valor !== undefined) {
+      _scTotalValor = Number(res.total_valor) || 0;
+    }
 
     renderScTable(newItems, true);
-    updateScBadge({ total: _scTotal });
+    updateScBadge({ total: _scTotal, totalValor: _scTotalValor });
 
     if (_scItems.length >= _scTotal) {
       _scAllLoaded = true;
@@ -1481,10 +1502,11 @@ export async function loadSc(silent = false) {
     if (silent && isScEditing()) return;
 
     _scTotal = res.total || 0;
+    _scTotalValor = res.total_valor !== undefined ? Number(res.total_valor) : 0;
     _scStatusCounts = res.status_counts || {};
 
     renderScTable(res.data || [], false);
-    updateScBadge({ total: _scTotal });
+    updateScBadge({ total: _scTotal, totalValor: _scTotalValor });
     updateStatusFilterCounts();
 
     setupScInfiniteScroll();

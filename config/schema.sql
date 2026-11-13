@@ -932,7 +932,7 @@ CREATE TABLE IF NOT EXISTS `solicitacao_compra` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `numero_sm` varchar(50) DEFAULT NULL,
   `titulo_email` varchar(255) NOT NULL,
-  `status` varchar(30) NOT NULL DEFAULT 'em_cotacao',
+  `status` varchar(30) NOT NULL DEFAULT 'solicitada_cotacao',
   `site` varchar(100) NOT NULL,
   `equipamento_id` int(11) DEFAULT NULL,
   `equipamento_texto` varchar(150) DEFAULT NULL,

@@ -59,6 +59,7 @@ class SolicitacaoCompraController
                 'message' => 'Solicitações listadas com sucesso',
                 'data' => $result['items'],
                 'total' => $result['total'],
+                'total_valor' => (float) ($result['total_valor'] ?? 0.0),
                 'status_counts' => $result['status_counts'],
                 'limit' => $limit,
                 'offset' => $offset,

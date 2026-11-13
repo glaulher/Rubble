@@ -34,6 +34,7 @@ function mockApi(items = [ITEM]) {
       return { json: async () => ({
         success: true,
         total: items.length,
+        total_valor: items.reduce((acc, i) => acc + (parseFloat(i.valor_sc) || 0), 0),
         status_counts: { sc_aprovada: items.length },
         data: items,
       }) };
@@ -58,6 +59,7 @@ describe('SC view integration', () => {
     expect(listEl.innerHTML).toContain('SC-1');
     expect(document.getElementById('scCounter').textContent).toBe('1');
     expect(document.getElementById('scOverdue').textContent).toBe('1');
+    expect(document.getElementById('scTotalValue').textContent.replace(/\u00a0/g, ' ')).toContain('1.000,00');
     expect(calls.length).toBeGreaterThan(0);
   });
 
