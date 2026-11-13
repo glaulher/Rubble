@@ -9,7 +9,7 @@ import { createAutocomplete } from '/public/js/core/autocomplete.js?v=1';
 import { buttonHtml, iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
 import { SC_STATUSES, scSteps, formatPct, scStatusBadgeClass } from './constants.js?v=1';
-import { initScForm } from './form.js?v=1';
+import { initScForm, openScModal } from './form.js?v=1';
 import { initSmEmailModal, openSmEmailModal } from './modal-email.js?v=1';
 
 export const scPollingInterval = 10000;
@@ -350,7 +350,7 @@ export function buildSmRowHtml(item) {
         <input type="checkbox" class="sm-checkbox rounded border-slate-300 text-sky-600 focus:ring-sky-500 cursor-pointer" data-id="${item.id}" ${isSelected ? 'checked' : ''}>
       </td>
       <td class="px-4 py-3.5 text-sm font-semibold text-slate-900 whitespace-nowrap">
-        <span class="font-mono text-sky-800 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-200">${smDisplay}</span>
+        ${smDisplay}
       </td>
       <td class="hidden md:table-cell px-4 py-3.5 text-sm text-slate-600 whitespace-nowrap">
         ${formatDateBr(item.data)}
@@ -376,11 +376,65 @@ export function buildSmRowHtml(item) {
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
             <span>E-mail</span>
           </button>
-          ${isAdmin ? iconButtonHtml('delete', 'Excluir', { 'class': 'sm-delete-btn', 'data-id': item.id }, 'right') : ''}
+          ${iconButtonHtml('edit', 'Editar', { 'class': 'sm-edit-btn', 'data-action': 'edit', 'data-id': item.id })}
+          ${iconButtonHtml('status', 'Alterar status', { 'class': 'sm-status-btn', 'data-action': 'status', 'data-id': item.id, 'data-sm-numero': escapeHtml(item.numero_sm || '') })}
+          ${isAdmin ? iconButtonHtml('delete', 'Excluir', { 'class': 'sm-delete-btn', 'data-action': 'delete', 'data-id': item.id }, 'right') : ''}
         </div>
       </td>
     </tr>
   `;
+}
+
+export function openSmStatusModal(id, smNumero) {
+  const modal = document.getElementById('smStatusModal');
+  const idInput = document.getElementById('smStatusId');
+  const numSpan = document.getElementById('smStatusNumber');
+  const select = document.getElementById('smStatusSelect');
+
+  if (!modal || !idInput || !select) return;
+
+  const item = _scItems.find((i) => Number(i.id) === Number(id));
+  const currentStatus = item ? item.status : '';
+
+  idInput.value = String(id);
+  if (numSpan) numSpan.textContent = smNumero ? `SM ${smNumero}` : `ID #${id}`;
+
+  select.innerHTML = SC_STATUSES.map(
+    (s) => `<option value="${s.key}" ${s.key === currentStatus ? 'selected' : ''}>${escapeHtml(s.label)}</option>`
+  ).join('');
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+export function closeSmStatusModal() {
+  const modal = document.getElementById('smStatusModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+export async function confirmSmStatusChange() {
+  const idInput = document.getElementById('smStatusId');
+  const select = document.getElementById('smStatusSelect');
+
+  if (!idInput || !select) return;
+
+  const id = Number(idInput.value);
+  const newStatus = select.value;
+
+  if (!id || !newStatus) {
+    showToast('Selecione um status', 'error');
+    return;
+  }
+
+  const ok = await saveScField(id, 'status', newStatus);
+  if (ok) {
+    showToast('Status alterado com sucesso', 'success');
+    closeSmStatusModal();
+    await loadSc();
+  }
 }
 
 function sortScItems() {
@@ -413,6 +467,28 @@ function bindTableEvents() {
   const table = document.getElementById('scTable');
   const master = document.getElementById('selectAllSm');
   const batchBtn = document.getElementById('batchSmEmailBtn');
+  const btnConfirmStatus = document.getElementById('btnConfirmSmStatus');
+  const btnCloseStatus = document.getElementById('btnCloseSmStatus');
+  const statusModal = document.getElementById('smStatusModal');
+
+  if (btnConfirmStatus && !btnConfirmStatus.dataset.bound) {
+    btnConfirmStatus.dataset.bound = '1';
+    btnConfirmStatus.addEventListener('click', confirmSmStatusChange);
+  }
+
+  if (btnCloseStatus && !btnCloseStatus.dataset.bound) {
+    btnCloseStatus.dataset.bound = '1';
+    btnCloseStatus.addEventListener('click', closeSmStatusModal);
+  }
+
+  if (statusModal && !statusModal.dataset.bound) {
+    statusModal.dataset.bound = '1';
+    statusModal.addEventListener('click', (e) => {
+      if (e.target === statusModal) {
+        closeSmStatusModal();
+      }
+    });
+  }
 
   if (master && !master.dataset.bound) {
     master.dataset.bound = '1';
@@ -471,7 +547,25 @@ function bindTableEvents() {
         return;
       }
 
-      const delBtn = e.target.closest('.sm-delete-btn');
+      const editBtn = e.target.closest('.sm-edit-btn, [data-action="edit"]');
+      if (editBtn) {
+        const id = Number(editBtn.dataset.id);
+        const item = _scItems.find((i) => Number(i.id) === id);
+        if (item) {
+          openScModal(item);
+        }
+        return;
+      }
+
+      const statusBtn = e.target.closest('.sm-status-btn, [data-action="status"]');
+      if (statusBtn) {
+        const id = Number(statusBtn.dataset.id);
+        const numero = statusBtn.dataset.smNumero || '';
+        openSmStatusModal(id, numero);
+        return;
+      }
+
+      const delBtn = e.target.closest('.sm-delete-btn, [data-action="delete"]');
       if (delBtn) {
         const id = Number(delBtn.dataset.id);
         deleteSc(id);

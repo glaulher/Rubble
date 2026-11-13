@@ -299,6 +299,43 @@
     </div>
   </div>
 
+  <!-- MODAL ALTERAR STATUS (IDÊNTICO À PV) -->
+  <div
+    id="smStatusModal"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-[99999]"
+  >
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 m-4 animate-[fadeIn_.2s_ease]">
+      <h2 class="text-2xl font-light tracking-[0.05em] text-slate-800 mb-2">
+        Alterar Status
+      </h2>
+      <p id="smStatusModalInfo" class="text-slate-600 mb-4">
+        SM:
+        <span id="smStatusNumber" class="font-semibold text-slate-900"></span>
+      </p>
+      <input type="hidden" id="smStatusId" />
+      <select
+        id="smStatusSelect"
+        class="w-full rounded-xl border border-slate-300 px-4 py-3 mb-6 focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-800 font-medium"
+      ></select>
+      <div class="flex gap-3">
+        <button
+          type="button"
+          id="btnConfirmSmStatus"
+          class="flex-1 bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 py-3 rounded-xl font-medium transition cursor-pointer"
+        >
+          Confirmar
+        </button>
+        <button
+          type="button"
+          id="btnCloseSmStatus"
+          class="flex-1 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 py-3 rounded-xl font-medium transition cursor-pointer"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE SOLICITAÇÃO (COM AUTOCOMPLETE HÍBRIDO) -->
   <div
     id="modalSc"

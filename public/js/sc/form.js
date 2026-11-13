@@ -143,6 +143,70 @@ export function buildScCreatePayload(values) {
   return payload;
 }
 
+let _editingScId = null;
+
+export function openScModal(item = null) {
+  const modal = document.getElementById('modalSc');
+  const title = document.getElementById('modalScTitle');
+  const subtitle = modal ? modal.querySelector('p.text-xs') : null;
+  const inputTitulo = document.getElementById('scTitulo');
+  const inputSite = document.getElementById('scSite');
+  const inputEquip = document.getElementById('scEquip');
+  const inputPv = document.getElementById('scPv');
+  const inputData = document.getElementById('scData');
+  const inputSla = document.getElementById('scSla');
+  const inputObs = document.getElementById('scObservacao');
+
+  if (!modal || !inputTitulo) return;
+
+  if (item) {
+    _editingScId = Number(item.id);
+    if (title) title.textContent = 'Editar Solicitação de Material';
+    if (subtitle) subtitle.textContent = `SM: ${item.numero_sm || item.id}`;
+    inputTitulo.value = item.titulo_email || '';
+    inputSite.value = item.site || '';
+    if (inputEquip) {
+      inputEquip.value = item.equipamento || item.equipamento_texto || '';
+      if (item.equipamento_id) {
+        inputEquip.dataset.equipId = String(item.equipamento_id);
+      } else {
+        delete inputEquip.dataset.equipId;
+      }
+    }
+    if (inputPv) inputPv.value = item.numero_pv || '';
+    inputData.value = item.data || localToday();
+    inputSla.value = item.sla_dias !== null && item.sla_dias !== undefined ? String(item.sla_dias) : '';
+    if (inputObs) inputObs.value = item.observacao || '';
+  } else {
+    _editingScId = null;
+    if (title) title.textContent = 'Nova Solicitação de Material';
+    if (subtitle) subtitle.textContent = 'O número SM será gerado automaticamente';
+    inputTitulo.value = '';
+    inputSite.value = '';
+    if (inputEquip) {
+      inputEquip.value = '';
+      delete inputEquip.dataset.equipId;
+    }
+    if (inputPv) inputPv.value = '';
+    inputData.value = localToday();
+    inputSla.value = '';
+    if (inputObs) inputObs.value = '';
+  }
+
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => inputTitulo.focus());
+}
+
+export function closeScModal() {
+  const modal = document.getElementById('modalSc');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+  _editingScId = null;
+}
+
 export function initScForm() {
   const modal = document.getElementById('modalSc');
   const form = document.getElementById('formSc');
@@ -159,30 +223,9 @@ export function initScForm() {
 
   if (!modal || !form || !btnNew || !btnCancel) return;
 
-  function openModal() {
-    inputTitulo.value = '';
-    inputSite.value = '';
-    if (inputEquip) {
-      inputEquip.value = '';
-      delete inputEquip.dataset.equipId;
-    }
-    if (inputPv) inputPv.value = '';
-    inputData.value = localToday();
-    inputSla.value = '';
-    if (inputObs) inputObs.value = '';
-    modal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-    requestAnimationFrame(() => inputTitulo.focus());
-  }
-
-  function closeModal() {
-    modal.classList.add('hidden');
-    document.body.style.overflow = '';
-  }
-
-  btnNew.addEventListener('click', openModal);
-  btnCancel.addEventListener('click', closeModal);
-  if (btnClose) btnClose.addEventListener('click', closeModal);
+  btnNew.addEventListener('click', () => openScModal(null));
+  btnCancel.addEventListener('click', closeScModal);
+  if (btnClose) btnClose.addEventListener('click', closeScModal);
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -199,26 +242,50 @@ export function initScForm() {
         observacao: inputObs ? inputObs.value : '',
       });
 
-      showToast('Registrando solicitação de material...', 'loading');
+      if (_editingScId) {
+        showToast('Atualizando solicitação de material...', 'loading');
+        payload.id = _editingScId;
+        delete payload.status;
+        delete payload.data_status;
 
-      const response = await apiFetch('/app/api/index.php?route=sc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const res = await response.json();
+        const response = await apiFetch('/app/api/index.php?route=sc', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const res = await response.json();
 
-      if (res.success) {
-        showToast('Solicitação registrada com sucesso', 'success');
-        closeModal();
-        if (typeof globalThis.refreshScList === 'function') {
-          await globalThis.refreshScList();
+        if (res.success) {
+          showToast('Solicitação atualizada com sucesso', 'success');
+          closeScModal();
+          if (typeof globalThis.refreshScList === 'function') {
+            await globalThis.refreshScList();
+          }
+        } else {
+          showToast(res.message || 'Erro ao atualizar solicitação', 'error');
         }
       } else {
-        showToast(res.message || 'Erro ao registrar solicitação', 'error');
+        showToast('Registrando solicitação de material...', 'loading');
+
+        const response = await apiFetch('/app/api/index.php?route=sc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const res = await response.json();
+
+        if (res.success) {
+          showToast('Solicitação registrada com sucesso', 'success');
+          closeScModal();
+          if (typeof globalThis.refreshScList === 'function') {
+            await globalThis.refreshScList();
+          }
+        } else {
+          showToast(res.message || 'Erro ao registrar solicitação', 'error');
+        }
       }
     } catch (err) {
-      showToast(err.message || 'Erro ao registrar solicitação', 'error');
+      showToast(err.message || 'Erro ao processar solicitação', 'error');
     }
   });
 
