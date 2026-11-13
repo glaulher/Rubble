@@ -135,6 +135,16 @@ export function buildScCreatePayload(values) {
     payload.numero_pv = pv;
   }
 
+  const sc = (values.numero_sc ?? '').trim();
+  if (sc) {
+    payload.numero_sc = sc;
+  }
+
+  const os = (values.numero_os ?? values.os ?? '').trim();
+  if (os) {
+    payload.numero_os = os;
+  }
+
   const obs = (values.observacao ?? '').trim();
   if (obs) {
     payload.observacao = obs;
@@ -153,6 +163,8 @@ export function openScModal(item = null) {
   const inputSite = document.getElementById('scSite');
   const inputEquip = document.getElementById('scEquip');
   const inputPv = document.getElementById('scPv');
+  const inputSc = document.getElementById('scSc');
+  const inputOs = document.getElementById('scOs');
   const inputData = document.getElementById('scData');
   const inputSla = document.getElementById('scSla');
   const inputObs = document.getElementById('scObservacao');
@@ -174,6 +186,8 @@ export function openScModal(item = null) {
       }
     }
     if (inputPv) inputPv.value = item.numero_pv || '';
+    if (inputSc) inputSc.value = item.numero_sc || '';
+    if (inputOs) inputOs.value = item.numero_os || item.os || '';
     inputData.value = item.data || localToday();
     inputSla.value = item.sla_dias !== null && item.sla_dias !== undefined ? String(item.sla_dias) : '';
     if (inputObs) inputObs.value = item.observacao || '';
@@ -188,6 +202,8 @@ export function openScModal(item = null) {
       delete inputEquip.dataset.equipId;
     }
     if (inputPv) inputPv.value = '';
+    if (inputSc) inputSc.value = '';
+    if (inputOs) inputOs.value = '';
     inputData.value = localToday();
     inputSla.value = '';
     if (inputObs) inputObs.value = '';
@@ -217,6 +233,8 @@ export function initScForm() {
   const inputSite = document.getElementById('scSite');
   const inputEquip = document.getElementById('scEquip');
   const inputPv = document.getElementById('scPv');
+  const inputSc = document.getElementById('scSc');
+  const inputOs = document.getElementById('scOs');
   const inputData = document.getElementById('scData');
   const inputSla = document.getElementById('scSla');
   const inputObs = document.getElementById('scObservacao');
@@ -237,6 +255,8 @@ export function initScForm() {
         equipamento_id: inputEquip?.dataset?.equipId,
         equipamento_texto: inputEquip?.value,
         numero_pv: inputPv ? inputPv.value : '',
+        numero_sc: inputSc ? inputSc.value : '',
+        numero_os: inputOs ? inputOs.value : '',
         data: inputData ? inputData.value : '',
         sla_dias: inputSla.value,
         observacao: inputObs ? inputObs.value : '',

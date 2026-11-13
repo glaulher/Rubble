@@ -99,20 +99,19 @@ class PvController
         try {
 
             $id = Request::get('id');
+            $numeroPv = Request::get('numero_pv');
 
-            if (!$id) {
-
+            if (!$id && !$numeroPv) {
                 Response::error(
-                    'ID obrigatório',
+                    'ID ou número da PV obrigatório',
                     400
                 );
                 return;
             }
 
-            $data =
-                $this->service->getById(
-                    (int) $id
-                );
+            $data = $id
+                ? $this->service->getById((int) $id)
+                : $this->service->getByNumberPv((string) $numeroPv);
 
             if (!$data) {
 

@@ -12,6 +12,7 @@ class SolicitacaoCompra
     public ?int $equipamentoId;
     public ?string $equipamentoTexto;
     public ?string $numeroSc;
+    public ?string $numeroOs;
     public ?string $numeroPc;
     public ?string $numeroPv;
     public ?float $valorSc;
@@ -34,6 +35,7 @@ class SolicitacaoCompra
         $this->equipamentoId = self::toInt($data['equipamento_id'] ?? null);
         $this->equipamentoTexto = self::toString($data['equipamento_texto'] ?? null);
         $this->numeroSc = self::toString($data['numero_sc'] ?? null);
+        $this->numeroOs = self::toString($data['numero_os'] ?? ($data['os'] ?? null));
         $this->numeroPc = self::toString($data['numero_pc'] ?? null);
         $this->numeroPv = self::toString($data['numero_pv'] ?? null);
         $this->valorSc = self::toFloat($data['valor_sc'] ?? null);
@@ -58,6 +60,8 @@ class SolicitacaoCompra
             'equipamento_id' => $this->equipamentoId,
             'equipamento_texto' => $this->equipamentoTexto,
             'numero_sc' => $this->numeroSc,
+            'numero_os' => $this->numeroOs,
+            'os' => $this->numeroOs,
             'numero_pc' => $this->numeroPc,
             'numero_pv' => $this->numeroPv,
             'valor_sc' => $this->valorSc,

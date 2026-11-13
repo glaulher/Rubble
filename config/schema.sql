@@ -937,6 +937,7 @@ CREATE TABLE IF NOT EXISTS `solicitacao_compra` (
   `equipamento_id` int(11) DEFAULT NULL,
   `equipamento_texto` varchar(150) DEFAULT NULL,
   `numero_sc` varchar(50) DEFAULT NULL,
+  `numero_os` varchar(50) DEFAULT NULL,
   `numero_pc` varchar(50) DEFAULT NULL,
   `numero_pv` varchar(50) DEFAULT NULL,
   `valor_sc` decimal(12,2) DEFAULT NULL,
@@ -955,6 +956,7 @@ CREATE TABLE IF NOT EXISTS `solicitacao_compra` (
   KEY `idx_solicitacao_compra_site` (`site`),
   KEY `idx_solicitacao_compra_data_status` (`data_status`),
   KEY `idx_solicitacao_compra_numero_pv` (`numero_pv`),
+  KEY `idx_solicitacao_compra_numero_os` (`numero_os`),
   CONSTRAINT `fk_solicitacao_compra_equipamento`
     FOREIGN KEY (`equipamento_id`) REFERENCES `equipamentos` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

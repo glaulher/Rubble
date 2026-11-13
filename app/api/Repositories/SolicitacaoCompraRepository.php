@@ -6,12 +6,19 @@ class SolicitacaoCompraRepository extends BaseRepository
 {
     private const SELECT_BASE = "SELECT sc.*, e.equipamento, e.capacidade, e.local, e.localidade,
                pvt.pv_valor_total,
+               pvt.pv_os,
+               COALESCE(NULLIF(TRIM(sc.numero_os), ''), pvt.pv_os) AS os,
                sc_totais.pv_sc_total_valor,
                sc_totais.pv_sc_count
         FROM solicitacao_compra sc
         LEFT JOIN equipamentos e ON e.id = sc.equipamento_id
-        LEFT JOIN (SELECT p.numero_pv, SUM(pi.valor_total) AS pv_valor_total
-                   FROM pv p JOIN pv_item pi ON pi.pv_id = p.id
+        LEFT JOIN (SELECT p.numero_pv,
+                          SUM(pi.valor_total) AS pv_valor_total,
+                          GROUP_CONCAT(DISTINCT r.os ORDER BY r.os SEPARATOR ', ') AS pv_os
+                   FROM pv p
+                   LEFT JOIN pv_item pi ON pi.pv_id = p.id
+                   LEFT JOIN pv_os po ON po.pv_id = p.id
+                   LEFT JOIN registros r ON r.id = po.registro_id
                    GROUP BY p.numero_pv) pvt ON pvt.numero_pv = sc.numero_pv
         LEFT JOIN (SELECT sc_sub.numero_pv,
                           SUM(sc_sub.valor_sc) AS pv_sc_total_valor,
@@ -30,6 +37,7 @@ class SolicitacaoCompraRepository extends BaseRepository
         'equipamento_id' => 'i',
         'equipamento_texto' => 's',
         'numero_sc' => 's',
+        'numero_os' => 's',
         'numero_pc' => 's',
         'numero_pv' => 's',
         'valor_sc' => 'd',
@@ -209,12 +217,13 @@ class SolicitacaoCompraRepository extends BaseRepository
                 OR sc.titulo_email LIKE ?
                 OR sc.site LIKE ?
                 OR sc.numero_sc LIKE ?
+                OR sc.numero_os LIKE ?
                 OR sc.numero_pc LIKE ?
                 OR sc.numero_pv LIKE ?
                 OR sc.equipamento_texto LIKE ?
                 OR e.equipamento LIKE ?)";
-            $types .= 'ssssssss';
-            array_push($params, $like, $like, $like, $like, $like, $like, $like, $like);
+            $types .= 'sssssssss';
+            array_push($params, $like, $like, $like, $like, $like, $like, $like, $like, $like);
         }
 
         $status = $status !== null ? trim($status) : '';

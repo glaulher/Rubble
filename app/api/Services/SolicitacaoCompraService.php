@@ -36,6 +36,7 @@ class SolicitacaoCompraService
         'equipamento_id',
         'equipamento_texto',
         'numero_sc',
+        'numero_os',
         'numero_pc',
         'numero_pv',
         'valor_sc',

@@ -75,6 +75,12 @@ class PvService
         return $pv?->toArray();
     }
 
+    public function getByNumberPv(string $numberPv): ?array
+    {
+        $pv = $this->repository->getByNumberPv($numberPv);
+        return $pv?->toArray();
+    }
+
     public function getByIds(array $ids): array
     {
         $pvs = $this->repository->getByIds($ids);

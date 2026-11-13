@@ -332,25 +332,95 @@ export function updateBatchSmEmailButton() {
   }
 }
 
+export function copyText(text, label = '') {
+  if (!text || String(text).trim() === '' || String(text).trim() === '-') return;
+  const clean = String(text).trim();
+  const msg = label ? `Nº ${label} copiado: ${clean}` : `Copiado: ${clean}`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard
+      .writeText(clean)
+      .then(() => showToast(msg, 'success'))
+      .catch(() => fallbackCopy(clean, msg));
+  } else {
+    fallbackCopy(clean, msg);
+  }
+}
+
+export function fallbackCopy(text, msg) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    if (msg) showToast(msg, 'success');
+  } catch (err) {
+    console.error('Falha ao copiar:', err);
+  }
+  document.body.removeChild(textarea);
+}
+
+export function renderNumberWithCopy(val, tipo, isPrimary = false) {
+  if (!val || String(val).trim() === '' || String(val).trim() === '-') {
+    return '<span class="text-slate-400">—</span>';
+  }
+  const clean = String(val).trim();
+  const escaped = escapeHtml(clean);
+  const textClass = isPrimary
+    ? 'font-semibold text-slate-900'
+    : 'font-medium text-slate-800';
+
+  return `
+    <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <span class="${textClass}">${escaped}</span>
+      <button
+        type="button"
+        data-action="copy-num"
+        data-clipboard="${escaped}"
+        data-tipo="${escapeHtml(tipo || '')}"
+        class="relative group p-1 text-slate-400 hover:text-slate-700 rounded transition cursor-pointer"
+        aria-label="Copiar ${escapeHtml(tipo || '')} ${escaped}"
+        title="Copiar ${escapeHtml(tipo || '')}"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        <span class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 origin-bottom scale-0 group-hover:scale-100 transition-transform duration-150 bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded shadow border border-slate-700 pointer-events-none whitespace-nowrap z-50">
+          Copiar ${escapeHtml(tipo || '')}
+        </span>
+      </button>
+    </span>
+  `;
+}
+
 export function buildSmRowHtml(item) {
   const idNum = Number(item.id);
   const isSelected = _selectedSmIds.has(idNum);
   const statusLabel = currentStatusLabel(item.status);
-  const smDisplay = item.numero_sm ? `SM ${escapeHtml(item.numero_sm)}` : '—';
-  const pvDisplay = item.numero_pv
-    ? `<span class="bg-violet-100 text-violet-800 px-2.5 py-0.5 rounded-xl text-xs font-semibold">PV ${escapeHtml(item.numero_pv)}</span>`
-    : '<span class="text-slate-400">—</span>';
   const equipFormatted = formatEquipamento(item);
   const equipTitle = escapeHtml(item.equipamento_texto || equipmentLabel(item) || '');
   const isAdmin = (typeof getUser === 'function' && getUser()?.role === 'admin');
 
   return `
-    <tr class="hover:bg-slate-50 transition-colors" data-sm-row="${item.id}">
+    <tr class="hover:bg-slate-50 transition-colors cursor-pointer" data-sm-row="${item.id}">
       <td class="w-10 px-3 py-3.5 text-center">
         <input type="checkbox" class="sm-checkbox rounded border-slate-300 text-sky-600 focus:ring-sky-500 cursor-pointer" data-id="${item.id}" ${isSelected ? 'checked' : ''}>
       </td>
-      <td class="px-4 py-3.5 text-sm font-semibold text-slate-900 whitespace-nowrap">
-        ${smDisplay}
+      <td class="px-4 py-3.5 text-sm whitespace-nowrap">
+        ${renderNumberWithCopy(item.numero_sm, 'SM', true)}
+      </td>
+      <td class="px-4 py-3.5 text-sm whitespace-nowrap">
+        ${renderNumberWithCopy(item.numero_pv, 'PV')}
+      </td>
+      <td class="px-4 py-3.5 text-sm whitespace-nowrap">
+        ${renderNumberWithCopy(item.numero_sc, 'SC')}
+      </td>
+      <td class="px-4 py-3.5 text-sm whitespace-nowrap">
+        ${renderNumberWithCopy(item.os || item.numero_os, 'OS')}
       </td>
       <td class="hidden md:table-cell px-4 py-3.5 text-sm text-slate-600 whitespace-nowrap">
         ${formatDateBr(item.data)}
@@ -358,11 +428,8 @@ export function buildSmRowHtml(item) {
       <td class="px-4 py-3.5 text-sm font-medium text-slate-800 whitespace-nowrap">
         ${escapeHtml(item.site || '—')}
       </td>
-      <td class="hidden md:table-cell px-4 py-3.5 text-sm text-slate-600 truncate max-w-[220px]" title="${equipTitle}">
+      <td class="hidden md:table-cell px-4 py-3.5 text-sm text-slate-600 truncate max-w-[200px]" title="${equipTitle}">
         ${equipFormatted}
-      </td>
-      <td class="hidden md:table-cell px-4 py-3.5 text-sm whitespace-nowrap">
-        ${pvDisplay}
       </td>
       <td class="px-4 py-3.5 text-sm whitespace-nowrap">
         <span class="px-2.5 py-0.5 rounded-xl text-xs font-semibold ${scStatusBadgeClass(item.status)}">${escapeHtml(statusLabel)}</span>
@@ -372,10 +439,6 @@ export function buildSmRowHtml(item) {
       </td>
       <td class="px-4 py-3.5 text-sm text-right whitespace-nowrap">
         <div class="flex items-center justify-end gap-2">
-          <button type="button" class="sm-email-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 rounded-xl text-xs font-semibold transition cursor-pointer" data-id="${item.id}" title="Enviar E-mail">
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-            <span>E-mail</span>
-          </button>
           ${iconButtonHtml('edit', 'Editar', { 'class': 'sm-edit-btn', 'data-action': 'edit', 'data-id': item.id })}
           ${iconButtonHtml('status', 'Alterar status', { 'class': 'sm-status-btn', 'data-action': 'status', 'data-id': item.id, 'data-sm-numero': escapeHtml(item.numero_sm || '') })}
           ${isAdmin ? iconButtonHtml('delete', 'Excluir', { 'class': 'sm-delete-btn', 'data-action': 'delete', 'data-id': item.id }, 'right') : ''}
@@ -383,6 +446,139 @@ export function buildSmRowHtml(item) {
       </td>
     </tr>
   `;
+}
+
+let _currentDetailItem = null;
+
+export async function openSmDetailModal(item) {
+  _currentDetailItem = item;
+
+  const modal = document.getElementById('smDetailModal');
+  const numEl = document.getElementById('smDetailNumero');
+  const subEl = document.getElementById('smDetailSubtitle');
+  const badgeEl = document.getElementById('smDetailStatusBadge');
+  const infoBody = document.getElementById('smDetailInfoBody');
+  const pvSection = document.getElementById('smDetailPvSection');
+  const pvNumberEl = document.getElementById('smDetailPvNumber');
+  const pvTotalEl = document.getElementById('smDetailPvTotal');
+  const pvItemsBody = document.getElementById('smDetailPvItemsBody');
+
+  if (!modal) return;
+
+  const smNum = item.numero_sm ? `SM ${escapeHtml(item.numero_sm)}` : `ID #${item.id}`;
+  if (numEl) numEl.textContent = smNum;
+
+  const equip = formatEquipamento(item);
+  const siteStr = escapeHtml(item.site || '—');
+  if (subEl) subEl.textContent = `${siteStr}${equip !== '—' ? ' — ' + equip : ''}`;
+
+  const statusLabel = currentStatusLabel(item.status);
+  if (badgeEl) {
+    badgeEl.innerHTML = `<span class="px-2.5 py-0.5 rounded-xl text-xs font-semibold ${scStatusBadgeClass(item.status)}">${escapeHtml(statusLabel)}</span>`;
+  }
+
+  // Tabela com as informações principais da SM
+  if (infoBody) {
+    const osVal = item.os || item.numero_os || '';
+    const slaVal = item.sla_dias !== null && item.sla_dias !== undefined ? `${escapeHtml(String(item.sla_dias))} dia(s)` : '—';
+    const obsVal = item.observacao ? escapeHtml(item.observacao).replace(/\n/g, '<br>') : '<span class="text-slate-400 italic">Nenhuma observação informada.</span>';
+
+    infoBody.innerHTML = `
+      <tr class="border-b border-slate-100">
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Título</td>
+        <td class="px-4 py-2.5 text-slate-800 font-medium" colspan="3">${escapeHtml(item.titulo_email || '—')}</td>
+      </tr>
+      <tr class="border-b border-slate-100">
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Site</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">${escapeHtml(item.site || '—')}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Equipamento</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">${equip}</td>
+      </tr>
+      <tr class="border-b border-slate-100">
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Nº SM</td>
+        <td class="w-1/4 px-4 py-2.5">${renderNumberWithCopy(item.numero_sm, 'SM', true)}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Nº PV</td>
+        <td class="w-1/4 px-4 py-2.5">${renderNumberWithCopy(item.numero_pv, 'PV')}</td>
+      </tr>
+      <tr class="border-b border-slate-100">
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Nº SC</td>
+        <td class="w-1/4 px-4 py-2.5">${renderNumberWithCopy(item.numero_sc, 'SC')}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Nº OS</td>
+        <td class="w-1/4 px-4 py-2.5">${renderNumberWithCopy(osVal, 'OS')}</td>
+      </tr>
+      <tr class="border-b border-slate-100">
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Data da Solicitação</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800">${formatDateBr(item.data)}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">SLA</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800">${slaVal}</td>
+      </tr>
+      <tr class="border-b border-slate-100">
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Valor SC</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-semibold">${formatMoney(item.valor_sc)}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Valor Total PV</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-semibold">${formatMoney(item.pv_valor_total)}</td>
+      </tr>
+      <tr>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50/70">Materiais / Observações</td>
+        <td class="px-4 py-2.5 text-slate-700 leading-relaxed" colspan="3">${obsVal}</td>
+      </tr>
+    `;
+  }
+
+  // Se houver PV vinculada, busca os itens da PV e exibe tabela igual à PV
+  if (item.numero_pv && pvSection && pvItemsBody) {
+    if (pvNumberEl) pvNumberEl.textContent = `PV ${escapeHtml(item.numero_pv)}`;
+    if (pvTotalEl) pvTotalEl.textContent = formatMoney(item.pv_valor_total);
+    pvItemsBody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400">Carregando itens da PV...</td></tr>`;
+    pvSection.classList.remove('hidden');
+
+    try {
+      const resp = await apiFetch(`/app/api/index.php?route=pv&numero_pv=${encodeURIComponent(item.numero_pv)}`);
+      const result = await resp.json();
+      if (result.success && result.data && Array.isArray(result.data.itens) && result.data.itens.length > 0) {
+        const itens = result.data.itens;
+        let total = 0;
+        pvItemsBody.innerHTML = itens.map((it) => {
+          const lpu = it.lpu_origem ? it.lpu_origem.replace('lpu_', '').replace(/_/g, ' ').toUpperCase() : '—';
+          const valor = parseFloat(it.valor) || 0;
+          const qtd = parseFloat(it.quantidade) || 0;
+          const valTotal = parseFloat(it.valor_total) || 0;
+          total += valTotal;
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="px-3 py-2.5 text-slate-700 text-xs">${escapeHtml(lpu)}</td>
+              <td class="px-3 py-2.5 text-slate-700 text-xs">${escapeHtml(String(it.numero_item || '—'))}</td>
+              <td class="px-3 py-2.5 text-slate-800 text-xs font-medium">${escapeHtml(it.descricao_lpu || '—')}</td>
+              <td class="px-3 py-2.5 text-slate-600 text-xs">${escapeHtml(it.descricao || '—')}</td>
+              <td class="px-3 py-2.5 text-slate-700 text-xs text-right">${qtd}</td>
+              <td class="px-3 py-2.5 text-slate-700 text-xs text-right">${valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+              <td class="px-3 py-2.5 text-slate-900 text-xs text-right font-semibold">${valTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            </tr>
+          `;
+        }).join('');
+        if (pvTotalEl) pvTotalEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      } else {
+        pvItemsBody.innerHTML = `<tr><td colspan="7" class="px-4 py-4 text-center text-slate-400 italic">Nenhum item encontrado nesta PV.</td></tr>`;
+      }
+    } catch (e) {
+      console.warn('Não foi possível carregar itens da PV:', e);
+      pvItemsBody.innerHTML = `<tr><td colspan="7" class="px-4 py-4 text-center text-slate-400 italic">Itens da PV não disponíveis.</td></tr>`;
+    }
+  } else if (pvSection) {
+    pvSection.classList.add('hidden');
+  }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+export function closeSmDetailModal() {
+  const modal = document.getElementById('smDetailModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+  _currentDetailItem = null;
 }
 
 export function openSmStatusModal(id, smNumero) {
@@ -444,6 +640,12 @@ function sortScItems() {
     if (_scSortBy === 'sc.numero_sm') {
       va = a.numero_sm || '';
       vb = b.numero_sm || '';
+    } else if (_scSortBy === 'sc.numero_pv') {
+      va = a.numero_pv || '';
+      vb = b.numero_pv || '';
+    } else if (_scSortBy === 'sc.numero_sc') {
+      va = a.numero_sc || '';
+      vb = b.numero_sc || '';
     } else if (_scSortBy === 'sc.data') {
       va = a.data || '';
       vb = b.data || '';
@@ -471,6 +673,7 @@ function bindTableEvents() {
   const btnCloseStatus = document.getElementById('btnCloseSmStatus');
   const statusModal = document.getElementById('smStatusModal');
 
+  // Binds do modal de status
   if (btnConfirmStatus && !btnConfirmStatus.dataset.bound) {
     btnConfirmStatus.dataset.bound = '1';
     btnConfirmStatus.addEventListener('click', confirmSmStatusChange);
@@ -486,6 +689,54 @@ function bindTableEvents() {
     statusModal.addEventListener('click', (e) => {
       if (e.target === statusModal) {
         closeSmStatusModal();
+      }
+    });
+  }
+
+  // Binds do modal de detalhes da SM
+  const btnDetailEmail = document.getElementById('btnSmDetailEmail');
+  const btnDetailEdit = document.getElementById('btnSmDetailEdit');
+  const btnCloseDetail = document.getElementById('btnCloseSmDetail');
+  const btnCloseDetailTop = document.getElementById('btnCloseSmDetailTop');
+  const detailModal = document.getElementById('smDetailModal');
+
+  if (btnDetailEmail && !btnDetailEmail.dataset.bound) {
+    btnDetailEmail.dataset.bound = '1';
+    btnDetailEmail.addEventListener('click', () => {
+      if (_currentDetailItem) {
+        const item = _currentDetailItem;
+        closeSmDetailModal();
+        openSmEmailModal([item.id], [item]);
+      }
+    });
+  }
+
+  if (btnDetailEdit && !btnDetailEdit.dataset.bound) {
+    btnDetailEdit.dataset.bound = '1';
+    btnDetailEdit.addEventListener('click', () => {
+      if (_currentDetailItem) {
+        const item = _currentDetailItem;
+        closeSmDetailModal();
+        openScModal(item);
+      }
+    });
+  }
+
+  if (btnCloseDetail && !btnCloseDetail.dataset.bound) {
+    btnCloseDetail.dataset.bound = '1';
+    btnCloseDetail.addEventListener('click', closeSmDetailModal);
+  }
+
+  if (btnCloseDetailTop && !btnCloseDetailTop.dataset.bound) {
+    btnCloseDetailTop.dataset.bound = '1';
+    btnCloseDetailTop.addEventListener('click', closeSmDetailModal);
+  }
+
+  if (detailModal && !detailModal.dataset.bound) {
+    detailModal.dataset.bound = '1';
+    detailModal.addEventListener('click', (e) => {
+      if (e.target === detailModal) {
+        closeSmDetailModal();
       }
     });
   }
@@ -537,18 +788,18 @@ function bindTableEvents() {
         return;
       }
 
-      const emailBtn = e.target.closest('.sm-email-btn');
-      if (emailBtn) {
-        const id = Number(emailBtn.dataset.id);
-        const item = _scItems.find((i) => Number(i.id) === id);
-        if (item) {
-          openSmEmailModal([id], [item]);
-        }
+      const copyBtn = e.target.closest('[data-action="copy-num"]');
+      if (copyBtn) {
+        e.stopPropagation();
+        const text = copyBtn.dataset.clipboard || '';
+        const tipo = copyBtn.dataset.tipo || '';
+        copyText(text, tipo);
         return;
       }
 
       const editBtn = e.target.closest('.sm-edit-btn, [data-action="edit"]');
       if (editBtn) {
+        e.stopPropagation();
         const id = Number(editBtn.dataset.id);
         const item = _scItems.find((i) => Number(i.id) === id);
         if (item) {
@@ -559,6 +810,7 @@ function bindTableEvents() {
 
       const statusBtn = e.target.closest('.sm-status-btn, [data-action="status"]');
       if (statusBtn) {
+        e.stopPropagation();
         const id = Number(statusBtn.dataset.id);
         const numero = statusBtn.dataset.smNumero || '';
         openSmStatusModal(id, numero);
@@ -567,6 +819,7 @@ function bindTableEvents() {
 
       const delBtn = e.target.closest('.sm-delete-btn, [data-action="delete"]');
       if (delBtn) {
+        e.stopPropagation();
         const id = Number(delBtn.dataset.id);
         deleteSc(id);
         return;
@@ -585,6 +838,16 @@ function bindTableEvents() {
         const tableBody = document.getElementById('scTableBody');
         if (tableBody) {
           tableBody.innerHTML = _scItems.map((item) => buildSmRowHtml(item)).join('');
+        }
+        return;
+      }
+
+      const row = e.target.closest('tr[data-sm-row]');
+      if (row) {
+        const id = Number(row.dataset.smRow);
+        const item = _scItems.find((i) => Number(i.id) === id);
+        if (item) {
+          openSmDetailModal(item);
         }
         return;
       }
