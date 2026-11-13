@@ -156,103 +156,105 @@
       </div>
     </div>
 
-    <!-- TABELA PRINCIPAL (ESTRUTURA IDENTICA À PV) -->
+    <!-- TABELA PRINCIPAL (ESTRUTURA IGUAL GESTÃO DE OS) -->
     <div
       class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
     >
       <div class="overflow-x-auto">
-        <table id="scTable" class="w-full min-w-[1050px]">
-          <thead class="bg-slate-50 border-b border-slate-200">
-            <tr>
-              <th
-                class="w-10 px-3 py-3 text-sm font-semibold text-slate-600 text-center"
-              >
-                <input
-                  type="checkbox"
-                  id="selectAllSm"
-                  aria-label="Selecionar todas as solicitações"
-                  class="rounded border-slate-300 text-sky-600 focus:ring-sky-500 cursor-pointer"
-                />
-              </th>
-              <th
-                data-sort="sc.numero_sm"
-                class="text-left px-3 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
-              >
-                SM
-                <span class="sort-icon"></span>
-              </th>
-              <th
-                data-sort="sc.numero_pv"
-                class="text-left px-2.5 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
-              >
-                PV
-                <span class="sort-icon"></span>
-              </th>
-              <th
-                data-sort="sc.numero_sc"
-                class="text-left px-2.5 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
-              >
-                SC
-                <span class="sort-icon"></span>
-              </th>
-              <th
-                data-sort="sc.numero_pc"
-                class="text-left px-2.5 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
-              >
-                PC
-                <span class="sort-icon"></span>
-              </th>
-              <th
-                class="text-left px-2.5 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
-              >
-                OS
-              </th>
-              <th
-                data-sort="sc.data"
-                class="hidden md:table-cell text-left px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
-              >
-                Data
-                <span class="sort-icon"></span>
-              </th>
-              <th
-                data-sort="sc.site"
-                class="text-left px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
-              >
-                Site
-                <span class="sort-icon"></span>
-              </th>
-              <th
-                class="hidden md:table-cell text-left px-4 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
-              >
-                Equipamento
-              </th>
-              <th
-                data-sort="sc.status"
-                class="text-left px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
-              >
-                Status
-                <span class="sort-icon"></span>
-              </th>
-              <th
-                class="hidden lg:table-cell text-left px-4 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
-              >
-                Valor SC
-              </th>
-              <th
-                class="col-actions-sticky text-right px-3 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
-              >
-                Ações
-              </th>
-            </tr>
-          </thead>
-          <tbody id="scTableBody" class="divide-y divide-slate-100"></tbody>
-        </table>
+        <div id="scScrollContainer" class="max-h-[70vh] overflow-y-auto">
+          <table id="scTable" class="w-full min-w-[1050px]">
+            <thead class="sticky top-0 z-10 bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th
+                  class="w-10 px-3 py-3 text-sm font-semibold text-slate-600 text-center"
+                >
+                  <input
+                    type="checkbox"
+                    id="selectAllSm"
+                    aria-label="Selecionar todas as solicitações"
+                    class="rounded border-slate-300 text-sky-600 focus:ring-sky-500 cursor-pointer"
+                  />
+                </th>
+                <th
+                  data-sort="sc.numero_sm"
+                  class="text-left px-3 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+                >
+                  SM
+                  <span class="sort-icon"></span>
+                </th>
+                <th
+                  data-sort="sc.numero_pv"
+                  class="text-left px-2.5 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+                >
+                  PV
+                  <span class="sort-icon"></span>
+                </th>
+                <th
+                  data-sort="sc.numero_sc"
+                  class="text-left px-2.5 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+                >
+                  SC
+                  <span class="sort-icon"></span>
+                </th>
+                <th
+                  data-sort="sc.numero_pc"
+                  class="text-left px-2.5 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+                >
+                  PC
+                  <span class="sort-icon"></span>
+                </th>
+                <th
+                  class="text-left px-2.5 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
+                >
+                  OS
+                </th>
+                <th
+                  data-sort="sc.data"
+                  class="hidden md:table-cell text-left px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+                >
+                  Data
+                  <span class="sort-icon"></span>
+                </th>
+                <th
+                  data-sort="sc.site"
+                  class="text-left px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+                >
+                  Site
+                  <span class="sort-icon"></span>
+                </th>
+                <th
+                  class="hidden md:table-cell text-left px-4 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
+                >
+                  Equipamento
+                </th>
+                <th
+                  data-sort="sc.status"
+                  class="text-left px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+                >
+                  Status
+                  <span class="sort-icon"></span>
+                </th>
+                <th
+                  class="hidden lg:table-cell text-left px-4 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
+                >
+                  Valor SC
+                </th>
+                <th
+                  class="col-actions-sticky text-right px-3 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
+                >
+                  Ações
+                </th>
+              </tr>
+            </thead>
+            <tbody id="scTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+          <div id="scSentinel" class="h-10"></div>
+        </div>
       </div>
       <div id="scEmpty" class="hidden p-10 text-center text-slate-500">
         Nenhuma solicitação encontrada.
       </div>
     </div>
-    <div id="scSentinel" class="h-10"></div>
     <div id="scList" class="hidden"></div>
   </main>
 

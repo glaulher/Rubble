@@ -348,7 +348,20 @@ button:disabled { cursor: not-allowed; }
   color: #cbd5e1 !important;
 }
 
-/* SC Table Sticky Actions Column (prevents buttons from ever being cut off) */
+/* SC Table Sticky Header & Actions Column */
+#scTable {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+#scTable thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background-color: #f8fafc !important;
+}
+.dark #scTable thead th {
+  background-color: #151922 !important;
+}
 #scTable .col-actions-sticky {
   position: sticky !important;
   right: 0 !important;
@@ -358,6 +371,10 @@ button:disabled { cursor: not-allowed; }
   max-width: 150px !important;
 }
 #scTable th.col-actions-sticky {
+  position: sticky !important;
+  top: 0 !important;
+  right: 0 !important;
+  z-index: 20 !important;
   background-color: #f8fafc !important;
 }
 #scTable td.col-actions-sticky {

@@ -13,6 +13,7 @@ import { initScForm, openScModal } from './form.js?v=1';
 import { initSmEmailModal, openSmEmailModal } from './modal-email.js?v=1';
 
 export const scPollingInterval = 10000;
+export const SC_PAGE_LIMIT = 25;
 
 let _scItems = [];
 let _scTotal = 0;
@@ -28,6 +29,10 @@ const _scExpandedCards = new Set();
 const _selectedSmIds = new Set();
 let _scSortBy = 'sc.id';
 let _scSortDir = 'DESC';
+
+let _scObserver = null;
+let _scLoadingMore = false;
+let _scAllLoaded = false;
 
 let _scSiteOptions = [];
 let _scEquipmentOptions = [];
@@ -1329,10 +1334,139 @@ export function startScEdit(card, field) {
 |--------------------------------------------------------------------------
 */
 
+export function renderScTable(items, append = false) {
+  const tableBody = document.getElementById('scTableBody');
+  const listEl = document.getElementById('scList');
+  const emptyEl = document.getElementById('scEmpty');
+
+  if (!append) {
+    _scItems = items.slice();
+    if (tableBody) {
+      tableBody.innerHTML = items.length === 0 ? '' : items.map((item) => buildSmRowHtml(item)).join('');
+    }
+  } else {
+    _scItems = _scItems.concat(items);
+    if (tableBody && items.length > 0) {
+      tableBody.insertAdjacentHTML('beforeend', items.map((item) => buildSmRowHtml(item)).join(''));
+    }
+  }
+
+  if (listEl) {
+    cancelOpenEdits();
+
+    if (_scItems.length === 0) {
+      listEl.innerHTML = '';
+    } else {
+      const groups = {};
+      _scItems.forEach((item) => {
+        const site = item.site || 'Sem site';
+        (groups[site] = groups[site] || []).push(item);
+      });
+
+      listEl.innerHTML = Object.entries(groups)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([site, gItems]) => buildScGroupHtml(site, gItems))
+        .join('');
+    }
+  }
+
+  if (emptyEl) {
+    emptyEl.classList.toggle('hidden', _scItems.length > 0);
+  }
+
+  updateBatchSmEmailButton();
+}
+
+export function updateScBadge(opts = {}) {
+  const total = typeof opts === 'object' && opts !== null ? opts.total : opts;
+  if (total !== undefined) _scTotal = total;
+  const totalEl = document.getElementById('scCounter') || document.getElementById('scTotal');
+  const overdueEl = document.getElementById('scOverdue');
+  if (totalEl) totalEl.textContent = String(_scTotal);
+  if (overdueEl) {
+    overdueEl.textContent = String(_scItems.filter((i) => Number(i.overdue_days) > 0).length);
+  }
+}
+
+export function setupScInfiniteScroll() {
+  if (_scObserver) {
+    _scObserver.disconnect();
+    _scObserver = null;
+  }
+
+  if (typeof IntersectionObserver === 'undefined') return;
+
+  const container = document.getElementById('scScrollContainer');
+  const sentinel = document.getElementById('scSentinel');
+  if (!container || !sentinel) return;
+
+  _scAllLoaded = _scTotal > 0 && _scItems.length >= _scTotal;
+  if (_scAllLoaded) return;
+
+  _scObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && !_scLoadingMore && !_scAllLoaded) {
+          loadMoreSc();
+        }
+      });
+    },
+    { root: container, rootMargin: '300px' }
+  );
+
+  _scObserver.observe(sentinel);
+}
+
+async function loadMoreSc() {
+  if (_scLoadingMore || _scAllLoaded) return;
+  if (_scTotal > 0 && _scItems.length >= _scTotal) {
+    _scAllLoaded = true;
+    if (_scObserver) _scObserver.disconnect();
+    return;
+  }
+
+  _scLoadingMore = true;
+
+  const params = new URLSearchParams({
+    limit: String(SC_PAGE_LIMIT),
+    offset: String(_scItems.length),
+  });
+  if (_scSearch) params.set('search', _scSearch);
+  if (_scStatusFilter) params.set('status', _scStatusFilter);
+  if (_scSiteFilter.size > 0) params.set('site', Array.from(_scSiteFilter).join(','));
+
+  try {
+    const response = await apiFetch(`/app/api/index.php?route=sc&${params.toString()}`);
+    const res = await response.json();
+    if (!res.success) throw new Error(res.message || 'Erro ao carregar mais solicitações');
+
+    const newItems = res.data || [];
+    if (newItems.length === 0 || newItems.length < SC_PAGE_LIMIT) {
+      _scAllLoaded = true;
+    }
+
+    if (res.total !== undefined) {
+      _scTotal = res.total;
+    }
+
+    renderScTable(newItems, true);
+    updateScBadge({ total: _scTotal });
+
+    if (_scItems.length >= _scTotal) {
+      _scAllLoaded = true;
+      if (_scObserver) _scObserver.disconnect();
+    }
+  } catch (err) {
+    console.error('Erro no scroll infinito de SM:', err);
+  } finally {
+    _scLoadingMore = false;
+  }
+}
+
 export async function loadSc(silent = false) {
   if (silent && isScEditing()) return;
 
-  const params = new URLSearchParams({ limit: '500', offset: '0' });
+  const params = new URLSearchParams({ limit: String(SC_PAGE_LIMIT), offset: '0' });
 
   if (_scSearch) params.set('search', _scSearch);
   if (_scStatusFilter) params.set('status', _scStatusFilter);
@@ -1346,54 +1480,14 @@ export async function loadSc(silent = false) {
     // Se o usuário iniciou uma edição durante o trânsito da requisição silenciosa, aborta
     if (silent && isScEditing()) return;
 
-    _scItems = res.data || [];
     _scTotal = res.total || 0;
     _scStatusCounts = res.status_counts || {};
 
-    const tableBody = document.getElementById('scTableBody');
-    const listEl = document.getElementById('scList');
-    const emptyEl = document.getElementById('scEmpty');
-
-    if (tableBody) {
-      if (_scItems.length === 0) {
-        tableBody.innerHTML = '';
-      } else {
-        tableBody.innerHTML = _scItems.map((item) => buildSmRowHtml(item)).join('');
-      }
-    }
-
-    if (listEl) {
-      cancelOpenEdits();
-
-      if (_scItems.length === 0) {
-        listEl.innerHTML = '';
-      } else {
-        const groups = {};
-        _scItems.forEach((item) => {
-          const site = item.site || 'Sem site';
-          (groups[site] = groups[site] || []).push(item);
-        });
-
-        listEl.innerHTML = Object.entries(groups)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([site, items]) => buildScGroupHtml(site, items))
-          .join('');
-      }
-    }
-
-    if (emptyEl) {
-      emptyEl.classList.toggle('hidden', _scItems.length > 0);
-    }
-
-    const totalEl = document.getElementById('scCounter') || document.getElementById('scTotal');
-    const overdueEl = document.getElementById('scOverdue');
-    if (totalEl) totalEl.textContent = String(_scTotal);
-    if (overdueEl) {
-      overdueEl.textContent = String(_scItems.filter((i) => Number(i.overdue_days) > 0).length);
-    }
-
-    updateBatchSmEmailButton();
+    renderScTable(res.data || [], false);
+    updateScBadge({ total: _scTotal });
     updateStatusFilterCounts();
+
+    setupScInfiniteScroll();
   } catch (e) {
     if (!silent) showToast(e.message || 'Erro ao carregar solicitações', 'error');
   }
