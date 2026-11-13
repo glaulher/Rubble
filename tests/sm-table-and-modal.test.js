@@ -28,6 +28,8 @@ const SAMPLE_SM = {
   numero_pc: 'PC-112',
   valor_sc: '2500.00',
   pv_valor_total: '3800.00',
+  markup_pct: 52.0,
+  margem_pct: 34.2,
   data: '2026-11-13',
   data_status: '2026-11-13',
   sla_dias: 5,
@@ -155,6 +157,9 @@ describe('SM Table Columns and Detail Modal', () => {
     expect(infoBody.innerHTML).toContain('SC-5501');
     expect(infoBody.innerHTML).toContain('PC-112');
     expect(infoBody.innerHTML).toContain('998877');
+    expect(infoBody.innerHTML).toContain('Margens (PV)');
+    expect(infoBody.innerHTML).toContain('Markup:');
+    expect(infoBody.innerHTML).toContain('Margem:');
 
     // Botão Enviar E-mail no modal
     const emailBtn = document.getElementById('btnSmDetailEmail');
@@ -188,6 +193,7 @@ describe('SM Table Columns and Detail Modal', () => {
     expect(modalSc.classList.contains('hidden')).toBe(false);
     expect(document.getElementById('scTitulo').value).toBe('Solicitação de Peças e Filtros');
     expect(document.getElementById('scPc').value).toBe('PC-112');
+    expect(document.getElementById('scValor').value).toBe('2500.00');
 
     // Botão Cancelar fecha o modalSc
     const cancelModalSc = document.getElementById('modalScCancel');

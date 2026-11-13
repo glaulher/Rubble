@@ -9,7 +9,7 @@ import { createAutocomplete } from '/public/js/core/autocomplete.js?v=1';
 import { buttonHtml, iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
 import { SC_STATUSES, scSteps, formatPct, scStatusBadgeClass } from './constants.js?v=2';
-import { initScForm, openScModal } from './form.js?v=1';
+import { initScForm, openScModal } from './form.js?v=2';
 import { initSmEmailModal, openSmEmailModal } from './modal-email.js?v=1';
 
 export const scPollingInterval = 10000;
@@ -529,7 +529,20 @@ export async function openSmDetailModal(item) {
       </tr>
       <tr class="border-b border-slate-100">
         <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Valor Total PV</td>
-        <td class="px-4 py-2.5 text-slate-800 font-semibold sm-detail-value" colspan="3">${formatMoney(item.pv_valor_total)}</td>
+        <td class="w-1/4 px-4 py-2.5 text-slate-800 font-semibold sm-detail-value">${formatMoney(item.pv_valor_total)}</td>
+        <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Margens (PV)</td>
+        <td class="w-1/4 px-4 py-2.5 sm-detail-value">
+          ${item.pv_valor_total && (item.markup_pct !== null || item.margem_pct !== null) ? `
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold ${Number(item.markup_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}" title="Markup sobre a SC">
+                Markup: ${formatPct(item.markup_pct)}
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold ${Number(item.margem_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}" title="Margem sobre a PV">
+                Margem: ${formatPct(item.margem_pct)}
+              </span>
+            </div>
+          ` : '<span class="text-slate-400 italic">—</span>'}
+        </td>
       </tr>
       <tr>
         <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 sm-detail-label">Materiais / Observações</td>
@@ -540,6 +553,17 @@ export async function openSmDetailModal(item) {
 
   // Se houver PV vinculada, busca os itens da PV e exibe tabela igual à PV
   if (item.numero_pv && pvSection && pvItemsBody) {
+    const pvMarginsEl = document.getElementById('smDetailPvMargins');
+    if (pvMarginsEl) {
+      if (item.markup_pct !== null && item.markup_pct !== undefined) {
+        pvMarginsEl.innerHTML = `
+          <span class="px-2 py-0.5 rounded-lg text-xs font-semibold ${Number(item.markup_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}">Markup: ${formatPct(item.markup_pct)}</span>
+          <span class="px-2 py-0.5 rounded-lg text-xs font-semibold ${Number(item.margem_pct) < 0 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">Margem: ${formatPct(item.margem_pct)}</span>
+        `;
+      } else {
+        pvMarginsEl.innerHTML = '';
+      }
+    }
     if (pvNumberEl) pvNumberEl.textContent = `PV ${escapeHtml(item.numero_pv)}`;
     if (pvTotalEl) pvTotalEl.textContent = formatMoney(item.pv_valor_total);
     pvItemsBody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400">Carregando itens da PV...</td></tr>`;
@@ -570,6 +594,15 @@ export async function openSmDetailModal(item) {
           `;
         }).join('');
         if (pvTotalEl) pvTotalEl.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        if (pvMarginsEl && (item.markup_pct === null || item.markup_pct === undefined) && total > 0 && parseFloat(item.valor_sc) > 0) {
+          const vSc = parseFloat(item.valor_sc);
+          const mk = Math.round(((total - vSc) / vSc) * 1000) / 10;
+          const mg = Math.round(((total - vSc) / total) * 1000) / 10;
+          pvMarginsEl.innerHTML = `
+            <span class="px-2 py-0.5 rounded-lg text-xs font-semibold ${mk < 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}">Markup: ${formatPct(mk)}</span>
+            <span class="px-2 py-0.5 rounded-lg text-xs font-semibold ${mg < 0 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">Margem: ${formatPct(mg)}</span>
+          `;
+        }
       } else {
         pvItemsBody.innerHTML = `<tr><td colspan="7" class="px-4 py-4 text-center text-slate-400 italic">Nenhum item encontrado nesta PV.</td></tr>`;
       }

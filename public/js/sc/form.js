@@ -145,6 +145,21 @@ export function buildScCreatePayload(values) {
     payload.numero_pc = pc;
   }
 
+  const rawValor = (values.valor_sc ?? '').toString().trim();
+  if (rawValor !== '') {
+    const clean = rawValor
+      .replace(/[R$\s]/g, '')
+      .replace(/\.(?=\d{3})/g, '')
+      .replace(',', '.');
+    const num = parseFloat(clean);
+    if (Number.isNaN(num) || num < 0) {
+      throw new Error('Valor da SC deve ser um número maior ou igual a zero.');
+    }
+    payload.valor_sc = num;
+  } else {
+    payload.valor_sc = null;
+  }
+
   const os = (values.numero_os ?? values.os ?? '').trim();
   if (os) {
     payload.numero_os = os;
@@ -159,6 +174,80 @@ export function buildScCreatePayload(values) {
 }
 
 let _editingScId = null;
+let _currentFormPvTotal = null;
+
+function updateFormMargins() {
+  const panel = document.getElementById('scFormMarginsPanel');
+  const pvTotalEl = document.getElementById('scFormPvTotal');
+  const markupEl = document.getElementById('scFormMarkup');
+  const margemEl = document.getElementById('scFormMargem');
+  const inputValor = document.getElementById('scValor');
+
+  if (!panel) return;
+
+  if (!_currentFormPvTotal || _currentFormPvTotal <= 0) {
+    panel.classList.add('hidden');
+    return;
+  }
+
+  const rawVal = (inputValor?.value || '').trim();
+  const clean = rawVal
+    .replace(/[R$\s]/g, '')
+    .replace(/\.(?=\d{3})/g, '')
+    .replace(',', '.');
+  const valSc = parseFloat(clean);
+
+  panel.classList.remove('hidden');
+  if (pvTotalEl) {
+    pvTotalEl.textContent = `Total PV: ${Number(_currentFormPvTotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+  }
+
+  if (Number.isNaN(valSc) || valSc <= 0) {
+    if (markupEl) {
+      markupEl.textContent = 'Markup: —';
+      markupEl.className = 'px-2 py-0.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-500';
+    }
+    if (margemEl) {
+      margemEl.textContent = 'Margem: —';
+      margemEl.className = 'px-2 py-0.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-500';
+    }
+    return;
+  }
+
+  const markup = Math.round(((_currentFormPvTotal - valSc) / valSc) * 1000) / 10;
+  const margem = Math.round(((_currentFormPvTotal - valSc) / _currentFormPvTotal) * 1000) / 10;
+
+  if (markupEl) {
+    markupEl.textContent = `Markup: ${markup >= 0 ? '+' : ''}${markup.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    markupEl.className = `px-2 py-0.5 rounded-lg text-xs font-semibold ${markup < 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`;
+  }
+  if (margemEl) {
+    margemEl.textContent = `Margem: ${margem >= 0 ? '+' : ''}${margem.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    margemEl.className = `px-2 py-0.5 rounded-lg text-xs font-semibold ${margem < 0 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`;
+  }
+}
+
+async function checkFormPvTotal(pvNum) {
+  const clean = (pvNum || '').trim();
+  if (!clean) {
+    _currentFormPvTotal = null;
+    updateFormMargins();
+    return;
+  }
+  try {
+    const resp = await apiFetch(`/app/api/index.php?route=pv&numero_pv=${encodeURIComponent(clean)}`);
+    const res = await resp.json();
+    if (res.success && res.data && Array.isArray(res.data.itens)) {
+      const sum = res.data.itens.reduce((acc, it) => acc + (parseFloat(it.valor_total) || 0), 0);
+      _currentFormPvTotal = sum > 0 ? sum : null;
+    } else {
+      _currentFormPvTotal = null;
+    }
+  } catch {
+    _currentFormPvTotal = null;
+  }
+  updateFormMargins();
+}
 
 export function openScModal(item = null) {
   const modal = document.getElementById('modalSc');
@@ -171,6 +260,7 @@ export function openScModal(item = null) {
   const inputSc = document.getElementById('scSc');
   const inputPc = document.getElementById('scPc');
   const inputOs = document.getElementById('scOs');
+  const inputValor = document.getElementById('scValor');
   const inputData = document.getElementById('scData');
   const inputSla = document.getElementById('scSla');
   const inputObs = document.getElementById('scObservacao');
@@ -195,9 +285,19 @@ export function openScModal(item = null) {
     if (inputSc) inputSc.value = item.numero_sc || '';
     if (inputPc) inputPc.value = item.numero_pc || '';
     if (inputOs) inputOs.value = item.numero_os || item.os || '';
+    if (inputValor) {
+      inputValor.value = item.valor_sc !== null && item.valor_sc !== undefined ? String(item.valor_sc) : '';
+    }
     inputData.value = item.data || localToday();
     inputSla.value = item.sla_dias !== null && item.sla_dias !== undefined ? String(item.sla_dias) : '';
     if (inputObs) inputObs.value = item.observacao || '';
+
+    _currentFormPvTotal = item.pv_valor_total ? parseFloat(item.pv_valor_total) : null;
+    if (!_currentFormPvTotal && item.numero_pv) {
+      checkFormPvTotal(item.numero_pv);
+    } else {
+      updateFormMargins();
+    }
   } else {
     _editingScId = null;
     if (title) title.textContent = 'Nova Solicitação de Material';
@@ -212,9 +312,13 @@ export function openScModal(item = null) {
     if (inputSc) inputSc.value = '';
     if (inputPc) inputPc.value = '';
     if (inputOs) inputOs.value = '';
+    if (inputValor) inputValor.value = '';
     inputData.value = localToday();
     inputSla.value = '';
     if (inputObs) inputObs.value = '';
+
+    _currentFormPvTotal = null;
+    updateFormMargins();
   }
 
   modal.classList.remove('hidden');
@@ -229,6 +333,7 @@ export function closeScModal() {
     document.body.style.overflow = '';
   }
   _editingScId = null;
+  _currentFormPvTotal = null;
 }
 
 export function initScForm() {
@@ -244,6 +349,7 @@ export function initScForm() {
   const inputSc = document.getElementById('scSc');
   const inputPc = document.getElementById('scPc');
   const inputOs = document.getElementById('scOs');
+  const inputValor = document.getElementById('scValor');
   const inputData = document.getElementById('scData');
   const inputSla = document.getElementById('scSla');
   const inputObs = document.getElementById('scObservacao');
@@ -253,6 +359,15 @@ export function initScForm() {
   btnNew.addEventListener('click', () => openScModal(null));
   btnCancel.addEventListener('click', closeScModal);
   if (btnClose) btnClose.addEventListener('click', closeScModal);
+
+  if (inputValor) {
+    inputValor.addEventListener('input', updateFormMargins);
+  }
+  if (inputPv) {
+    inputPv.addEventListener('blur', () => {
+      checkFormPvTotal(inputPv.value);
+    });
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -267,6 +382,7 @@ export function initScForm() {
         numero_sc: inputSc ? inputSc.value : '',
         numero_pc: inputPc ? inputPc.value : '',
         numero_os: inputOs ? inputOs.value : '',
+        valor_sc: inputValor ? inputValor.value : '',
         data: inputData ? inputData.value : '',
         sla_dias: inputSla.value,
         observacao: inputObs ? inputObs.value : '',

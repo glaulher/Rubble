@@ -50,4 +50,20 @@ describe('SC form', () => {
     });
     expect(p.numero_pc).toBe('PC-112');
   });
+
+  test('buildScCreatePayload inclui valor_sc quando preenchido e converte vazio em null', () => {
+    const p1 = globalThis.buildScCreatePayload({
+      titulo_email: 'Cotação',
+      site: 'BMADTC',
+      valor_sc: '1.500,50',
+    });
+    expect(p1.valor_sc).toBe(1500.5);
+
+    const p2 = globalThis.buildScCreatePayload({
+      titulo_email: 'Cotação',
+      site: 'BMADTC',
+      valor_sc: '',
+    });
+    expect(p2.valor_sc).toBeNull();
+  });
 });
