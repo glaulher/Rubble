@@ -10,7 +10,7 @@ use mysqli;
 class PvEmailWatcherService
 {
     private PvRepository $repository;
-    private mysqli $conn;
+    protected mysqli $conn;
 
     private const APPROVED_TARGET_STATUS = 'Aprovado aquisição/serviço';
     private const RECENT_DAYS = 7;
@@ -64,13 +64,13 @@ class PvEmailWatcherService
         return $result;
     }
 
-    private function buildServerPrefix(string $host, string $port): string
+    protected function buildServerPrefix(string $host, string $port): string
     {
         $security = strtolower(Env::get('IMAP_SECURITY', 'ssl'));
         return '{' . $host . ':' . $port . ($security === 'plain' ? '/imap' : '/imap/ssl') . '}';
     }
 
-    private function buildMailboxKey(): string
+    protected function buildMailboxKey(): string
     {
         $host = trim((string) Env::get('IMAP_HOST', ''));
         $user = trim((string) Env::get('IMAP_USER', ''));
@@ -80,7 +80,7 @@ class PvEmailWatcherService
         return $host . ':' . $user;
     }
 
-    private function resolveMailboxes($mbox, string $serverPrefix, string $mailboxConfig): array
+    protected function resolveMailboxes($mbox, string $serverPrefix, string $mailboxConfig): array
     {
         $roots = $this->parseMailboxConfig($mailboxConfig);
         $resolved = [];
@@ -102,12 +102,12 @@ class PvEmailWatcherService
         return array_keys($resolved);
     }
 
-    private function parseMailboxConfig(string $config): array
+    protected function parseMailboxConfig(string $config): array
     {
         return array_map('trim', explode(',', $config));
     }
 
-    private function isInboxFolder(string $folderPath, string $serverPrefix): bool
+    protected function isInboxFolder(string $folderPath, string $serverPrefix): bool
     {
         $folder = str_replace($serverPrefix, '', $folderPath);
         return str_starts_with($folder, 'INBOX') || $folder === 'INBOX';
@@ -195,7 +195,7 @@ class PvEmailWatcherService
         }
     }
 
-    private function decodeSubject(string $header): string
+    protected function decodeSubject(string $header): string
     {
         if (!preg_match('/^Subject:.*(?:\r?\n[ \t].*)*/mi', $header, $m)) {
             return '';
@@ -213,7 +213,7 @@ class PvEmailWatcherService
         return $decoded !== '' ? $decoded : $raw;
     }
 
-    private function decodeEncodedWords(string $raw): string
+    protected function decodeEncodedWords(string $raw): string
     {
         if (function_exists('imap_mime_header_decode')) {
             $parts = @imap_mime_header_decode($raw);
@@ -241,7 +241,7 @@ class PvEmailWatcherService
         return trim($decoded);
     }
 
-    private function decodeSingleEncodedWord(string $token): string
+    protected function decodeSingleEncodedWord(string $token): string
     {
         if (!preg_match('/^=\?([^?]+)\?([QB])\?([^?]*)\?=$/i', $token, $m)) {
             return $token;
@@ -259,7 +259,7 @@ class PvEmailWatcherService
         return $text;
     }
 
-    private function decodeQuotedPrintableWord(string $payload): string
+    protected function decodeQuotedPrintableWord(string $payload): string
     {
         $text = str_replace('_', ' ', $payload);
         return (string) preg_replace_callback('/=([0-9A-Fa-f]{2})/', static fn ($h) => chr(hexdec($h[1])), $text);
@@ -296,7 +296,7 @@ class PvEmailWatcherService
         return [];
     }
 
-    private function fetchBodyText($mbox, int $uid): string
+    protected function fetchBodyText($mbox, int $uid): string
     {
         $structure = @imap_fetchstructure($mbox, $uid, FT_UID);
         if (!$structure) return '';
@@ -330,7 +330,7 @@ class PvEmailWatcherService
         return @imap_fetchbody($mbox, $uid, $partNum, FT_UID);
     }
 
-    private function collectTextParts($mbox, int $uid, object $part, string $partNum, array &$plainParts, array &$htmlParts): void
+    protected function collectTextParts($mbox, int $uid, object $part, string $partNum, array &$plainParts, array &$htmlParts): void
     {
         $isMultipart = (isset($part->type) && (int) $part->type === 1)
             || (isset($part->parts) && is_array($part->parts) && !empty($part->parts));
@@ -370,7 +370,7 @@ class PvEmailWatcherService
         }
     }
 
-    private function extractCharset(object $part): string
+    protected function extractCharset(object $part): string
     {
         if (isset($part->parameters) && is_array($part->parameters)) {
             foreach ($part->parameters as $param) {
@@ -404,7 +404,7 @@ class PvEmailWatcherService
         return '/aprovad/i';
     }
 
-    private function isAlreadyProcessed(int $uid, string $mailboxKey): bool
+    protected function isAlreadyProcessed(int $uid, string $mailboxKey): bool
     {
         $sql = "SELECT 1 FROM email_processed WHERE uid = ? AND mailbox = ? LIMIT 1";
         $stmt = $this->conn->prepare($sql);
@@ -414,7 +414,7 @@ class PvEmailWatcherService
         return $result->fetch_row() !== null;
     }
 
-    private function markProcessed(int $uid, string $pvNumber, string $mailboxKey, bool $approved = false): void
+    protected function markProcessed(int $uid, string $pvNumber, string $mailboxKey, bool $approved = false): void
     {
         $approvedInt = $approved ? 1 : 0;
         try {
@@ -441,7 +441,7 @@ class PvEmailWatcherService
         }
     }
 
-    private function decodeBody(string $body, int $encoding): string
+    protected function decodeBody(string $body, int $encoding): string
     {
         switch ($encoding) {
             case 3: // BASE64 (PHP IMAP constant ENCBASE64 = 3)

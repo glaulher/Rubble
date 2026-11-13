@@ -10,6 +10,7 @@ import { buttonHtml, iconButtonHtml } from '/public/js/components/button.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
 import { SC_STATUSES, scSteps, formatPct, scStatusBadgeClass } from './constants.js?v=1';
 import { initScForm } from './form.js?v=1';
+import { initSmEmailModal, openSmEmailModal } from './modal-email.js?v=1';
 
 export const scPollingInterval = 10000;
 
@@ -24,6 +25,9 @@ let _scSiteDocListenerBound = false;
 let _scStatusDocListenerBound = false;
 const _scOpenEdits = new Set();
 const _scExpandedCards = new Set();
+const _selectedSmIds = new Set();
+let _scSortBy = 'sc.id';
+let _scSortDir = 'DESC';
 
 let _scSiteOptions = [];
 let _scEquipmentOptions = [];
@@ -300,6 +304,198 @@ function setupScSiteFilterAutocomplete() {
   }
 
   updateLabel();
+}
+
+/*
+|--------------------------------------------------------------------------
+| SELEÇÃO E TABELA SM
+|--------------------------------------------------------------------------
+*/
+
+export function updateBatchSmEmailButton() {
+  const btn = document.getElementById('batchSmEmailBtn');
+  const countEl = document.getElementById('smSelectedCount');
+  const master = document.getElementById('selectAllSm');
+
+  if (countEl) countEl.textContent = String(_selectedSmIds.size);
+
+  if (btn) {
+    if (_selectedSmIds.size > 0) {
+      btn.classList.remove('hidden');
+    } else {
+      btn.classList.add('hidden');
+    }
+  }
+
+  if (master && _scItems.length > 0) {
+    master.checked = _scItems.length > 0 && _scItems.every((item) => _selectedSmIds.has(Number(item.id)));
+  }
+}
+
+export function buildSmRowHtml(item) {
+  const idNum = Number(item.id);
+  const isSelected = _selectedSmIds.has(idNum);
+  const statusLabel = currentStatusLabel(item.status);
+  const smDisplay = item.numero_sm ? `SM ${escapeHtml(item.numero_sm)}` : '—';
+  const pvDisplay = item.numero_pv
+    ? `<span class="bg-violet-100 text-violet-800 px-2.5 py-0.5 rounded-xl text-xs font-semibold">PV ${escapeHtml(item.numero_pv)}</span>`
+    : '<span class="text-slate-400">—</span>';
+  const equipFormatted = formatEquipamento(item);
+  const equipTitle = escapeHtml(item.equipamento_texto || equipmentLabel(item) || '');
+  const isAdmin = (typeof getUser === 'function' && getUser()?.role === 'admin');
+
+  return `
+    <tr class="hover:bg-slate-50 transition-colors" data-sm-row="${item.id}">
+      <td class="w-10 px-3 py-3.5 text-center">
+        <input type="checkbox" class="sm-checkbox rounded border-slate-300 text-sky-600 focus:ring-sky-500 cursor-pointer" data-id="${item.id}" ${isSelected ? 'checked' : ''}>
+      </td>
+      <td class="px-4 py-3.5 text-sm font-semibold text-slate-900 whitespace-nowrap">
+        <span class="font-mono text-sky-800 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-200">${smDisplay}</span>
+      </td>
+      <td class="hidden md:table-cell px-4 py-3.5 text-sm text-slate-600 whitespace-nowrap">
+        ${formatDateBr(item.data)}
+      </td>
+      <td class="px-4 py-3.5 text-sm font-medium text-slate-800 whitespace-nowrap">
+        ${escapeHtml(item.site || '—')}
+      </td>
+      <td class="hidden md:table-cell px-4 py-3.5 text-sm text-slate-600 truncate max-w-[220px]" title="${equipTitle}">
+        ${equipFormatted}
+      </td>
+      <td class="hidden md:table-cell px-4 py-3.5 text-sm whitespace-nowrap">
+        ${pvDisplay}
+      </td>
+      <td class="px-4 py-3.5 text-sm whitespace-nowrap">
+        <span class="px-2.5 py-0.5 rounded-xl text-xs font-semibold ${scStatusBadgeClass(item.status)}">${escapeHtml(statusLabel)}</span>
+      </td>
+      <td class="hidden lg:table-cell px-4 py-3.5 text-sm font-medium text-slate-700 whitespace-nowrap">
+        ${formatMoney(item.valor_sc)}
+      </td>
+      <td class="px-4 py-3.5 text-sm text-right whitespace-nowrap">
+        <div class="flex items-center justify-end gap-2">
+          <button type="button" class="sm-email-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 rounded-xl text-xs font-semibold transition cursor-pointer" data-id="${item.id}" title="Enviar E-mail">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <span>E-mail</span>
+          </button>
+          ${isAdmin ? iconButtonHtml('delete', 'Excluir', { 'class': 'sm-delete-btn', 'data-id': item.id }, 'right') : ''}
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function sortScItems() {
+  _scItems.sort((a, b) => {
+    let va = a;
+    let vb = b;
+    if (_scSortBy === 'sc.numero_sm') {
+      va = a.numero_sm || '';
+      vb = b.numero_sm || '';
+    } else if (_scSortBy === 'sc.data') {
+      va = a.data || '';
+      vb = b.data || '';
+    } else if (_scSortBy === 'sc.site') {
+      va = (a.site || '').toLowerCase();
+      vb = (b.site || '').toLowerCase();
+    } else if (_scSortBy === 'sc.status') {
+      va = a.status || '';
+      vb = b.status || '';
+    } else {
+      va = Number(a.id) || 0;
+      vb = Number(b.id) || 0;
+    }
+    if (va < vb) return _scSortDir === 'ASC' ? -1 : 1;
+    if (va > vb) return _scSortDir === 'ASC' ? 1 : -1;
+    return 0;
+  });
+}
+
+function bindTableEvents() {
+  const table = document.getElementById('scTable');
+  const master = document.getElementById('selectAllSm');
+  const batchBtn = document.getElementById('batchSmEmailBtn');
+
+  if (master && !master.dataset.bound) {
+    master.dataset.bound = '1';
+    master.addEventListener('change', () => {
+      const checked = master.checked;
+      _scItems.forEach((item) => {
+        const id = Number(item.id);
+        if (checked) {
+          _selectedSmIds.add(id);
+        } else {
+          _selectedSmIds.delete(id);
+        }
+      });
+      const cbs = document.querySelectorAll('.sm-checkbox');
+      cbs.forEach((cb) => {
+        cb.checked = checked;
+      });
+      updateBatchSmEmailButton();
+    });
+  }
+
+  if (batchBtn && !batchBtn.dataset.bound) {
+    batchBtn.dataset.bound = '1';
+    batchBtn.addEventListener('click', () => {
+      if (_selectedSmIds.size === 0) {
+        showToast('Nenhuma solicitação selecionada', 'error');
+        return;
+      }
+      const selected = _scItems.filter((i) => _selectedSmIds.has(Number(i.id)));
+      openSmEmailModal(Array.from(_selectedSmIds), selected);
+    });
+  }
+
+  if (table && !table.dataset.bound) {
+    table.dataset.bound = '1';
+    table.addEventListener('click', (e) => {
+      const cb = e.target.closest('.sm-checkbox');
+      if (cb) {
+        const id = Number(cb.dataset.id);
+        if (cb.checked) {
+          _selectedSmIds.add(id);
+        } else {
+          _selectedSmIds.delete(id);
+        }
+        updateBatchSmEmailButton();
+        return;
+      }
+
+      const emailBtn = e.target.closest('.sm-email-btn');
+      if (emailBtn) {
+        const id = Number(emailBtn.dataset.id);
+        const item = _scItems.find((i) => Number(i.id) === id);
+        if (item) {
+          openSmEmailModal([id], [item]);
+        }
+        return;
+      }
+
+      const delBtn = e.target.closest('.sm-delete-btn');
+      if (delBtn) {
+        const id = Number(delBtn.dataset.id);
+        deleteSc(id);
+        return;
+      }
+
+      const sortTh = e.target.closest('[data-sort]');
+      if (sortTh) {
+        const field = sortTh.dataset.sort;
+        if (_scSortBy === field) {
+          _scSortDir = _scSortDir === 'ASC' ? 'DESC' : 'ASC';
+        } else {
+          _scSortBy = field;
+          _scSortDir = 'ASC';
+        }
+        sortScItems();
+        const tableBody = document.getElementById('scTableBody');
+        if (tableBody) {
+          tableBody.innerHTML = _scItems.map((item) => buildSmRowHtml(item)).join('');
+        }
+        return;
+      }
+    });
+  }
 }
 
 /*
@@ -790,8 +986,17 @@ export async function loadSc(silent = false) {
     _scTotal = res.total || 0;
     _scStatusCounts = res.status_counts || {};
 
+    const tableBody = document.getElementById('scTableBody');
     const listEl = document.getElementById('scList');
     const emptyEl = document.getElementById('scEmpty');
+
+    if (tableBody) {
+      if (_scItems.length === 0) {
+        tableBody.innerHTML = '';
+      } else {
+        tableBody.innerHTML = _scItems.map((item) => buildSmRowHtml(item)).join('');
+      }
+    }
 
     if (listEl) {
       cancelOpenEdits();
@@ -823,6 +1028,7 @@ export async function loadSc(silent = false) {
       overdueEl.textContent = String(_scItems.filter((i) => Number(i.overdue_days) > 0).length);
     }
 
+    updateBatchSmEmailButton();
     updateStatusFilterCounts();
   } catch (e) {
     if (!silent) showToast(e.message || 'Erro ao carregar solicitações', 'error');
@@ -885,6 +1091,8 @@ export async function deleteSc(id) {
     if (res.success) {
       showToast('Solicitação excluída com sucesso');
       _scExpandedCards.delete(Number(id));
+      _selectedSmIds.delete(Number(id));
+      updateBatchSmEmailButton();
       await loadSc();
     } else {
       showToast(res.message || 'Erro ao excluir solicitação', 'error');
@@ -1072,6 +1280,8 @@ export async function initSc() {
   cancelOpenEdits();
   _scEditingCount = 0;
   _scExpandedCards.clear();
+  _selectedSmIds.clear();
+  updateBatchSmEmailButton();
 
   // Restaura os filtros ativos (o módulo é singleton entre navegações).
   if (searchInput) searchInput.value = _scSearch;
@@ -1082,6 +1292,12 @@ export async function initSc() {
   setupScStatusFilterDropdown();
   setupScSiteFilterAutocomplete();
   bindListEvents();
+  bindTableEvents();
+  initSmEmailModal(() => {
+    _selectedSmIds.clear();
+    updateBatchSmEmailButton();
+    loadSc(false);
+  });
 
   if (csvBtn && !csvBtn.dataset.bound) {
     csvBtn.dataset.bound = '1';

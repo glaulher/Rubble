@@ -5,14 +5,31 @@ import { apiFetch } from '/public/js/core/auth.js';
 import { createAutocomplete } from '/public/js/core/autocomplete.js?v=1';
 
 let scSiteOptions = [];
+let scEquipmentOptions = [];
 
 async function loadScSiteOptions() {
   try {
     const res = await apiFetch('/app/api/index.php?route=locals');
     const result = await res.json();
-    scSiteOptions = result.success ? (result.data || []) : [];
+    scSiteOptions = result.success ? result.data || [] : [];
   } catch {
     scSiteOptions = [];
+  }
+}
+
+async function loadScEquipmentOptions() {
+  try {
+    const res = await apiFetch('/app/api/index.php?route=equipment&limit=500');
+    const result = await res.json();
+    const items = result.success ? result.data?.items || result.data || [] : [];
+    scEquipmentOptions = items.map((e) => ({
+      id: e.id,
+      label: e.equipamento ? `${e.equipamento}${e.local ? ' — ' + e.local : ''}` : e.nome || String(e.id),
+      nome: e.equipamento || e.nome || '',
+      site: e.local || '',
+    }));
+  } catch {
+    scEquipmentOptions = [];
   }
 }
 
@@ -24,13 +41,45 @@ function setupScSiteAutocomplete() {
     filterFn: (items, q) => {
       if (!q) return [...items];
       const lower = q.toLowerCase();
-      return items.filter(item => item.toLowerCase().includes(lower));
+      return items.filter((item) => item.toLowerCase().includes(lower));
     },
-    formatItem: item => item,
+    formatItem: (item) => item,
     onSelect: (item, input) => {
       input.value = item;
     },
-    onBlur: ({ hide }) => { hide(); }
+    onBlur: ({ hide }) => {
+      hide();
+    },
+  });
+}
+
+function setupScEquipmentAutocomplete() {
+  createAutocomplete({
+    inputSelector: '#scEquip',
+    dropdownSelector: '#scEquipFormDropdown',
+    dataSource: () => {
+      const siteVal = (document.getElementById('scSite')?.value || '').trim().toLowerCase();
+      if (siteVal) {
+        const filtered = scEquipmentOptions.filter(
+          (e) => !e.site || e.site.toLowerCase().includes(siteVal)
+        );
+        if (filtered.length > 0) return filtered;
+      }
+      return scEquipmentOptions;
+    },
+    filterFn: (items, q) => {
+      if (!q) return items.slice(0, 30);
+      const lower = q.toLowerCase();
+      return items.filter((e) => e.label.toLowerCase().includes(lower)).slice(0, 30);
+    },
+    formatItem: (item) => item.label,
+    onSelect: (item, input) => {
+      input.value = item.nome || item.label;
+      input.dataset.equipId = String(item.id || '');
+    },
+    onBlur: ({ hide }) => {
+      hide();
+    },
   });
 }
 
@@ -63,14 +112,35 @@ export function buildScCreatePayload(values) {
     sla = Number(sla);
   }
 
-  return {
+  const payload = {
     titulo_email: titulo,
     site: site,
-    status: 'em_cotacao',
+    status: 'enviar_email',
     data: dateStr,
     data_status: dateStr,
     sla_dias: sla,
   };
+
+  const equipId = values.equipamento_id ? Number(values.equipamento_id) : null;
+  const equipTexto = (values.equipamento_texto ?? '').trim();
+
+  if (equipId && equipId > 0) {
+    payload.equipamento_id = equipId;
+  } else if (equipTexto) {
+    payload.equipamento_texto = equipTexto;
+  }
+
+  const pv = (values.numero_pv ?? '').trim();
+  if (pv) {
+    payload.numero_pv = pv;
+  }
+
+  const obs = (values.observacao ?? '').trim();
+  if (obs) {
+    payload.observacao = obs;
+  }
+
+  return payload;
 }
 
 export function initScForm() {
@@ -81,16 +151,25 @@ export function initScForm() {
   const btnClose = document.getElementById('modalScCloseBtn');
   const inputTitulo = document.getElementById('scTitulo');
   const inputSite = document.getElementById('scSite');
+  const inputEquip = document.getElementById('scEquip');
+  const inputPv = document.getElementById('scPv');
   const inputData = document.getElementById('scData');
   const inputSla = document.getElementById('scSla');
+  const inputObs = document.getElementById('scObservacao');
 
   if (!modal || !form || !btnNew || !btnCancel) return;
 
   function openModal() {
     inputTitulo.value = '';
     inputSite.value = '';
+    if (inputEquip) {
+      inputEquip.value = '';
+      delete inputEquip.dataset.equipId;
+    }
+    if (inputPv) inputPv.value = '';
     inputData.value = localToday();
     inputSla.value = '';
+    if (inputObs) inputObs.value = '';
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     requestAnimationFrame(() => inputTitulo.focus());
@@ -112,11 +191,15 @@ export function initScForm() {
       const payload = buildScCreatePayload({
         titulo_email: inputTitulo.value,
         site: inputSite.value,
+        equipamento_id: inputEquip?.dataset?.equipId,
+        equipamento_texto: inputEquip?.value,
+        numero_pv: inputPv ? inputPv.value : '',
         data: inputData ? inputData.value : '',
         sla_dias: inputSla.value,
+        observacao: inputObs ? inputObs.value : '',
       });
 
-      showToast('Criando solicitação...', 'loading');
+      showToast('Registrando solicitação de material...', 'loading');
 
       const response = await apiFetch('/app/api/index.php?route=sc', {
         method: 'POST',
@@ -126,18 +209,19 @@ export function initScForm() {
       const res = await response.json();
 
       if (res.success) {
-        showToast('Solicitação criada com sucesso', 'success');
+        showToast('Solicitação registrada com sucesso', 'success');
         closeModal();
         if (typeof globalThis.refreshScList === 'function') {
           await globalThis.refreshScList();
         }
       } else {
-        showToast(res.message || 'Erro ao criar solicitação', 'error');
+        showToast(res.message || 'Erro ao registrar solicitação', 'error');
       }
     } catch (err) {
-      showToast(err.message || 'Erro ao criar solicitação', 'error');
+      showToast(err.message || 'Erro ao registrar solicitação', 'error');
     }
   });
 
   loadScSiteOptions().then(setupScSiteAutocomplete);
+  loadScEquipmentOptions().then(setupScEquipmentAutocomplete);
 }

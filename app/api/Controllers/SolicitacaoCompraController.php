@@ -207,4 +207,128 @@ class SolicitacaoCompraController
             Response::serverError($e);
         }
     }
+
+    public function sendEmail(): void
+    {
+        try {
+            $input = Request::body();
+            $id = (int) ($_POST['id'] ?? $input['id'] ?? 0);
+            if ($id <= 0) {
+                Response::json(['success' => false, 'message' => 'ID inválido'], 400);
+                return;
+            }
+
+            $sc = $this->service->getById($id);
+            if ($sc === null) {
+                Response::json(['success' => false, 'message' => 'Solicitação não encontrada'], 404);
+                return;
+            }
+
+            $uploadedPhotos = $this->extractUploadedFiles('fotos');
+
+            $emailService = new \App\Api\Services\SmEmailService();
+            $emailService->validatePhotos($uploadedPhotos);
+
+            $result = $emailService->send($sc, $uploadedPhotos);
+
+            if ($result['success']) {
+                $this->service->updateField($id, 'status', 'solicitada_cotacao');
+                $this->service->updateField($id, 'data_status', date('Y-m-d'));
+            }
+
+            Response::json($result, $result['success'] ? 200 : 500);
+        } catch (\InvalidArgumentException $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    public function sendBatchEmail(): void
+    {
+        try {
+            $input = Request::body();
+            $rawIds = $_POST['ids'] ?? $input['ids'] ?? [];
+            if (!is_array($rawIds) || empty($rawIds)) {
+                Response::json(['success' => false, 'message' => 'Nenhuma solicitação selecionada'], 400);
+                return;
+            }
+
+            $ids = array_values(array_filter(array_map('intval', $rawIds), fn($id) => $id > 0));
+            if (empty($ids)) {
+                Response::json(['success' => false, 'message' => 'IDs inválidos'], 400);
+                return;
+            }
+
+            $scs = [];
+            foreach ($ids as $id) {
+                $sc = $this->service->getById($id);
+                if ($sc !== null) {
+                    $scs[] = $sc;
+                }
+            }
+
+            if (empty($scs)) {
+                Response::json(['success' => false, 'message' => 'Nenhuma solicitação encontrada'], 404);
+                return;
+            }
+
+            $uploadedPhotos = $this->extractUploadedFiles('fotos');
+
+            $emailService = new \App\Api\Services\SmEmailService();
+            $emailService->validatePhotos($uploadedPhotos);
+
+            $result = $emailService->sendBatch($scs, $uploadedPhotos);
+
+            if ($result['success']) {
+                $today = date('Y-m-d');
+                foreach ($ids as $id) {
+                    $this->service->updateField($id, 'status', 'solicitada_cotacao');
+                    $this->service->updateField($id, 'data_status', $today);
+                }
+            }
+
+            Response::json($result, $result['success'] ? 200 : 500);
+        } catch (\InvalidArgumentException $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+        }
+    }
+
+    private function extractUploadedFiles(string $fieldName): array
+    {
+        $files = $_FILES[$fieldName] ?? [];
+        if (empty($files) || empty($files['name'])) {
+            return [];
+        }
+
+        $result = [];
+        if (is_array($files['name'])) {
+            $count = count($files['name']);
+            for ($i = 0; $i < $count; $i++) {
+                if (($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+                $result[] = [
+                    'name'     => $files['name'][$i],
+                    'tmp_name' => $files['tmp_name'][$i],
+                    'size'     => $files['size'][$i],
+                    'type'     => $files['type'][$i],
+                    'error'    => $files['error'][$i],
+                ];
+            }
+        } else {
+            if (($files['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                $result[] = [
+                    'name'     => $files['name'],
+                    'tmp_name' => $files['tmp_name'],
+                    'size'     => $files['size'],
+                    'type'     => $files['type'],
+                    'error'    => $files['error'],
+                ];
+            }
+        }
+        return $result;
+    }
 }

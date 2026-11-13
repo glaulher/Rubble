@@ -20,7 +20,10 @@ class SolicitacaoCompraRepository extends BaseRepository
                    WHERE sc_sub.numero_pv IS NOT NULL AND TRIM(sc_sub.numero_pv) != ''
                    GROUP BY sc_sub.numero_pv) sc_totais ON sc_totais.numero_pv = sc.numero_pv";
 
+    public const IMAGE_DIR = __DIR__ . '/../../../IMAGE';
+
     private const WRITABLE_FIELDS = [
+        'numero_sm' => 's',
         'titulo_email' => 's',
         'status' => 's',
         'site' => 's',
@@ -202,15 +205,16 @@ class SolicitacaoCompraRepository extends BaseRepository
         $search = trim($search);
         if ($search !== '') {
             $like = '%' . $search . '%';
-            $conditions[] = "(sc.titulo_email LIKE ?
+            $conditions[] = "(sc.numero_sm LIKE ?
+                OR sc.titulo_email LIKE ?
                 OR sc.site LIKE ?
                 OR sc.numero_sc LIKE ?
                 OR sc.numero_pc LIKE ?
                 OR sc.numero_pv LIKE ?
                 OR sc.equipamento_texto LIKE ?
                 OR e.equipamento LIKE ?)";
-            $types .= 'sssssss';
-            array_push($params, $like, $like, $like, $like, $like, $like, $like);
+            $types .= 'ssssssss';
+            array_push($params, $like, $like, $like, $like, $like, $like, $like, $like);
         }
 
         $status = $status !== null ? trim($status) : '';
@@ -264,6 +268,29 @@ class SolicitacaoCompraRepository extends BaseRepository
         }
 
         return $value;
+    }
+
+    public function getMaxNumberSm(string $yearPrefix): ?string
+    {
+        $sql = "SELECT MAX(numero_sm) AS max_num
+                FROM solicitacao_compra
+                WHERE numero_sm LIKE ?";
+        $stmt = $this->safePrepare($sql);
+        $param = "{$yearPrefix}%";
+        $stmt->bind_param('s', $param);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        return $row['max_num'] ?? null;
+    }
+
+    public function getByNumberSm(string $numeroSm): ?array
+    {
+        $sql = self::SELECT_BASE . " WHERE sc.numero_sm = ? LIMIT 1";
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param('s', $numeroSm);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->num_rows > 0 ? $result->fetch_assoc() : null;
     }
 
     private function fetchAll(\mysqli_result $result): array

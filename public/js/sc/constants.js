@@ -1,6 +1,8 @@
 export const SC_STATUSES = [
-  { key: 'em_cotacao', label: 'Em cotação' },
+  { key: 'enviar_email', label: 'Enviar e-mail' },
+  { key: 'solicitada_cotacao', label: 'Solicitada cotação' },
   { key: 'orcamento_recebido', label: 'Orçamento recebido' },
+  { key: 'em_cotacao', label: 'Em cotação' },
   { key: 'sc_solicitada', label: 'SC solicitada' },
   { key: 'sc_aprovada', label: 'SC aprovada' },
   { key: 'pc_gerado', label: 'PC gerado' },
@@ -8,8 +10,10 @@ export const SC_STATUSES = [
 ];
 
 const SC_STATUS_BADGES = {
-  em_cotacao: 'bg-sky-100 text-sky-700',
-  orcamento_recebido: 'bg-sky-100 text-sky-700',
+  enviar_email: 'bg-sky-100 text-sky-700',
+  solicitada_cotacao: 'bg-blue-100 text-blue-700',
+  orcamento_recebido: 'bg-violet-100 text-violet-700',
+  em_cotacao: 'bg-sky-100 text-sky-600',
   sc_solicitada: 'bg-amber-100 text-amber-700',
   sc_aprovada: 'bg-emerald-100 text-emerald-700',
   pc_gerado: 'bg-emerald-100 text-emerald-700',

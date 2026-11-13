@@ -43,11 +43,14 @@ class SolicitacaoCompraServiceTest extends TestCase
 
     public function testStatusIndexAndSteps(): void
     {
-        $this->assertSame(0, SolicitacaoCompraService::statusIndex('em_cotacao'));
-        $this->assertSame(3, SolicitacaoCompraService::statusIndex('sc_aprovada'));
+        $this->assertSame(0, SolicitacaoCompraService::statusIndex('enviar_email'));
+        $this->assertSame(3, SolicitacaoCompraService::statusIndex('em_cotacao'));
+        $this->assertSame(5, SolicitacaoCompraService::statusIndex('sc_aprovada'));
         $this->assertSame(-1, SolicitacaoCompraService::statusIndex('inventado'));
 
         $steps = SolicitacaoCompraService::stepsFor('sc_solicitada');
+        $this->assertTrue($steps['enviar_email']);
+        $this->assertTrue($steps['solicitada_cotacao']);
         $this->assertTrue($steps['em_cotacao']);
         $this->assertTrue($steps['orcamento_recebido']);
         $this->assertTrue($steps['sc_solicitada']);
@@ -59,7 +62,7 @@ class SolicitacaoCompraServiceTest extends TestCase
     {
         $steps = SolicitacaoCompraService::stepsFor('inventado');
 
-        $this->assertCount(6, $steps);
+        $this->assertCount(8, $steps);
         $this->assertSame([], array_keys(array_filter($steps)));
     }
 

@@ -4,13 +4,14 @@
     background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);
   "
 >
+  <!-- TOP BAR / SUB-HEADER -->
   <div class="bg-slate-900 text-white shadow-lg">
     <div
       class="px-6 py-2 grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 items-center"
     >
       <div>
-        <h1 class="text-2xl font-light tracking-[0.1em]">Solicitações de Compra</h1>
-        <p class="text-sm text-slate-400/80 mt-0.5">Comercial</p>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Solicitar Material</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Comercial / Suprimentos</p>
       </div>
 
       <div class="text-center">
@@ -26,151 +27,279 @@
       </div>
 
       <div class="text-right flex items-center justify-end gap-2">
-        <input
-          type="text"
-          id="scSearch"
-          placeholder="Buscar solicitações..."
-          aria-label="Buscar solicitações"
-          class="bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-slate-500 w-56"
-        />
-        <div class="relative group">
-          <button
-            id="scCsvBtn"
-            class="flex items-center justify-center bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 p-2 rounded-xl transition-colors"
-            title="Exportar CSV"
-            aria-label="Exportar CSV"
+        <button
+          id="batchSmEmailBtn"
+          class="hidden bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 px-4 py-2 rounded-xl text-sm font-medium transition"
+        >
+          <span id="smSelectedCount" class="mr-1 font-bold">0</span>
+          Enviar E-mail
+        </button>
+        <button
+          id="scNewBtn"
+          data-role="admin coordenador gerente administrativo"
+          class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-4 py-2 rounded-xl text-sm font-medium transition"
+        >
+          + Nova Solicitação
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTROS E BUSCA (PADRÃO PV) -->
+  <main class="max-w-[96rem] mx-auto px-4 sm:px-6 py-8">
+    <div class="flex flex-col md:flex-row gap-4 mb-6">
+      <!-- Filtro de Status -->
+      <div class="relative shrink-0" id="scStatusContainer">
+        <button
+          type="button"
+          id="scStatusBtn"
+          class="h-full bg-white text-sm rounded-xl px-4 py-3 border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-100 flex items-center justify-between gap-2 min-w-[180px]"
+        >
+          <span id="scStatusLabel" class="truncate">Todos os status</span>
+          <svg
+            class="w-4 h-4 shrink-0 text-slate-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
           >
-            <svg
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-          </button>
-          <span
-            class="absolute top-full right-0 mt-2 scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div
+          id="scStatusDropdown"
+          class="hidden absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
+        ></div>
+        <select id="scStatusFilter" class="hidden">
+          <option value="">Todos os status</option>
+          <option value="enviar_email">Enviar e-mail</option>
+          <option value="solicitada_cotacao">Solicitada cotação</option>
+          <option value="orcamento_recebido">Orçamento recebido</option>
+          <option value="em_cotacao">Em cotação</option>
+          <option value="sc_solicitada">SC solicitada</option>
+          <option value="sc_aprovada">SC aprovada</option>
+          <option value="pc_gerado">PC gerado</option>
+          <option value="material_retirado">Material retirado</option>
+        </select>
+      </div>
+
+      <input
+        type="text"
+        id="scSearch"
+        placeholder="Buscar por nº SM, site, equipamento, PV, SC..."
+        aria-label="Buscar solicitações"
+        class="flex-1 rounded-xl border border-slate-300 dark:border-[#3b4459] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-100 bg-white dark:bg-[#1a1f2e] dark:text-slate-200 dark:placeholder-slate-400"
+      />
+
+      <!-- Filtro de Site -->
+      <div class="relative shrink-0" id="scSiteContainer">
+        <button
+          type="button"
+          id="scSiteBtn"
+          class="h-full bg-white text-sm rounded-xl px-4 py-3 border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-100 flex items-center justify-between gap-2 min-w-[140px]"
+        >
+          <span id="scSiteLabel" class="truncate">Todos os sites</span>
+          <svg
+            class="w-4 h-4 shrink-0 text-slate-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
           >
-            Exportar CSV
-          </span>
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div
+          id="scSiteDropdown"
+          class="hidden absolute top-full right-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
+        ></div>
+      </div>
+
+      <div class="flex items-center">
+        <button
+          type="button"
+          id="scClearFilters"
+          class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-4 py-3 rounded-xl text-sm font-medium transition cursor-pointer"
+        >
+          Limpar
+        </button>
+      </div>
+
+      <div class="relative group shrink-0">
+        <button
+          id="scCsvBtn"
+          class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-3 py-2.5 rounded-xl font-semibold transition"
+          title="Exportar CSV"
+          aria-label="Exportar CSV"
+        >
+          <svg
+            class="w-7 h-7"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="7" y1="12.5" x2="17" y2="12.5"></line>
+            <line x1="7" y1="16.5" x2="17" y2="16.5"></line>
+            <line x1="7" y1="8.5" x2="9" y2="8.5"></line>
+          </svg>
+        </button>
+        <span
+          class="absolute right-0 top-[54px] scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+        >
+          Exportar CSV
+        </span>
+      </div>
+    </div>
+
+    <!-- TABELA PRINCIPAL (ESTRUTURA IDENTICA À PV) -->
+    <div
+      class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+    >
+      <div class="overflow-x-auto">
+        <table id="scTable" class="w-full">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th
+                class="w-10 px-3 py-3 text-sm font-semibold text-slate-600 text-center"
+              >
+                <input
+                  type="checkbox"
+                  id="selectAllSm"
+                  aria-label="Selecionar todas as solicitações"
+                  class="rounded border-slate-300 text-sky-600 focus:ring-sky-500 cursor-pointer"
+                />
+              </th>
+              <th
+                data-sort="sc.numero_sm"
+                class="text-left px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+              >
+                Nº SM
+                <span class="sort-icon"></span>
+              </th>
+              <th
+                data-sort="sc.data"
+                class="hidden md:table-cell text-left px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+              >
+                Data
+                <span class="sort-icon"></span>
+              </th>
+              <th
+                data-sort="sc.site"
+                class="text-left px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+              >
+                Site
+                <span class="sort-icon"></span>
+              </th>
+              <th
+                class="hidden md:table-cell text-left px-4 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
+              >
+                Equipamento
+              </th>
+              <th
+                class="hidden md:table-cell text-left px-4 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
+              >
+                PV Vinculada
+              </th>
+              <th
+                data-sort="sc.status"
+                class="text-left px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer select-none hover:bg-slate-100 transition whitespace-nowrap"
+              >
+                Status
+                <span class="sort-icon"></span>
+              </th>
+              <th
+                class="hidden lg:table-cell text-left px-4 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap"
+              >
+                Valor SC
+              </th>
+              <th
+                class="text-right px-4 py-3 text-sm font-semibold text-slate-600 whitespace-nowrap w-36"
+              >
+                Ações
+              </th>
+            </tr>
+          </thead>
+          <tbody id="scTableBody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+      <div id="scEmpty" class="hidden p-10 text-center text-slate-500">
+        Nenhuma solicitação encontrada.
+      </div>
+    </div>
+    <div id="scSentinel" class="h-10"></div>
+    <div id="scList" class="hidden"></div>
+  </main>
+
+  <!-- MODAL DE ENVIO DE E-MAIL (COM UPLOAD DE FOTOS) -->
+  <div
+    id="smEmailModal"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-[99999]"
+  >
+    <div
+      class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto m-4"
+    >
+      <div
+        class="bg-gradient-to-r from-sky-700 to-slate-900 px-8 py-6 text-white rounded-t-3xl"
+      >
+        <h2 class="text-xl font-light tracking-[0.05em]">
+          Enviar Solicitação de Material por E-mail
+        </h2>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+            Assunto do E-mail
+          </label>
+          <div
+            id="smEmailSubject"
+            class="text-sm font-medium text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200"
+          ></div>
         </div>
-        <div class="relative group">
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">
+            Anexar fotos da solicitação <span class="text-xs text-slate-400 font-normal">(opcional, máx. 10 fotos de até 500 KB cada)</span>
+          </label>
+          <input
+            type="file"
+            id="smPhotoInput"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-sky-100 file:text-sky-800 hover:file:bg-sky-200 cursor-pointer"
+          />
+          <div class="flex items-center justify-between mt-1">
+            <span id="smPhotoCount" class="text-xs text-slate-400">0/10 fotos selecionadas</span>
+          </div>
+          <div id="smPhotoPreview" class="flex flex-wrap gap-2 mt-2"></div>
+          <div id="smPhotoError" class="hidden text-xs text-red-600 font-medium mt-1"></div>
+        </div>
+
+        <div class="pt-2 flex gap-3">
           <button
-            id="scNewBtn"
-            class="flex items-center justify-center bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 p-2 rounded-xl transition-colors"
-            data-role="admin coordenador gerente administrativo"
+            type="button"
+            id="btnCancelSmEmail"
+            class="flex-1 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 py-3 rounded-xl font-medium transition"
           >
-            <svg
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
+            Cancelar
           </button>
-          <span
-            class="absolute top-full right-0 mt-2 scale-0 group-hover:scale-100 origin-top-right transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50"
+          <button
+            type="button"
+            id="btnSendSmEmail"
+            class="flex-1 bg-sky-300 hover:bg-sky-400 active:bg-sky-500 text-sky-800 py-3 rounded-xl font-medium transition flex items-center justify-center gap-2"
           >
-            Nova solicitação
-          </span>
+            <span>Enviar E-mail</span>
+          </button>
         </div>
       </div>
     </div>
   </div>
 
-  <div
-    id="scFilters"
-    class="px-4 py-3 flex flex-wrap gap-3 items-end bg-white rounded-2xl shadow-sm border border-slate-200 mx-6 mt-3"
-  >
-    <div class="flex flex-col relative shrink-0" id="scStatusContainer">
-      <label class="text-xs text-slate-500 mb-1">Status</label>
-      <button
-        type="button"
-        id="scStatusBtn"
-        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-48 text-left flex items-center justify-between gap-1"
-      >
-        <span id="scStatusLabel" class="truncate">Todos os status</span>
-        <svg
-          class="w-4 h-4 shrink-0 text-slate-400"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
-      <div
-        id="scStatusDropdown"
-        class="hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
-      ></div>
-      <select id="scStatusFilter" class="hidden">
-        <option value="">Todos os status</option>
-        <option value="em_cotacao">Em cotação</option>
-        <option value="orcamento_recebido">Orçamento recebido</option>
-        <option value="sc_solicitada">SC solicitada</option>
-        <option value="sc_aprovada">SC aprovada</option>
-        <option value="pc_gerado">PC gerado</option>
-        <option value="material_retirado">Material retirado</option>
-      </select>
-    </div>
-    <div class="flex flex-col relative shrink-0" id="scSiteContainer">
-      <label class="text-xs text-slate-500 mb-1">Site</label>
-      <button
-        type="button"
-        id="scSiteBtn"
-        class="bg-white text-sm rounded-lg px-2 py-1.5 border border-slate-300 focus:outline-none focus:border-blue-500 w-40 text-left flex items-center justify-between gap-1"
-      >
-        <span id="scSiteLabel" class="truncate">Todos</span>
-        <svg
-          class="w-4 h-4 shrink-0 text-slate-400"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
-      <div
-        id="scSiteDropdown"
-        class="hidden absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
-      ></div>
-    </div>
-    <div class="flex flex-col shrink-0">
-      <button
-        type="button"
-        id="scClearFilters"
-        class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-3 py-1.5 rounded-xl text-sm font-medium self-end"
-      >
-        Limpar
-      </button>
-    </div>
-  </div>
-
-  <main id="scList" class="px-6 py-4 space-y-6"></main>
-
-  <div
-    id="scEmpty"
-    class="hidden px-6 py-12 text-center text-slate-500"
-  >
-    Nenhuma solicitação encontrada
-  </div>
-
-  <!-- Modal de criação/edição -->
+  <!-- MODAL DE CRIAÇÃO / EDIÇÃO DE SOLICITAÇÃO (COM AUTOCOMPLETE HÍBRIDO) -->
   <div
     id="modalSc"
     class="fixed inset-0 z-[99999] hidden"
@@ -183,10 +312,15 @@
       id="modalScBackdrop"
     ></div>
     <div
-      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-2xl shadow-2xl p-6 z-[100000]"
+      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-6 z-[100000] max-h-[90vh] overflow-y-auto"
     >
-      <div class="flex items-center justify-between mb-4">
-        <h2 id="modalScTitle" class="text-xl font-semibold text-slate-900">Nova solicitação</h2>
+      <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+        <div>
+          <h2 id="modalScTitle" class="text-xl font-semibold text-slate-900">
+            Nova Solicitação de Material
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">O número SM será gerado automaticamente</p>
+        </div>
         <button
           type="button"
           id="modalScCloseBtn"
@@ -199,65 +333,120 @@
           </svg>
         </button>
       </div>
+
       <form id="formSc" class="space-y-4" novalidate>
         <div>
-          <label for="scTitulo" class="block text-sm font-medium text-slate-700 mb-1">Título do e-mail <span class="text-red-500">*</span></label>
+          <label for="scTitulo" class="block text-sm font-medium text-slate-700 mb-1">
+            Título / Objeto <span class="text-red-500">*</span>
+          </label>
           <input
             type="text"
             id="scTitulo"
             required
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-900"
-            placeholder="Ex: Cotação filtros 20x20"
+            class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 text-slate-900"
+            placeholder="Ex: Aquisição de peças e filtros para preventiva"
           />
         </div>
-        <div class="relative">
-          <label for="scSite" class="block text-sm font-medium text-slate-700 mb-1">Site <span class="text-red-500">*</span></label>
-          <input
-            type="text"
-            id="scSite"
-            required
-            autocomplete="off"
-            class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-900"
-            placeholder="Digite para buscar..."
-          />
-          <div
-            id="scSiteFormDropdown"
-            class="autocomplete-dropdown hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
-          ></div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Site (Autocomplete híbrido) -->
+          <div class="relative">
+            <label for="scSite" class="block text-sm font-medium text-slate-700 mb-1">
+              Site <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="scSite"
+              required
+              autocomplete="off"
+              class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 text-slate-900"
+              placeholder="Digite ou selecione o site..."
+            />
+            <div
+              id="scSiteFormDropdown"
+              class="autocomplete-dropdown hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
+            ></div>
+          </div>
+
+          <!-- Equipamento (Autocomplete híbrido) -->
+          <div class="relative">
+            <label for="scEquip" class="block text-sm font-medium text-slate-700 mb-1">
+              Equipamento <span class="text-xs text-slate-400 font-normal">(catálogo ou texto livre)</span>
+            </label>
+            <input
+              type="text"
+              id="scEquip"
+              autocomplete="off"
+              class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 text-slate-900"
+              placeholder="Digite ou selecione..."
+            />
+            <div
+              id="scEquipFormDropdown"
+              class="autocomplete-dropdown hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto"
+            ></div>
+          </div>
         </div>
-        <div class="grid grid-cols-2 gap-4">
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label for="scPv" class="block text-sm font-medium text-slate-700 mb-1">
+              PV Vinculada
+            </label>
+            <input
+              type="text"
+              id="scPv"
+              autocomplete="off"
+              class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 text-slate-900"
+              placeholder="Ex: 260025"
+            />
+          </div>
+
           <div>
             <label for="scData" class="block text-sm font-medium text-slate-700 mb-1">Data</label>
             <input
               type="date"
               id="scData"
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-900"
+              class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 text-slate-900"
             />
           </div>
+
           <div>
             <label for="scSla" class="block text-sm font-medium text-slate-700 mb-1">SLA (dias)</label>
             <input
               type="number"
               id="scSla"
               min="0"
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-slate-900"
+              class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 text-slate-900"
               placeholder="Opcional"
             />
           </div>
         </div>
+
+        <div>
+          <label for="scObservacao" class="block text-sm font-medium text-slate-700 mb-1">
+            Materiais / Descrição da Solicitação <span class="text-xs text-slate-400 font-normal">(vai no corpo do e-mail)</span>
+          </label>
+          <textarea
+            id="scObservacao"
+            rows="4"
+            class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-200 text-slate-900"
+            placeholder="Relacione aqui as peças, códigos, quantidades e detalhes do material a ser cotado/comprado..."
+          ></textarea>
+        </div>
+
         <div class="flex justify-end gap-3 pt-2">
           <button
             type="button"
             id="modalScCancel"
-            class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-4 py-2 rounded-xl font-medium"
+            class="bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-900 px-5 py-2.5 rounded-xl font-medium"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-4 py-2 rounded-xl font-medium"
+            class="bg-emerald-300 hover:bg-emerald-400 active:bg-emerald-500 text-emerald-800 px-5 py-2.5 rounded-xl font-medium"
           >
-            Registrar
+            Registrar Solicitação
           </button>
         </div>
       </form>

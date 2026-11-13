@@ -289,7 +289,18 @@ $router->addRoute('sc', 'GET', function () {
         $ctrl->listAll();
     }
 });
-$router->addRoute('sc', 'POST', fn () => (new SolicitacaoCompraController())->save());
+$router->addRoute('sc', 'POST', function () {
+    $ctrl = new SolicitacaoCompraController();
+    $action = $_GET['action'] ?? null;
+
+    if ($action === 'send-email') {
+        $ctrl->sendEmail();
+    } elseif ($action === 'send-batch-email') {
+        $ctrl->sendBatchEmail();
+    } else {
+        $ctrl->save();
+    }
+});
 $router->addRoute('sc', 'PUT', fn () => (new SolicitacaoCompraController())->update());
 $router->addRoute('sc', 'PATCH', fn () => (new SolicitacaoCompraController())->updateField());
 $router->addRoute('sc', 'DELETE', fn () => (new SolicitacaoCompraController())->delete());

@@ -16,7 +16,7 @@ describe('SC form', () => {
 
   test('buildScCreatePayload assume status inicial e data de hoje', () => {
     const p = globalThis.buildScCreatePayload({ titulo_email: 'Cotação', site: 'BMADTC' });
-    expect(p.status).toBe('em_cotacao');
+    expect(p.status).toBe('enviar_email');
     expect(p.data).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(p.data_status).toBe(p.data);
   });

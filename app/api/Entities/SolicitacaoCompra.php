@@ -5,6 +5,7 @@ namespace App\Api\Entities;
 class SolicitacaoCompra
 {
     public int $id;
+    public ?string $numeroSm;
     public string $tituloEmail;
     public string $status;
     public string $site;
@@ -26,6 +27,7 @@ class SolicitacaoCompra
     public function __construct(array $data)
     {
         $this->id = (int) ($data['id'] ?? 0);
+        $this->numeroSm = self::toString($data['numero_sm'] ?? null);
         $this->tituloEmail = (string) ($data['titulo_email'] ?? '');
         $this->status = (string) ($data['status'] ?? '');
         $this->site = (string) ($data['site'] ?? '');
@@ -49,6 +51,7 @@ class SolicitacaoCompra
     {
         return [
             'id' => $this->id,
+            'numero_sm' => $this->numeroSm,
             'titulo_email' => $this->tituloEmail,
             'status' => $this->status,
             'site' => $this->site,

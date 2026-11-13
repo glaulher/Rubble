@@ -8,6 +8,8 @@ tempo_fechado/alertas_notificacao_config.py
 tempo_fechado/usuarios_config.py
 OS/
 LAUDO/
+IMAGE/*
+!IMAGE/.gitkeep
 *.sql
 cache/
 AGENTS.md

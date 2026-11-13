@@ -930,6 +930,7 @@ CREATE TABLE IF NOT EXISTS `termo_itens` (
 
 CREATE TABLE IF NOT EXISTS `solicitacao_compra` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `numero_sm` varchar(50) DEFAULT NULL,
   `titulo_email` varchar(255) NOT NULL,
   `status` varchar(30) NOT NULL DEFAULT 'em_cotacao',
   `site` varchar(100) NOT NULL,
@@ -948,6 +949,7 @@ CREATE TABLE IF NOT EXISTS `solicitacao_compra` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_solicitacao_compra_sm` (`numero_sm`),
   UNIQUE KEY `uk_solicitacao_compra_sc` (`numero_sc`),
   KEY `idx_solicitacao_compra_status` (`status`),
   KEY `idx_solicitacao_compra_site` (`site`),

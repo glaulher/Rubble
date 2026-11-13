@@ -7,8 +7,10 @@ use App\Api\Repositories\SolicitacaoCompraRepository;
 class SolicitacaoCompraService
 {
     public const STATUS_FLOW = [
-        'em_cotacao',
+        'enviar_email',
+        'solicitada_cotacao',
         'orcamento_recebido',
+        'em_cotacao',
         'sc_solicitada',
         'sc_aprovada',
         'pc_gerado',
@@ -16,8 +18,10 @@ class SolicitacaoCompraService
     ];
 
     public const STATUS_LABELS = [
-        'em_cotacao' => 'Em cotação',
+        'enviar_email' => 'Enviar e-mail',
+        'solicitada_cotacao' => 'Solicitada cotação',
         'orcamento_recebido' => 'Orçamento recebido',
+        'em_cotacao' => 'Em cotação',
         'sc_solicitada' => 'SC solicitada',
         'sc_aprovada' => 'SC aprovada',
         'pc_gerado' => 'PC gerado',
@@ -25,6 +29,7 @@ class SolicitacaoCompraService
     ];
 
     public const EDITABLE_FIELDS = [
+        'numero_sm',
         'titulo_email',
         'status',
         'site',
@@ -85,11 +90,32 @@ class SolicitacaoCompraService
     |--------------------------------------------------------------------------
     */
 
+    public function generateNumberSm(): string
+    {
+        $prefix = date('y');
+        $max = $this->repository->getMaxNumberSm($prefix);
+
+        $sequence = 0;
+        if ($max !== null) {
+            $seqStr = substr($max, 2);
+            if (is_numeric($seqStr)) {
+                $sequence = (int) $seqStr;
+            }
+        }
+
+        $next = $sequence + 1;
+        return $prefix . str_pad($next, 4, '0', STR_PAD_LEFT);
+    }
+
     public function save(array $data): int
     {
         $payload = $this->enforceEquipmentXor($this->normalizePayload($data), $data);
         $payload['data'] ??= date('Y-m-d');
         $payload['data_status'] ??= $payload['data'];
+
+        if (empty($payload['numero_sm'])) {
+            $payload['numero_sm'] = $this->generateNumberSm();
+        }
 
         $this->validate($payload);
 
