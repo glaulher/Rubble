@@ -147,4 +147,61 @@ class SmEmailServiceTest extends TestCase
         $this->assertFalse($res['success']);
         $this->assertStringContainsString('SM_EMAILS', $res['message']);
     }
+
+    public function test_validatePhotos_aceita_formatos_adicionais_como_pjpeg_e_jfif(): void
+    {
+        $service = new SmEmailService();
+        $tmp1 = tempnam(sys_get_temp_dir(), 'sm_t1_');
+        $tmp2 = tempnam(sys_get_temp_dir(), 'sm_t2_');
+        file_put_contents($tmp1, 'fake');
+        file_put_contents($tmp2, 'fake');
+
+        $files = [
+            [
+                'tmp_name' => $tmp1,
+                'size'     => 1024,
+                'name'     => 'foto1.jpg',
+                'type'     => 'image/pjpeg',
+                'error'    => UPLOAD_ERR_OK,
+            ],
+            [
+                'tmp_name' => $tmp2,
+                'size'     => 2048,
+                'name'     => 'foto2.jpeg',
+                'type'     => 'image/jfif',
+                'error'    => UPLOAD_ERR_OK,
+            ],
+        ];
+
+        $this->expectNotToPerformAssertions();
+        $service->validatePhotos($files);
+
+        @unlink($tmp1);
+        @unlink($tmp2);
+    }
+
+    public function test_savePhotos_salva_arquivos_e_retorna_caminhos(): void
+    {
+        $service = new SmEmailService();
+        $tmp = tempnam(sys_get_temp_dir(), 'sm_save_');
+        file_put_contents($tmp, 'image content');
+
+        $files = [
+            [
+                'tmp_name' => $tmp,
+                'size'     => 13,
+                'name'     => 'evaporadora.jpg',
+                'type'     => 'image/jpeg',
+                'error'    => UPLOAD_ERR_OK,
+            ],
+        ];
+
+        $saved = $service->savePhotos('260099', $files);
+        $this->assertCount(1, $saved);
+        $this->assertFileExists($saved[0]);
+        $this->assertStringContainsString('260099', $saved[0]);
+
+        @unlink($saved[0]);
+        @unlink($tmp);
+    }
 }

@@ -11,7 +11,15 @@ class SmEmailService
 {
     private const MAX_PHOTOS     = 10;
     private const MAX_PHOTO_SIZE = 512000; // 500 KB
-    private const ALLOWED_TYPES  = ['image/jpeg', 'image/png', 'image/webp'];
+    private const ALLOWED_TYPES  = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/webp',
+        'image/pjpeg',
+        'image/x-png',
+        'image/jfif',
+    ];
     private const ALLOWED_EXTS   = ['jpg', 'jpeg', 'png', 'webp'];
 
     public function buildSubject(array $sc, bool $isBatch = false, array $allScs = []): string
@@ -103,16 +111,27 @@ class SmEmailService
         }
 
         foreach ($files as $file) {
-            if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-                throw new \InvalidArgumentException('Erro no upload de uma das fotos.');
+            $name  = $file['name'] ?? 'foto';
+            $error = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+
+            if ($error !== UPLOAD_ERR_OK) {
+                if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) {
+                    throw new \InvalidArgumentException("A foto \"{$name}\" excede o limite de tamanho do servidor.");
+                }
+                throw new \InvalidArgumentException("Erro no upload da foto \"{$name}\".");
             }
+
             if (($file['size'] ?? 0) > self::MAX_PHOTO_SIZE) {
-                $name = $file['name'] ?? 'foto';
                 throw new \InvalidArgumentException("A foto \"{$name}\" excede o limite de 500 KB.");
             }
-            $type = $file['type'] ?? '';
-            if (!in_array($type, self::ALLOWED_TYPES, true)) {
-                $name = $file['name'] ?? 'foto';
+
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            $type = strtolower($file['type'] ?? '');
+
+            $isAllowedExt  = in_array($ext, self::ALLOWED_EXTS, true);
+            $isAllowedType = in_array($type, self::ALLOWED_TYPES, true);
+
+            if (!$isAllowedExt && !$isAllowedType) {
                 throw new \InvalidArgumentException("O tipo de arquivo \"{$name}\" é inválido. Formatos aceitos: JPG, PNG, WEBP.");
             }
         }
@@ -122,7 +141,17 @@ class SmEmailService
     {
         $imageDir = SolicitacaoCompraRepository::IMAGE_DIR;
         if (!is_dir($imageDir)) {
-            mkdir($imageDir, 0775, true);
+            @mkdir($imageDir, 0775, true);
+        }
+        // Fallback para diretório temporário se IMAGE_DIR não existir ou não for gravável
+        if (!is_dir($imageDir) || !is_writable($imageDir)) {
+            $imageDir = sys_get_temp_dir() . '/rubble_images';
+            if (!is_dir($imageDir)) {
+                @mkdir($imageDir, 0775, true);
+            }
+            if (!is_dir($imageDir) || !is_writable($imageDir)) {
+                $imageDir = sys_get_temp_dir();
+            }
         }
 
         $saved = [];
@@ -132,21 +161,26 @@ class SmEmailService
             if (!in_array($ext, self::ALLOWED_EXTS, true)) {
                 $ext = 'jpg';
             }
-            $filename = 'SM_' . $numeroSm . '_' . time() . '_' . uniqid() . '.' . $ext;
-            $dest     = $imageDir . '/' . $filename;
+            $cleanBase = preg_replace('/[^a-zA-Z0-9_-]/', '_', pathinfo($origName, PATHINFO_FILENAME));
+            $filename  = 'SM_' . $numeroSm . '_' . time() . '_' . uniqid() . ($cleanBase !== '' ? '_' . $cleanBase : '') . '.' . $ext;
+            $dest      = rtrim($imageDir, '/\\') . '/' . $filename;
 
-            if (isset($file['tmp_name']) && is_uploaded_file($file['tmp_name'])) {
-                if (!move_uploaded_file($file['tmp_name'], $dest)) {
-                    throw new \RuntimeException("Falha ao salvar a foto {$origName}.");
-                }
-            } elseif (isset($file['tmp_name']) && file_exists($file['tmp_name'])) {
-                if (!copy($file['tmp_name'], $dest)) {
-                    throw new \RuntimeException("Falha ao salvar a foto {$origName}.");
-                }
-            } else {
-                throw new \RuntimeException("Arquivo temporário inválido para a foto {$origName}.");
+            $success = false;
+            $tmpPath = $file['tmp_name'] ?? '';
+
+            if ($tmpPath !== '' && is_uploaded_file($tmpPath)) {
+                $success = @move_uploaded_file($tmpPath, $dest);
+            } elseif ($tmpPath !== '' && file_exists($tmpPath)) {
+                $success = @copy($tmpPath, $dest);
             }
-            $saved[] = $dest;
+
+            if ($success && file_exists($dest)) {
+                $saved[] = $dest;
+            } elseif ($tmpPath !== '' && file_exists($tmpPath)) {
+                $saved[] = $tmpPath;
+            } else {
+                throw new \RuntimeException("Falha ao salvar a foto {$origName}.");
+            }
         }
         return $saved;
     }

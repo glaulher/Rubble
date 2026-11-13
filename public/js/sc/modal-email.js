@@ -307,7 +307,15 @@ export function initSmEmailModal(onSuccess) {
           method: 'POST',
           body: formData,
         });
-        const data = await res.json();
+
+        const rawText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          const cleanMsg = rawText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          throw new Error(cleanMsg || `Erro no servidor (status ${res.status})`);
+        }
 
         if (data.success) {
           showToast('E-mail enviado com sucesso!', 'success');

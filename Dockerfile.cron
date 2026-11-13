@@ -35,7 +35,7 @@ RUN rm -rf \
     /var/www/html/.opencode \
     /var/www/html/cache
 
-RUN mkdir -p /var/www/html/OS /var/www/html/LAUDO /var/www/html/cache && \
+RUN mkdir -p /var/www/html/OS /var/www/html/LAUDO /var/www/html/IMAGE /var/www/html/cache && \
     touch /var/www/html/.env && \
     chown -R appuser:appuser /var/www/html && \
     chmod 600 /var/www/html/.env

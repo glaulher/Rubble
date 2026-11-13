@@ -35,9 +35,11 @@ services:
     volumes:
       - os-data:/var/www/html/OS
       - laudo-data:/var/www/html/LAUDO
+      - image-data:/var/www/html/IMAGE
     entrypoint: >
       sh -c "
-        chown -R www-data:www-data /var/www/html/OS /var/www/html/LAUDO &&
+        mkdir -p /var/www/html/OS /var/www/html/LAUDO /var/www/html/IMAGE &&
+        chown -R www-data:www-data /var/www/html/OS /var/www/html/LAUDO /var/www/html/IMAGE &&
         exec docker-php-entrypoint php-fpm
       "
     deploy:
@@ -133,6 +135,7 @@ services:
     volumes:
       - os-data:/var/www/html/OS
       - laudo-data:/var/www/html/LAUDO
+      - image-data:/var/www/html/IMAGE
     deploy:
       resources:
         limits:
@@ -243,6 +246,7 @@ volumes:
   db-data:
   os-data:
   laudo-data:
+  image-data:
   traefik-letsencrypt:
   hf-cache:
   mail-data:

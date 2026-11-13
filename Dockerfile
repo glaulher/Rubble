@@ -28,8 +28,8 @@ RUN rm -rf \
     /var/www/html/pv_reconcile.php \
     /var/www/html/tailwind.config.js
 
-RUN mkdir -p /var/www/html/OS /var/www/html/LAUDO && \
-    chown -R www-data:www-data /var/www/html/OS /var/www/html/LAUDO
+RUN mkdir -p /var/www/html/OS /var/www/html/LAUDO /var/www/html/IMAGE && \
+    chown -R www-data:www-data /var/www/html/OS /var/www/html/LAUDO /var/www/html/IMAGE
 
 RUN touch /var/www/html/.env && \
     chmod 600 /var/www/html/.env && \

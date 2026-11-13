@@ -1,5 +1,7 @@
 <?php
 
+ini_set('display_errors', '0');
+
 require_once __DIR__ . '/../../config/autoloader.php';
 
 use App\Config\Env;
