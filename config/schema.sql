@@ -97,19 +97,6 @@ CREATE TABLE `equipamento_precos` (
 -- --------------------------------------------------------
 
 --
--- Estrutura para tabela `login_attempts`
---
-
-CREATE TABLE `login_attempts` (
-  `id` int(11) NOT NULL,
-  `ip_address` varchar(45) NOT NULL,
-  `attempted_at` datetime NOT NULL DEFAULT current_timestamp(),
-  `success` tinyint(1) NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
 -- Estrutura para tabela `material_chiller_lpu`
 --
 
@@ -397,14 +384,6 @@ ALTER TABLE `equipamento_precos`
   ADD PRIMARY KEY (`id`);
 
 --
--- Índices de tabela `login_attempts`
---
-ALTER TABLE `login_attempts`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_login_attempts_ip_time` (`ip_address`,`attempted_at`),
-  ADD KEY `idx_login_attempts_attempted_at` (`attempted_at`);
-
---
 -- Índices de tabela `material_chiller_lpu`
 --
 ALTER TABLE `material_chiller_lpu`
@@ -465,9 +444,7 @@ ALTER TABLE `rate_limits`
 --
 ALTER TABLE `registros`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_registros_os` (`os`),
   ADD KEY `idx_registros_os_equip` (`os`,`equipamento_id`),
-  ADD KEY `idx_registros_equipamento_id` (`equipamento_id`),
   ADD KEY `idx_registros_status` (`status`),
   ADD KEY `idx_registros_data` (`data`),
   ADD KEY `idx_registros_equipamento_search` (`equipamento_id`,`status`,`os`);
@@ -486,7 +463,6 @@ ALTER TABLE `scm`
 --
 ALTER TABLE `scm_items`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_scm_items_scm_id` (`scm_id`),
   ADD KEY `idx_scm_items_scm_status` (`scm_id`, `status`),
   ADD FULLTEXT KEY `ft_scm_items_servico` (`servico`);
 
@@ -543,12 +519,6 @@ ALTER TABLE `equipamentos`
 -- AUTO_INCREMENT de tabela `equipamento_precos`
 --
 ALTER TABLE `equipamento_precos`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT de tabela `login_attempts`
---
-ALTER TABLE `login_attempts`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -898,9 +868,7 @@ CREATE TABLE IF NOT EXISTS `termos_responsabilidade` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX `idx_termos_status` (`status`),
-  INDEX `idx_termos_token` (`token_assinatura`),
   INDEX `idx_termos_tecnico` (`tecnico_nome`),
-  INDEX `idx_termos_codigo` (`codigo`),
   CONSTRAINT `fk_termos_emissor` FOREIGN KEY (`emissor_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -122,10 +122,23 @@ class SchemaRefinementsTest extends TestCase
         );
     }
 
-    public function testLoginAttemptsHasAttemptedAtIndex(): void
+    public function testRegistrosHasNoDuplicateIndexes(): void
     {
-        $this->assertTrue(
-            $this->indexExists('login_attempts', 'idx_login_attempts_attempted_at')
+        $this->assertFalse(
+            $this->indexExists('registros', 'idx_registros_equipamento_id'),
+            'idx_registros_equipamento_id is covered by idx_registros_equipamento_search'
+        );
+        $this->assertFalse(
+            $this->indexExists('registros', 'idx_registros_os'),
+            'idx_registros_os is covered by idx_registros_os_equip'
+        );
+    }
+
+    public function testScmItemsHasNoDuplicateIndex(): void
+    {
+        $this->assertFalse(
+            $this->indexExists('scm_items', 'idx_scm_items_scm_id'),
+            'idx_scm_items_scm_id is covered by idx_scm_items_scm_status'
         );
     }
 }
