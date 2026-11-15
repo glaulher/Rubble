@@ -27,6 +27,10 @@ class PreditivaParseServiceTest extends TestCase
 
     public function testProcessWithRealFilesGeneratesOutputAndStats(): void
     {
+        if (empty($this->climaPath) || !file_exists($this->climaPath)) {
+            $this->markTestSkipped('Planilha real CLIMA_20261610.xlsx não disponível no ambiente (gitignored por conter dados de clientes).');
+        }
+
         $service = new PreditivaParseService();
         $result = $service->process($this->climaPath, $this->templatePath);
 
@@ -44,6 +48,10 @@ class PreditivaParseServiceTest extends TestCase
 
     public function testProcessWithDefaultTemplateUsesBuiltinTemplate(): void
     {
+        if (empty($this->climaPath) || !file_exists($this->climaPath)) {
+            $this->markTestSkipped('Planilha real CLIMA_20261610.xlsx não disponível no ambiente (gitignored por conter dados de clientes).');
+        }
+
         $service = new PreditivaParseService();
         $result = $service->process($this->climaPath); // Sem segundo parâmetro
 
@@ -58,6 +66,10 @@ class PreditivaParseServiceTest extends TestCase
 
     public function testProcessWithUnextendedPhpUploadFile(): void
     {
+        if (empty($this->climaPath) || !file_exists($this->climaPath)) {
+            $this->markTestSkipped('Planilha real CLIMA_20261610.xlsx não disponível no ambiente (gitignored por conter dados de clientes).');
+        }
+
         $tempUpload = sys_get_temp_dir() . '/phpSimulatedUpload_' . bin2hex(random_bytes(4));
         copy($this->climaPath, $tempUpload);
 

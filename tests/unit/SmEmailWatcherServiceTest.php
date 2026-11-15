@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Api\Services\SmEmailWatcherService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class SmEmailWatcherServiceTest extends TestCase
@@ -14,7 +15,7 @@ class SmEmailWatcherServiceTest extends TestCase
         $this->service = new SmEmailWatcherService();
     }
 
-    /** @dataProvider subjectProvider */
+    #[DataProvider('subjectProvider')]
     public function test_extractSmNumber(string $subject, ?string $expected): void
     {
         $result = $this->service->extractSmNumber($subject);
@@ -32,7 +33,7 @@ class SmEmailWatcherServiceTest extends TestCase
         ];
     }
 
-    /** @dataProvider bodyProvider */
+    #[DataProvider('bodyProvider')]
     public function test_isQuoteMessage(string $body, bool $expected): void
     {
         $result = $this->service->isQuoteMessage($body);

@@ -129,11 +129,14 @@ class SolicitacaoCompraRepositoryTest extends TestCase
 
     public function testStatusCountsGroupsByStatus(): void
     {
+        $initialCounts = $this->repo->statusCounts();
+        $initial = $initialCounts['pc_gerado'] ?? 0;
+
         $this->repo->save($this->baseRow(['status' => 'pc_gerado', 'site' => 'ZZSC-C']));
 
         $counts = $this->repo->statusCounts();
 
-        $this->assertSame(1, $counts['pc_gerado']);
+        $this->assertSame($initial + 1, $counts['pc_gerado']);
     }
 
     public function testTotalValorReturnsSumOfValorSc(): void

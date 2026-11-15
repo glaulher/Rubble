@@ -143,9 +143,16 @@ class DiarioServiceTest extends TestCase
 
     public function testDeletePermissions(): void
     {
+        $db = \App\Config\Database::connect();
+        $resCoord = $db->query("SELECT id, role FROM usuarios WHERE role = 'coordenador' LIMIT 1");
+        $coordRow = $resCoord ? $resCoord->fetch_assoc() : null;
+        $owner = $coordRow ? ['id' => (int) $coordRow['id'], 'role' => $coordRow['role']] : ['id' => 7, 'role' => 'coordenador'];
+
+        $resOther = $db->query("SELECT id, role FROM usuarios WHERE id NOT IN (1, {$owner['id']}) LIMIT 1");
+        $otherRow = $resOther ? $resOther->fetch_assoc() : null;
+        $otherUser = $otherRow ? ['id' => (int) $otherRow['id'], 'role' => $otherRow['role']] : ['id' => 3, 'role' => 'gerente'];
+
         $admin = ['id' => 1, 'role' => 'admin'];
-        $owner = ['id' => 14, 'role' => 'coordenador'];
-        $otherUser = ['id' => 10, 'role' => 'supervisor'];
 
         $lineByOwner = $this->service->create(['site' => 'OWNER_LINE'], $owner);
         $id = $lineByOwner['id'];

@@ -233,11 +233,15 @@ class DiarioRepositoryTest extends TestCase
 
     public function testDeleteOwnership(): void
     {
-        // Get two existing user IDs or fallback to 1 and null
-        $idUser1 = $this->repo->create(['site' => 'DEL_U1'], 1);
-        $idUser2 = $this->repo->create(['site' => 'DEL_U2'], 14);
+        // Get two existing user IDs from the database
+        $db = \App\Config\Database::connect();
+        $res = $db->query("SELECT id FROM usuarios WHERE id != 1 ORDER BY id ASC LIMIT 1");
+        $otherUserId = ($row = $res->fetch_assoc()) ? (int) $row['id'] : 3;
 
-        // User 1 cannot delete User 14's line
+        $idUser1 = $this->repo->create(['site' => 'DEL_U1'], 1);
+        $idUser2 = $this->repo->create(['site' => 'DEL_U2'], $otherUserId);
+
+        // User 1 cannot delete User 2's line
         $delFail = $this->repo->delete($idUser2, 1, false);
         $this->assertFalse($delFail);
         $this->assertNotNull($this->repo->findById($idUser2));

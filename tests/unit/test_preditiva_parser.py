@@ -29,6 +29,8 @@ class TestPreditivaParser(unittest.TestCase):
         self.assertIsNotNone(process_preditiva_excel, "Função process_preditiva_excel deve existir")
 
     def test_process_preditiva_matching(self):
+        if not os.path.exists(self.clima_file):
+            self.skipTest("CLIMA_20261610.xlsx not found in environment (gitignored)")
         stats = process_preditiva_excel(self.clima_file, self.template_file, self.output_file)
         
         self.assertTrue(os.path.exists(self.output_file), "Arquivo de saída deve ser gerado")
@@ -66,6 +68,8 @@ class TestPreditivaParser(unittest.TestCase):
         self.assertIn('MAR', wb.sheetnames)
 
     def test_process_preditiva_with_unextended_temp_file(self):
+        if not os.path.exists(self.clima_file):
+            self.skipTest("CLIMA_20261610.xlsx not found in environment (gitignored)")
         # Simula arquivo temporário do PHP sem extensão .xlsx
         import shutil
         unextended_clima = os.path.join(self.temp_dir.name, 'phpUploadTemp12345')
