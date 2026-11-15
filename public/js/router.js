@@ -27,11 +27,11 @@ import { initInventoryList } from '/public/js/inventory/list.js?v=32';
 import { loadInventoryForm } from '/public/js/inventory/form.js?v=32';
 import { initAdminAudit } from '/public/js/admin/audit.js';
 import { initPreditivaParse } from '/public/js/preditiva-parse/preditiva-parse.js';
-import { initDiarioList } from '/public/js/diario/list.js?v=64';
+import { initDiarioList } from '/public/js/diario/list.js?v=65';
 import { initTeams } from '/public/js/teams/list.js';
 import { initPublicSign } from '/public/js/termo/public-sign.js?v=32';
 
-const VIEW_VERSION = 64;
+const VIEW_VERSION = 65;
 
 export async function loadPage(url) {
   try {

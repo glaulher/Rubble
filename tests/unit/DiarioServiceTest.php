@@ -75,6 +75,7 @@ class DiarioServiceTest extends TestCase
             'hora_inicio' => '08:00',
             'hora_saida' => '12:30',
             'equipe' => 'Alexandre Donato',
+            'tecnico' => 'Carlos Souza',
             'placa' => 'TBO-9J41',
         ], $user);
 
@@ -82,8 +83,24 @@ class DiarioServiceTest extends TestCase
         $item = $result['item'];
         $this->assertSame('08:00', $item['hora_inicio']);
         $this->assertSame('12:30', $item['hora_saida']);
+        $this->assertSame('Alexandre Donato', $item['equipe']);
+        $this->assertSame('Carlos Souza', $item['tecnico']);
         $this->assertSame('TBO-9J41', $item['placa']);
         $this->assertSame('emergencial', $item['categoria']);
+    }
+
+    public function testCreateAdministrativaAllowsEmptyTecnico(): void
+    {
+        $user = ['id' => 1, 'role' => 'admin'];
+        $result = $this->service->create([
+            'categoria' => 'administrativa',
+            'tecnico' => null,
+            'site' => 'Site Central',
+        ], $user);
+
+        $this->assertGreaterThan(0, $result['id']);
+        $this->assertSame('administrativa', $result['item']['categoria']);
+        $this->assertNull($result['item']['tecnico']);
     }
 
     public function testCreateWithInvalidTimeFormatThrows(): void
@@ -118,6 +135,12 @@ class DiarioServiceTest extends TestCase
         $item = $this->service->getById($id);
         $this->assertSame('Técnico Oliveira', $item['equipe']);
 
+        // Update tecnico
+        $resTec = $this->service->updateField($id, 'tecnico', 'Oliveira Santos');
+        $this->assertSame('Oliveira Santos', $resTec['value']);
+        $item = $this->service->getById($id);
+        $this->assertSame('Oliveira Santos', $item['tecnico']);
+
         // Update hora_inicio, hora_saida, placa
         $this->service->updateField($id, 'hora_inicio', '09:00');
         $this->service->updateField($id, 'hora_saida', '18:00');
@@ -136,6 +159,36 @@ class DiarioServiceTest extends TestCase
         // Invalid field throws
         $this->expectException(\InvalidArgumentException::class);
         $this->service->updateField($id, 'unknown_field', 'test');
+    }
+
+    public function testUpdateFullRecord(): void
+    {
+        $user = ['id' => 1, 'role' => 'admin'];
+        $created = $this->service->create(['site' => 'PRE_UPDATE', 'categoria' => 'corretiva'], $user);
+        $id = $created['id'];
+
+        $result = $this->service->update($id, [
+            'site' => 'POST_UPDATE',
+            'tecnico' => 'Novo Tecnico',
+            'equipe' => 'Equipe Bravo',
+            'placa' => 'RIO-2A19',
+            'categoria' => 'preventiva',
+            'status' => 'Concluído',
+            'data' => '2026-11-15',
+            'hora_inicio' => '13:00',
+            'hora_saida' => '15:30',
+            'obs' => 'Atualizado pelo modal',
+        ], $user);
+
+        $this->assertSame($id, $result['id']);
+        $item = $result['item'];
+        $this->assertSame('POST_UPDATE', $item['site']);
+        $this->assertSame('Novo Tecnico', $item['tecnico']);
+        $this->assertSame('Equipe Bravo', $item['equipe']);
+        $this->assertSame('RIO-2A19', $item['placa']);
+        $this->assertSame('preventiva', $item['categoria']);
+        $this->assertSame('Concluído', $item['status']);
+        $this->assertSame('Atualizado pelo modal', $item['obs']);
     }
 
     public function testAppendObsSuccessAndValidation(): void

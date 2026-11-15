@@ -7,7 +7,7 @@ import { formatDate } from '/public/js/pv/form-utils.js';
 import { createAutocomplete } from '/public/js/pv/form-autocomplete.js';
 
 export const DIARIO_COLUMNS = [
-  'DATA', 'HORA_INICIO', 'HORA_SAIDA', 'EQUIPE', 'PLACA', 'CATEGORIA', 'OS', 'SITE', 'EQUIPAMENTO', 'LOCALIDADE', 'STATUS', 'OBSERVACAO', 'CRIADO_POR', 'DATA_CRIACAO'
+  'TECNICO', 'EQUIPE', 'PLACA', 'DATA', 'TIPO_ATIVIDADE', 'SITE', 'EQUIPAMENTO', 'LOCALIDADE', 'STATUS', 'HORA_INICIO', 'HORA_SAIDA', 'OS', 'OBSERVACAO', 'CRIADO_POR', 'DATA_CRIACAO'
 ];
 
 export const DIARIO_STATUS_OPTIONS = [
@@ -31,6 +31,29 @@ var diarioSortDir = 'DESC';
 var _diarioItemsById = {};
 var _localsCache = null;
 var _equipmentsCache = null;
+var _teamsListCache = null;
+
+export function getCachedTeams() {
+  return _teamsListCache;
+}
+
+export function setCachedTeams(teams) {
+  _teamsListCache = teams;
+}
+
+export async function loadDiarioTeams() {
+  if (_teamsListCache) return _teamsListCache;
+  try {
+    var res = await apiFetch('/app/api/index.php?route=teams&limit=9999');
+    var json = await res.json();
+    var list = Array.isArray(json.data) ? json.data : (json.data && Array.isArray(json.data.items) ? json.data.items : []);
+    _teamsListCache = list.filter(function (t) { return t.ativo == 1 || t.active == 1; });
+    return _teamsListCache;
+  } catch (e) {
+    console.error('Erro ao carregar equipes:', e);
+    return [];
+  }
+}
 
 export function refreshDiarioList() {
   var tbody = document.getElementById('diarioTableBody');
@@ -43,22 +66,22 @@ export function refreshDiarioList() {
 
 export function getDiarioStatusBadgeClass(status) {
   var s = (status || '').toLowerCase().trim();
-  if (s === 'concluído' || s === 'concluido') return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300';
-  if (s === 'pendente') return 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
-  if (s === 'em andamento') return 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300';
-  if (s === 'planejado') return 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300';
-  if (s === 'projeto clean up') return 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300';
-  if (s === 'cancelado') return 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300';
-  return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300';
+  if (s === 'concluído' || s === 'concluido') return 'bg-emerald-100 text-emerald-800';
+  if (s === 'pendente') return 'bg-amber-100 text-amber-800';
+  if (s === 'em andamento') return 'bg-blue-100 text-blue-800';
+  if (s === 'planejado') return 'bg-sky-100 text-sky-800';
+  if (s === 'projeto clean up') return 'bg-purple-100 text-purple-800';
+  if (s === 'cancelado') return 'bg-red-100 text-red-800';
+  return 'bg-slate-100 text-slate-800';
 }
 
 export function getDiarioCategoryBadgeClass(category) {
   var c = (category || '').toLowerCase().trim();
-  if (c === 'corretiva') return 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300';
-  if (c === 'preventiva') return 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300';
-  if (c === 'emergencial') return 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300';
-  if (c === 'administrativa') return 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300';
-  return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+  if (c === 'corretiva') return 'bg-orange-100 text-orange-800';
+  if (c === 'preventiva') return 'bg-sky-100 text-sky-800';
+  if (c === 'emergencial') return 'bg-red-100 text-red-800';
+  if (c === 'administrativa') return 'bg-purple-100 text-purple-800';
+  return 'bg-slate-100 text-slate-700';
 }
 
 export function diarioValueRaw(value) {
@@ -94,96 +117,44 @@ export function renderDiarioRow(item) {
   var user = getUser() || {};
   var canDelete = user.role === 'admin' || (user.id && item.created_by && parseInt(item.created_by, 10) === parseInt(user.id, 10));
 
-  var equipDisplay = formatEquipamentoDisplay(item.equipamento_nome || item.equipamento, item.equipamento_capacidade);
   var dateDisplay = formatDate(item.data) || '-';
 
-  var duplicateBtnHtml = '<button type="button" class="diario-duplicate-btn text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer" data-action="duplicate" data-id="' + item.id + '" title="Duplicar atividade" aria-label="Duplicar">'
+  var editBtnHtml = '<button type="button" class="diario-edit-btn text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 cursor-pointer" data-action="edit" data-id="' + item.id + '" title="Editar atividade" aria-label="Editar">'
+    + '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>'
+    + '</button>';
+
+  var duplicateBtnHtml = '<button type="button" class="diario-duplicate-btn text-slate-500 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer" data-action="duplicate" data-id="' + item.id + '" title="Duplicar atividade" aria-label="Duplicar">'
     + '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
     + '</button>';
 
   var deleteBtnHtml = canDelete
-    ? '<button type="button" class="diario-delete-btn text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer" data-action="delete" data-id="' + item.id + '" title="Excluir" aria-label="Excluir">'
+    ? '<button type="button" class="diario-delete-btn text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 cursor-pointer" data-action="delete" data-id="' + item.id + '" title="Excluir" aria-label="Excluir">'
       + '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
       + '</button>'
-    : '<span class="text-slate-300 dark:text-slate-600">-</span>';
+    : '<span class="text-slate-300">-</span>';
 
-  return '<tr class="diario-row border-b border-slate-100 hover:bg-slate-100 transition cursor-pointer" data-id="' + item.id + '">'
-    + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-300" data-field="data">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.data)) + '">' + escapeHtml(dateDisplay) + '</span>'
-      + diarioEditBtn('data')
-      + '</span>'
+  return '<tr class="diario-row border-b border-slate-100 hover:bg-slate-50 transition cursor-pointer" data-id="' + item.id + '">'
+    + '<td class="px-3 py-2.5 text-sm font-medium text-slate-800" data-field="tecnico">'
+      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.tecnico)) + '">' + escapeHtml(item.tecnico || '-') + '</span>'
     + '</td>'
-    + '<td class="px-3 py-2.5 text-sm font-mono text-slate-700 dark:text-slate-300" data-field="hora_inicio">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.hora_inicio)) + '">' + escapeHtml(item.hora_inicio || '-') + '</span>'
-      + diarioEditBtn('hora_inicio')
-      + '</span>'
-    + '</td>'
-    + '<td class="px-3 py-2.5 text-sm font-mono text-slate-700 dark:text-slate-300" data-field="hora_saida">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.hora_saida)) + '">' + escapeHtml(item.hora_saida || '-') + '</span>'
-      + diarioEditBtn('hora_saida')
-      + '</span>'
-    + '</td>'
-    + '<td class="px-3 py-2.5 text-sm font-medium text-slate-800 dark:text-slate-200" data-field="equipe">'
-      + '<span class="inline-flex items-center gap-1">'
+    + '<td class="px-3 py-2.5 text-sm text-slate-700" data-field="equipe">'
       + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.equipe)) + '">' + escapeHtml(item.equipe || '-') + '</span>'
-      + diarioEditBtn('equipe')
-      + '</span>'
     + '</td>'
-    + '<td class="px-3 py-2.5 text-sm font-mono font-medium text-slate-700 dark:text-slate-300" data-field="placa">'
-      + '<span class="inline-flex items-center gap-1">'
+    + '<td class="px-3 py-2.5 text-sm font-mono font-medium text-slate-700" data-field="placa">'
       + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.placa)) + '">' + escapeHtml(item.placa || '-') + '</span>'
-      + diarioEditBtn('placa')
-      + '</span>'
+    + '</td>'
+    + '<td class="px-3 py-2.5 text-sm text-slate-600" data-field="data">'
+      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.data)) + '">' + escapeHtml(dateDisplay) + '</span>'
+    + '</td>'
+    + '<td class="px-3 py-2.5 text-sm text-slate-800" data-field="site">'
+      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.site)) + '">' + escapeHtml(item.site || '-') + '</span>'
     + '</td>'
     + '<td class="px-3 py-2.5 text-sm" data-field="categoria">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val px-2 py-0.5 rounded-full text-xs font-medium ' + getDiarioCategoryBadgeClass(item.categoria) + '" data-raw="' + escapeHtml(diarioValueRaw(item.categoria)) + '">' + escapeHtml(item.categoria || '-') + '</span>'
-      + diarioEditBtn('categoria')
-      + '</span>'
-    + '</td>'
-    + '<td class="px-3 py-2.5 text-sm font-mono text-slate-800 dark:text-slate-200" data-field="os">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.os)) + '">' + escapeHtml(item.os || '-') + '</span>'
-      + diarioEditBtn('os')
-      + '</span>'
-    + '</td>'
-    + '<td class="px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200" data-field="site">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.site)) + '">' + escapeHtml(item.site || '-') + '</span>'
-      + diarioEditBtn('site')
-      + '</span>'
-    + '</td>'
-    + '<td class="px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200" data-field="equipamento_id">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.equipamento_id)) + '" data-equip-name="' + escapeHtml(equipDisplay) + '">' + escapeHtml(equipDisplay) + '</span>'
-      + diarioEditBtn('equipamento_id')
-      + '</span>'
-    + '</td>'
-    + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-300" data-field="localidade">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.localidade)) + '">' + escapeHtml(item.localidade || '-') + '</span>'
-      + diarioEditBtn('localidade')
-      + '</span>'
-    + '</td>'
-    + '<td class="px-3 py-2.5 text-sm" data-field="status">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val px-2 py-0.5 rounded-full text-xs font-medium ' + getDiarioStatusBadgeClass(item.status) + '" data-raw="' + escapeHtml(diarioValueRaw(item.status)) + '">' + escapeHtml(item.status || '-') + '</span>'
-      + diarioEditBtn('status')
-      + '</span>'
-    + '</td>'
-    + '<td class="px-3 py-2.5 text-sm min-w-[280px]" data-field="obs">'
-      + '<div class="obs-wrap flex items-start gap-1.5" data-obs-for="' + item.id + '">'
-      + '<div class="obs-value text-xs text-slate-700 dark:text-slate-300 break-words flex-1 min-w-0" data-raw="' + escapeHtml(diarioValueRaw(item.obs)) + '">' + formatDiarioObsDisplay(item.obs) + '</div>'
-      + '<button type="button" class="diario-edit-obs text-slate-400 hover:text-blue-500 ml-1 shrink-0 cursor-pointer" data-action="edit-obs" title="Adicionar observação">'
-      + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>'
-      + '</button>'
-      + '</div>'
+      + '<span class="diario-val px-2.5 py-1 rounded-full text-xs font-medium ' + getDiarioCategoryBadgeClass(item.categoria) + '" data-raw="' + escapeHtml(diarioValueRaw(item.categoria)) + '">' + escapeHtml(item.categoria || '-') + '</span>'
     + '</td>'
     + '<td class="px-3 py-2.5 text-sm text-center whitespace-nowrap">'
       + '<div class="inline-flex items-center gap-1">'
+      + editBtnHtml
       + duplicateBtnHtml
       + deleteBtnHtml
       + '</div>'
@@ -925,45 +896,481 @@ export function cancelDiarioObs(wrap) {
 }
 
 export async function createDiarioLine() {
-  try {
-    var res = await apiFetch('/app/api/index.php?route=diario', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    var json = await res.json();
-    if (!json.success || !json.data || !json.data.item) {
-      showToast(json.message || 'Erro ao criar linha', 'error');
+  openDiarioModal(null);
+}
+
+export function initModalDropdownAutocomplete({ input, dropdown, getOptions, formatItem, onSelect, onInput }) {
+  if (!input || !dropdown) return;
+
+  var activeIndex = -1;
+  var filtered = [];
+
+  function hide() {
+    dropdown.classList.add('hidden');
+    dropdown.innerHTML = '';
+    activeIndex = -1;
+  }
+
+  function render() {
+    dropdown.innerHTML = '';
+    if (filtered.length === 0) {
+      dropdown.classList.add('hidden');
       return;
     }
+    dropdown.classList.remove('hidden');
 
-    var newItem = json.data.item;
-    _diarioItemsById[newItem.id] = newItem;
+    for (var i = 0; i < filtered.length; i++) {
+      (function (idx) {
+        var opt = filtered[idx];
+        var text = formatItem ? formatItem(opt) : String(opt);
+        var div = document.createElement('div');
+        div.className = 'px-3 py-2 text-sm cursor-pointer text-slate-700 hover:bg-slate-100 transition';
+        div.textContent = text;
 
-    var tbody = document.getElementById('diarioTableBody');
-    if (tbody) {
-      var rowHtml = renderDiarioRow(newItem);
-      var temp = document.createElement('tbody');
-      temp.innerHTML = rowHtml;
-      var newRow = temp.firstElementChild;
-      if (newRow) {
-        tbody.insertBefore(newRow, tbody.firstElementChild);
+        div.addEventListener('mousedown', function (e) {
+          e.preventDefault();
+          input.value = text;
+          hide();
+          if (onSelect) onSelect(opt, input);
+        });
+
+        dropdown.appendChild(div);
+      })(i);
+    }
+  }
+
+  function filter(query) {
+    var all = typeof getOptions === 'function' ? getOptions() : getOptions;
+    if (!Array.isArray(all)) all = [];
+    var q = (query || '').toLowerCase().trim();
+    if (!q) {
+      filtered = all.slice(0, 30);
+    } else {
+      filtered = all.filter(function (item) {
+        var text = formatItem ? formatItem(item) : String(item);
+        return text.toLowerCase().includes(q);
+      }).slice(0, 30);
+    }
+    activeIndex = -1;
+    render();
+  }
+
+  input.addEventListener('input', function () {
+    filter(input.value);
+    if (onInput) onInput(input.value);
+  });
+
+  input.addEventListener('focus', function () {
+    filter(input.value);
+  });
+
+  input.addEventListener('blur', function () {
+    setTimeout(hide, 200);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (dropdown.classList.contains('hidden')) return;
+    var items = dropdown.children;
+    if (!items || items.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = Math.min(activeIndex + 1, items.length - 1);
+      updateActive();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = Math.max(activeIndex - 1, 0);
+      updateActive();
+    } else if (e.key === 'Enter') {
+      if (activeIndex >= 0 && filtered[activeIndex]) {
+        e.preventDefault();
+        var opt = filtered[activeIndex];
+        var text = formatItem ? formatItem(opt) : String(opt);
+        input.value = text;
+        hide();
+        if (onSelect) onSelect(opt, input);
+      }
+    } else if (e.key === 'Escape') {
+      hide();
+    }
+  });
+
+  function updateActive() {
+    var items = dropdown.children;
+    for (var i = 0; i < items.length; i++) {
+      if (i === activeIndex) {
+        items[i].classList.add('bg-sky-100', 'text-sky-900', 'font-medium');
+        items[i].classList.remove('text-slate-700', 'hover:bg-slate-100');
+        if (items[i].scrollIntoView) items[i].scrollIntoView({ block: 'nearest' });
+      } else {
+        items[i].classList.remove('bg-sky-100', 'text-sky-900', 'font-medium');
+        items[i].classList.add('text-slate-700', 'hover:bg-slate-100');
       }
     }
+  }
+}
 
-    var emptyEl = document.getElementById('diarioEmpty');
-    if (emptyEl) emptyEl.classList.add('hidden');
+export function setupDiarioModalAutocompletes() {
+  var tecnicoInput = document.getElementById('diarioModalTecnico');
+  var tecnicoDropdown = document.getElementById('diarioModalTecnicoDropdown');
+  var equipeInput = document.getElementById('diarioModalEquipe');
+  var equipeDropdown = document.getElementById('diarioModalEquipeDropdown');
+  var placaInput = document.getElementById('diarioModalPlaca');
+  var siteInput = document.getElementById('diarioModalSite');
+  var siteDropdown = document.getElementById('diarioModalSiteDropdown');
+  var eqInput = document.getElementById('diarioModalEquipamento');
+  var eqIdInput = document.getElementById('diarioModalEquipamentoId');
+  var eqDropdown = document.getElementById('diarioModalEquipamentoDropdown');
+  var locInput = document.getElementById('diarioModalLocalidade');
+  var locDropdown = document.getElementById('diarioModalLocalidadeDropdown');
+  var osInput = document.getElementById('diarioModalOs');
+  var obsInput = document.getElementById('diarioModalObs');
 
-    var badge = document.getElementById('diarioBadge');
-    if (badge) {
-      var current = parseInt(badge.textContent || '0', 10);
-      badge.textContent = current + 1;
+  // 1. Técnico Autocomplete
+  if (tecnicoInput && tecnicoDropdown && !tecnicoInput._bound) {
+    tecnicoInput._bound = true;
+    initModalDropdownAutocomplete({
+      input: tecnicoInput,
+      dropdown: tecnicoDropdown,
+      getOptions: function () {
+        var teams = _teamsListCache || [];
+        var set = new Set();
+        for (var i = 0; i < teams.length; i++) {
+          var tec = teams[i].tecnico ? String(teams[i].tecnico).trim() : '';
+          if (tec) set.add(tec);
+        }
+        return Array.from(set).sort(function (a, b) { return a.localeCompare(b); });
+      },
+      onSelect: function (selectedTecnico) {
+        var teams = _teamsListCache || [];
+        var match = teams.find(function (t) {
+          return t.tecnico && String(t.tecnico).trim().toLowerCase() === String(selectedTecnico).trim().toLowerCase();
+        });
+        if (match) {
+          if (match.nome && equipeInput) equipeInput.value = match.nome;
+          if (match.placa && placaInput) placaInput.value = match.placa;
+        }
+      }
+    });
+  }
+
+  // 2. Equipe Autocomplete
+  if (equipeInput && equipeDropdown && !equipeInput._bound) {
+    equipeInput._bound = true;
+    initModalDropdownAutocomplete({
+      input: equipeInput,
+      dropdown: equipeDropdown,
+      getOptions: function () {
+        var teams = _teamsListCache || [];
+        var set = new Set();
+        for (var i = 0; i < teams.length; i++) {
+          var eq = teams[i].nome ? String(teams[i].nome).trim() : '';
+          if (eq) set.add(eq);
+        }
+        return Array.from(set).sort(function (a, b) { return a.localeCompare(b); });
+      },
+      onSelect: function (selectedEquipe) {
+        var teams = _teamsListCache || [];
+        var match = teams.find(function (t) {
+          return t.nome && String(t.nome).trim().toLowerCase() === String(selectedEquipe).trim().toLowerCase();
+        });
+        if (match) {
+          if (match.placa && placaInput) placaInput.value = match.placa;
+          if (match.tecnico && tecnicoInput && !tecnicoInput.value.trim()) {
+            tecnicoInput.value = match.tecnico;
+          }
+        }
+      }
+    });
+  }
+
+  // 3. Site Autocomplete
+  if (siteInput && siteDropdown && !siteInput._bound) {
+    siteInput._bound = true;
+    initModalDropdownAutocomplete({
+      input: siteInput,
+      dropdown: siteDropdown,
+      getOptions: function () {
+        return getDiarioSites(_equipmentsCache || []);
+      }
+    });
+  }
+
+  // 4. Equipamento Autocomplete
+  if (eqInput && eqDropdown && !eqInput._bound) {
+    eqInput._bound = true;
+    initModalDropdownAutocomplete({
+      input: eqInput,
+      dropdown: eqDropdown,
+      getOptions: function () {
+        var currentSite = siteInput ? siteInput.value.trim() : '';
+        return getDiarioEquipmentsForSite(_equipmentsCache || [], currentSite);
+      },
+      formatItem: function (eq) {
+        return formatPvEquipmentLabel(eq.equipamento, eq.capacidade, eq.localidade);
+      },
+      onSelect: function (eq) {
+        if (eqIdInput) eqIdInput.value = eq.id;
+        if (eq.local && siteInput && !siteInput.value.trim()) {
+          siteInput.value = eq.local;
+        }
+        if (eq.localidade && locInput && !locInput.value.trim()) {
+          locInput.value = eq.localidade;
+        }
+      },
+      onInput: function () {
+        if (eqIdInput) eqIdInput.value = '';
+      }
+    });
+  }
+
+  // 5. Localidade Autocomplete
+  if (locInput && locDropdown && !locInput._bound) {
+    locInput._bound = true;
+    initModalDropdownAutocomplete({
+      input: locInput,
+      dropdown: locDropdown,
+      getOptions: function () {
+        var currentSite = siteInput ? siteInput.value.trim() : '';
+        return getDiarioLocalidades(_equipmentsCache || [], currentSite);
+      }
+    });
+  }
+
+  // 6. OS Lookup
+  if (osInput && obsInput && !osInput._bound) {
+    osInput._bound = true;
+    osInput.addEventListener('blur', async function () {
+      var val = osInput.value.trim();
+      if (!val || val === 'N/A' || obsInput.value.trim() !== '') return;
+      try {
+        var res = await apiFetch('/app/api/index.php?route=diario&action=lookup-os&os=' + encodeURIComponent(val));
+        var json = await res.json();
+        if (json.success && json.data && json.data.obs && !obsInput.value.trim()) {
+          obsInput.value = json.data.obs;
+        }
+      } catch (err) {
+        console.error('Erro lookup-os:', err);
+      }
+    });
+  }
+}
+
+export function updateCategoryTecnicoRequirement() {
+  var catSelect = document.getElementById('diarioModalCategoria');
+  var reqAsterisk = document.getElementById('diarioModalTecnicoReq');
+  if (!catSelect || !reqAsterisk) return;
+  var isAdm = catSelect.value === 'administrativa';
+  if (isAdm) {
+    reqAsterisk.classList.add('hidden');
+  } else {
+    reqAsterisk.classList.remove('hidden');
+  }
+}
+
+export function openDiarioModal(id = null) {
+  var modal = document.getElementById('diarioModal');
+  if (!modal) return;
+
+  var idInput = document.getElementById('diarioModalId');
+  var titleEl = document.getElementById('diarioModalTitle');
+  var subtitleEl = document.getElementById('diarioModalSubtitle');
+  var saveLabel = document.getElementById('diarioModalSaveLabel');
+
+  var tecnicoInput = document.getElementById('diarioModalTecnico');
+  var equipeInput = document.getElementById('diarioModalEquipe');
+  var placaInput = document.getElementById('diarioModalPlaca');
+  var dataInput = document.getElementById('diarioModalData');
+  var catSelect = document.getElementById('diarioModalCategoria');
+  var statusSelect = document.getElementById('diarioModalStatus');
+  var siteInput = document.getElementById('diarioModalSite');
+  var eqInput = document.getElementById('diarioModalEquipamento');
+  var eqIdInput = document.getElementById('diarioModalEquipamentoId');
+  var locInput = document.getElementById('diarioModalLocalidade');
+  var osInput = document.getElementById('diarioModalOs');
+  var hiInput = document.getElementById('diarioModalHoraInicio');
+  var hsInput = document.getElementById('diarioModalHoraSaida');
+  var obsInput = document.getElementById('diarioModalObs');
+
+  loadDiarioTeams().catch(function () {});
+  loadDiarioEquipments().catch(function () {});
+
+  if (id === null || id === undefined || id === '') {
+    if (idInput) idInput.value = '';
+    if (titleEl) titleEl.textContent = 'Nova Atividade';
+    if (subtitleEl) subtitleEl.textContent = 'Preencha os dados da atividade';
+    if (saveLabel) saveLabel.textContent = 'Salvar Atividade';
+
+    if (tecnicoInput) tecnicoInput.value = '';
+    if (equipeInput) equipeInput.value = '';
+    if (placaInput) placaInput.value = '';
+    if (dataInput) dataInput.value = new Date().toISOString().slice(0, 10);
+    if (catSelect) catSelect.value = 'preventiva';
+    if (statusSelect) statusSelect.value = 'Concluído';
+    if (siteInput) siteInput.value = '';
+    if (eqInput) eqInput.value = '';
+    if (eqIdInput) eqIdInput.value = '';
+    if (locInput) locInput.value = '';
+    if (osInput) osInput.value = '';
+    if (hiInput) hiInput.value = '';
+    if (hsInput) hsInput.value = '';
+    if (obsInput) obsInput.value = '';
+  } else {
+    var item = _diarioItemsById[id] || {};
+    if (idInput) idInput.value = item.id || id;
+    if (titleEl) titleEl.textContent = 'Editar Atividade';
+    if (subtitleEl) subtitleEl.textContent = 'Atividade #' + (item.id || id);
+    if (saveLabel) saveLabel.textContent = 'Salvar Alterações';
+
+    if (tecnicoInput) tecnicoInput.value = item.tecnico || '';
+    if (equipeInput) equipeInput.value = item.equipe || '';
+    if (placaInput) placaInput.value = item.placa || '';
+    if (dataInput) dataInput.value = item.data || '';
+    if (catSelect) catSelect.value = item.categoria || 'preventiva';
+    if (statusSelect) statusSelect.value = item.status || 'Concluído';
+    if (siteInput) siteInput.value = item.site || '';
+    if (eqInput) eqInput.value = formatEquipamentoDisplay(item.equipamento_nome || item.equipamento, item.equipamento_capacidade) === '-' ? '' : formatEquipamentoDisplay(item.equipamento_nome || item.equipamento, item.equipamento_capacidade);
+    if (eqIdInput) eqIdInput.value = item.equipamento_id || '';
+    if (locInput) locInput.value = item.localidade || '';
+    if (osInput) osInput.value = item.os || '';
+    if (hiInput) hiInput.value = item.hora_inicio || '';
+    if (hsInput) hsInput.value = item.hora_saida || '';
+    if (obsInput) obsInput.value = item.obs || '';
+  }
+
+  updateCategoryTecnicoRequirement();
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+export function closeDiarioModal() {
+  var modal = document.getElementById('diarioModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+export async function saveDiarioModal(e) {
+  if (e) e.preventDefault();
+
+  var idInput = document.getElementById('diarioModalId');
+  var tecnicoInput = document.getElementById('diarioModalTecnico');
+  var equipeInput = document.getElementById('diarioModalEquipe');
+  var placaInput = document.getElementById('diarioModalPlaca');
+  var dataInput = document.getElementById('diarioModalData');
+  var catSelect = document.getElementById('diarioModalCategoria');
+  var statusSelect = document.getElementById('diarioModalStatus');
+  var siteInput = document.getElementById('diarioModalSite');
+  var eqIdInput = document.getElementById('diarioModalEquipamentoId');
+  var locInput = document.getElementById('diarioModalLocalidade');
+  var osInput = document.getElementById('diarioModalOs');
+  var hiInput = document.getElementById('diarioModalHoraInicio');
+  var hsInput = document.getElementById('diarioModalHoraSaida');
+  var obsInput = document.getElementById('diarioModalObs');
+
+  var id = idInput && idInput.value ? parseInt(idInput.value, 10) : null;
+  var categoria = catSelect ? catSelect.value : 'preventiva';
+  var tecnico = tecnicoInput ? tecnicoInput.value.trim() : '';
+  var equipe = equipeInput ? equipeInput.value.trim() : '';
+
+  if (categoria !== 'administrativa') {
+    if (!tecnico && !equipe) {
+      showToast('Informe o Técnico ou a Equipe para esta atividade', 'warning');
+      if (tecnicoInput) tecnicoInput.focus();
+      return;
     }
+  }
 
-    showToast('Nova linha criada', 'success');
-  } catch (e) {
-    console.error('Erro ao criar linha:', e);
-    showToast('Erro ao criar linha', 'error');
+  var dataVal = dataInput ? dataInput.value.trim() : '';
+  if (!dataVal) {
+    showToast('Informe a data da atividade', 'warning');
+    if (dataInput) dataInput.focus();
+    return;
+  }
+
+  var payload = {
+    tecnico: tecnico || null,
+    equipe: equipe || null,
+    placa: placaInput ? placaInput.value.trim() || null : null,
+    data: dataVal,
+    categoria: categoria,
+    status: statusSelect ? statusSelect.value : 'Concluído',
+    site: siteInput ? siteInput.value.trim() || null : null,
+    equipamento_id: eqIdInput && eqIdInput.value ? parseInt(eqIdInput.value, 10) : null,
+    localidade: locInput ? locInput.value.trim() || null : null,
+    os: osInput ? osInput.value.trim() || null : null,
+    hora_inicio: hiInput ? hiInput.value.trim() || null : null,
+    hora_saida: hsInput ? hsInput.value.trim() || null : null,
+    obs: obsInput ? obsInput.value.trim() || null : null,
+  };
+
+  var saveBtn = document.getElementById('btnDiarioModalSave');
+  if (saveBtn) saveBtn.disabled = true;
+
+  try {
+    if (id) {
+      payload.id = id;
+      var res = await apiFetch('/app/api/index.php?route=diario', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      var json = await res.json();
+      if (!json.success || !json.data) {
+        showToast(json.message || 'Erro ao atualizar atividade', 'error');
+        return;
+      }
+      var updatedItem = json.data.item || json.data;
+      if (updatedItem && updatedItem.id) {
+        _diarioItemsById[updatedItem.id] = updatedItem;
+        refreshDiarioRow(updatedItem.id);
+      }
+      showToast('Atividade atualizada com sucesso', 'success');
+      closeDiarioModal();
+    } else {
+      var resCreate = await apiFetch('/app/api/index.php?route=diario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      var jsonCreate = await resCreate.json();
+      if (!jsonCreate.success || !jsonCreate.data || !jsonCreate.data.item) {
+        showToast(jsonCreate.message || 'Erro ao criar atividade', 'error');
+        return;
+      }
+      var newItem = jsonCreate.data.item;
+      _diarioItemsById[newItem.id] = newItem;
+
+      var tbody = document.getElementById('diarioTableBody');
+      if (tbody) {
+        var rowHtml = renderDiarioRow(newItem);
+        var temp = document.createElement('tbody');
+        temp.innerHTML = rowHtml;
+        var newRow = temp.firstElementChild;
+        if (newRow) {
+          tbody.insertBefore(newRow, tbody.firstElementChild);
+        }
+      }
+
+      var emptyEl = document.getElementById('diarioEmpty');
+      if (emptyEl) emptyEl.classList.add('hidden');
+
+      var badge = document.getElementById('diarioBadge');
+      if (badge) {
+        var current = parseInt(badge.textContent || '0', 10);
+        badge.textContent = current + 1;
+      }
+
+      showToast('Atividade criada com sucesso', 'success');
+      closeDiarioModal();
+    }
+  } catch (err) {
+    console.error('Erro ao salvar modal diário:', err);
+    showToast('Erro ao salvar atividade', 'error');
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
   }
 }
 
@@ -972,13 +1379,18 @@ export async function duplicateDiarioLine(id) {
   if (!item) return;
 
   var copyData = {
+    tecnico: item.tecnico || null,
     site: item.site || null,
     equipamento_id: item.equipamento_id || null,
     localidade: item.localidade || null,
     os: item.os || null,
     data: item.data || null,
+    categoria: item.categoria || null,
+    hora_inicio: item.hora_inicio || null,
+    hora_saida: item.hora_saida || null,
     equipe: item.equipe || null,
     placa: item.placa || null,
+    status: item.status || 'Concluído',
   };
 
   try {
@@ -1122,17 +1534,18 @@ export async function exportDiarioCsv() {
       for (var i = 0; i < allItems.length; i++) {
         var it = allItems[i];
         _addRow([
-          sanitizeCSV(it.data || ''),
-          sanitizeCSV(it.hora_inicio || ''),
-          sanitizeCSV(it.hora_saida || ''),
+          sanitizeCSV(it.tecnico || ''),
           sanitizeCSV(it.equipe || ''),
           sanitizeCSV(it.placa || ''),
+          sanitizeCSV(it.data || ''),
           sanitizeCSV(it.categoria || ''),
-          sanitizeCSV(it.os || ''),
           sanitizeCSV(it.site || ''),
           sanitizeCSV(formatEquipamentoDisplay(it.equipamento_nome || it.equipamento, it.equipamento_capacidade) === '-' ? '' : formatEquipamentoDisplay(it.equipamento_nome || it.equipamento, it.equipamento_capacidade)),
           sanitizeCSV(it.localidade || ''),
           sanitizeCSV(it.status || ''),
+          sanitizeCSV(it.hora_inicio || ''),
+          sanitizeCSV(it.hora_saida || ''),
+          sanitizeCSV(it.os || ''),
           sanitizeCSV(it.obs || ''),
           sanitizeCSV(it.created_by_name || ''),
           sanitizeCSV(it.created_at || ''),
@@ -1230,8 +1643,48 @@ export function initDiarioList() {
   var newBtn = document.getElementById('diarioNewBtn');
   if (newBtn && !newBtn._bound) {
     newBtn._bound = true;
-    newBtn.addEventListener('click', createDiarioLine);
+    newBtn.addEventListener('click', function () {
+      openDiarioModal(null);
+    });
   }
+
+  // Modal bindings
+  setupDiarioModalAutocompletes();
+
+  var modalCloseBtn = document.getElementById('btnDiarioModalClose');
+  if (modalCloseBtn && !modalCloseBtn._bound) {
+    modalCloseBtn._bound = true;
+    modalCloseBtn.addEventListener('click', closeDiarioModal);
+  }
+
+  var modalCancelBtn = document.getElementById('btnDiarioModalCancel');
+  if (modalCancelBtn && !modalCancelBtn._bound) {
+    modalCancelBtn._bound = true;
+    modalCancelBtn.addEventListener('click', closeDiarioModal);
+  }
+
+  var modalEl = document.getElementById('diarioModal');
+  if (modalEl && !modalEl._bound) {
+    modalEl._bound = true;
+    modalEl.addEventListener('click', function (e) {
+      if (e.target === modalEl) closeDiarioModal();
+    });
+  }
+
+  var modalForm = document.getElementById('diarioModalForm');
+  if (modalForm && !modalForm._bound) {
+    modalForm._bound = true;
+    modalForm.addEventListener('submit', saveDiarioModal);
+  }
+
+  var modalCat = document.getElementById('diarioModalCategoria');
+  if (modalCat && !modalCat._bound) {
+    modalCat._bound = true;
+    modalCat.addEventListener('change', updateCategoryTecnicoRequirement);
+  }
+
+  // Pre-load teams cache
+  loadDiarioTeams().catch(function () {});
 
   // CSV button
   var csvBtn = document.getElementById('diarioCsvBtn');
@@ -1389,8 +1842,16 @@ export function initDiarioList() {
     tbody._bound = true;
 
     tbody.addEventListener('click', function (e) {
+      // Edit button (opens modal)
+      var editBtn = e.target.closest('[data-action="edit"]') || e.target.closest('.diario-edit-btn');
+      if (editBtn) {
+        var editId = editBtn.getAttribute('data-id');
+        if (editId) openDiarioModal(parseInt(editId, 10));
+        return;
+      }
+
       // Duplicate button
-      var dupBtn = e.target.closest('[data-action="duplicate"]');
+      var dupBtn = e.target.closest('[data-action="duplicate"]') || e.target.closest('.diario-duplicate-btn');
       if (dupBtn) {
         var dupId = dupBtn.getAttribute('data-id');
         if (dupId) duplicateDiarioLine(parseInt(dupId, 10));
@@ -1398,68 +1859,22 @@ export function initDiarioList() {
       }
 
       // Delete button
-      var delBtn = e.target.closest('[data-action="delete"]');
+      var delBtn = e.target.closest('[data-action="delete"]') || e.target.closest('.diario-delete-btn');
       if (delBtn) {
         var delId = delBtn.getAttribute('data-id');
         if (delId) deleteDiarioLine(parseInt(delId, 10));
         return;
       }
 
-      // Edit Obs
-      var editObsBtn = e.target.closest('[data-action="edit-obs"]');
-      if (editObsBtn) {
-        var wrap = editObsBtn.closest('.obs-wrap');
-        if (wrap) enterDiarioObsEdit(wrap);
+      // Row click: opens modal if not clicking action button or selecting text
+      if (window.getSelection && window.getSelection().toString().trim().length > 0) {
         return;
       }
-
-      // Save Obs
-      var saveObsBtn = e.target.closest('.diario-save-obs');
-      if (saveObsBtn) {
-        var obsWrap = saveObsBtn.closest('.obs-wrap');
-        if (obsWrap) saveDiarioObs(obsWrap);
+      var tr = e.target.closest('tr.diario-row');
+      if (tr) {
+        var rowId = tr.getAttribute('data-id');
+        if (rowId) openDiarioModal(parseInt(rowId, 10));
         return;
-      }
-
-      // Cancel Obs
-      var cancelObsBtn = e.target.closest('.diario-cancel-obs');
-      if (cancelObsBtn) {
-        var cWrap = cancelObsBtn.closest('.obs-wrap');
-        if (cWrap) cancelDiarioObs(cWrap);
-        return;
-      }
-
-      // Save Field
-      var saveFieldBtn = e.target.closest('.diario-save-btn');
-      if (saveFieldBtn) {
-        var saveTd = saveFieldBtn.closest('td');
-        if (saveTd) saveDiarioField(saveTd);
-        return;
-      }
-
-      // Cancel Field
-      var cancelFieldBtn = e.target.closest('.diario-cancel-btn');
-      if (cancelFieldBtn) {
-        var cancelTd = cancelFieldBtn.closest('td');
-        if (cancelTd) cancelDiarioEdit(cancelTd);
-        return;
-      }
-
-      // Edit Field (pencil button or double-click / cell click)
-      var editBtn = e.target.closest('.diario-edit-btn');
-      if (editBtn) {
-        var editTd = editBtn.closest('td');
-        var field = editBtn.getAttribute('data-field') || (editTd ? editTd.getAttribute('data-field') : null);
-        if (editTd && field) enterDiarioEdit(editTd, field);
-        return;
-      }
-
-      var td = e.target.closest('td[data-field]');
-      if (td && !td.querySelector('.diario-edit-input') && !td.querySelector('.obs-wrap')) {
-        var fld = td.getAttribute('data-field');
-        if (fld && fld !== 'obs') {
-          enterDiarioEdit(td, fld);
-        }
       }
     });
 

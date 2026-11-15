@@ -11,13 +11,13 @@ class DiarioRepository extends BaseRepository
 {
     public const ALLOWED_SORT = [
         'id', 'site', 'equipamento', 'equipamento_id', 'equipamento_nome',
-        'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'placa', 'obs', 'created_at', 'created_by',
+        'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'tecnico', 'placa', 'obs', 'created_at', 'created_by',
         'd.id', 'd.site', 'd.localidade', 'd.os', 'd.data', 'd.hora_inicio', 'd.hora_saida', 'd.categoria',
-        'd.status', 'd.equipe', 'd.placa', 'd.obs', 'd.created_at', 'e.equipamento', 'created_by_name'
+        'd.status', 'd.equipe', 'd.tecnico', 'd.placa', 'd.obs', 'd.created_at', 'e.equipamento', 'created_by_name'
     ];
 
     public const ALLOWED_FIELDS = [
-        'site', 'equipamento_id', 'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'placa'
+        'site', 'equipamento_id', 'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'tecnico', 'placa'
     ];
 
     public function __construct(?mysqli $conn = null)
@@ -46,6 +46,7 @@ class DiarioRepository extends BaseRepository
             'categoria' => 'd.categoria',
             'status' => 'd.status',
             'equipe' => 'd.equipe',
+            'tecnico' => 'd.tecnico',
             'placa' => 'd.placa',
             'obs' => 'd.obs',
             'created_at' => 'd.created_at',
@@ -61,6 +62,7 @@ class DiarioRepository extends BaseRepository
             'd.categoria' => 'd.categoria',
             'd.status' => 'd.status',
             'd.equipe' => 'd.equipe',
+            'd.tecnico' => 'd.tecnico',
             'd.placa' => 'd.placa',
             'd.obs' => 'd.obs',
             'd.created_at' => 'd.created_at',
@@ -141,8 +143,8 @@ class DiarioRepository extends BaseRepository
     public function create(array $data, ?int $userId): int
     {
         $stmt = $this->safePrepare(
-            "INSERT INTO diario_atividades (site, equipamento_id, localidade, os, data, hora_inicio, hora_saida, categoria, status, equipe, placa, obs, created_by, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
+            "INSERT INTO diario_atividades (site, equipamento_id, localidade, os, data, hora_inicio, hora_saida, categoria, status, equipe, tecnico, placa, obs, created_by, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
         );
 
         $site = !empty($data['site']) ? trim((string) $data['site']) : null;
@@ -157,11 +159,12 @@ class DiarioRepository extends BaseRepository
         $categoria = !empty($data['categoria']) ? trim((string) $data['categoria']) : null;
         $status = !empty($data['status']) ? trim((string) $data['status']) : null;
         $equipe = !empty($data['equipe']) && $data['equipe'] !== 'N/A' ? trim((string) $data['equipe']) : null;
+        $tecnico = !empty($data['tecnico']) && $data['tecnico'] !== 'N/A' ? trim((string) $data['tecnico']) : null;
         $placa = !empty($data['placa']) && $data['placa'] !== 'N/A' ? trim((string) $data['placa']) : null;
         $obs = isset($data['obs']) && $data['obs'] !== null && trim((string) $data['obs']) !== '' ? (string) $data['obs'] : null;
 
         $stmt->bind_param(
-            'sissssssssssi',
+            'sisssssssssssi',
             $site,
             $equipamentoId,
             $localidade,
@@ -172,6 +175,7 @@ class DiarioRepository extends BaseRepository
             $categoria,
             $status,
             $equipe,
+            $tecnico,
             $placa,
             $obs,
             $userId
@@ -181,6 +185,54 @@ class DiarioRepository extends BaseRepository
         $insertId = (int) $stmt->insert_id;
         $stmt->close();
         return $insertId;
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        $site = !empty($data['site']) ? trim((string) $data['site']) : null;
+        $equipamentoId = isset($data['equipamento_id']) && $data['equipamento_id'] !== '' && $data['equipamento_id'] !== null
+            ? (int) $data['equipamento_id']
+            : null;
+        $localidade = !empty($data['localidade']) && $data['localidade'] !== 'N/A' ? trim((string) $data['localidade']) : null;
+        $os = !empty($data['os']) && $data['os'] !== 'N/A' ? trim((string) $data['os']) : null;
+        $dataDate = !empty($data['data']) ? trim((string) $data['data']) : date('Y-m-d');
+        $horaInicio = !empty($data['hora_inicio']) && $data['hora_inicio'] !== 'N/A' ? trim((string) $data['hora_inicio']) : null;
+        $horaSaida = !empty($data['hora_saida']) && $data['hora_saida'] !== 'N/A' ? trim((string) $data['hora_saida']) : null;
+        $categoria = !empty($data['categoria']) ? trim((string) $data['categoria']) : null;
+        $status = !empty($data['status']) ? trim((string) $data['status']) : null;
+        $equipe = !empty($data['equipe']) && $data['equipe'] !== 'N/A' ? trim((string) $data['equipe']) : null;
+        $tecnico = !empty($data['tecnico']) && $data['tecnico'] !== 'N/A' ? trim((string) $data['tecnico']) : null;
+        $placa = !empty($data['placa']) && $data['placa'] !== 'N/A' ? trim((string) $data['placa']) : null;
+        $obs = isset($data['obs']) && $data['obs'] !== null && trim((string) $data['obs']) !== '' ? (string) $data['obs'] : null;
+
+        $stmt = $this->safePrepare(
+            "UPDATE diario_atividades
+             SET site = ?, equipamento_id = ?, localidade = ?, os = ?, data = ?, hora_inicio = ?, hora_saida = ?,
+                 categoria = ?, status = ?, equipe = ?, tecnico = ?, placa = ?, obs = ?, updated_at = NOW()
+             WHERE id = ?"
+        );
+
+        $stmt->bind_param(
+            'sisssssssssssi',
+            $site,
+            $equipamentoId,
+            $localidade,
+            $os,
+            $dataDate,
+            $horaInicio,
+            $horaSaida,
+            $categoria,
+            $status,
+            $equipe,
+            $tecnico,
+            $placa,
+            $obs,
+            $id
+        );
+
+        $success = $stmt->execute();
+        $stmt->close();
+        return $success;
     }
 
     public function updateField(int $id, string $field, mixed $value): bool
@@ -281,6 +333,7 @@ class DiarioRepository extends BaseRepository
                 OR d.categoria LIKE ?
                 OR d.status LIKE ?
                 OR d.equipe LIKE ?
+                OR d.tecnico LIKE ?
                 OR d.placa LIKE ?
                 OR d.obs LIKE ?
                 OR d.data LIKE ?
@@ -288,7 +341,7 @@ class DiarioRepository extends BaseRepository
                 OR u.nome LIKE ?
                 OR u.username LIKE ?
             )';
-            $searchFieldCount = 15;
+            $searchFieldCount = 16;
             for ($i = 0; $i < $searchFieldCount; $i++) {
                 $params[] = $term;
                 $types .= 's';

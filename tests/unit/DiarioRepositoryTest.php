@@ -38,6 +38,7 @@ class DiarioRepositoryTest extends TestCase
             'categoria' => 'emergencial',
             'status' => 'Pendente',
             'equipe' => 'Alexandre Donato',
+            'tecnico' => 'Carlos Pereira',
             'placa' => 'TBO-9J41',
             'obs' => 'Primeira observação',
         ];
@@ -58,6 +59,7 @@ class DiarioRepositoryTest extends TestCase
         $this->assertSame('emergencial', $item->categoria);
         $this->assertSame('Pendente', $item->status);
         $this->assertSame('Alexandre Donato', $item->equipe);
+        $this->assertSame('Carlos Pereira', $item->tecnico);
         $this->assertSame('TBO-9J41', $item->placa);
         $this->assertSame('Primeira observação', $item->obs);
         $this->assertSame(1, $item->createdBy);
@@ -155,6 +157,14 @@ class DiarioRepositoryTest extends TestCase
         $res = $this->repo->list(['search' => 'Alpha']);
         $this->assertTrue(in_array($id, array_column($res, 'id'), true), 'Should match by equipe');
 
+        // Search by tecnico
+        $idTec = $this->repo->create([
+            'site' => 'SEARCH_TEC',
+            'tecnico' => 'Marcelo Silva',
+        ], 1);
+        $resTec = $this->repo->list(['search' => 'Marcelo Silva']);
+        $this->assertTrue(in_array($idTec, array_column($resTec, 'id'), true), 'Should match by tecnico');
+
         // Search by obs
         $res = $this->repo->list(['search' => 'especial de teste']);
         $this->assertTrue(in_array($id, array_column($res, 'id'), true), 'Should match by obs');
@@ -229,9 +239,50 @@ class DiarioRepositoryTest extends TestCase
         $item = $this->repo->findById($id);
         $this->assertNull($item->os);
 
+        // Update tecnico field
+        $this->assertTrue($this->repo->updateField($id, 'tecnico', 'Técnico Roberto'));
+        $itemTec = $this->repo->findById($id);
+        $this->assertSame('Técnico Roberto', $itemTec->tecnico);
+
         // Update invalid field throws exception
         $this->expectException(\InvalidArgumentException::class);
         $this->repo->updateField($id, 'campo_invalido', '123');
+    }
+
+    public function testUpdateFullRecord(): void
+    {
+        $id = $this->repo->create([
+            'site' => 'OLD_SITE',
+            'tecnico' => 'Antigo Técnico',
+            'equipe' => 'Equipe Antiga',
+            'categoria' => 'corretiva',
+            'status' => 'Pendente',
+        ], 1);
+
+        $ok = $this->repo->update($id, [
+            'site' => 'NEW_SITE',
+            'tecnico' => 'Novo Técnico',
+            'equipe' => 'Equipe Nova',
+            'placa' => 'ABC-1234',
+            'categoria' => 'preventiva',
+            'status' => 'Concluído',
+            'obs' => 'Observação atualizada',
+            'data' => '2026-11-15',
+            'hora_inicio' => '10:00',
+            'hora_saida' => '12:00',
+        ]);
+
+        $this->assertTrue($ok);
+        $item = $this->repo->findById($id);
+        $this->assertSame('NEW_SITE', $item->site);
+        $this->assertSame('Novo Técnico', $item->tecnico);
+        $this->assertSame('Equipe Nova', $item->equipe);
+        $this->assertSame('ABC-1234', $item->placa);
+        $this->assertSame('preventiva', $item->categoria);
+        $this->assertSame('Concluído', $item->status);
+        $this->assertSame('Observação atualizada', $item->obs);
+        $this->assertSame('10:00', $item->horaInicio);
+        $this->assertSame('12:00', $item->horaSaida);
     }
 
     public function testUpdateObs(): void

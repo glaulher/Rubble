@@ -22,6 +22,12 @@ var DIARIO_HELPERS =
   'function formatDate(v) { if (!v) return ""; var parts = String(v).split("-"); return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : String(v); }\n' +
   'function sanitizeCSV(v) { if (v === null || v === undefined) return ""; var s = String(v); return /[;"\\n]/.test(s) ? \'"\' + s.replace(/"/g, \'""\') + \'"\' : s; }\n';
 
+function createMouseEvent(type) {
+  return typeof MouseEvent !== 'undefined'
+    ? new MouseEvent(type, { bubbles: true, cancelable: true })
+    : new Event(type, { bubbles: true, cancelable: true });
+}
+
 function setupDiarioDOM() {
   document.body.innerHTML = `
     <span id="diarioBadge">0</span>
@@ -42,18 +48,12 @@ function setupDiarioDOM() {
       <table id="diarioTable">
         <thead>
           <tr>
-            <th data-sort="data">Data <span class="sort-icon"></span></th>
-            <th data-sort="hora_inicio">Hora Início <span class="sort-icon"></span></th>
-            <th data-sort="hora_saida">Hora Fim <span class="sort-icon"></span></th>
-            <th data-sort="equipe">Técnico / Equipe <span class="sort-icon"></span></th>
+            <th data-sort="tecnico">Técnico <span class="sort-icon"></span></th>
+            <th data-sort="equipe">Equipe <span class="sort-icon"></span></th>
             <th data-sort="placa">Placa <span class="sort-icon"></span></th>
-            <th data-sort="categoria">Categoria <span class="sort-icon"></span></th>
-            <th data-sort="os">OS <span class="sort-icon"></span></th>
+            <th data-sort="data">Data <span class="sort-icon"></span></th>
             <th data-sort="site">Site <span class="sort-icon"></span></th>
-            <th data-sort="equipamento">Equipamento <span class="sort-icon"></span></th>
-            <th data-sort="localidade">Localidade <span class="sort-icon"></span></th>
-            <th data-sort="status">Status <span class="sort-icon"></span></th>
-            <th data-sort="obs">Observação <span class="sort-icon"></span></th>
+            <th data-sort="categoria">Tipo Atividade <span class="sort-icon"></span></th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -62,6 +62,47 @@ function setupDiarioDOM() {
       <div id="diarioSentinel"></div>
     </div>
     <div id="diarioEmpty" class="hidden"></div>
+
+    <!-- Modal Diário -->
+    <div id="diarioModal" class="hidden">
+      <h2 id="diarioModalTitle">Diário de Atividades</h2>
+      <p id="diarioModalSubtitle">Preencha os dados</p>
+      <button id="btnDiarioModalClose"></button>
+      <form id="diarioModalForm">
+        <input type="hidden" id="diarioModalId" value="" />
+        <span id="diarioModalTecnicoReq"></span>
+        <input type="text" id="diarioModalTecnico" />
+        <div id="diarioModalTecnicoDropdown" class="hidden"></div>
+        <input type="text" id="diarioModalEquipe" />
+        <div id="diarioModalEquipeDropdown" class="hidden"></div>
+        <input type="text" id="diarioModalPlaca" />
+        <input type="date" id="diarioModalData" />
+        <select id="diarioModalCategoria">
+          <option value="corretiva">Corretiva</option>
+          <option value="preventiva">Preventiva</option>
+          <option value="emergencial">Emergencial</option>
+          <option value="administrativa">Administrativa</option>
+        </select>
+        <select id="diarioModalStatus">
+          <option value="Concluído">Concluído</option>
+          <option value="Pendente">Pendente</option>
+          <option value="Em andamento">Em andamento</option>
+        </select>
+        <input type="text" id="diarioModalSite" />
+        <div id="diarioModalSiteDropdown" class="hidden"></div>
+        <input type="text" id="diarioModalEquipamento" />
+        <input type="hidden" id="diarioModalEquipamentoId" value="" />
+        <div id="diarioModalEquipamentoDropdown" class="hidden"></div>
+        <input type="text" id="diarioModalLocalidade" />
+        <div id="diarioModalLocalidadeDropdown" class="hidden"></div>
+        <input type="text" id="diarioModalOs" />
+        <input type="time" id="diarioModalHoraInicio" />
+        <input type="time" id="diarioModalHoraSaida" />
+        <textarea id="diarioModalObs"></textarea>
+        <button type="button" id="btnDiarioModalCancel">Cancelar</button>
+        <button type="submit" id="btnDiarioModalSave"><span id="diarioModalSaveLabel">Salvar</span></button>
+      </form>
+    </div>
   `;
 }
 
@@ -155,8 +196,10 @@ describe("diario/list.js unit & integration", function () {
     expect(document.getElementById('diarioEmpty').classList.contains('hidden')).toBe(true);
     expect(document.querySelector('td[data-field="equipe"]').textContent).toContain('ALEXANDRE DONATO DA SILVA');
     expect(document.querySelector('td[data-field="placa"]').textContent).toContain('TBO-9J41');
-    expect(document.querySelector('td[data-field="hora_inicio"]').textContent).toContain('08:00');
-    expect(document.querySelector('td[data-field="hora_saida"]').textContent).toContain('12:00');
+    expect(document.querySelector('td[data-field="data"]').textContent).toContain('22/10/2026');
+    expect(document.querySelector('td[data-field="site"]').textContent).toContain('BMA');
+    expect(document.querySelector('td[data-field="categoria"]').textContent).toContain('emergencial');
+    expect(document.querySelector('.diario-edit-btn')).not.toBeNull();
     expect(document.querySelector('.diario-duplicate-btn')).not.toBeNull();
 
     // Empty list
@@ -185,30 +228,265 @@ describe("diario/list.js unit & integration", function () {
     expect(document.querySelector('.diario-delete-btn')).toBeNull();
   });
 
-  it("enters inline edit for a text cell", function () {
+  it("opens modal in create mode when openDiarioModal(null) or newBtn clicked", function () {
     (0, eval)(mockInfiniteScroll);
     evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
 
-    globalThis.renderDiarioTable([{ id: 1, site: 'BMA', categoria: 'corretiva' }], false);
-    const tdSite = document.querySelector('td[data-field="site"]');
-    globalThis.enterDiarioEdit(tdSite, 'site');
+    globalThis.initDiarioList();
+    const newBtn = document.getElementById('diarioNewBtn');
+    newBtn.click();
 
-    expect(tdSite.querySelector('input.diario-edit-input')).not.toBeNull();
-    expect(tdSite.querySelector('.diario-save-btn')).not.toBeNull();
-    expect(tdSite.querySelector('.diario-cancel-btn')).not.toBeNull();
+    const modal = document.getElementById('diarioModal');
+    expect(modal.classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('diarioModalTitle').textContent).toBe('Nova Atividade');
+    expect(document.getElementById('diarioModalSaveLabel').textContent).toBe('Salvar Atividade');
+    expect(document.getElementById('diarioModalId').value).toBe('');
+    expect(document.getElementById('diarioModalData').value).toBe(new Date().toISOString().slice(0, 10));
   });
 
-  it("enters inline edit for obs textarea", function () {
+  it("opens modal in edit mode with prefilled fields on row or edit button click", function () {
     (0, eval)(mockInfiniteScroll);
     evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
 
-    globalThis.renderDiarioTable([{ id: 1, obs: 'Linha 1' }], false);
-    const wrap = document.querySelector('.obs-wrap');
-    globalThis.enterDiarioObsEdit(wrap);
+    globalThis.initDiarioList();
 
-    expect(wrap.querySelector('textarea.diario-obs-input')).not.toBeNull();
-    expect(wrap.querySelector('.diario-save-obs')).not.toBeNull();
-    expect(wrap.querySelector('.diario-cancel-obs')).not.toBeNull();
+    const mockItem = {
+      id: 77,
+      tecnico: 'Renato Silva',
+      equipe: 'Equipe Delta',
+      placa: 'TBO-9J99',
+      site: 'VIX',
+      data: '2026-11-15',
+      categoria: 'preventiva',
+      status: 'Concluído',
+      hora_inicio: '08:30',
+      hora_saida: '17:00',
+      obs: 'Manutenção preventiva realizada',
+    };
+
+    globalThis.renderDiarioTable([mockItem], false);
+
+    // Click edit button in row
+    const editBtn = document.querySelector('.diario-edit-btn');
+    editBtn.click();
+
+    const modal = document.getElementById('diarioModal');
+    expect(modal.classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('diarioModalTitle').textContent).toBe('Editar Atividade');
+    expect(document.getElementById('diarioModalId').value).toBe('77');
+    expect(document.getElementById('diarioModalTecnico').value).toBe('Renato Silva');
+    expect(document.getElementById('diarioModalEquipe').value).toBe('Equipe Delta');
+    expect(document.getElementById('diarioModalPlaca').value).toBe('TBO-9J99');
+    expect(document.getElementById('diarioModalSite').value).toBe('VIX');
+    expect(document.getElementById('diarioModalCategoria').value).toBe('preventiva');
+    expect(document.getElementById('diarioModalStatus').value).toBe('Concluído');
+    expect(document.getElementById('diarioModalHoraInicio').value).toBe('08:30');
+    expect(document.getElementById('diarioModalHoraSaida').value).toBe('17:00');
+    expect(document.getElementById('diarioModalObs').value).toBe('Manutenção preventiva realizada');
+  });
+
+  it("closes modal on close button and cancel button click", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
+    const modal = document.getElementById('diarioModal');
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    // Close button
+    document.getElementById('btnDiarioModalClose').click();
+    expect(modal.classList.contains('hidden')).toBe(true);
+
+    // Cancel button
+    globalThis.openDiarioModal(null);
+    expect(modal.classList.contains('hidden')).toBe(false);
+    document.getElementById('btnDiarioModalCancel').click();
+    expect(modal.classList.contains('hidden')).toBe(true);
+  });
+
+  it("relaxes tecnico requirement when category is administrativa", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
+
+    const catSelect = document.getElementById('diarioModalCategoria');
+    const req = document.getElementById('diarioModalTecnicoReq');
+
+    // Default preventiva requires tecnico
+    expect(req.classList.contains('hidden')).toBe(false);
+
+    // Switch to administrativa
+    catSelect.value = 'administrativa';
+    catSelect.dispatchEvent(new Event('change'));
+    expect(req.classList.contains('hidden')).toBe(true);
+
+    // Switch back to corretiva
+    catSelect.value = 'corretiva';
+    catSelect.dispatchEvent(new Event('change'));
+    expect(req.classList.contains('hidden')).toBe(false);
+  });
+
+  it("auto-fills Equipe and Placa when selecting Técnico from cached teams", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.setCachedTeams([
+      { id: 1, nome: 'Equipe Alpha', tecnico: 'Carlos Pereira', placa: 'ABC-1234', ativo: 1 }
+    ]);
+
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
+
+    const tecInput = document.getElementById('diarioModalTecnico');
+    const tecDropdown = document.getElementById('diarioModalTecnicoDropdown');
+
+    tecInput.focus();
+    tecInput.value = 'Carlos';
+    tecInput.dispatchEvent(new Event('input'));
+
+    expect(tecDropdown.classList.contains('hidden')).toBe(false);
+    const itemDiv = tecDropdown.querySelector('div');
+    expect(itemDiv.textContent).toBe('Carlos Pereira');
+
+    // Trigger select
+    itemDiv.dispatchEvent(createMouseEvent('mousedown'));
+
+    expect(tecInput.value).toBe('Carlos Pereira');
+    expect(document.getElementById('diarioModalEquipe').value).toBe('Equipe Alpha');
+    expect(document.getElementById('diarioModalPlaca').value).toBe('ABC-1234');
+  });
+
+  it("auto-fills Placa and Técnico when selecting Equipe from cached teams", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.setCachedTeams([
+      { id: 2, nome: 'Equipe Beta', tecnico: 'Marcos Silva', placa: 'XYZ-9876', ativo: 1 }
+    ]);
+
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
+
+    const eqInput = document.getElementById('diarioModalEquipe');
+    const eqDropdown = document.getElementById('diarioModalEquipeDropdown');
+
+    eqInput.focus();
+    eqInput.value = 'Beta';
+    eqInput.dispatchEvent(new Event('input'));
+
+    expect(eqDropdown.classList.contains('hidden')).toBe(false);
+    const itemDiv = eqDropdown.querySelector('div');
+    expect(itemDiv.textContent).toBe('Equipe Beta');
+
+    itemDiv.dispatchEvent(createMouseEvent('mousedown'));
+
+    expect(eqInput.value).toBe('Equipe Beta');
+    expect(document.getElementById('diarioModalPlaca').value).toBe('XYZ-9876');
+    expect(document.getElementById('diarioModalTecnico').value).toBe('Marcos Silva');
+  });
+
+  it("saves new activity calling POST and prepends row into table", async function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    let postedBody = null;
+    globalThis.apiFetch = function (url, opts) {
+      if (opts && opts.method === 'POST') {
+        postedBody = JSON.parse(opts.body);
+        return Promise.resolve({
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              item: {
+                id: 303,
+                ...postedBody,
+                created_by: 1,
+              }
+            }
+          })
+        });
+      }
+      return Promise.resolve({ json: () => ({ success: true, data: { items: [], total: 0 } }) });
+    };
+
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
+
+    document.getElementById('diarioModalTecnico').value = 'Lucas Prado';
+    document.getElementById('diarioModalEquipe').value = 'Equipe Alfa';
+    document.getElementById('diarioModalPlaca').value = 'BRA-1A23';
+    document.getElementById('diarioModalData').value = '2026-11-15';
+    document.getElementById('diarioModalCategoria').value = 'corretiva';
+    document.getElementById('diarioModalStatus').value = 'Em andamento';
+    document.getElementById('diarioModalSite').value = 'BMA';
+    document.getElementById('diarioModalObs').value = 'Atividade nova do modal';
+
+    await globalThis.saveDiarioModal(new Event('submit'));
+
+    expect(postedBody).not.toBeNull();
+    expect(postedBody.tecnico).toBe('Lucas Prado');
+    expect(postedBody.equipe).toBe('Equipe Alfa');
+    expect(postedBody.placa).toBe('BRA-1A23');
+    expect(postedBody.categoria).toBe('corretiva');
+    expect(postedBody.site).toBe('BMA');
+
+    const rows = document.querySelectorAll('#diarioTableBody tr.diario-row');
+    expect(rows.length).toBe(1);
+    expect(document.getElementById('diarioModal').classList.contains('hidden')).toBe(true);
+  });
+
+  it("saves edited activity calling PUT and updates existing row", async function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    let putBody = null;
+    globalThis.apiFetch = function (url, opts) {
+      if (opts && opts.method === 'PUT') {
+        putBody = JSON.parse(opts.body);
+        return Promise.resolve({
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              item: {
+                ...putBody,
+                created_by: 1,
+              }
+            }
+          })
+        });
+      }
+      return Promise.resolve({ json: () => ({ success: true, data: { items: [], total: 0 } }) });
+    };
+
+    globalThis.initDiarioList();
+    const existing = {
+      id: 50,
+      tecnico: 'Antigo',
+      equipe: 'Equipe Velha',
+      placa: 'AAA-0000',
+      data: '2026-10-01',
+      categoria: 'preventiva',
+      site: 'OLD',
+    };
+    globalThis.renderDiarioTable([existing], false);
+
+    // Open edit modal
+    globalThis.openDiarioModal(50);
+    document.getElementById('diarioModalTecnico').value = 'Novo Tecnico';
+    document.getElementById('diarioModalSite').value = 'NEW_SITE';
+
+    await globalThis.saveDiarioModal(new Event('submit'));
+
+    expect(putBody).not.toBeNull();
+    expect(putBody.id).toBe(50);
+    expect(putBody.tecnico).toBe('Novo Tecnico');
+    expect(putBody.site).toBe('NEW_SITE');
+
+    const updatedTd = document.querySelector('td[data-field="tecnico"]');
+    expect(updatedTd.textContent).toContain('Novo Tecnico');
   });
 
   it("builds query with filters correctly", function () {
@@ -219,42 +497,6 @@ describe("diario/list.js unit & integration", function () {
     expect(query).toContain('route=diario');
     expect(query).toContain('limit=20');
     expect(query).toContain('offset=0');
-  });
-
-  it("includes EQUIPE in DIARIO_COLUMNS and allows inline editing of equipe", function () {
-    (0, eval)(mockInfiniteScroll);
-    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
-
-    expect(globalThis.DIARIO_COLUMNS).toContain('EQUIPE');
-
-    globalThis.renderDiarioTable([{ id: 1, equipe: 'Carlos / João' }], false);
-    const tdEquipe = document.querySelector('td[data-field="equipe"]');
-    expect(tdEquipe).not.toBeNull();
-    expect(tdEquipe.textContent).toContain('Carlos / João');
-
-    globalThis.enterDiarioEdit(tdEquipe, 'equipe');
-    expect(tdEquipe.querySelector('input.diario-edit-input')).not.toBeNull();
-    expect(tdEquipe.querySelector('input.diario-edit-input').value).toBe('Carlos / João');
-    expect(tdEquipe.querySelector('.diario-save-btn')).not.toBeNull();
-  });
-
-  it("enters inline edit for hora_inicio, hora_saida with type time and placa with text", function () {
-    (0, eval)(mockInfiniteScroll);
-    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
-
-    globalThis.renderDiarioTable([{ id: 1, hora_inicio: '08:00', hora_saida: '12:30', placa: 'TBO-9J41' }], false);
-    const tdInicio = document.querySelector('td[data-field="hora_inicio"]');
-    globalThis.enterDiarioEdit(tdInicio, 'hora_inicio');
-    const inputInicio = tdInicio.querySelector('input.diario-edit-input');
-    expect(inputInicio).not.toBeNull();
-    expect(inputInicio.type).toBe('time');
-    expect(inputInicio.value).toBe('08:00');
-
-    const tdPlaca = document.querySelector('td[data-field="placa"]');
-    globalThis.enterDiarioEdit(tdPlaca, 'placa');
-    const inputPlaca = tdPlaca.querySelector('input.diario-edit-input');
-    expect(inputPlaca).not.toBeNull();
-    expect(inputPlaca.value).toBe('TBO-9J41');
   });
 
   it("duplicates activity line calling apiFetch with copied fields", async function () {
@@ -347,144 +589,71 @@ describe("diario/list.js unit & integration", function () {
     expect(globalThis.formatPvEquipmentLabel('WM 01', null, null)).toBe('WM 01');
   });
 
-  it("enters inline edit for site, equipamento_id and localidade with autocomplete wrap", function () {
+  it("sets equipment id and auto-fills site and localidade in modal when selecting equipment", function () {
     (0, eval)(mockInfiniteScroll);
     evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
 
-    const row = {
-      id: 1,
-      site: 'BMA',
-      equipamento_id: 1,
-      equipamento_nome: 'WM 01',
-      equipamento_capacidade: '5.0',
-      localidade: 'Container 1',
-    };
-    globalThis.renderDiarioTable([row], false);
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
 
-    // Site edit
-    const tdSite = document.querySelector('td[data-field="site"]');
-    globalThis.enterDiarioEdit(tdSite, 'site');
-    expect(tdSite.querySelector('.diario-autocomplete-wrap')).not.toBeNull();
-    expect(tdSite.querySelector('.diario-autocomplete-dropdown')).not.toBeNull();
+    const mockEquipments = [
+      { id: 10, equipamento: 'CH 01', capacidade: '10.0', local: 'SPO', localidade: 'Central Gelada' }
+    ];
 
-    // Equipamento edit
-    const tdEquip = document.querySelector('td[data-field="equipamento_id"]');
-    globalThis.enterDiarioEdit(tdEquip, 'equipamento_id');
-    expect(tdEquip.querySelector('.diario-autocomplete-wrap')).not.toBeNull();
-    expect(tdEquip.querySelector('.diario-autocomplete-dropdown')).not.toBeNull();
+    const siteInput = document.getElementById('diarioModalSite');
+    const eqInput = document.getElementById('diarioModalEquipamento');
+    const eqIdInput = document.getElementById('diarioModalEquipamentoId');
+    const locInput = document.getElementById('diarioModalLocalidade');
+    const eqDropdown = document.getElementById('diarioModalEquipamentoDropdown');
 
-    // Localidade edit
-    const tdLoc = document.querySelector('td[data-field="localidade"]');
-    globalThis.enterDiarioEdit(tdLoc, 'localidade');
-    expect(tdLoc.querySelector('.diario-autocomplete-wrap')).not.toBeNull();
-    expect(tdLoc.querySelector('.diario-autocomplete-dropdown')).not.toBeNull();
-  });
-
-  it("performs smart cascade when selecting equipment on empty site and localidade", async function () {
-    (0, eval)(mockInfiniteScroll);
-    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
-
-    const calls = [];
-    globalThis.apiFetch = function (url, opts) {
-      if (url.includes('route=equipment')) {
-        return Promise.resolve({
-          json: () => Promise.resolve({
-            success: true,
-            data: [
-              { id: 10, equipamento: 'CH 01', capacidade: '10.0', local: 'SPO', localidade: 'Central Gelada' }
-            ]
-          })
-        });
+    // Simulate autocomplete selection using initModalDropdownAutocomplete
+    globalThis.initModalDropdownAutocomplete({
+      input: eqInput,
+      dropdown: eqDropdown,
+      getOptions: () => mockEquipments,
+      formatItem: (eq) => globalThis.formatPvEquipmentLabel(eq.equipamento, eq.capacidade, eq.localidade),
+      onSelect: (eq) => {
+        eqIdInput.value = eq.id;
+        if (eq.local && !siteInput.value.trim()) siteInput.value = eq.local;
+        if (eq.localidade && !locInput.value.trim()) locInput.value = eq.localidade;
       }
-      if (opts && opts.method === 'PATCH') {
-        const body = JSON.parse(opts.body);
-        calls.push(body);
-        return Promise.resolve({
-          json: () => Promise.resolve({ success: true, data: { id: body.id, field: body.field, value: body.value } })
-        });
-      }
-      return Promise.resolve({
-        json: () => Promise.resolve({ success: true, data: { items: [], total: 0 } })
-      });
-    };
-
-    const row = {
-      id: 42,
-      site: null,
-      equipamento_id: null,
-      equipamento_nome: null,
-      equipamento_capacidade: null,
-      localidade: null,
-    };
-    globalThis.renderDiarioTable([row], false);
-
-    const tdEquip = document.querySelector('td[data-field="equipamento_id"]');
-    globalThis.enterDiarioEdit(tdEquip, 'equipamento_id');
-
-    // Simulate selecting CH 01
-    const input = tdEquip.querySelector('.diario-edit-input');
-    input.dataset.selectedId = '10';
-    input.dataset.selectedEq = JSON.stringify({
-      id: 10,
-      equipamento: 'CH 01',
-      capacidade: '10.0',
-      local: 'SPO',
-      localidade: 'Central Gelada'
     });
-    input.value = 'CH 01 \u2014 10 TR';
 
-    await globalThis.saveDiarioField(tdEquip);
+    eqInput.focus();
+    eqInput.value = 'CH';
+    eqInput.dispatchEvent(new Event('input'));
 
-    // Verify PATCH calls: first equipamento_id, then cascading site, then cascading localidade
-    expect(calls.some(c => c.field === 'equipamento_id' && c.value === 10)).toBe(true);
-    expect(calls.some(c => c.field === 'site' && c.value === 'SPO')).toBe(true);
-    expect(calls.some(c => c.field === 'localidade' && c.value === 'Central Gelada')).toBe(true);
+    expect(eqDropdown.classList.contains('hidden')).toBe(false);
+    const itemDiv = eqDropdown.querySelector('div');
+    expect(itemDiv.textContent).toContain('CH 01');
+
+    itemDiv.dispatchEvent(createMouseEvent('mousedown'));
+
+    expect(eqIdInput.value).toBe('10');
+    expect(siteInput.value).toBe('SPO');
+    expect(locInput.value).toBe('Central Gelada');
   });
 
-  it("saves null when selecting N/A for site, equipamento_id or localidade", async function () {
+  it("accepts free text in modal dropdown autocompletes without clearing input", function () {
     (0, eval)(mockInfiniteScroll);
     evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
 
-    const calls = [];
-    globalThis.apiFetch = function (url, opts) {
-      if (opts && opts.method === 'PATCH') {
-        const body = JSON.parse(opts.body);
-        calls.push(body);
-        return Promise.resolve({
-          json: () => Promise.resolve({ success: true, data: { id: body.id, field: body.field, value: body.value } })
-        });
-      }
-      return Promise.resolve({
-        json: () => Promise.resolve({ success: true, data: { items: [], total: 0 } })
-      });
-    };
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
 
-    const row = {
-      id: 55,
-      site: 'BMA',
-      equipamento_id: 1,
-      equipamento_nome: 'WM 01',
-      equipamento_capacidade: '5.0',
-      localidade: 'Container 1',
-    };
-    globalThis.renderDiarioTable([row], false);
+    const tecInput = document.getElementById('diarioModalTecnico');
+    tecInput.value = 'Técnico Externo Qualquer';
+    tecInput.dispatchEvent(new Event('input'));
+    tecInput.dispatchEvent(new Event('blur'));
 
-    // 1. Equipamento to N/A
-    const tdEquip = document.querySelector('td[data-field="equipamento_id"]');
-    globalThis.enterDiarioEdit(tdEquip, 'equipamento_id');
-    const inputEquip = tdEquip.querySelector('.diario-edit-input');
-    inputEquip.value = 'N/A';
-    inputEquip.dataset.selectedId = '';
-    await globalThis.saveDiarioField(tdEquip);
-    expect(calls.some(c => c.field === 'equipamento_id' && c.value === null)).toBe(true);
+    expect(tecInput.value).toBe('Técnico Externo Qualquer');
 
-    // 2. Site to N/A
-    const tdSite = document.querySelector('td[data-field="site"]');
-    globalThis.enterDiarioEdit(tdSite, 'site');
-    const inputSite = tdSite.querySelector('.diario-edit-input');
-    inputSite.value = 'N/A';
-    await globalThis.saveDiarioField(tdSite);
-    expect(calls.some(c => c.field === 'site' && c.value === null)).toBe(true);
+    const eqInput = document.getElementById('diarioModalEquipamento');
+    eqInput.value = 'Equipamento Customizado Avulso';
+    eqInput.dispatchEvent(new Event('input'));
+    eqInput.dispatchEvent(new Event('blur'));
+
+    expect(eqInput.value).toBe('Equipamento Customizado Avulso');
   });
 
   it("exports refreshDiarioList which clears tbody and reinitializes infinite scroll", function () {
@@ -569,12 +738,12 @@ describe("diario/list.js unit & integration", function () {
     expect(q).toContain('sort=site');
     expect(q).toContain('dir=ASC');
 
-    // Clicking Observação header (obs)
-    const obsTh = document.querySelector('th[data-sort="obs"]');
-    expect(obsTh).not.toBeNull();
-    obsTh.click();
+    // Clicking Técnico header (tecnico)
+    const tecTh = document.querySelector('th[data-sort="tecnico"]');
+    expect(tecTh).not.toBeNull();
+    tecTh.click();
     q = globalThis.buildDiarioQuery(20, 0);
-    expect(q).toContain('sort=obs');
+    expect(q).toContain('sort=tecnico');
     expect(q).toContain('dir=ASC');
   });
 

@@ -103,6 +103,32 @@ class DiarioControllerTest extends TestCase
         $this->assertStringContainsString('Campo id obrigatório', $json['message']);
     }
 
+    public function testUpdateFullRecordCallsService(): void
+    {
+        $updatePayload = [
+            'id' => 15,
+            'site' => 'SITE_MODAL',
+            'tecnico' => 'Tecnico Modal',
+            'categoria' => 'preventiva',
+        ];
+        Request::setMockBody($updatePayload);
+        $mockService = $this->createMock(DiarioService::class);
+        $mockService->expects($this->once())
+            ->method('update')
+            ->with(15, $updatePayload, ['id' => 1, 'role' => 'admin'])
+            ->willReturn(['id' => 15, 'item' => ['id' => 15, 'site' => 'SITE_MODAL']]);
+
+        $controller = new DiarioController(['id' => 1, 'role' => 'admin'], $mockService);
+
+        ob_start();
+        $controller->updateField();
+        $out = ob_get_clean();
+
+        $json = json_decode($out, true);
+        $this->assertTrue($json['success']);
+        $this->assertSame('Registro atualizado com sucesso', $json['message']);
+    }
+
     public function testAppendObsSuccess(): void
     {
         Request::setMockBody(['id' => 10, 'texto' => 'Nova observação']);

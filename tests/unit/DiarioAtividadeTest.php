@@ -25,6 +25,7 @@ class DiarioAtividadeTest extends TestCase
             'categoria' => 'emergencial',
             'status' => 'Em andamento',
             'equipe' => 'Carlos / João',
+            'tecnico' => 'Carlos Alberto da Silva',
             'placa' => 'TBO-9J41',
             'obs' => '[22/10/2026 20:00] Admin (admin): Teste',
             'created_by' => 1,
@@ -48,6 +49,7 @@ class DiarioAtividadeTest extends TestCase
         $this->assertSame('emergencial', $entity->categoria);
         $this->assertSame('Em andamento', $entity->status);
         $this->assertSame('Carlos / João', $entity->equipe);
+        $this->assertSame('Carlos Alberto da Silva', $entity->tecnico);
         $this->assertSame('TBO-9J41', $entity->placa);
         $this->assertSame('[22/10/2026 20:00] Admin (admin): Teste', $entity->obs);
         $this->assertSame(1, $entity->createdBy);
@@ -69,6 +71,7 @@ class DiarioAtividadeTest extends TestCase
         $this->assertSame('emergencial', $arr['categoria']);
         $this->assertSame('Em andamento', $arr['status']);
         $this->assertSame('Carlos / João', $arr['equipe']);
+        $this->assertSame('Carlos Alberto da Silva', $arr['tecnico']);
         $this->assertSame('TBO-9J41', $arr['placa']);
         $this->assertSame('[22/10/2026 20:00] Admin (admin): Teste', $arr['obs']);
         $this->assertSame(1, $arr['created_by']);
@@ -93,6 +96,7 @@ class DiarioAtividadeTest extends TestCase
         $this->assertNull($entity->categoria);
         $this->assertNull($entity->status);
         $this->assertNull($entity->equipe);
+        $this->assertNull($entity->tecnico);
         $this->assertNull($entity->placa);
         $this->assertNull($entity->obs);
         $this->assertNull($entity->createdBy);
@@ -106,6 +110,8 @@ class DiarioAtividadeTest extends TestCase
         $this->assertNull($arr['equipamento_id']);
         $this->assertNull($arr['hora_inicio']);
         $this->assertNull($arr['hora_saida']);
+        $this->assertNull($arr['equipe']);
+        $this->assertNull($arr['tecnico']);
         $this->assertNull($arr['placa']);
     }
 }

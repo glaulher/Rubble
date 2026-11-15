@@ -19,6 +19,7 @@ class DiarioAtividade
     public ?string $categoria;
     public ?string $status;
     public ?string $equipe;
+    public ?string $tecnico;
     public ?string $placa;
     public ?string $obs;
     public ?int $createdBy;
@@ -51,6 +52,7 @@ class DiarioAtividade
         $this->categoria = isset($data['categoria']) && trim((string) $data['categoria']) !== '' ? trim((string) $data['categoria']) : null;
         $this->status = isset($data['status']) && trim((string) $data['status']) !== '' ? trim((string) $data['status']) : null;
         $this->equipe = isset($data['equipe']) && trim((string) $data['equipe']) !== '' ? trim((string) $data['equipe']) : null;
+        $this->tecnico = isset($data['tecnico']) && trim((string) $data['tecnico']) !== '' ? trim((string) $data['tecnico']) : null;
         $this->placa = isset($data['placa']) && trim((string) $data['placa']) !== '' ? trim((string) $data['placa']) : null;
         $this->obs = isset($data['obs']) && $data['obs'] !== null && trim((string) $data['obs']) !== ''
             ? (string) $data['obs']
@@ -79,6 +81,7 @@ class DiarioAtividade
             'categoria' => $this->categoria,
             'status' => $this->status,
             'equipe' => $this->equipe,
+            'tecnico' => $this->tecnico,
             'placa' => $this->placa,
             'obs' => $this->obs,
             'created_by' => $this->createdBy,

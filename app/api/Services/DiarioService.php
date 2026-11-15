@@ -26,15 +26,15 @@ class DiarioService
 
     public const ALLOWED_SORT = [
         'id', 'site', 'equipamento', 'equipamento_id', 'equipamento_nome',
-        'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'placa', 'obs', 'created_at', 'created_by',
+        'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'tecnico', 'placa', 'obs', 'created_at', 'created_by',
         'd.id', 'd.site', 'd.localidade', 'd.os', 'd.data', 'd.hora_inicio', 'd.hora_saida', 'd.categoria',
-        'd.status', 'd.equipe', 'd.placa', 'd.obs', 'd.created_at', 'e.equipamento', 'created_by_name'
+        'd.status', 'd.equipe', 'd.tecnico', 'd.placa', 'd.obs', 'd.created_at', 'e.equipamento', 'created_by_name'
     ];
 
     public const ALLOWED_DIRS = ['ASC', 'DESC'];
 
     public const ALLOWED_FIELDS = [
-        'site', 'equipamento_id', 'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'placa'
+        'site', 'equipamento_id', 'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'tecnico', 'placa'
     ];
 
     private DiarioRepository $repository;
@@ -90,6 +90,7 @@ class DiarioService
             'categoria' => !empty($data['categoria']) ? trim((string) $data['categoria']) : null,
             'status' => !empty($data['status']) ? trim((string) $data['status']) : null,
             'equipe' => !empty($data['equipe']) && $data['equipe'] !== 'N/A' ? trim((string) $data['equipe']) : null,
+            'tecnico' => !empty($data['tecnico']) && $data['tecnico'] !== 'N/A' ? trim((string) $data['tecnico']) : null,
             'placa' => !empty($data['placa']) && $data['placa'] !== 'N/A' ? trim((string) $data['placa']) : null,
             'obs' => !empty($data['obs']) ? trim((string) $data['obs']) : null,
         ];
@@ -116,6 +117,10 @@ class DiarioService
 
         if ($record['equipe'] !== null && mb_strlen($record['equipe']) > 100) {
             throw new \InvalidArgumentException('Equipe deve ter no máximo 100 caracteres.');
+        }
+
+        if ($record['tecnico'] !== null && mb_strlen($record['tecnico']) > 100) {
+            throw new \InvalidArgumentException('Técnico deve ter no máximo 100 caracteres.');
         }
 
         if ($record['placa'] !== null && mb_strlen($record['placa']) > 30) {
@@ -185,6 +190,13 @@ class DiarioService
             }
         }
 
+        if ($field === 'tecnico' && $value !== null) {
+            $value = trim((string) $value);
+            if (mb_strlen($value) > 100) {
+                throw new \InvalidArgumentException('Técnico deve ter no máximo 100 caracteres.');
+            }
+        }
+
         if ($field === 'placa' && $value !== null) {
             $value = trim((string) $value);
             if (mb_strlen($value) > 30) {
@@ -202,6 +214,72 @@ class DiarioService
             'id' => $id,
             'field' => $field,
             'value' => $value,
+        ];
+    }
+
+    public function update(int $id, array $data, array $currentUser): array
+    {
+        $existing = $this->repository->findById($id);
+        if (!$existing) {
+            throw new \RuntimeException('Registro não encontrado.');
+        }
+
+        $record = [
+            'site' => !empty($data['site']) ? trim((string) $data['site']) : null,
+            'equipamento_id' => isset($data['equipamento_id']) && $data['equipamento_id'] !== '' && $data['equipamento_id'] !== 'N/A'
+                ? (int) $data['equipamento_id']
+                : null,
+            'localidade' => !empty($data['localidade']) && $data['localidade'] !== 'N/A' ? trim((string) $data['localidade']) : null,
+            'os' => !empty($data['os']) && $data['os'] !== 'N/A' ? trim((string) $data['os']) : null,
+            'data' => !empty($data['data']) ? trim((string) $data['data']) : ($existing->data ?? date('Y-m-d')),
+            'hora_inicio' => !empty($data['hora_inicio']) && $data['hora_inicio'] !== 'N/A' ? trim((string) $data['hora_inicio']) : null,
+            'hora_saida' => !empty($data['hora_saida']) && $data['hora_saida'] !== 'N/A' ? trim((string) $data['hora_saida']) : null,
+            'categoria' => !empty($data['categoria']) ? trim((string) $data['categoria']) : null,
+            'status' => !empty($data['status']) ? trim((string) $data['status']) : null,
+            'equipe' => !empty($data['equipe']) && $data['equipe'] !== 'N/A' ? trim((string) $data['equipe']) : null,
+            'tecnico' => !empty($data['tecnico']) && $data['tecnico'] !== 'N/A' ? trim((string) $data['tecnico']) : null,
+            'placa' => !empty($data['placa']) && $data['placa'] !== 'N/A' ? trim((string) $data['placa']) : null,
+            'obs' => isset($data['obs']) && $data['obs'] !== null && trim((string) $data['obs']) !== '' ? (string) $data['obs'] : null,
+        ];
+
+        if ($record['data'] !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $record['data'])) {
+            throw new \InvalidArgumentException('Formato de data inválido. Use YYYY-MM-DD.');
+        }
+
+        if ($record['hora_inicio'] !== null && !preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $record['hora_inicio'])) {
+            throw new \InvalidArgumentException('Formato de hora de início inválido. Use HH:MM.');
+        }
+
+        if ($record['hora_saida'] !== null && !preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $record['hora_saida'])) {
+            throw new \InvalidArgumentException('Formato de hora de saída inválido. Use HH:MM.');
+        }
+
+        if ($record['categoria'] !== null && !in_array($record['categoria'], self::CATEGORY_OPTIONS, true)) {
+            throw new \InvalidArgumentException('Categoria inválida.');
+        }
+
+        if ($record['status'] !== null && !in_array($record['status'], self::STATUS_OPTIONS, true)) {
+            throw new \InvalidArgumentException('Status inválido.');
+        }
+
+        if ($record['equipe'] !== null && mb_strlen($record['equipe']) > 100) {
+            throw new \InvalidArgumentException('Equipe deve ter no máximo 100 caracteres.');
+        }
+
+        if ($record['tecnico'] !== null && mb_strlen($record['tecnico']) > 100) {
+            throw new \InvalidArgumentException('Técnico deve ter no máximo 100 caracteres.');
+        }
+
+        if ($record['placa'] !== null && mb_strlen($record['placa']) > 30) {
+            throw new \InvalidArgumentException('Placa deve ter no máximo 30 caracteres.');
+        }
+
+        $this->repository->update($id, $record);
+
+        $item = $this->repository->findById($id);
+        return [
+            'id' => $id,
+            'item' => $item ? $item->toArray() : null,
         ];
     }
 

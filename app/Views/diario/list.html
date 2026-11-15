@@ -125,19 +125,13 @@
           <table id="diarioTable" class="w-full text-left">
             <thead class="sticky top-0 z-10">
               <tr class="bg-slate-50 border-b border-slate-200 text-left text-slate-600">
-                <th data-sort="data" data-col="data" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data <span class="sort-icon text-slate-400"></span></th>
-                <th data-sort="hora_inicio" data-col="hora_inicio" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Hora Início <span class="sort-icon text-slate-400"></span></th>
-                <th data-sort="hora_saida" data-col="hora_saida" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Hora Fim <span class="sort-icon text-slate-400"></span></th>
-                <th data-sort="equipe" data-col="equipe" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Técnico / Equipe <span class="sort-icon text-slate-400"></span></th>
+                <th data-sort="tecnico" data-col="tecnico" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Técnico <span class="sort-icon text-slate-400"></span></th>
+                <th data-sort="equipe" data-col="equipe" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Equipe <span class="sort-icon text-slate-400"></span></th>
                 <th data-sort="placa" data-col="placa" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Placa <span class="sort-icon text-slate-400"></span></th>
-                <th data-sort="categoria" data-col="categoria" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Tipo Atividade <span class="sort-icon text-slate-400"></span></th>
-                <th data-sort="os" data-col="os" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">OS <span class="sort-icon text-slate-400"></span></th>
+                <th data-sort="data" data-col="data" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Data <span class="sort-icon text-slate-400"></span></th>
                 <th data-sort="site" data-col="site" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Site <span class="sort-icon text-slate-400"></span></th>
-                <th data-sort="equipamento" data-col="equipamento" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Equipamento <span class="sort-icon text-slate-400"></span></th>
-                <th data-sort="localidade" data-col="localidade" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Localidade <span class="sort-icon text-slate-400"></span></th>
-                <th data-sort="status" data-col="status" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Status <span class="sort-icon text-slate-400"></span></th>
-                <th data-sort="obs" data-col="obs" class="px-3 py-2.5 text-sm font-semibold tracking-wider min-w-[280px] cursor-pointer select-none">Histórico Diário <span class="sort-icon text-slate-400"></span></th>
-                <th class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap text-center w-20">Ações</th>
+                <th data-sort="categoria" data-col="categoria" class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap cursor-pointer select-none">Tipo Atividade <span class="sort-icon text-slate-400"></span></th>
+                <th class="px-3 py-2.5 text-sm font-semibold tracking-wider whitespace-nowrap text-center w-28">Ações</th>
               </tr>
             </thead>
             <tbody id="diarioTableBody"></tbody>
@@ -148,6 +142,273 @@
       <div id="diarioEmpty" class="hidden text-center py-20 text-slate-500">
         <p class="text-lg">Nenhuma atividade registrada.</p>
       </div>
+    </div>
+  </main>
+
+  <!-- MODAL DE ATIVIDADE (NOVA LINHA / EDITAR) -->
+  <div
+    id="diarioModal"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-[99999]"
+  >
+    <div
+      class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4 flex flex-col"
+    >
+      <!-- Cabeçalho com gradiente idêntico à SM/PV -->
+      <div
+        class="bg-gradient-to-r from-sky-700 to-slate-900 px-8 py-6 text-white rounded-t-3xl flex items-start justify-between shrink-0"
+      >
+        <div>
+          <h2 id="diarioModalTitle" class="text-2xl font-light tracking-[0.05em] flex items-center gap-2">
+            <span>Diário de Atividades</span>
+          </h2>
+          <p id="diarioModalSubtitle" class="text-sky-100 mt-1 text-sm">Preencha os dados da atividade</p>
+        </div>
+        <button
+          type="button"
+          id="btnDiarioModalClose"
+          class="text-white/70 hover:text-white transition p-1.5 rounded-lg hover:bg-white/10 cursor-pointer"
+          aria-label="Fechar"
+        >
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Formulário do Modal -->
+      <form id="diarioModalForm" class="p-6 space-y-6">
+        <input type="hidden" id="diarioModalId" value="" />
+
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+            Informações da Atividade
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Técnico -->
+            <div class="relative">
+              <label for="diarioModalTecnico" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Técnico <span id="diarioModalTecnicoReq" class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="diarioModalTecnico"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500"
+                placeholder="Nome do técnico"
+                autocomplete="off"
+              />
+              <div
+                id="diarioModalTecnicoDropdown"
+                class="autocomplete-dropdown hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+              ></div>
+            </div>
+
+            <!-- Equipe -->
+            <div class="relative">
+              <label for="diarioModalEquipe" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Equipe
+              </label>
+              <input
+                type="text"
+                id="diarioModalEquipe"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500"
+                placeholder="Nome da equipe"
+                autocomplete="off"
+              />
+              <div
+                id="diarioModalEquipeDropdown"
+                class="autocomplete-dropdown hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+              ></div>
+            </div>
+
+            <!-- Placa -->
+            <div>
+              <label for="diarioModalPlaca" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Placa
+              </label>
+              <input
+                type="text"
+                id="diarioModalPlaca"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500 font-mono"
+                placeholder="ABC-1234"
+                maxlength="30"
+              />
+            </div>
+
+            <!-- Data -->
+            <div>
+              <label for="diarioModalData" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Data <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                id="diarioModalData"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <!-- Tipo Atividade (Categoria) -->
+            <div>
+              <label for="diarioModalCategoria" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Tipo Atividade <span class="text-red-500">*</span>
+              </label>
+              <select
+                id="diarioModalCategoria"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer"
+              >
+                <option value="corretiva">Corretiva</option>
+                <option value="preventiva">Preventiva</option>
+                <option value="emergencial">Emergencial</option>
+                <option value="administrativa">Administrativa</option>
+              </select>
+            </div>
+
+            <!-- Status -->
+            <div>
+              <label for="diarioModalStatus" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Status
+              </label>
+              <select
+                id="diarioModalStatus"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer"
+              >
+                <option value="Concluído">Concluído</option>
+                <option value="Pendente">Pendente</option>
+                <option value="Em andamento">Em andamento</option>
+                <option value="Planejado">Planejado</option>
+                <option value="Projeto Clean up">Projeto Clean up</option>
+                <option value="Cancelado">Cancelado</option>
+              </select>
+            </div>
+
+            <!-- Site -->
+            <div class="relative">
+              <label for="diarioModalSite" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Site
+              </label>
+              <input
+                type="text"
+                id="diarioModalSite"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500"
+                placeholder="Ex: BMA, VIX..."
+                autocomplete="off"
+              />
+              <div
+                id="diarioModalSiteDropdown"
+                class="autocomplete-dropdown hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+              ></div>
+            </div>
+
+            <!-- Equipamento -->
+            <div class="relative">
+              <label for="diarioModalEquipamento" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Equipamento
+              </label>
+              <input
+                type="text"
+                id="diarioModalEquipamento"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500"
+                placeholder="Nome do equipamento"
+                autocomplete="off"
+              />
+              <input type="hidden" id="diarioModalEquipamentoId" value="" />
+              <div
+                id="diarioModalEquipamentoDropdown"
+                class="autocomplete-dropdown hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+              ></div>
+            </div>
+
+            <!-- Localidade -->
+            <div class="relative">
+              <label for="diarioModalLocalidade" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Localidade
+              </label>
+              <input
+                type="text"
+                id="diarioModalLocalidade"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500"
+                placeholder="Ex: Sala 01, Container..."
+                autocomplete="off"
+              />
+              <div
+                id="diarioModalLocalidadeDropdown"
+                class="autocomplete-dropdown hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+              ></div>
+            </div>
+
+            <!-- OS -->
+            <div>
+              <label for="diarioModalOs" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                OS
+              </label>
+              <input
+                type="text"
+                id="diarioModalOs"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500 font-mono"
+                placeholder="Nº da OS"
+              />
+            </div>
+
+            <!-- Hora Início -->
+            <div>
+              <label for="diarioModalHoraInicio" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Hora Início
+              </label>
+              <input
+                type="time"
+                id="diarioModalHoraInicio"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500 font-mono"
+              />
+            </div>
+
+            <!-- Hora Saída -->
+            <div>
+              <label for="diarioModalHoraSaida" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Hora Saída
+              </label>
+              <input
+                type="time"
+                id="diarioModalHoraSaida"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500 font-mono"
+              />
+            </div>
+
+            <!-- Histórico Diário (Obs) -->
+            <div class="md:col-span-3">
+              <label for="diarioModalObs" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Histórico Diário
+              </label>
+              <textarea
+                id="diarioModalObs"
+                rows="3"
+                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500"
+                placeholder="Histórico diário / observações da atividade..."
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rodapé do Modal -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+          <button
+            type="button"
+            id="btnDiarioModalCancel"
+            class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            id="btnDiarioModalSave"
+            class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition cursor-pointer flex items-center gap-2 shadow-sm"
+          >
+            <span id="diarioModalSaveLabel">Salvar</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
     </div>
   </main>
 </div>

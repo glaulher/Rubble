@@ -97,28 +97,45 @@ class DiarioController
         try {
             $data = Request::body();
             $id = $data['id'] ?? null;
-            $field = $data['field'] ?? '';
-            $value = $data['value'] ?? null;
 
             if ($id === null || !is_numeric($id)) {
                 Response::error('Campo id obrigatório', 400);
                 return;
             }
-            if (!is_string($field) || trim($field) === '') {
-                Response::error('Campo field obrigatório', 400);
+
+            // Single field update
+            if (isset($data['field'])) {
+                $field = $data['field'];
+                $value = $data['value'] ?? null;
+
+                if (!is_string($field) || trim($field) === '') {
+                    Response::error('Campo field obrigatório', 400);
+                    return;
+                }
+
+                $result = $this->service->updateField((int) $id, trim($field), $value);
+                Cache::deleteByPrefix('diario_');
+                Response::success('Campo atualizado com sucesso', $result);
                 return;
             }
 
-            $result = $this->service->updateField((int) $id, trim($field), $value);
-
+            // Full record update (e.g. from modal)
+            $result = $this->service->update((int) $id, $data, $this->currentUser);
             Cache::deleteByPrefix('diario_');
-
-            Response::success('Campo atualizado com sucesso', $result);
+            Response::success('Registro atualizado com sucesso', $result);
+            return;
         } catch (\InvalidArgumentException | \RuntimeException $e) {
             Response::error($e->getMessage(), 400);
+            return;
         } catch (\Throwable $e) {
             Response::serverError($e);
+            return;
         }
+    }
+
+    public function update(): void
+    {
+        $this->updateField();
     }
 
     public function appendObs(): void
