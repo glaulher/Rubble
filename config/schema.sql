@@ -838,10 +838,14 @@ CREATE TABLE IF NOT EXISTS `diario_atividades` (
   FOREIGN KEY (`created_by`) REFERENCES `usuarios`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Migration 066: Cadastro de equipes
+-- Migration 066 & 080: Cadastro de equipes
 CREATE TABLE IF NOT EXISTS `equipes` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `nome` VARCHAR(100) NOT NULL,
+  `tecnico` VARCHAR(100) DEFAULT NULL,
+  `placa` VARCHAR(30) DEFAULT NULL,
+  `veiculo` VARCHAR(50) DEFAULT NULL,
+  `contrato` VARCHAR(50) DEFAULT NULL,
   `ativo` TINYINT(1) NOT NULL DEFAULT 1,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

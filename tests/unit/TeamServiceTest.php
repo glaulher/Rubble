@@ -53,6 +53,36 @@ class TeamServiceTest extends TestCase
         $this->assertSame(5, $result);
     }
 
+    public function testSaveWithNewColumns(): void
+    {
+        $payload = [
+            'nome' => 'Alpha',
+            'tecnico' => 'João Silva',
+            'placa' => 'abc-1234',
+            'veiculo' => 'Fiorino',
+            'contrato' => 'CLARO',
+            'ativo' => 1,
+        ];
+
+        $repository = $this->createMockRepo();
+        $repository->method('findByNameCase')->willReturn(null);
+        $repository->expects($this->once())
+            ->method('save')
+            ->with($this->callback(function (array $data) {
+                return $data['nome'] === 'Alpha'
+                    && $data['tecnico'] === 'João Silva'
+                    && $data['placa'] === 'ABC-1234'
+                    && $data['veiculo'] === 'Fiorino'
+                    && $data['contrato'] === 'CLARO';
+            }))
+            ->willReturn(5);
+
+        $service = $this->createService($repository);
+        $result  = $service->save($payload);
+
+        $this->assertSame(5, $result);
+    }
+
     public function testSaveThrowsForDuplicateNameCaseInsensitive(): void
     {
         $repository = $this->createMockRepo();
@@ -87,12 +117,29 @@ class TeamServiceTest extends TestCase
 
     public function testUpdateSuccess(): void
     {
+        $payload = [
+            'nome' => 'Beta',
+            'tecnico' => 'Carlos Pereira',
+            'placa' => 'xyz-9999',
+            'veiculo' => 'Kangoo',
+            'contrato' => 'ARCON',
+            'ativo' => 1
+        ];
+
         $repository = $this->createMockRepo();
         $repository->method('findByNameCase')->willReturn(null);
-        $repository->expects($this->once())->method('update')->with(1, ['nome' => 'Beta', 'ativo' => 1]);
+        $repository->expects($this->once())
+            ->method('update')
+            ->with(1, $this->callback(function (array $data) {
+                return $data['nome'] === 'Beta'
+                    && $data['tecnico'] === 'Carlos Pereira'
+                    && $data['placa'] === 'XYZ-9999'
+                    && $data['veiculo'] === 'Kangoo'
+                    && $data['contrato'] === 'ARCON';
+            }));
 
         $service = $this->createService($repository);
-        $service->update(1, ['nome' => 'Beta', 'ativo' => 1]);
+        $service->update(1, $payload);
     }
 
     public function testUpdateThrowsForDuplicateNameOnAnotherRecord(): void

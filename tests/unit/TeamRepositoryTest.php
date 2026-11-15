@@ -114,15 +114,57 @@ class TeamRepositoryTest extends TestCase
 
     // --- update ---
 
+    public function testSaveBindsNewColumns(): void
+    {
+        $stmt = $this->createMockStmt();
+        $stmt->expects($this->once())->method('execute');
+        $stmt->expects($this->once())->method('bind_param')->with(
+            'sssssi',
+            'Alpha',
+            'João Silva',
+            'ABC-1234',
+            'Fiorino',
+            'CLARO',
+            1
+        );
+        $stmt->method('close');
+
+        $repository = $this->createRepoWithMockStmt($stmt);
+        $repository->save([
+            'nome' => 'Alpha',
+            'tecnico' => 'João Silva',
+            'placa' => 'ABC-1234',
+            'veiculo' => 'Fiorino',
+            'contrato' => 'CLARO',
+            'ativo' => 1,
+        ]);
+    }
+
     public function testUpdateCallsExecute(): void
     {
         $stmt = $this->createMockStmt();
         $stmt->expects($this->once())->method('execute');
-        $stmt->method('bind_param');
+        $stmt->expects($this->once())->method('bind_param')->with(
+            'sssssii',
+            'Alpha',
+            'João Silva',
+            'ABC-1234',
+            'Fiorino',
+            'CLARO',
+            1,
+            1
+        );
         $stmt->method('close');
 
         $repository = $this->createRepoWithMockStmt($stmt);
-        $repository->update(1, ['nome' => 'Alpha', 'ativo' => 1]);
+        $repository->update(1, [
+            'nome' => 'Alpha',
+            'tecnico' => 'João Silva',
+            'placa' => 'ABC-1234',
+            'veiculo' => 'Fiorino',
+            'contrato' => 'CLARO',
+            'ativo' => 1,
+        ]);
     }
 
     // --- delete ---

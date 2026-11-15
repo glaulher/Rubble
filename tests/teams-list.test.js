@@ -41,8 +41,8 @@ globalThis.confirmDelete = async function (title, msg, name) {
 globalThis.invalidateTeamCache = function () {};
 
 const mockTeams = [
-  { id: 1, nome: "Alpha Team", ativo: 1, created_at: "2026-10-23 10:00:00" },
-  { id: 2, nome: "Beta Team", ativo: 0, created_at: "2026-10-23 11:00:00" },
+  { id: 1, nome: "Alpha Team", tecnico: "João Silva", placa: "TBO-9J41", veiculo: "Kangoo", contrato: "ARCON", ativo: 1, created_at: "2026-10-23 10:00:00" },
+  { id: 2, nome: "Beta Team", tecnico: "Carlos Pereira", placa: "KOY-5F34", veiculo: "Duster", contrato: "SUBCONTRATADA", ativo: 0, created_at: "2026-10-23 11:00:00" },
 ];
 
 let lastFetchRequest = null;
@@ -121,5 +121,40 @@ describe("Teams List — Navigation and Action Listeners", () => {
     // confirmDelete should have been triggered
     expect(deleteCalls.length).toBe(1);
     expect(deleteCalls[0].name).toBe("Beta Team");
+  });
+
+  it("renders new columns (tecnico, placa, veiculo, contrato) in table rows", async () => {
+    await initTeams();
+
+    const row = document.querySelector('tr[data-team-id="1"]');
+    expect(row).not.toBeNull();
+    expect(row.textContent).toContain("João Silva");
+    expect(row.textContent).toContain("TBO-9J41");
+    expect(row.textContent).toContain("Kangoo");
+    expect(row.textContent).toContain("ARCON");
+  });
+
+  it("populates modal with tecnico, placa, veiculo, contrato on edit and sends on save", async () => {
+    await initTeams();
+
+    const editBtn = document.querySelector('button[data-action="edit-team"][data-team-id="1"]');
+    editBtn.click();
+
+    expect(document.getElementById("teamModalTecnico").value).toBe("João Silva");
+    expect(document.getElementById("teamModalPlaca").value).toBe("TBO-9J41");
+    expect(document.getElementById("teamModalVeiculo").value).toBe("Kangoo");
+    expect(document.getElementById("teamModalContrato").value).toBe("ARCON");
+
+    // Change vehicle and save
+    document.getElementById("teamModalVeiculo").value = "Fiorino";
+    const saveBtn = document.querySelector('button[data-action="save-team"]');
+    await saveBtn.click();
+
+    expect(lastFetchRequest).not.toBeNull();
+    const sentBody = JSON.parse(lastFetchRequest.opts.body);
+    expect(sentBody.tecnico).toBe("João Silva");
+    expect(sentBody.placa).toBe("TBO-9J41");
+    expect(sentBody.veiculo).toBe("Fiorino");
+    expect(sentBody.contrato).toBe("ARCON");
   });
 });
