@@ -20,9 +20,12 @@ class DiarioAtividadeTest extends TestCase
             'localidade' => 'Container 1',
             'os' => 'OS12345',
             'data' => '2026-10-22',
-            'categoria' => 'corretiva',
+            'hora_inicio' => '08:30:00',
+            'hora_saida' => '17:15:00',
+            'categoria' => 'emergencial',
             'status' => 'Em andamento',
             'equipe' => 'Carlos / João',
+            'placa' => 'TBO-9J41',
             'obs' => '[22/10/2026 20:00] Admin (admin): Teste',
             'created_by' => 1,
             'created_by_name' => 'Admin User',
@@ -40,9 +43,12 @@ class DiarioAtividadeTest extends TestCase
         $this->assertSame('Container 1', $entity->localidade);
         $this->assertSame('OS12345', $entity->os);
         $this->assertSame('2026-10-22', $entity->data);
-        $this->assertSame('corretiva', $entity->categoria);
+        $this->assertSame('08:30', $entity->horaInicio);
+        $this->assertSame('17:15', $entity->horaSaida);
+        $this->assertSame('emergencial', $entity->categoria);
         $this->assertSame('Em andamento', $entity->status);
         $this->assertSame('Carlos / João', $entity->equipe);
+        $this->assertSame('TBO-9J41', $entity->placa);
         $this->assertSame('[22/10/2026 20:00] Admin (admin): Teste', $entity->obs);
         $this->assertSame(1, $entity->createdBy);
         $this->assertSame('Admin User', $entity->createdByName);
@@ -58,9 +64,12 @@ class DiarioAtividadeTest extends TestCase
         $this->assertSame('Container 1', $arr['localidade']);
         $this->assertSame('OS12345', $arr['os']);
         $this->assertSame('2026-10-22', $arr['data']);
-        $this->assertSame('corretiva', $arr['categoria']);
+        $this->assertSame('08:30', $arr['hora_inicio']);
+        $this->assertSame('17:15', $arr['hora_saida']);
+        $this->assertSame('emergencial', $arr['categoria']);
         $this->assertSame('Em andamento', $arr['status']);
         $this->assertSame('Carlos / João', $arr['equipe']);
+        $this->assertSame('TBO-9J41', $arr['placa']);
         $this->assertSame('[22/10/2026 20:00] Admin (admin): Teste', $arr['obs']);
         $this->assertSame(1, $arr['created_by']);
         $this->assertSame('Admin User', $arr['created_by_name']);
@@ -79,8 +88,12 @@ class DiarioAtividadeTest extends TestCase
         $this->assertNull($entity->localidade);
         $this->assertNull($entity->os);
         $this->assertNull($entity->data);
+        $this->assertNull($entity->horaInicio);
+        $this->assertNull($entity->horaSaida);
         $this->assertNull($entity->categoria);
         $this->assertNull($entity->status);
+        $this->assertNull($entity->equipe);
+        $this->assertNull($entity->placa);
         $this->assertNull($entity->obs);
         $this->assertNull($entity->createdBy);
         $this->assertNull($entity->createdByName);
@@ -91,5 +104,8 @@ class DiarioAtividadeTest extends TestCase
         $this->assertNull($arr['id']);
         $this->assertNull($arr['site']);
         $this->assertNull($arr['equipamento_id']);
+        $this->assertNull($arr['hora_inicio']);
+        $this->assertNull($arr['hora_saida']);
+        $this->assertNull($arr['placa']);
     }
 }

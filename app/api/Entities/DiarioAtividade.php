@@ -14,9 +14,12 @@ class DiarioAtividade
     public ?string $localidade;
     public ?string $os;
     public ?string $data;
+    public ?string $horaInicio;
+    public ?string $horaSaida;
     public ?string $categoria;
     public ?string $status;
     public ?string $equipe;
+    public ?string $placa;
     public ?string $obs;
     public ?int $createdBy;
     public ?string $createdByName;
@@ -39,9 +42,16 @@ class DiarioAtividade
         $this->localidade = isset($data['localidade']) && trim((string) $data['localidade']) !== '' ? trim((string) $data['localidade']) : null;
         $this->os = isset($data['os']) && trim((string) $data['os']) !== '' ? trim((string) $data['os']) : null;
         $this->data = isset($data['data']) && trim((string) $data['data']) !== '' ? trim((string) $data['data']) : null;
+        $this->horaInicio = isset($data['hora_inicio']) && trim((string) $data['hora_inicio']) !== ''
+            ? (strlen(trim((string) $data['hora_inicio'])) >= 5 ? substr(trim((string) $data['hora_inicio']), 0, 5) : trim((string) $data['hora_inicio']))
+            : null;
+        $this->horaSaida = isset($data['hora_saida']) && trim((string) $data['hora_saida']) !== ''
+            ? (strlen(trim((string) $data['hora_saida'])) >= 5 ? substr(trim((string) $data['hora_saida']), 0, 5) : trim((string) $data['hora_saida']))
+            : null;
         $this->categoria = isset($data['categoria']) && trim((string) $data['categoria']) !== '' ? trim((string) $data['categoria']) : null;
         $this->status = isset($data['status']) && trim((string) $data['status']) !== '' ? trim((string) $data['status']) : null;
         $this->equipe = isset($data['equipe']) && trim((string) $data['equipe']) !== '' ? trim((string) $data['equipe']) : null;
+        $this->placa = isset($data['placa']) && trim((string) $data['placa']) !== '' ? trim((string) $data['placa']) : null;
         $this->obs = isset($data['obs']) && $data['obs'] !== null && trim((string) $data['obs']) !== ''
             ? (string) $data['obs']
             : null;
@@ -64,9 +74,12 @@ class DiarioAtividade
             'localidade' => $this->localidade,
             'os' => $this->os,
             'data' => $this->data,
+            'hora_inicio' => $this->horaInicio,
+            'hora_saida' => $this->horaSaida,
             'categoria' => $this->categoria,
             'status' => $this->status,
             'equipe' => $this->equipe,
+            'placa' => $this->placa,
             'obs' => $this->obs,
             'created_by' => $this->createdBy,
             'created_by_name' => $this->createdByName,

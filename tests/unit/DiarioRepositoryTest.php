@@ -33,8 +33,12 @@ class DiarioRepositoryTest extends TestCase
             'localidade' => 'Sala 1',
             'os' => 'OS99999',
             'data' => '2026-10-22',
-            'categoria' => 'corretiva',
+            'hora_inicio' => '08:00',
+            'hora_saida' => '17:30',
+            'categoria' => 'emergencial',
             'status' => 'Pendente',
+            'equipe' => 'Alexandre Donato',
+            'placa' => 'TBO-9J41',
             'obs' => 'Primeira observação',
         ];
 
@@ -49,8 +53,12 @@ class DiarioRepositoryTest extends TestCase
         $this->assertSame('Sala 1', $item->localidade);
         $this->assertSame('OS99999', $item->os);
         $this->assertSame('2026-10-22', $item->data);
-        $this->assertSame('corretiva', $item->categoria);
+        $this->assertSame('08:00', $item->horaInicio);
+        $this->assertSame('17:30', $item->horaSaida);
+        $this->assertSame('emergencial', $item->categoria);
         $this->assertSame('Pendente', $item->status);
+        $this->assertSame('Alexandre Donato', $item->equipe);
+        $this->assertSame('TBO-9J41', $item->placa);
         $this->assertSame('Primeira observação', $item->obs);
         $this->assertSame(1, $item->createdBy);
     }
@@ -206,6 +214,15 @@ class DiarioRepositoryTest extends TestCase
         $this->assertTrue($updatedEquipe);
         $item = $this->repo->findById($id);
         $this->assertSame('Técnico Silva', $item->equipe);
+
+        // Update hora_inicio, hora_saida, placa
+        $this->assertTrue($this->repo->updateField($id, 'hora_inicio', '08:15'));
+        $this->assertTrue($this->repo->updateField($id, 'hora_saida', '17:45'));
+        $this->assertTrue($this->repo->updateField($id, 'placa', 'TBO-9J68'));
+        $itemTimes = $this->repo->findById($id);
+        $this->assertSame('08:15', $itemTimes->horaInicio);
+        $this->assertSame('17:45', $itemTimes->horaSaida);
+        $this->assertSame('TBO-9J68', $itemTimes->placa);
 
         // Update with N/A resets to null
         $this->repo->updateField($id, 'os', 'N/A');

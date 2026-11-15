@@ -11,13 +11,13 @@ class DiarioRepository extends BaseRepository
 {
     public const ALLOWED_SORT = [
         'id', 'site', 'equipamento', 'equipamento_id', 'equipamento_nome',
-        'localidade', 'os', 'data', 'categoria', 'status', 'equipe', 'obs', 'created_at', 'created_by',
-        'd.id', 'd.site', 'd.localidade', 'd.os', 'd.data', 'd.categoria',
-        'd.status', 'd.equipe', 'd.obs', 'd.created_at', 'e.equipamento', 'created_by_name'
+        'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'placa', 'obs', 'created_at', 'created_by',
+        'd.id', 'd.site', 'd.localidade', 'd.os', 'd.data', 'd.hora_inicio', 'd.hora_saida', 'd.categoria',
+        'd.status', 'd.equipe', 'd.placa', 'd.obs', 'd.created_at', 'e.equipamento', 'created_by_name'
     ];
 
     public const ALLOWED_FIELDS = [
-        'site', 'equipamento_id', 'localidade', 'os', 'data', 'categoria', 'status', 'equipe'
+        'site', 'equipamento_id', 'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'placa'
     ];
 
     public function __construct(?mysqli $conn = null)
@@ -41,9 +41,12 @@ class DiarioRepository extends BaseRepository
             'localidade' => 'd.localidade',
             'os' => 'd.os',
             'data' => 'd.data',
+            'hora_inicio' => 'd.hora_inicio',
+            'hora_saida' => 'd.hora_saida',
             'categoria' => 'd.categoria',
             'status' => 'd.status',
             'equipe' => 'd.equipe',
+            'placa' => 'd.placa',
             'obs' => 'd.obs',
             'created_at' => 'd.created_at',
             'created_by' => 'created_by_name',
@@ -53,9 +56,12 @@ class DiarioRepository extends BaseRepository
             'd.localidade' => 'd.localidade',
             'd.os' => 'd.os',
             'd.data' => 'd.data',
+            'd.hora_inicio' => 'd.hora_inicio',
+            'd.hora_saida' => 'd.hora_saida',
             'd.categoria' => 'd.categoria',
             'd.status' => 'd.status',
             'd.equipe' => 'd.equipe',
+            'd.placa' => 'd.placa',
             'd.obs' => 'd.obs',
             'd.created_at' => 'd.created_at',
             'e.equipamento' => 'e.equipamento',
@@ -135,8 +141,8 @@ class DiarioRepository extends BaseRepository
     public function create(array $data, ?int $userId): int
     {
         $stmt = $this->safePrepare(
-            "INSERT INTO diario_atividades (site, equipamento_id, localidade, os, data, categoria, status, equipe, obs, created_by, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
+            "INSERT INTO diario_atividades (site, equipamento_id, localidade, os, data, hora_inicio, hora_saida, categoria, status, equipe, placa, obs, created_by, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
         );
 
         $site = !empty($data['site']) ? trim((string) $data['site']) : null;
@@ -146,21 +152,27 @@ class DiarioRepository extends BaseRepository
         $localidade = !empty($data['localidade']) && $data['localidade'] !== 'N/A' ? trim((string) $data['localidade']) : null;
         $os = !empty($data['os']) && $data['os'] !== 'N/A' ? trim((string) $data['os']) : null;
         $dataDate = !empty($data['data']) ? trim((string) $data['data']) : date('Y-m-d');
+        $horaInicio = !empty($data['hora_inicio']) && $data['hora_inicio'] !== 'N/A' ? trim((string) $data['hora_inicio']) : null;
+        $horaSaida = !empty($data['hora_saida']) && $data['hora_saida'] !== 'N/A' ? trim((string) $data['hora_saida']) : null;
         $categoria = !empty($data['categoria']) ? trim((string) $data['categoria']) : null;
         $status = !empty($data['status']) ? trim((string) $data['status']) : null;
         $equipe = !empty($data['equipe']) && $data['equipe'] !== 'N/A' ? trim((string) $data['equipe']) : null;
+        $placa = !empty($data['placa']) && $data['placa'] !== 'N/A' ? trim((string) $data['placa']) : null;
         $obs = isset($data['obs']) && $data['obs'] !== null && trim((string) $data['obs']) !== '' ? (string) $data['obs'] : null;
 
         $stmt->bind_param(
-            'sisssssssi',
+            'sissssssssssi',
             $site,
             $equipamentoId,
             $localidade,
             $os,
             $dataDate,
+            $horaInicio,
+            $horaSaida,
             $categoria,
             $status,
             $equipe,
+            $placa,
             $obs,
             $userId
         );
@@ -269,13 +281,14 @@ class DiarioRepository extends BaseRepository
                 OR d.categoria LIKE ?
                 OR d.status LIKE ?
                 OR d.equipe LIKE ?
+                OR d.placa LIKE ?
                 OR d.obs LIKE ?
                 OR d.data LIKE ?
                 OR DATE_FORMAT(d.data, \'%d/%m/%Y\') LIKE ?
                 OR u.nome LIKE ?
                 OR u.username LIKE ?
             )';
-            $searchFieldCount = 14;
+            $searchFieldCount = 15;
             for ($i = 0; $i < $searchFieldCount; $i++) {
                 $params[] = $term;
                 $types .= 's';

@@ -31,7 +31,7 @@ import { initDiarioList } from '/public/js/diario/list.js';
 import { initTeams } from '/public/js/teams/list.js';
 import { initPublicSign } from '/public/js/termo/public-sign.js?v=32';
 
-const VIEW_VERSION = 63;
+const VIEW_VERSION = 64;
 
 export async function loadPage(url) {
   try {

@@ -54,7 +54,44 @@ class DiarioServiceTest extends TestCase
         $user = ['id' => 1, 'role' => 'admin'];
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->service->create(['categoria' => 'emergencial'], $user);
+        $this->service->create(['categoria' => 'categoria_inexistente'], $user);
+    }
+
+    public function testCreateWithAllValidCategories(): void
+    {
+        $user = ['id' => 1, 'role' => 'admin'];
+        foreach (['corretiva', 'preventiva', 'emergencial', 'administrativa'] as $cat) {
+            $result = $this->service->create(['categoria' => $cat], $user);
+            $this->assertGreaterThan(0, $result['id']);
+            $this->assertSame($cat, $result['item']['categoria']);
+        }
+    }
+
+    public function testCreateWithTimesAndPlaca(): void
+    {
+        $user = ['id' => 1, 'role' => 'admin'];
+        $result = $this->service->create([
+            'categoria' => 'emergencial',
+            'hora_inicio' => '08:00',
+            'hora_saida' => '12:30',
+            'equipe' => 'Alexandre Donato',
+            'placa' => 'TBO-9J41',
+        ], $user);
+
+        $this->assertGreaterThan(0, $result['id']);
+        $item = $result['item'];
+        $this->assertSame('08:00', $item['hora_inicio']);
+        $this->assertSame('12:30', $item['hora_saida']);
+        $this->assertSame('TBO-9J41', $item['placa']);
+        $this->assertSame('emergencial', $item['categoria']);
+    }
+
+    public function testCreateWithInvalidTimeFormatThrows(): void
+    {
+        $user = ['id' => 1, 'role' => 'admin'];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->service->create(['hora_inicio' => '25:99'], $user);
     }
 
     public function testCreateWithInvalidStatusThrows(): void
@@ -80,6 +117,15 @@ class DiarioServiceTest extends TestCase
         $this->assertSame('Técnico Oliveira', $resEquipe['value']);
         $item = $this->service->getById($id);
         $this->assertSame('Técnico Oliveira', $item['equipe']);
+
+        // Update hora_inicio, hora_saida, placa
+        $this->service->updateField($id, 'hora_inicio', '09:00');
+        $this->service->updateField($id, 'hora_saida', '18:00');
+        $this->service->updateField($id, 'placa', 'TBO-9J53');
+        $itemUpdated = $this->service->getById($id);
+        $this->assertSame('09:00', $itemUpdated['hora_inicio']);
+        $this->assertSame('18:00', $itemUpdated['hora_saida']);
+        $this->assertSame('TBO-9J53', $itemUpdated['placa']);
 
         // N/A sets null
         $resNa = $this->service->updateField($id, 'os', 'N/A');

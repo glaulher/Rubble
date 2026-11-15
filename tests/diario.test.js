@@ -42,14 +42,17 @@ function setupDiarioDOM() {
       <table id="diarioTable">
         <thead>
           <tr>
+            <th data-sort="data">Data <span class="sort-icon"></span></th>
+            <th data-sort="hora_inicio">Hora Início <span class="sort-icon"></span></th>
+            <th data-sort="hora_saida">Hora Fim <span class="sort-icon"></span></th>
+            <th data-sort="equipe">Técnico / Equipe <span class="sort-icon"></span></th>
+            <th data-sort="placa">Placa <span class="sort-icon"></span></th>
+            <th data-sort="categoria">Categoria <span class="sort-icon"></span></th>
+            <th data-sort="os">OS <span class="sort-icon"></span></th>
             <th data-sort="site">Site <span class="sort-icon"></span></th>
             <th data-sort="equipamento">Equipamento <span class="sort-icon"></span></th>
             <th data-sort="localidade">Localidade <span class="sort-icon"></span></th>
-            <th data-sort="os">OS <span class="sort-icon"></span></th>
-            <th data-sort="data">Data <span class="sort-icon"></span></th>
-            <th data-sort="categoria">Categoria <span class="sort-icon"></span></th>
             <th data-sort="status">Status <span class="sort-icon"></span></th>
-            <th data-sort="equipe">Equipe <span class="sort-icon"></span></th>
             <th data-sort="obs">Observação <span class="sort-icon"></span></th>
             <th>Ações</th>
           </tr>
@@ -102,6 +105,24 @@ describe("diario/list.js unit & integration", function () {
 
     expect(globalThis.getDiarioCategoryBadgeClass('corretiva')).toContain('orange');
     expect(globalThis.getDiarioCategoryBadgeClass('preventiva')).toContain('sky');
+    expect(globalThis.getDiarioCategoryBadgeClass('emergencial')).toContain('red');
+    expect(globalThis.getDiarioCategoryBadgeClass('administrativa')).toContain('purple');
+  });
+
+  it("includes all 4 categories in DIARIO_CATEGORY_OPTIONS", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    expect(globalThis.DIARIO_CATEGORY_OPTIONS).toEqual(['corretiva', 'preventiva', 'emergencial', 'administrativa']);
+  });
+
+  it("includes HORA_INICIO, HORA_SAIDA and PLACA in DIARIO_COLUMNS", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    expect(globalThis.DIARIO_COLUMNS).toContain('HORA_INICIO');
+    expect(globalThis.DIARIO_COLUMNS).toContain('HORA_SAIDA');
+    expect(globalThis.DIARIO_COLUMNS).toContain('PLACA');
   });
 
   it("renders rows and handles empty state", function () {
@@ -117,9 +138,12 @@ describe("diario/list.js unit & integration", function () {
         localidade: 'Container 1',
         os: 'OS123',
         data: '2026-10-22',
-        categoria: 'corretiva',
+        hora_inicio: '08:00',
+        hora_saida: '12:00',
+        categoria: 'emergencial',
         status: 'Pendente',
-        equipe: 'Técnico Silva',
+        equipe: 'ALEXANDRE DONATO DA SILVA',
+        placa: 'TBO-9J41',
         obs: 'Obs teste',
         created_by: 1,
       }
@@ -129,7 +153,11 @@ describe("diario/list.js unit & integration", function () {
     const rows = document.querySelectorAll('#diarioTableBody tr.diario-row');
     expect(rows.length).toBe(1);
     expect(document.getElementById('diarioEmpty').classList.contains('hidden')).toBe(true);
-    expect(document.querySelector('td[data-field="equipe"]').textContent).toContain('Técnico Silva');
+    expect(document.querySelector('td[data-field="equipe"]').textContent).toContain('ALEXANDRE DONATO DA SILVA');
+    expect(document.querySelector('td[data-field="placa"]').textContent).toContain('TBO-9J41');
+    expect(document.querySelector('td[data-field="hora_inicio"]').textContent).toContain('08:00');
+    expect(document.querySelector('td[data-field="hora_saida"]').textContent).toContain('12:00');
+    expect(document.querySelector('.diario-duplicate-btn')).not.toBeNull();
 
     // Empty list
     globalThis.renderDiarioTable([], false);
@@ -208,6 +236,70 @@ describe("diario/list.js unit & integration", function () {
     expect(tdEquipe.querySelector('input.diario-edit-input')).not.toBeNull();
     expect(tdEquipe.querySelector('input.diario-edit-input').value).toBe('Carlos / João');
     expect(tdEquipe.querySelector('.diario-save-btn')).not.toBeNull();
+  });
+
+  it("enters inline edit for hora_inicio, hora_saida with type time and placa with text", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.renderDiarioTable([{ id: 1, hora_inicio: '08:00', hora_saida: '12:30', placa: 'TBO-9J41' }], false);
+    const tdInicio = document.querySelector('td[data-field="hora_inicio"]');
+    globalThis.enterDiarioEdit(tdInicio, 'hora_inicio');
+    const inputInicio = tdInicio.querySelector('input.diario-edit-input');
+    expect(inputInicio).not.toBeNull();
+    expect(inputInicio.type).toBe('time');
+    expect(inputInicio.value).toBe('08:00');
+
+    const tdPlaca = document.querySelector('td[data-field="placa"]');
+    globalThis.enterDiarioEdit(tdPlaca, 'placa');
+    const inputPlaca = tdPlaca.querySelector('input.diario-edit-input');
+    expect(inputPlaca).not.toBeNull();
+    expect(inputPlaca.value).toBe('TBO-9J41');
+  });
+
+  it("duplicates activity line calling apiFetch with copied fields", async function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    let postedBody = null;
+    globalThis.apiFetch = function (url, opts) {
+      if (opts && opts.method === 'POST') {
+        postedBody = JSON.parse(opts.body);
+        return Promise.resolve({
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              item: {
+                id: 202,
+                ...postedBody,
+                created_by: 1,
+              }
+            }
+          })
+        });
+      }
+      return Promise.resolve({ json: () => ({ success: true, data: { items: [], total: 0 } }) });
+    };
+
+    globalThis.renderDiarioTable([{
+      id: 101,
+      site: 'BMA',
+      equipamento_id: 1,
+      localidade: 'Sala 1',
+      os: 'OS999',
+      data: '2026-11-13',
+      equipe: 'ALEXANDRE DONATO DA SILVA',
+      placa: 'TBO-9J41',
+    }], false);
+
+    await globalThis.duplicateDiarioLine(101);
+
+    expect(postedBody).not.toBeNull();
+    expect(postedBody.site).toBe('BMA');
+    expect(postedBody.data).toBe('2026-11-13');
+    expect(postedBody.equipe).toBe('ALEXANDRE DONATO DA SILVA');
+    expect(postedBody.placa).toBe('TBO-9J41');
+    expect(document.querySelectorAll('#diarioTableBody tr.diario-row').length).toBe(2);
   });
 
   it("formats equipamento display with capacity in TR or fallback", function () {

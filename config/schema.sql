@@ -812,7 +812,7 @@ CREATE TABLE IF NOT EXISTS `token_blacklist` (
   INDEX `idx_token_blacklist_expires` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- diario_atividades — Diário de Atividades executadas
+-- diario_atividades — Diário de Atividades executadas (Migration 064, 065, 081)
 CREATE TABLE IF NOT EXISTS `diario_atividades` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `site` VARCHAR(100) DEFAULT NULL,
@@ -820,9 +820,12 @@ CREATE TABLE IF NOT EXISTS `diario_atividades` (
   `localidade` VARCHAR(100) DEFAULT NULL,
   `os` VARCHAR(50) DEFAULT NULL,
   `data` DATE DEFAULT NULL,
-  `categoria` ENUM('corretiva','preventiva') DEFAULT NULL,
+  `hora_inicio` TIME DEFAULT NULL,
+  `hora_saida` TIME DEFAULT NULL,
+  `categoria` ENUM('corretiva','preventiva','emergencial','administrativa') DEFAULT NULL,
   `status` VARCHAR(50) DEFAULT NULL,
   `equipe` VARCHAR(100) DEFAULT NULL,
+  `placa` VARCHAR(30) DEFAULT NULL,
   `obs` MEDIUMTEXT DEFAULT NULL,
   `created_by` INT DEFAULT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -831,6 +834,7 @@ CREATE TABLE IF NOT EXISTS `diario_atividades` (
   INDEX `idx_diario_status` (`status`),
   INDEX `idx_diario_categoria` (`categoria`),
   INDEX `idx_diario_equipe` (`equipe`),
+  INDEX `idx_diario_placa` (`placa`),
   INDEX `idx_diario_site` (`site`),
   INDEX `idx_diario_os` (`os`),
   INDEX `idx_diario_created_by` (`created_by`),

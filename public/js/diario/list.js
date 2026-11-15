@@ -7,7 +7,7 @@ import { formatDate } from '/public/js/pv/form-utils.js';
 import { createAutocomplete } from '/public/js/pv/form-autocomplete.js';
 
 export const DIARIO_COLUMNS = [
-  'SITE', 'EQUIPAMENTO', 'LOCALIDADE', 'OS', 'DATA', 'CATEGORIA', 'STATUS', 'EQUIPE', 'OBSERVACAO', 'CRIADO_POR', 'DATA_CRIACAO'
+  'DATA', 'HORA_INICIO', 'HORA_SAIDA', 'EQUIPE', 'PLACA', 'CATEGORIA', 'OS', 'SITE', 'EQUIPAMENTO', 'LOCALIDADE', 'STATUS', 'OBSERVACAO', 'CRIADO_POR', 'DATA_CRIACAO'
 ];
 
 export const DIARIO_STATUS_OPTIONS = [
@@ -15,7 +15,7 @@ export const DIARIO_STATUS_OPTIONS = [
 ];
 
 export const DIARIO_CATEGORY_OPTIONS = [
-  'corretiva', 'preventiva'
+  'corretiva', 'preventiva', 'emergencial', 'administrativa'
 ];
 
 var _diarioScroll = null;
@@ -56,6 +56,8 @@ export function getDiarioCategoryBadgeClass(category) {
   var c = (category || '').toLowerCase().trim();
   if (c === 'corretiva') return 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300';
   if (c === 'preventiva') return 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300';
+  if (c === 'emergencial') return 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300';
+  if (c === 'administrativa') return 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300';
   return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
 }
 
@@ -95,6 +97,10 @@ export function renderDiarioRow(item) {
   var equipDisplay = formatEquipamentoDisplay(item.equipamento_nome || item.equipamento, item.equipamento_capacidade);
   var dateDisplay = formatDate(item.data) || '-';
 
+  var duplicateBtnHtml = '<button type="button" class="diario-duplicate-btn text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/50 cursor-pointer" data-action="duplicate" data-id="' + item.id + '" title="Duplicar atividade" aria-label="Duplicar">'
+    + '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+    + '</button>';
+
   var deleteBtnHtml = canDelete
     ? '<button type="button" class="diario-delete-btn text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer" data-action="delete" data-id="' + item.id + '" title="Excluir" aria-label="Excluir">'
       + '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
@@ -102,6 +108,48 @@ export function renderDiarioRow(item) {
     : '<span class="text-slate-300 dark:text-slate-600">-</span>';
 
   return '<tr class="diario-row border-b border-slate-100 hover:bg-slate-100 transition cursor-pointer" data-id="' + item.id + '">'
+    + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-300" data-field="data">'
+      + '<span class="inline-flex items-center gap-1">'
+      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.data)) + '">' + escapeHtml(dateDisplay) + '</span>'
+      + diarioEditBtn('data')
+      + '</span>'
+    + '</td>'
+    + '<td class="px-3 py-2.5 text-sm font-mono text-slate-700 dark:text-slate-300" data-field="hora_inicio">'
+      + '<span class="inline-flex items-center gap-1">'
+      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.hora_inicio)) + '">' + escapeHtml(item.hora_inicio || '-') + '</span>'
+      + diarioEditBtn('hora_inicio')
+      + '</span>'
+    + '</td>'
+    + '<td class="px-3 py-2.5 text-sm font-mono text-slate-700 dark:text-slate-300" data-field="hora_saida">'
+      + '<span class="inline-flex items-center gap-1">'
+      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.hora_saida)) + '">' + escapeHtml(item.hora_saida || '-') + '</span>'
+      + diarioEditBtn('hora_saida')
+      + '</span>'
+    + '</td>'
+    + '<td class="px-3 py-2.5 text-sm font-medium text-slate-800 dark:text-slate-200" data-field="equipe">'
+      + '<span class="inline-flex items-center gap-1">'
+      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.equipe)) + '">' + escapeHtml(item.equipe || '-') + '</span>'
+      + diarioEditBtn('equipe')
+      + '</span>'
+    + '</td>'
+    + '<td class="px-3 py-2.5 text-sm font-mono font-medium text-slate-700 dark:text-slate-300" data-field="placa">'
+      + '<span class="inline-flex items-center gap-1">'
+      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.placa)) + '">' + escapeHtml(item.placa || '-') + '</span>'
+      + diarioEditBtn('placa')
+      + '</span>'
+    + '</td>'
+    + '<td class="px-3 py-2.5 text-sm" data-field="categoria">'
+      + '<span class="inline-flex items-center gap-1">'
+      + '<span class="diario-val px-2 py-0.5 rounded-full text-xs font-medium ' + getDiarioCategoryBadgeClass(item.categoria) + '" data-raw="' + escapeHtml(diarioValueRaw(item.categoria)) + '">' + escapeHtml(item.categoria || '-') + '</span>'
+      + diarioEditBtn('categoria')
+      + '</span>'
+    + '</td>'
+    + '<td class="px-3 py-2.5 text-sm font-mono text-slate-800 dark:text-slate-200" data-field="os">'
+      + '<span class="inline-flex items-center gap-1">'
+      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.os)) + '">' + escapeHtml(item.os || '-') + '</span>'
+      + diarioEditBtn('os')
+      + '</span>'
+    + '</td>'
     + '<td class="px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200" data-field="site">'
       + '<span class="inline-flex items-center gap-1">'
       + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.site)) + '">' + escapeHtml(item.site || '-') + '</span>'
@@ -120,34 +168,10 @@ export function renderDiarioRow(item) {
       + diarioEditBtn('localidade')
       + '</span>'
     + '</td>'
-    + '<td class="px-3 py-2.5 text-sm font-mono text-slate-800 dark:text-slate-200" data-field="os">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.os)) + '">' + escapeHtml(item.os || '-') + '</span>'
-      + diarioEditBtn('os')
-      + '</span>'
-    + '</td>'
-    + '<td class="px-3 py-2.5 text-sm text-slate-600 dark:text-slate-300" data-field="data">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.data)) + '">' + escapeHtml(dateDisplay) + '</span>'
-      + diarioEditBtn('data')
-      + '</span>'
-    + '</td>'
-    + '<td class="px-3 py-2.5 text-sm" data-field="categoria">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val px-2 py-0.5 rounded-full text-xs font-medium ' + getDiarioCategoryBadgeClass(item.categoria) + '" data-raw="' + escapeHtml(diarioValueRaw(item.categoria)) + '">' + escapeHtml(item.categoria || '-') + '</span>'
-      + diarioEditBtn('categoria')
-      + '</span>'
-    + '</td>'
     + '<td class="px-3 py-2.5 text-sm" data-field="status">'
       + '<span class="inline-flex items-center gap-1">'
       + '<span class="diario-val px-2 py-0.5 rounded-full text-xs font-medium ' + getDiarioStatusBadgeClass(item.status) + '" data-raw="' + escapeHtml(diarioValueRaw(item.status)) + '">' + escapeHtml(item.status || '-') + '</span>'
       + diarioEditBtn('status')
-      + '</span>'
-    + '</td>'
-    + '<td class="px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200" data-field="equipe">'
-      + '<span class="inline-flex items-center gap-1">'
-      + '<span class="diario-val" data-raw="' + escapeHtml(diarioValueRaw(item.equipe)) + '">' + escapeHtml(item.equipe || '-') + '</span>'
-      + diarioEditBtn('equipe')
       + '</span>'
     + '</td>'
     + '<td class="px-3 py-2.5 text-sm min-w-[280px]" data-field="obs">'
@@ -159,7 +183,10 @@ export function renderDiarioRow(item) {
       + '</div>'
     + '</td>'
     + '<td class="px-3 py-2.5 text-sm text-center whitespace-nowrap">'
+      + '<div class="inline-flex items-center gap-1">'
+      + duplicateBtnHtml
       + deleteBtnHtml
+      + '</div>'
     + '</td>'
     + '</tr>';
 }
@@ -610,6 +637,10 @@ export function enterDiarioEdit(td, field) {
     inputHtml += '</select>';
   } else if (field === 'data') {
     inputHtml = '<input type="date" class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100" value="' + escapeHtml(raw) + '" />';
+  } else if (field === 'hora_inicio' || field === 'hora_saida') {
+    inputHtml = '<input type="time" class="diario-edit-input px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100" value="' + escapeHtml(raw) + '" />';
+  } else if (field === 'placa') {
+    inputHtml = '<input type="text" maxlength="30" class="diario-edit-input uppercase px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 w-28" value="' + escapeHtml(raw) + '" placeholder="AAA-0A00" />';
   } else if (field === 'site' || field === 'equipamento_id' || field === 'localidade') {
     var initialVal = raw;
     var selectedId = '';
@@ -759,7 +790,10 @@ export async function saveDiarioField(td) {
     }
 
     var normalizedValue = value;
-    if (field === 'site' || field === 'localidade') {
+    if (field === 'placa' && normalizedValue) {
+      normalizedValue = normalizedValue.toUpperCase();
+    }
+    if (field === 'site' || field === 'localidade' || field === 'os' || field === 'equipe' || field === 'placa' || field === 'hora_inicio' || field === 'hora_saida') {
       if (normalizedValue === '' || normalizedValue.toUpperCase() === 'N/A' || normalizedValue === '-') {
         normalizedValue = null;
       }
@@ -909,7 +943,12 @@ export async function createDiarioLine() {
     var tbody = document.getElementById('diarioTableBody');
     if (tbody) {
       var rowHtml = renderDiarioRow(newItem);
-      tbody.insertAdjacentHTML('afterbegin', rowHtml);
+      var temp = document.createElement('tbody');
+      temp.innerHTML = rowHtml;
+      var newRow = temp.firstElementChild;
+      if (newRow) {
+        tbody.insertBefore(newRow, tbody.firstElementChild);
+      }
     }
 
     var emptyEl = document.getElementById('diarioEmpty');
@@ -925,6 +964,62 @@ export async function createDiarioLine() {
   } catch (e) {
     console.error('Erro ao criar linha:', e);
     showToast('Erro ao criar linha', 'error');
+  }
+}
+
+export async function duplicateDiarioLine(id) {
+  var item = _diarioItemsById[id];
+  if (!item) return;
+
+  var copyData = {
+    site: item.site || null,
+    equipamento_id: item.equipamento_id || null,
+    localidade: item.localidade || null,
+    os: item.os || null,
+    data: item.data || null,
+    equipe: item.equipe || null,
+    placa: item.placa || null,
+  };
+
+  try {
+    var res = await apiFetch('/app/api/index.php?route=diario', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(copyData),
+    });
+    var json = await res.json();
+    if (!json.success || !json.data || !json.data.item) {
+      showToast(json.message || 'Erro ao duplicar atividade', 'error');
+      return;
+    }
+
+    var newItem = json.data.item;
+    _diarioItemsById[newItem.id] = newItem;
+
+    var tbody = document.getElementById('diarioTableBody');
+    if (tbody) {
+      var rowHtml = renderDiarioRow(newItem);
+      var tempDup = document.createElement('tbody');
+      tempDup.innerHTML = rowHtml;
+      var newDupRow = tempDup.firstElementChild;
+      if (newDupRow) {
+        tbody.insertBefore(newDupRow, tbody.firstElementChild);
+      }
+    }
+
+    var emptyEl = document.getElementById('diarioEmpty');
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    var badge = document.getElementById('diarioBadge');
+    if (badge) {
+      var current = parseInt(badge.textContent || '0', 10);
+      badge.textContent = current + 1;
+    }
+
+    showToast('Atividade duplicada com sucesso', 'success');
+  } catch (e) {
+    console.error('Erro ao duplicar atividade:', e);
+    showToast('Erro ao duplicar atividade', 'error');
   }
 }
 
@@ -1027,14 +1122,17 @@ export async function exportDiarioCsv() {
       for (var i = 0; i < allItems.length; i++) {
         var it = allItems[i];
         _addRow([
+          sanitizeCSV(it.data || ''),
+          sanitizeCSV(it.hora_inicio || ''),
+          sanitizeCSV(it.hora_saida || ''),
+          sanitizeCSV(it.equipe || ''),
+          sanitizeCSV(it.placa || ''),
+          sanitizeCSV(it.categoria || ''),
+          sanitizeCSV(it.os || ''),
           sanitizeCSV(it.site || ''),
           sanitizeCSV(formatEquipamentoDisplay(it.equipamento_nome || it.equipamento, it.equipamento_capacidade) === '-' ? '' : formatEquipamentoDisplay(it.equipamento_nome || it.equipamento, it.equipamento_capacidade)),
           sanitizeCSV(it.localidade || ''),
-          sanitizeCSV(it.os || ''),
-          sanitizeCSV(it.data || ''),
-          sanitizeCSV(it.categoria || ''),
           sanitizeCSV(it.status || ''),
-          sanitizeCSV(it.equipe || ''),
           sanitizeCSV(it.obs || ''),
           sanitizeCSV(it.created_by_name || ''),
           sanitizeCSV(it.created_at || ''),
@@ -1291,6 +1389,14 @@ export function initDiarioList() {
     tbody._bound = true;
 
     tbody.addEventListener('click', function (e) {
+      // Duplicate button
+      var dupBtn = e.target.closest('[data-action="duplicate"]');
+      if (dupBtn) {
+        var dupId = dupBtn.getAttribute('data-id');
+        if (dupId) duplicateDiarioLine(parseInt(dupId, 10));
+        return;
+      }
+
       // Delete button
       var delBtn = e.target.closest('[data-action="delete"]');
       if (delBtn) {

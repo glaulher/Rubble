@@ -20,19 +20,21 @@ class DiarioService
     public const CATEGORY_OPTIONS = [
         'corretiva',
         'preventiva',
+        'emergencial',
+        'administrativa',
     ];
 
     public const ALLOWED_SORT = [
         'id', 'site', 'equipamento', 'equipamento_id', 'equipamento_nome',
-        'localidade', 'os', 'data', 'categoria', 'status', 'equipe', 'obs', 'created_at', 'created_by',
-        'd.id', 'd.site', 'd.localidade', 'd.os', 'd.data', 'd.categoria',
-        'd.status', 'd.equipe', 'd.obs', 'd.created_at', 'e.equipamento', 'created_by_name'
+        'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'placa', 'obs', 'created_at', 'created_by',
+        'd.id', 'd.site', 'd.localidade', 'd.os', 'd.data', 'd.hora_inicio', 'd.hora_saida', 'd.categoria',
+        'd.status', 'd.equipe', 'd.placa', 'd.obs', 'd.created_at', 'e.equipamento', 'created_by_name'
     ];
 
     public const ALLOWED_DIRS = ['ASC', 'DESC'];
 
     public const ALLOWED_FIELDS = [
-        'site', 'equipamento_id', 'localidade', 'os', 'data', 'categoria', 'status', 'equipe'
+        'site', 'equipamento_id', 'localidade', 'os', 'data', 'hora_inicio', 'hora_saida', 'categoria', 'status', 'equipe', 'placa'
     ];
 
     private DiarioRepository $repository;
@@ -83,14 +85,25 @@ class DiarioService
             'localidade' => !empty($data['localidade']) && $data['localidade'] !== 'N/A' ? trim((string) $data['localidade']) : null,
             'os' => !empty($data['os']) && $data['os'] !== 'N/A' ? trim((string) $data['os']) : null,
             'data' => !empty($data['data']) ? trim((string) $data['data']) : date('Y-m-d'),
+            'hora_inicio' => !empty($data['hora_inicio']) && $data['hora_inicio'] !== 'N/A' ? trim((string) $data['hora_inicio']) : null,
+            'hora_saida' => !empty($data['hora_saida']) && $data['hora_saida'] !== 'N/A' ? trim((string) $data['hora_saida']) : null,
             'categoria' => !empty($data['categoria']) ? trim((string) $data['categoria']) : null,
             'status' => !empty($data['status']) ? trim((string) $data['status']) : null,
             'equipe' => !empty($data['equipe']) && $data['equipe'] !== 'N/A' ? trim((string) $data['equipe']) : null,
+            'placa' => !empty($data['placa']) && $data['placa'] !== 'N/A' ? trim((string) $data['placa']) : null,
             'obs' => !empty($data['obs']) ? trim((string) $data['obs']) : null,
         ];
 
         if ($record['data'] !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $record['data'])) {
             throw new \InvalidArgumentException('Formato de data inválido. Use YYYY-MM-DD.');
+        }
+
+        if ($record['hora_inicio'] !== null && !preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $record['hora_inicio'])) {
+            throw new \InvalidArgumentException('Formato de hora de início inválido. Use HH:MM.');
+        }
+
+        if ($record['hora_saida'] !== null && !preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $record['hora_saida'])) {
+            throw new \InvalidArgumentException('Formato de hora de saída inválido. Use HH:MM.');
         }
 
         if ($record['categoria'] !== null && !in_array($record['categoria'], self::CATEGORY_OPTIONS, true)) {
@@ -103,6 +116,10 @@ class DiarioService
 
         if ($record['equipe'] !== null && mb_strlen($record['equipe']) > 100) {
             throw new \InvalidArgumentException('Equipe deve ter no máximo 100 caracteres.');
+        }
+
+        if ($record['placa'] !== null && mb_strlen($record['placa']) > 30) {
+            throw new \InvalidArgumentException('Placa deve ter no máximo 30 caracteres.');
         }
 
         $id = $this->repository->create($record, $userId);
@@ -140,6 +157,13 @@ class DiarioService
             }
         }
 
+        if (($field === 'hora_inicio' || $field === 'hora_saida') && $value !== null) {
+            $value = trim((string) $value);
+            if (!preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $value)) {
+                throw new \InvalidArgumentException('Formato de horário inválido. Use HH:MM.');
+            }
+        }
+
         if ($field === 'categoria' && $value !== null) {
             $value = trim((string) $value);
             if (!in_array($value, self::CATEGORY_OPTIONS, true)) {
@@ -158,6 +182,13 @@ class DiarioService
             $value = trim((string) $value);
             if (mb_strlen($value) > 100) {
                 throw new \InvalidArgumentException('Equipe deve ter no máximo 100 caracteres.');
+            }
+        }
+
+        if ($field === 'placa' && $value !== null) {
+            $value = trim((string) $value);
+            if (mb_strlen($value) > 30) {
+                throw new \InvalidArgumentException('Placa deve ter no máximo 30 caracteres.');
             }
         }
 
