@@ -2,6 +2,9 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { evalModule } from "./helpers/eval-module.js";
+import { iconButtonHtml } from "../public/js/components/button.js";
+
+globalThis.iconButtonHtml = iconButtonHtml;
 
 var mockInfiniteScroll = `
   var _scrollCalls = { reset: 0, init: 0, destroy: 0 };
@@ -20,7 +23,8 @@ var mockInfiniteScroll = `
 var DIARIO_HELPERS =
   '\nfunction escapeHtml(v) { return String(v); }\n' +
   'function formatDate(v) { if (!v) return ""; var parts = String(v).split("-"); return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : String(v); }\n' +
-  'function sanitizeCSV(v) { if (v === null || v === undefined) return ""; var s = String(v); return /[;"\\n]/.test(s) ? \'"\' + s.replace(/"/g, \'""\') + \'"\' : s; }\n';
+  'function sanitizeCSV(v) { if (v === null || v === undefined) return ""; var s = String(v); return /[;"\\n]/.test(s) ? \'"\' + s.replace(/"/g, \'""\') + \'"\' : s; }\n' +
+  'var iconButtonHtml = globalThis.iconButtonHtml;\n';
 
 function createMouseEvent(type) {
   return typeof MouseEvent !== 'undefined'
@@ -228,6 +232,44 @@ describe("diario/list.js unit & integration", function () {
     globalThis.renderDiarioTable([], false);
     expect(document.querySelectorAll('#diarioTableBody tr.diario-row').length).toBe(0);
     expect(document.getElementById('diarioEmpty').classList.contains('hidden')).toBe(false);
+  });
+
+  it("renders action buttons with Rubble standard rich tooltips (iconButtonHtml)", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.getUser = () => ({ id: 1, role: 'admin' });
+    globalThis.renderDiarioTable([{ id: 10, created_by: 1 }], false);
+
+    const editBtn = document.querySelector('.diario-edit-btn');
+    const dupBtn = document.querySelector('.diario-duplicate-btn');
+    const delBtn = document.querySelector('.diario-delete-btn');
+
+    expect(editBtn).not.toBeNull();
+    expect(dupBtn).not.toBeNull();
+    expect(delBtn).not.toBeNull();
+
+    // Check tooltip wrappers and classes
+    const editWrapper = editBtn.closest('.group');
+    expect(editWrapper).not.toBeNull();
+    const editTooltip = editWrapper.querySelector('span.group-hover\\:scale-100');
+    expect(editTooltip).not.toBeNull();
+    expect(editTooltip.textContent).toBe('Editar');
+    expect(editTooltip.className).toContain('bg-slate-900');
+    expect(editTooltip.className).toContain('text-white');
+
+    const dupWrapper = dupBtn.closest('.group');
+    expect(dupWrapper).not.toBeNull();
+    const dupTooltip = dupWrapper.querySelector('span.group-hover\\:scale-100');
+    expect(dupTooltip).not.toBeNull();
+    expect(dupTooltip.textContent).toBe('Duplicar');
+
+    const delWrapper = delBtn.closest('.group');
+    expect(delWrapper).not.toBeNull();
+    const delTooltip = delWrapper.querySelector('span.group-hover\\:scale-100');
+    expect(delTooltip).not.toBeNull();
+    expect(delTooltip.textContent).toBe('Excluir');
+    expect(delTooltip.className).toContain('origin-bottom-right');
   });
 
   it("allows delete for admin and hides for non-owner non-admin", function () {

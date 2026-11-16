@@ -5,6 +5,7 @@ import { showToast, confirmDelete } from '/public/js/core/dom.js';
 import { downloadCSV } from '/public/js/utils/csv.js';
 import { formatDate } from '/public/js/pv/form-utils.js';
 import { createAutocomplete } from '/public/js/pv/form-autocomplete.js';
+import { iconButtonHtml } from '/public/js/components/button.js';
 
 export const DIARIO_COLUMNS = [
   'TECNICO', 'EQUIPE', 'PLACA', 'DATA', 'TIPO_ATIVIDADE', 'SITE', 'EQUIPAMENTO', 'LOCALIDADE', 'STATUS', 'HORA_INICIO', 'HORA_SAIDA', 'OS', 'OBSERVACAO', 'CRIADO_POR', 'DATA_CRIACAO'
@@ -125,19 +126,28 @@ export function renderDiarioRow(item) {
 
   var dateDisplay = formatDate(item.data) || '-';
 
-  var editBtnHtml = '<button type="button" class="diario-edit-btn text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50 cursor-pointer" data-action="edit" data-id="' + item.id + '" title="Editar atividade" aria-label="Editar">'
-    + '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>'
-    + '</button>';
+  var editBtnHtml = iconButtonHtml('edit', 'Editar', {
+    class: 'diario-edit-btn cursor-pointer',
+    'data-action': 'edit',
+    'data-id': item.id,
+    type: 'button',
+  });
 
-  var duplicateBtnHtml = '<button type="button" class="diario-duplicate-btn text-slate-500 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer" data-action="duplicate" data-id="' + item.id + '" title="Duplicar atividade" aria-label="Duplicar">'
-    + '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
-    + '</button>';
+  var duplicateBtnHtml = iconButtonHtml('copy', 'Duplicar', {
+    class: 'diario-duplicate-btn cursor-pointer',
+    'data-action': 'duplicate',
+    'data-id': item.id,
+    type: 'button',
+  }, canDelete ? undefined : 'right');
 
   var deleteBtnHtml = canDelete
-    ? '<button type="button" class="diario-delete-btn text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 cursor-pointer" data-action="delete" data-id="' + item.id + '" title="Excluir" aria-label="Excluir">'
-      + '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
-      + '</button>'
-    : '<span class="text-slate-300">-</span>';
+    ? iconButtonHtml('delete', 'Excluir', {
+        class: 'diario-delete-btn cursor-pointer',
+        'data-action': 'delete',
+        'data-id': item.id,
+        type: 'button',
+      }, 'right')
+    : '';
 
   return '<tr class="diario-row border-b border-slate-100 hover:bg-slate-50 transition cursor-pointer" data-id="' + item.id + '">'
     + '<td class="px-3 py-2.5 text-sm font-medium text-slate-800" data-field="tecnico">'
@@ -159,7 +169,7 @@ export function renderDiarioRow(item) {
       + '<span class="diario-val px-2.5 py-1 rounded-full text-xs font-medium ' + getDiarioCategoryBadgeClass(item.categoria) + '" data-raw="' + escapeHtml(diarioValueRaw(item.categoria)) + '">' + escapeHtml(item.categoria || '-') + '</span>'
     + '</td>'
     + '<td class="px-3 py-2.5 text-sm text-center whitespace-nowrap">'
-      + '<div class="inline-flex items-center gap-1">'
+      + '<div class="inline-flex items-center justify-center gap-1.5">'
       + editBtnHtml
       + duplicateBtnHtml
       + deleteBtnHtml

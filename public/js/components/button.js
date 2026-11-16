@@ -58,7 +58,7 @@ export function iconButtonHtml(type, tooltip, attrs, tooltipPos) {
     '<button class="' + c.bg + ' ' + c.hover + ' ' + c.text + ' p-2 rounded-xl transition' + extraClass + '"' + attrStr + '>' +
       svg +
     '</button>' +
-    '<span class="absolute ' + base + 'scale-0 group-hover:scale-100 ' + pos + ' transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50">' +
+    '<span class="absolute ' + base + 'scale-0 group-hover:scale-100 ' + pos + ' transition-transform duration-200 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg border border-slate-600 z-50 pointer-events-none">' +
       escapeHtml(tooltip) +
     '</span>' +
   '</div>';
