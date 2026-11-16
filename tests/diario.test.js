@@ -76,6 +76,7 @@ function setupDiarioDOM() {
         <input type="text" id="diarioModalEquipe" />
         <div id="diarioModalEquipeDropdown" class="hidden"></div>
         <input type="text" id="diarioModalPlaca" />
+        <div id="diarioModalPlacaDropdown" class="hidden"></div>
         <input type="date" id="diarioModalData" />
         <select id="diarioModalCategoria">
           <option value="corretiva">Corretiva</option>
@@ -102,6 +103,19 @@ function setupDiarioDOM() {
         <button type="button" id="btnDiarioModalCancel">Cancelar</button>
         <button type="submit" id="btnDiarioModalSave"><span id="diarioModalSaveLabel">Salvar</span></button>
       </form>
+    </div>
+
+    <!-- Modal de Detalhes Diário (Read-only igual a solicitação de material) -->
+    <div id="diarioDetailModal" class="hidden">
+      <span id="diarioDetailId"></span>
+      <p id="diarioDetailSubtitle"></p>
+      <div id="diarioDetailBadges"></div>
+      <table>
+        <tbody id="diarioDetailInfoBody"></tbody>
+      </table>
+      <button id="btnCloseDiarioDetailTop"></button>
+      <button id="btnDiarioDetailClose">Fechar</button>
+      <button id="btnDiarioDetailEdit">Editar Atividade</button>
     </div>
   `;
 }
@@ -244,7 +258,7 @@ describe("diario/list.js unit & integration", function () {
     expect(document.getElementById('diarioModalData').value).toBe(new Date().toISOString().slice(0, 10));
   });
 
-  it("opens modal in edit mode with prefilled fields on row or edit button click", function () {
+  it("opens modal in edit mode with prefilled fields on edit button click", function () {
     (0, eval)(mockInfiniteScroll);
     evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
 
@@ -283,6 +297,88 @@ describe("diario/list.js unit & integration", function () {
     expect(document.getElementById('diarioModalHoraInicio').value).toBe('08:30');
     expect(document.getElementById('diarioModalHoraSaida').value).toBe('17:00');
     expect(document.getElementById('diarioModalObs').value).toBe('Manutenção preventiva realizada');
+  });
+
+  it("opens read-only detail modal on row click (like solicitacao de material) and switches to edit modal on Editar click", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.initDiarioList();
+
+    const mockItem = {
+      id: 77,
+      tecnico: 'Renato Silva',
+      equipe: 'Equipe Delta',
+      placa: 'TBO-9J99',
+      site: 'VIX',
+      data: '2026-11-15',
+      categoria: 'preventiva',
+      status: 'Concluído',
+      hora_inicio: '08:30',
+      hora_saida: '17:00',
+      obs: 'Manutenção preventiva realizada com sucesso',
+    };
+
+    globalThis.renderDiarioTable([mockItem], false);
+
+    // Click the row directly (NOT the edit button)
+    const row = document.querySelector('#diarioTableBody tr.diario-row');
+    const firstCell = row.querySelector('td');
+    firstCell.click();
+
+    // The editable modal must remain hidden!
+    const editModal = document.getElementById('diarioModal');
+    expect(editModal.classList.contains('hidden')).toBe(true);
+
+    // The read-only detail modal must be visible!
+    const detailModal = document.getElementById('diarioDetailModal');
+    expect(detailModal.classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('diarioDetailId').textContent).toContain('77');
+    expect(document.getElementById('diarioDetailSubtitle').textContent).toContain('VIX');
+
+    // Details in table
+    const infoBody = document.getElementById('diarioDetailInfoBody');
+    expect(infoBody.innerHTML).toContain('Renato Silva');
+    expect(infoBody.innerHTML).toContain('Equipe Delta');
+    expect(infoBody.innerHTML).toContain('TBO-9J99');
+    expect(infoBody.innerHTML).toContain('VIX');
+    expect(infoBody.innerHTML).toContain('Manutenção preventiva realizada com sucesso');
+
+    // Now click "Editar Atividade" inside the detail modal
+    const btnEditFromDetail = document.getElementById('btnDiarioDetailEdit');
+    btnEditFromDetail.click();
+
+    // Detail modal closes, and edit modal opens
+    expect(detailModal.classList.contains('hidden')).toBe(true);
+    expect(editModal.classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('diarioModalId').value).toBe('77');
+    expect(document.getElementById('diarioModalTecnico').value).toBe('Renato Silva');
+  });
+
+  it("closes detail modal on close buttons and backdrop click", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.initDiarioList();
+    const detailModal = document.getElementById('diarioDetailModal');
+
+    globalThis.openDiarioDetailModal({ id: 10, tecnico: 'Test', site: 'SPO' });
+    expect(detailModal.classList.contains('hidden')).toBe(false);
+
+    document.getElementById('btnCloseDiarioDetailTop').click();
+    expect(detailModal.classList.contains('hidden')).toBe(true);
+
+    globalThis.openDiarioDetailModal({ id: 10, tecnico: 'Test', site: 'SPO' });
+    expect(detailModal.classList.contains('hidden')).toBe(false);
+
+    document.getElementById('btnDiarioDetailClose').click();
+    expect(detailModal.classList.contains('hidden')).toBe(true);
+
+    globalThis.openDiarioDetailModal({ id: 10, tecnico: 'Test', site: 'SPO' });
+    expect(detailModal.classList.contains('hidden')).toBe(false);
+
+    detailModal.dispatchEvent(new Event('click'));
+    expect(detailModal.classList.contains('hidden')).toBe(true);
   });
 
   it("closes modal on close button and cancel button click", function () {
@@ -386,6 +482,76 @@ describe("diario/list.js unit & integration", function () {
     expect(eqInput.value).toBe('Equipe Beta');
     expect(document.getElementById('diarioModalPlaca').value).toBe('XYZ-9876');
     expect(document.getElementById('diarioModalTecnico').value).toBe('Marcos Silva');
+  });
+
+  it("auto-fills Placa on input and blur when typing Técnico without using dropdown click", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.setCachedTeams([
+      { id: 3, nome: 'Alexandre - Flavio', tecnico: 'ALEXANDRE DONATO DA SILVA', placa: 'TBO-9J41', ativo: 1 }
+    ]);
+
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
+
+    const tecInput = document.getElementById('diarioModalTecnico');
+    const eqInput = document.getElementById('diarioModalEquipe');
+    const placaInput = document.getElementById('diarioModalPlaca');
+
+    // User types the full technician name or partial prefix and leaves the field (blur)
+    tecInput.value = 'ALEXANDRE DONATO DA SILVA';
+    tecInput.dispatchEvent(new Event('input'));
+    tecInput.dispatchEvent(new Event('blur'));
+
+    expect(eqInput.value).toBe('Alexandre - Flavio');
+    expect(placaInput.value).toBe('TBO-9J41');
+  });
+
+  it("auto-fills Placa on input and blur when typing Equipe without using dropdown click", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.setCachedTeams([
+      { id: 4, nome: 'Claudio Roberto - Carlos', tecnico: 'CLAUDIO ROBERTO FERREIRA ROCHA', placa: 'TBO-9J53', ativo: 1 }
+    ]);
+
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
+
+    const tecInput = document.getElementById('diarioModalTecnico');
+    const eqInput = document.getElementById('diarioModalEquipe');
+    const placaInput = document.getElementById('diarioModalPlaca');
+
+    eqInput.value = 'Claudio Roberto - Carlos';
+    eqInput.dispatchEvent(new Event('input'));
+    eqInput.dispatchEvent(new Event('blur'));
+
+    expect(placaInput.value).toBe('TBO-9J53');
+    expect(tecInput.value).toBe('CLAUDIO ROBERTO FERREIRA ROCHA');
+  });
+
+  it("auto-fills Equipe and Técnico when typing or selecting Placa", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.setCachedTeams([
+      { id: 7, nome: 'Lucas Tadeu - Jackson', tecnico: 'LUCAS TADEU DOS SANTOS SOARES', placa: 'KOY-5F34', ativo: 1 }
+    ]);
+
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
+
+    const tecInput = document.getElementById('diarioModalTecnico');
+    const eqInput = document.getElementById('diarioModalEquipe');
+    const placaInput = document.getElementById('diarioModalPlaca');
+
+    placaInput.value = 'KOY-5F34';
+    placaInput.dispatchEvent(new Event('input'));
+    placaInput.dispatchEvent(new Event('blur'));
+
+    expect(eqInput.value).toBe('Lucas Tadeu - Jackson');
+    expect(tecInput.value).toBe('LUCAS TADEU DOS SANTOS SOARES');
   });
 
   it("saves new activity calling POST and prepends row into table", async function () {

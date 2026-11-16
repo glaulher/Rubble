@@ -84,6 +84,12 @@ export function getDiarioCategoryBadgeClass(category) {
   return 'bg-slate-100 text-slate-700';
 }
 
+export function formatDiarioCategory(category) {
+  if (!category) return '-';
+  var c = String(category).trim();
+  return c.charAt(0).toUpperCase() + c.slice(1);
+}
+
 export function diarioValueRaw(value) {
   if (value === null || value === undefined) return '';
   return String(value);
@@ -1010,12 +1016,79 @@ export function initModalDropdownAutocomplete({ input, dropdown, getOptions, for
   }
 }
 
+export function syncTeamData(source) {
+  var teams = _teamsListCache || [];
+  if (!teams || teams.length === 0) return;
+
+  var tecInput = document.getElementById('diarioModalTecnico');
+  var eqInput = document.getElementById('diarioModalEquipe');
+  var placaInput = document.getElementById('diarioModalPlaca');
+
+  var tecVal = tecInput ? tecInput.value.trim().toLowerCase() : '';
+  var eqVal = eqInput ? eqInput.value.trim().toLowerCase() : '';
+  var placaVal = placaInput ? placaInput.value.trim().toUpperCase() : '';
+
+  if (source === 'tecnico' && tecVal) {
+    var match = teams.find(function (t) {
+      return t.tecnico && String(t.tecnico).trim().toLowerCase() === tecVal;
+    });
+    if (!match) {
+      match = teams.find(function (t) {
+        return t.tecnico && String(t.tecnico).trim().toLowerCase().indexOf(tecVal) === 0;
+      });
+    }
+    if (match) {
+      if (eqInput && (!eqInput.value.trim() || source === 'tecnico')) {
+        eqInput.value = match.nome || '';
+      }
+      if (placaInput && match.placa) {
+        placaInput.value = match.placa;
+      }
+    }
+  } else if (source === 'equipe' && eqVal) {
+    var match = teams.find(function (t) {
+      return t.nome && String(t.nome).trim().toLowerCase() === eqVal;
+    });
+    if (!match) {
+      match = teams.find(function (t) {
+        return t.nome && String(t.nome).trim().toLowerCase().indexOf(eqVal) === 0;
+      });
+    }
+    if (match) {
+      if (placaInput && match.placa) {
+        placaInput.value = match.placa;
+      }
+      if (tecInput && match.tecnico && !tecInput.value.trim()) {
+        tecInput.value = match.tecnico;
+      }
+    }
+  } else if (source === 'placa' && placaVal) {
+    var match = teams.find(function (t) {
+      return t.placa && String(t.placa).trim().toUpperCase() === placaVal;
+    });
+    if (!match) {
+      match = teams.find(function (t) {
+        return t.placa && String(t.placa).trim().toUpperCase().indexOf(placaVal) === 0;
+      });
+    }
+    if (match) {
+      if (eqInput && match.nome && !eqInput.value.trim()) {
+        eqInput.value = match.nome;
+      }
+      if (tecInput && match.tecnico && !tecInput.value.trim()) {
+        tecInput.value = match.tecnico;
+      }
+    }
+  }
+}
+
 export function setupDiarioModalAutocompletes() {
   var tecnicoInput = document.getElementById('diarioModalTecnico');
   var tecnicoDropdown = document.getElementById('diarioModalTecnicoDropdown');
   var equipeInput = document.getElementById('diarioModalEquipe');
   var equipeDropdown = document.getElementById('diarioModalEquipeDropdown');
   var placaInput = document.getElementById('diarioModalPlaca');
+  var placaDropdown = document.getElementById('diarioModalPlacaDropdown');
   var siteInput = document.getElementById('diarioModalSite');
   var siteDropdown = document.getElementById('diarioModalSiteDropdown');
   var eqInput = document.getElementById('diarioModalEquipamento');
@@ -1027,61 +1100,90 @@ export function setupDiarioModalAutocompletes() {
   var obsInput = document.getElementById('diarioModalObs');
 
   // 1. Técnico Autocomplete
-  if (tecnicoInput && tecnicoDropdown && !tecnicoInput._bound) {
+  if (tecnicoInput && !tecnicoInput._bound) {
     tecnicoInput._bound = true;
-    initModalDropdownAutocomplete({
-      input: tecnicoInput,
-      dropdown: tecnicoDropdown,
-      getOptions: function () {
-        var teams = _teamsListCache || [];
-        var set = new Set();
-        for (var i = 0; i < teams.length; i++) {
-          var tec = teams[i].tecnico ? String(teams[i].tecnico).trim() : '';
-          if (tec) set.add(tec);
+    if (tecnicoDropdown) {
+      initModalDropdownAutocomplete({
+        input: tecnicoInput,
+        dropdown: tecnicoDropdown,
+        getOptions: function () {
+          var teams = _teamsListCache || [];
+          var set = new Set();
+          for (var i = 0; i < teams.length; i++) {
+            var tec = teams[i].tecnico ? String(teams[i].tecnico).trim() : '';
+            if (tec) set.add(tec);
+          }
+          return Array.from(set).sort(function (a, b) { return a.localeCompare(b); });
+        },
+        onSelect: function () {
+          syncTeamData('tecnico');
+        },
+        onInput: function () {
+          syncTeamData('tecnico');
         }
-        return Array.from(set).sort(function (a, b) { return a.localeCompare(b); });
-      },
-      onSelect: function (selectedTecnico) {
-        var teams = _teamsListCache || [];
-        var match = teams.find(function (t) {
-          return t.tecnico && String(t.tecnico).trim().toLowerCase() === String(selectedTecnico).trim().toLowerCase();
-        });
-        if (match) {
-          if (match.nome && equipeInput) equipeInput.value = match.nome;
-          if (match.placa && placaInput) placaInput.value = match.placa;
-        }
-      }
-    });
+      });
+    }
+    tecnicoInput.addEventListener('input', function () { syncTeamData('tecnico'); });
+    tecnicoInput.addEventListener('blur', function () { syncTeamData('tecnico'); });
+    tecnicoInput.addEventListener('change', function () { syncTeamData('tecnico'); });
   }
 
   // 2. Equipe Autocomplete
-  if (equipeInput && equipeDropdown && !equipeInput._bound) {
+  if (equipeInput && !equipeInput._bound) {
     equipeInput._bound = true;
-    initModalDropdownAutocomplete({
-      input: equipeInput,
-      dropdown: equipeDropdown,
-      getOptions: function () {
-        var teams = _teamsListCache || [];
-        var set = new Set();
-        for (var i = 0; i < teams.length; i++) {
-          var eq = teams[i].nome ? String(teams[i].nome).trim() : '';
-          if (eq) set.add(eq);
-        }
-        return Array.from(set).sort(function (a, b) { return a.localeCompare(b); });
-      },
-      onSelect: function (selectedEquipe) {
-        var teams = _teamsListCache || [];
-        var match = teams.find(function (t) {
-          return t.nome && String(t.nome).trim().toLowerCase() === String(selectedEquipe).trim().toLowerCase();
-        });
-        if (match) {
-          if (match.placa && placaInput) placaInput.value = match.placa;
-          if (match.tecnico && tecnicoInput && !tecnicoInput.value.trim()) {
-            tecnicoInput.value = match.tecnico;
+    if (equipeDropdown) {
+      initModalDropdownAutocomplete({
+        input: equipeInput,
+        dropdown: equipeDropdown,
+        getOptions: function () {
+          var teams = _teamsListCache || [];
+          var set = new Set();
+          for (var i = 0; i < teams.length; i++) {
+            var eq = teams[i].nome ? String(teams[i].nome).trim() : '';
+            if (eq) set.add(eq);
           }
+          return Array.from(set).sort(function (a, b) { return a.localeCompare(b); });
+        },
+        onSelect: function () {
+          syncTeamData('equipe');
+        },
+        onInput: function () {
+          syncTeamData('equipe');
         }
-      }
-    });
+      });
+    }
+    equipeInput.addEventListener('input', function () { syncTeamData('equipe'); });
+    equipeInput.addEventListener('blur', function () { syncTeamData('equipe'); });
+    equipeInput.addEventListener('change', function () { syncTeamData('equipe'); });
+  }
+
+  // 3. Placa Autocomplete
+  if (placaInput && !placaInput._bound) {
+    placaInput._bound = true;
+    if (placaDropdown) {
+      initModalDropdownAutocomplete({
+        input: placaInput,
+        dropdown: placaDropdown,
+        getOptions: function () {
+          var teams = _teamsListCache || [];
+          var set = new Set();
+          for (var i = 0; i < teams.length; i++) {
+            var pl = teams[i].placa ? String(teams[i].placa).trim() : '';
+            if (pl) set.add(pl);
+          }
+          return Array.from(set).sort(function (a, b) { return a.localeCompare(b); });
+        },
+        onSelect: function () {
+          syncTeamData('placa');
+        },
+        onInput: function () {
+          syncTeamData('placa');
+        }
+      });
+    }
+    placaInput.addEventListener('input', function () { syncTeamData('placa'); });
+    placaInput.addEventListener('blur', function () { syncTeamData('placa'); });
+    placaInput.addEventListener('change', function () { syncTeamData('placa'); });
   }
 
   // 3. Site Autocomplete
@@ -1168,6 +1270,101 @@ export function updateCategoryTecnicoRequirement() {
   }
 }
 
+var _currentDetailDiarioItem = null;
+
+export function openDiarioDetailModal(item) {
+  _currentDetailDiarioItem = item;
+  var modal = document.getElementById('diarioDetailModal');
+  if (!modal) return;
+
+  var idEl = document.getElementById('diarioDetailId');
+  var subEl = document.getElementById('diarioDetailSubtitle');
+  var badgesEl = document.getElementById('diarioDetailBadges');
+  var infoBody = document.getElementById('diarioDetailInfoBody');
+
+  if (idEl) idEl.textContent = 'ID #' + item.id;
+
+  var equipStr = formatEquipamentoDisplay(item.equipamento_nome || item.equipamento, item.equipamento_capacidade);
+  var subtitleParts = [];
+  if (item.site) subtitleParts.push(escapeHtml(item.site));
+  if (equipStr && equipStr !== '-') subtitleParts.push(escapeHtml(equipStr));
+  if (item.tecnico) subtitleParts.push(escapeHtml(item.tecnico));
+  else if (item.equipe) subtitleParts.push(escapeHtml(item.equipe));
+
+  if (subEl) subEl.textContent = subtitleParts.join(' · ') || 'Detalhes da Atividade';
+
+  if (badgesEl) {
+    badgesEl.innerHTML = '<span class="px-2.5 py-0.5 rounded-xl text-xs font-semibold ' + getDiarioCategoryBadgeClass(item.categoria) + '">' + escapeHtml(formatDiarioCategory(item.categoria)) + '</span>'
+      + '<span class="px-2.5 py-0.5 rounded-xl text-xs font-semibold ' + getDiarioStatusBadgeClass(item.status) + '">' + escapeHtml(item.status || 'Pendente') + '</span>';
+  }
+
+  if (infoBody) {
+    var osVal = escapeHtml(item.os || '—');
+    var hiVal = item.hora_inicio ? escapeHtml(String(item.hora_inicio).slice(0, 5)) : '—';
+    var hsVal = item.hora_saida ? escapeHtml(String(item.hora_saida).slice(0, 5)) : '—';
+    var obsVal = item.obs ? escapeHtml(item.obs).replace(/\n/g, '<br>') : '<span class="text-slate-400 italic">Nenhum histórico diário informado.</span>';
+    var dateVal = formatDate(item.data) || escapeHtml(item.data || '—');
+
+    infoBody.innerHTML = ''
+      + '<tr class="border-b border-slate-100">'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Técnico</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">' + escapeHtml(item.tecnico || '—') + '</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Equipe</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">' + escapeHtml(item.equipe || '—') + '</td>'
+      + '</tr>'
+      + '<tr class="border-b border-slate-100">'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Placa</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-mono font-medium">' + escapeHtml(item.placa || '—') + '</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Data</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">' + dateVal + '</td>'
+      + '</tr>'
+      + '<tr class="border-b border-slate-100">'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Tipo Atividade</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">'
+      + '    <span class="px-2.5 py-0.5 rounded-xl text-xs font-semibold ' + getDiarioCategoryBadgeClass(item.categoria) + '">' + escapeHtml(formatDiarioCategory(item.categoria)) + '</span>'
+      + '  </td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Status</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">'
+      + '    <span class="px-2.5 py-0.5 rounded-xl text-xs font-semibold ' + getDiarioStatusBadgeClass(item.status) + '">' + escapeHtml(item.status || 'Pendente') + '</span>'
+      + '  </td>'
+      + '</tr>'
+      + '<tr class="border-b border-slate-100">'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Site</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">' + escapeHtml(item.site || '—') + '</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Localidade</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">' + escapeHtml(item.localidade || '—') + '</td>'
+      + '</tr>'
+      + '<tr class="border-b border-slate-100">'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Equipamento</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">' + (equipStr === '-' ? '—' : escapeHtml(equipStr)) + '</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Nº OS</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">' + osVal + '</td>'
+      + '</tr>'
+      + '<tr class="border-b border-slate-100">'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Hora Início</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">' + hiVal + '</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Hora Saída</td>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-slate-800 font-medium">' + hsVal + '</td>'
+      + '</tr>'
+      + '<tr>'
+      + '  <td class="w-1/4 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50">Histórico Diário</td>'
+      + '  <td class="px-4 py-2.5 text-slate-700 leading-relaxed" colspan="3">' + obsVal + '</td>'
+      + '</tr>';
+  }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+export function closeDiarioDetailModal() {
+  var modal = document.getElementById('diarioDetailModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+  _currentDetailDiarioItem = null;
+}
+
 export function openDiarioModal(id = null) {
   var modal = document.getElementById('diarioModal');
   if (!modal) return;
@@ -1236,6 +1433,11 @@ export function openDiarioModal(id = null) {
     if (hiInput) hiInput.value = item.hora_inicio || '';
     if (hsInput) hsInput.value = item.hora_saida || '';
     if (obsInput) obsInput.value = item.obs || '';
+
+    if (placaInput && !placaInput.value.trim()) {
+      if (tecnicoInput && tecnicoInput.value.trim()) syncTeamData('tecnico');
+      else if (equipeInput && equipeInput.value.trim()) syncTeamData('equipe');
+    }
   }
 
   updateCategoryTecnicoRequirement();
@@ -1683,6 +1885,39 @@ export function initDiarioList() {
     modalCat.addEventListener('change', updateCategoryTecnicoRequirement);
   }
 
+  // Detail Modal bindings
+  var closeDetailTop = document.getElementById('btnCloseDiarioDetailTop');
+  if (closeDetailTop && !closeDetailTop._bound) {
+    closeDetailTop._bound = true;
+    closeDetailTop.addEventListener('click', closeDiarioDetailModal);
+  }
+
+  var closeDetailBtn = document.getElementById('btnDiarioDetailClose');
+  if (closeDetailBtn && !closeDetailBtn._bound) {
+    closeDetailBtn._bound = true;
+    closeDetailBtn.addEventListener('click', closeDiarioDetailModal);
+  }
+
+  var detailModalEl = document.getElementById('diarioDetailModal');
+  if (detailModalEl && !detailModalEl._bound) {
+    detailModalEl._bound = true;
+    detailModalEl.addEventListener('click', function (e) {
+      if (e.target === detailModalEl) closeDiarioDetailModal();
+    });
+  }
+
+  var editDetailBtn = document.getElementById('btnDiarioDetailEdit');
+  if (editDetailBtn && !editDetailBtn._bound) {
+    editDetailBtn._bound = true;
+    editDetailBtn.addEventListener('click', function () {
+      if (_currentDetailDiarioItem) {
+        var it = _currentDetailDiarioItem;
+        closeDiarioDetailModal();
+        openDiarioModal(it.id);
+      }
+    });
+  }
+
   // Pre-load teams cache
   loadDiarioTeams().catch(function () {});
 
@@ -1866,14 +2101,21 @@ export function initDiarioList() {
         return;
       }
 
-      // Row click: opens modal if not clicking action button or selecting text
+      // Row click: opens read-only detail modal (like solicitacao de material) if not clicking action button or selecting text
       if (window.getSelection && window.getSelection().toString().trim().length > 0) {
         return;
       }
       var tr = e.target.closest('tr.diario-row');
       if (tr) {
         var rowId = tr.getAttribute('data-id');
-        if (rowId) openDiarioModal(parseInt(rowId, 10));
+        if (rowId) {
+          var item = _diarioItemsById[rowId];
+          if (item) {
+            openDiarioDetailModal(item);
+          } else {
+            openDiarioDetailModal({ id: parseInt(rowId, 10) });
+          }
+        }
         return;
       }
     });
