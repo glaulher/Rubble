@@ -1246,16 +1246,19 @@ export function setupDiarioModalAutocompletes() {
   }
 
   // 6. OS Lookup
-  if (osInput && obsInput && !osInput._bound) {
+  var targetObsInput = document.getElementById('diarioModalNewObs') || obsInput;
+  if (osInput && targetObsInput && !osInput._bound) {
     osInput._bound = true;
     osInput.addEventListener('blur', async function () {
       var val = osInput.value.trim();
-      if (!val || val === 'N/A' || obsInput.value.trim() !== '') return;
+      var currentVal = targetObsInput.value ? targetObsInput.value.trim() : '';
+      if (!val || val === 'N/A' || currentVal !== '') return;
       try {
         var res = await apiFetch('/app/api/index.php?route=diario&action=lookup-os&os=' + encodeURIComponent(val));
         var json = await res.json();
-        if (json.success && json.data && json.data.obs && !obsInput.value.trim()) {
-          obsInput.value = json.data.obs;
+        if (json.success && json.data && json.data.obs && !targetObsInput.value.trim()) {
+          targetObsInput.value = json.data.obs;
+          if (obsInput && obsInput !== targetObsInput) obsInput.value = json.data.obs;
         }
       } catch (err) {
         console.error('Erro lookup-os:', err);
@@ -1394,6 +1397,12 @@ export function openDiarioModal(id = null) {
   var hiInput = document.getElementById('diarioModalHoraInicio');
   var hsInput = document.getElementById('diarioModalHoraSaida');
   var obsInput = document.getElementById('diarioModalObs');
+  var newObsInput = document.getElementById('diarioModalNewObs');
+  var obsHistorySection = document.getElementById('diarioModalObsHistorySection');
+  var obsHistoryContainer = document.getElementById('diarioModalObsHistoryContainer');
+  var obsHistoryEl = document.getElementById('diarioModalObsHistory');
+  var obsEmptyEl = document.getElementById('diarioModalObsEmpty');
+  var newObsLabel = document.getElementById('diarioModalNewObsLabel');
 
   loadDiarioTeams().catch(function () {});
   loadDiarioEquipments().catch(function () {});
@@ -1417,6 +1426,16 @@ export function openDiarioModal(id = null) {
     if (osInput) osInput.value = '';
     if (hiInput) hiInput.value = '';
     if (hsInput) hsInput.value = '';
+
+    if (obsHistorySection) obsHistorySection.classList.add('hidden');
+    if (obsHistoryContainer) obsHistoryContainer.classList.add('hidden');
+    if (obsHistoryEl) obsHistoryEl.textContent = '';
+    if (obsEmptyEl) obsEmptyEl.classList.add('hidden');
+    if (newObsLabel) newObsLabel.textContent = 'Observação Inicial';
+    if (newObsInput) {
+      newObsInput.value = '';
+      newObsInput.placeholder = 'Observação inicial da atividade (opcional)...';
+    }
     if (obsInput) obsInput.value = '';
   } else {
     var item = _diarioItemsById[id] || {};
@@ -1438,6 +1457,23 @@ export function openDiarioModal(id = null) {
     if (osInput) osInput.value = item.os || '';
     if (hiInput) hiInput.value = item.hora_inicio || '';
     if (hsInput) hsInput.value = item.hora_saida || '';
+
+    if (obsHistorySection) obsHistorySection.classList.remove('hidden');
+    var rawObs = (item.obs || '').trim();
+    if (rawObs) {
+      if (obsHistoryContainer) obsHistoryContainer.classList.remove('hidden');
+      if (obsHistoryEl) obsHistoryEl.textContent = item.obs;
+      if (obsEmptyEl) obsEmptyEl.classList.add('hidden');
+    } else {
+      if (obsHistoryContainer) obsHistoryContainer.classList.add('hidden');
+      if (obsHistoryEl) obsHistoryEl.textContent = '';
+      if (obsEmptyEl) obsEmptyEl.classList.remove('hidden');
+    }
+    if (newObsLabel) newObsLabel.textContent = 'Adicionar Nova Observação';
+    if (newObsInput) {
+      newObsInput.value = '';
+      newObsInput.placeholder = 'Digite uma observação para adicionar ao histórico...';
+    }
     if (obsInput) obsInput.value = item.obs || '';
 
     if (placaInput && !placaInput.value.trim()) {
@@ -1477,6 +1513,7 @@ export async function saveDiarioModal(e) {
   var hiInput = document.getElementById('diarioModalHoraInicio');
   var hsInput = document.getElementById('diarioModalHoraSaida');
   var obsInput = document.getElementById('diarioModalObs');
+  var newObsInput = document.getElementById('diarioModalNewObs');
 
   var id = idInput && idInput.value ? parseInt(idInput.value, 10) : null;
   var categoria = catSelect ? catSelect.value : 'preventiva';
@@ -1498,6 +1535,9 @@ export async function saveDiarioModal(e) {
     return;
   }
 
+  var newObsVal = newObsInput ? newObsInput.value.trim() : '';
+  var obsVal = obsInput ? obsInput.value.trim() : '';
+
   var payload = {
     tecnico: tecnico || null,
     equipe: equipe || null,
@@ -1511,15 +1551,23 @@ export async function saveDiarioModal(e) {
     os: osInput ? osInput.value.trim() || null : null,
     hora_inicio: hiInput ? hiInput.value.trim() || null : null,
     hora_saida: hsInput ? hsInput.value.trim() || null : null,
-    obs: obsInput ? obsInput.value.trim() || null : null,
   };
+
+  if (id) {
+    payload.id = id;
+    payload.nova_obs = newObsVal || null;
+    if (!payload.nova_obs && obsVal && obsVal !== (_diarioItemsById[id] && _diarioItemsById[id].obs)) {
+      payload.nova_obs = obsVal;
+    }
+  } else {
+    payload.obs = newObsVal || obsVal || null;
+  }
 
   var saveBtn = document.getElementById('btnDiarioModalSave');
   if (saveBtn) saveBtn.disabled = true;
 
   try {
     if (id) {
-      payload.id = id;
       var res = await apiFetch('/app/api/index.php?route=diario', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1534,6 +1582,9 @@ export async function saveDiarioModal(e) {
       if (updatedItem && updatedItem.id) {
         _diarioItemsById[updatedItem.id] = updatedItem;
         refreshDiarioRow(updatedItem.id);
+        if (_currentDetailDiarioItem && _currentDetailDiarioItem.id === updatedItem.id) {
+          openDiarioDetailModal(updatedItem);
+        }
       }
       showToast('Atividade atualizada com sucesso', 'success');
       closeDiarioModal();

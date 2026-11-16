@@ -380,16 +380,36 @@
             </div>
 
             <!-- Histórico Diário (Obs) -->
-            <div class="md:col-span-3">
-              <label for="diarioModalObs" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                Histórico Diário
-              </label>
-              <textarea
-                id="diarioModalObs"
-                rows="3"
-                class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500"
-                placeholder="Histórico diário / observações da atividade..."
-              ></textarea>
+            <div class="md:col-span-3 space-y-3">
+              <!-- Histórico anterior (somente leitura / audit trail imutável) -->
+              <div id="diarioModalObsHistorySection">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                  Histórico Diário
+                </label>
+                <div id="diarioModalObsHistoryContainer" class="hidden">
+                  <div
+                    id="diarioModalObsHistory"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-700 max-h-40 overflow-y-auto whitespace-pre-line font-mono leading-relaxed select-text"
+                  ></div>
+                </div>
+                <p id="diarioModalObsEmpty" class="hidden text-xs text-slate-400 italic py-1">
+                  Nenhum histórico registrado anteriormente.
+                </p>
+              </div>
+
+              <!-- Nova Observação -->
+              <div>
+                <label for="diarioModalNewObs" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                  <span id="diarioModalNewObsLabel">Adicionar Observação</span>
+                </label>
+                <textarea
+                  id="diarioModalNewObs"
+                  rows="2"
+                  class="w-full bg-white text-sm rounded-xl px-3 py-2 border border-slate-300 focus:outline-none focus:border-blue-500"
+                  placeholder="Digite uma observação para adicionar ao histórico..."
+                ></textarea>
+                <input type="hidden" id="diarioModalObs" value="" />
+              </div>
             </div>
           </div>
         </div>

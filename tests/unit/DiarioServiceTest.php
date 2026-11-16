@@ -200,7 +200,7 @@ class DiarioServiceTest extends TestCase
 
     public function testUpdateFullRecord(): void
     {
-        $user = ['id' => 1, 'role' => 'admin'];
+        $user = ['id' => 1, 'nome' => 'Admin User', 'role' => 'admin'];
         $created = $this->service->create(['site' => 'PRE_UPDATE', 'categoria' => 'corretiva'], $user);
         $id = $created['id'];
 
@@ -214,7 +214,7 @@ class DiarioServiceTest extends TestCase
             'data' => '2026-11-15',
             'hora_inicio' => '13:00',
             'hora_saida' => '15:30',
-            'obs' => 'Atualizado pelo modal',
+            'nova_obs' => 'Atualizado pelo modal',
         ], $user);
 
         $this->assertSame($id, $result['id']);
@@ -225,7 +225,83 @@ class DiarioServiceTest extends TestCase
         $this->assertSame('RIO-2A19', $item['placa']);
         $this->assertSame('preventiva', $item['categoria']);
         $this->assertSame('Concluído', $item['status']);
-        $this->assertSame('Atualizado pelo modal', $item['obs']);
+        $this->assertStringContainsString('Admin User (admin): Atualizado pelo modal', $item['obs']);
+    }
+
+    public function testCreateWithObsStampsAuthorAndDate(): void
+    {
+        $user = ['id' => 1, 'nome' => 'Lucas', 'role' => 'supervisor'];
+        $created = $this->service->create([
+            'site' => 'S1',
+            'categoria' => 'preventiva',
+            'obs' => 'Observação inicial da atividade'
+        ], $user);
+
+        $this->assertGreaterThan(0, $created['id']);
+        $item = $created['item'];
+        $this->assertNotNull($item['obs']);
+        $this->assertStringContainsString('Lucas (supervisor): Observação inicial da atividade', $item['obs']);
+        $this->assertMatchesRegularExpression('/^\[\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}\] Lucas \(supervisor\): Observação inicial da atividade/', $item['obs']);
+    }
+
+    public function testUpdatePreservesExistingObsAndAppendsNovaObsWithStamp(): void
+    {
+        $user1 = ['id' => 1, 'nome' => 'Lucas', 'role' => 'supervisor'];
+        $created = $this->service->create([
+            'site' => 'S1',
+            'categoria' => 'preventiva',
+            'obs' => 'Observação inicial'
+        ], $user1);
+        $id = $created['id'];
+
+        $user2 = ['id' => 2, 'nome' => 'Glaulher', 'role' => 'admin'];
+        $res = $this->service->update($id, [
+            'nova_obs' => 'Segunda observação adicionada'
+        ], $user2);
+
+        $item = $res['item'];
+        $this->assertStringContainsString('Lucas (supervisor): Observação inicial', $item['obs']);
+        $this->assertStringContainsString('Glaulher (admin): Segunda observação adicionada', $item['obs']);
+        $this->assertStringContainsString("\n\n", $item['obs']);
+    }
+
+    public function testUpdateWithStatusChangeAppendsStatusChangeEntryToObs(): void
+    {
+        $user = ['id' => 1, 'nome' => 'Admin User', 'role' => 'admin'];
+        $created = $this->service->create([
+            'site' => 'S1',
+            'status' => 'Pendente',
+            'categoria' => 'preventiva',
+        ], $user);
+        $id = $created['id'];
+
+        $res = $this->service->update($id, [
+            'status' => 'Concluído'
+        ], $user);
+
+        $item = $res['item'];
+        $this->assertSame('Concluído', $item['status']);
+        $this->assertNotNull($item['obs']);
+        $this->assertStringContainsString("Admin User (admin): Status alterado para 'Concluído'", $item['obs']);
+    }
+
+    public function testUpdateDoesNotAllowOverwritingOrWipingExistingObs(): void
+    {
+        $user = ['id' => 1, 'nome' => 'Lucas', 'role' => 'supervisor'];
+        $created = $this->service->create([
+            'site' => 'S1',
+            'obs' => 'Histórico que nunca deve ser apagado'
+        ], $user);
+        $id = $created['id'];
+
+        $res = $this->service->update($id, [
+            'obs' => '',
+            'site' => 'S2'
+        ], $user);
+
+        $item = $res['item'];
+        $this->assertSame('S2', $item['site']);
+        $this->assertStringContainsString('Histórico que nunca deve ser apagado', $item['obs']);
     }
 
     public function testAppendObsSuccessAndValidation(): void

@@ -81,6 +81,18 @@ class DiarioService
     {
         $userId = isset($currentUser['id']) ? (int) $currentUser['id'] : null;
 
+        $rawObs = !empty($data['obs']) ? trim((string) $data['obs']) : (!empty($data['nova_obs']) ? trim((string) $data['nova_obs']) : null);
+        if ($rawObs !== null && $rawObs !== '') {
+            if (!str_starts_with($rawObs, '[')) {
+                $userName = $currentUser['nome'] ?? $currentUser['username'] ?? 'Desconhecido';
+                $userRole = $currentUser['role'] ?? '';
+                $now = date('d/m/Y H:i');
+                $rawObs = "[{$now}] {$userName} ({$userRole}): {$rawObs}";
+            }
+        } else {
+            $rawObs = null;
+        }
+
         $record = [
             'site' => !empty($data['site']) ? trim((string) $data['site']) : null,
             'equipamento_id' => isset($data['equipamento_id']) && $data['equipamento_id'] !== '' && $data['equipamento_id'] !== 'N/A'
@@ -96,7 +108,7 @@ class DiarioService
             'equipe' => !empty($data['equipe']) && $data['equipe'] !== 'N/A' ? trim((string) $data['equipe']) : null,
             'tecnico' => !empty($data['tecnico']) && $data['tecnico'] !== 'N/A' ? trim((string) $data['tecnico']) : null,
             'placa' => !empty($data['placa']) && $data['placa'] !== 'N/A' ? trim((string) $data['placa']) : null,
-            'obs' => !empty($data['obs']) ? trim((string) $data['obs']) : null,
+            'obs' => $rawObs,
         ];
 
         $this->autoResolveTeamData($record);
@@ -230,6 +242,10 @@ class DiarioService
             throw new \RuntimeException('Registro não encontrado.');
         }
 
+        $userName = $currentUser['nome'] ?? $currentUser['username'] ?? 'Desconhecido';
+        $userRole = $currentUser['role'] ?? '';
+        $now = date('d/m/Y H:i');
+
         $record = [
             'site' => !empty($data['site']) ? trim((string) $data['site']) : null,
             'equipamento_id' => isset($data['equipamento_id']) && $data['equipamento_id'] !== '' && $data['equipamento_id'] !== 'N/A'
@@ -241,11 +257,10 @@ class DiarioService
             'hora_inicio' => !empty($data['hora_inicio']) && $data['hora_inicio'] !== 'N/A' ? trim((string) $data['hora_inicio']) : null,
             'hora_saida' => !empty($data['hora_saida']) && $data['hora_saida'] !== 'N/A' ? trim((string) $data['hora_saida']) : null,
             'categoria' => !empty($data['categoria']) ? trim((string) $data['categoria']) : null,
-            'status' => !empty($data['status']) ? trim((string) $data['status']) : null,
+            'status' => !empty($data['status']) ? trim((string) $data['status']) : ($existing->status ?? null),
             'equipe' => !empty($data['equipe']) && $data['equipe'] !== 'N/A' ? trim((string) $data['equipe']) : null,
             'tecnico' => !empty($data['tecnico']) && $data['tecnico'] !== 'N/A' ? trim((string) $data['tecnico']) : null,
             'placa' => !empty($data['placa']) && $data['placa'] !== 'N/A' ? trim((string) $data['placa']) : null,
-            'obs' => isset($data['obs']) && $data['obs'] !== null && trim((string) $data['obs']) !== '' ? (string) $data['obs'] : null,
         ];
 
         $this->autoResolveTeamData($record);
@@ -281,6 +296,53 @@ class DiarioService
         if ($record['placa'] !== null && mb_strlen($record['placa']) > 30) {
             throw new \InvalidArgumentException('Placa deve ter no máximo 30 caracteres.');
         }
+
+        // Histórico diário (obs): NUNCA apaga ou substitui o histórico existente.
+        $existingObs = $existing->obs ?? '';
+        $entriesToAppend = [];
+
+        // 1. Log de alteração de status se status mudou
+        if ($record['status'] !== null && $record['status'] !== $existing->status) {
+            $entriesToAppend[] = "[{$now}] {$userName} ({$userRole}): Status alterado para '{$record['status']}'";
+        }
+
+        // 2. Nova observação submetida
+        $newObsText = null;
+        if (!empty($data['nova_obs'])) {
+            $newObsText = trim((string) $data['nova_obs']);
+        } elseif (!empty($data['new_obs'])) {
+            $newObsText = trim((string) $data['new_obs']);
+        } elseif (isset($data['obs']) && $data['obs'] !== null && trim((string) $data['obs']) !== '') {
+            $candidate = trim((string) $data['obs']);
+            if ($candidate !== trim($existingObs)) {
+                if ($existingObs !== '' && str_starts_with($candidate, $existingObs)) {
+                    $remainder = trim(substr($candidate, strlen($existingObs)));
+                    if ($remainder !== '') {
+                        $newObsText = $remainder;
+                    }
+                } elseif ($existingObs === '') {
+                    $newObsText = $candidate;
+                } else {
+                    $newObsText = $candidate;
+                }
+            }
+        }
+
+        if ($newObsText !== null && $newObsText !== '') {
+            if (!str_starts_with($newObsText, '[')) {
+                $entriesToAppend[] = "[{$now}] {$userName} ({$userRole}): {$newObsText}";
+            } else {
+                $entriesToAppend[] = $newObsText;
+            }
+        }
+
+        // Compõe o histórico final
+        $finalObs = $existingObs;
+        foreach ($entriesToAppend as $entry) {
+            $finalObs = $finalObs !== '' ? $finalObs . "\n\n" . $entry : $entry;
+        }
+
+        $record['obs'] = $finalObs !== '' ? $finalObs : null;
 
         $this->repository->update($id, $record);
 

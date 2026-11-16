@@ -99,6 +99,14 @@ function setupDiarioDOM() {
         <input type="text" id="diarioModalOs" />
         <input type="time" id="diarioModalHoraInicio" />
         <input type="time" id="diarioModalHoraSaida" />
+        <div id="diarioModalObsHistorySection">
+          <div id="diarioModalObsHistoryContainer" class="hidden">
+            <div id="diarioModalObsHistory"></div>
+          </div>
+          <p id="diarioModalObsEmpty" class="hidden"></p>
+        </div>
+        <span id="diarioModalNewObsLabel"></span>
+        <textarea id="diarioModalNewObs"></textarea>
         <textarea id="diarioModalObs"></textarea>
         <button type="button" id="btnDiarioModalCancel">Cancelar</button>
         <button type="submit" id="btnDiarioModalSave"><span id="diarioModalSaveLabel">Salvar</span></button>
@@ -297,6 +305,10 @@ describe("diario/list.js unit & integration", function () {
     expect(document.getElementById('diarioModalHoraInicio').value).toBe('08:30');
     expect(document.getElementById('diarioModalHoraSaida').value).toBe('17:00');
     expect(document.getElementById('diarioModalObs').value).toBe('Manutenção preventiva realizada');
+    expect(document.getElementById('diarioModalObsHistory').textContent).toBe('Manutenção preventiva realizada');
+    expect(document.getElementById('diarioModalObsHistoryContainer').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('diarioModalNewObs').value).toBe('');
+    expect(document.getElementById('diarioModalNewObsLabel').textContent).toBe('Adicionar Nova Observação');
   });
 
   it("opens read-only detail modal on row click (like solicitacao de material) and switches to edit modal on Editar click", function () {
@@ -702,6 +714,58 @@ describe("diario/list.js unit & integration", function () {
 
     const updatedTd = document.querySelector('td[data-field="tecnico"]');
     expect(updatedTd.textContent).toContain('Novo Tecnico');
+  });
+
+  it("shows read-only history and sends nova_obs when editing activity with history", async function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    let putBody = null;
+    globalThis.apiFetch = function (url, opts) {
+      if (opts && opts.method === 'PUT') {
+        putBody = JSON.parse(opts.body);
+        return Promise.resolve({
+          json: () => Promise.resolve({
+            success: true,
+            data: {
+              item: {
+                ...putBody,
+                obs: '[12/11/2026 09:34] glaulher@admin (admin): Registro antigo\n\n[15/11/2026 21:00] lucas (supervisor): Nova nota inserida',
+                created_by: 1,
+              }
+            }
+          })
+        });
+      }
+      return Promise.resolve({ json: () => ({ success: true, data: { items: [], total: 0 } }) });
+    };
+
+    globalThis.initDiarioList();
+    const existing = {
+      id: 88,
+      tecnico: 'Carlos Souza',
+      equipe: 'Equipe Alpha',
+      placa: 'TBO-9J41',
+      data: '2026-11-12',
+      categoria: 'preventiva',
+      site: 'BMA',
+      obs: '[12/11/2026 09:34] glaulher@admin (admin): Registro antigo',
+    };
+    globalThis.renderDiarioTable([existing], false);
+
+    globalThis.openDiarioModal(88);
+
+    const historyBox = document.getElementById('diarioModalObsHistory');
+    expect(historyBox.textContent).toContain('Registro antigo');
+    expect(document.getElementById('diarioModalObsHistoryContainer').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('diarioModalNewObs').value).toBe('');
+
+    document.getElementById('diarioModalNewObs').value = 'Nova nota inserida';
+    await globalThis.saveDiarioModal(new Event('submit'));
+
+    expect(putBody).not.toBeNull();
+    expect(putBody.id).toBe(88);
+    expect(putBody.nova_obs).toBe('Nova nota inserida');
   });
 
   it("builds query with filters correctly", function () {
