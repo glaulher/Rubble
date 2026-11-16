@@ -1054,11 +1054,17 @@ export function syncTeamData(source) {
         return t.nome && String(t.nome).trim().toLowerCase().indexOf(eqVal) === 0;
       });
     }
+    if (!match) {
+      match = teams.find(function (t) {
+        return (t.nome && String(t.nome).trim().toLowerCase().includes(eqVal)) ||
+               (t.tecnico && String(t.tecnico).trim().toLowerCase().includes(eqVal));
+      });
+    }
     if (match) {
       if (placaInput && match.placa) {
         placaInput.value = match.placa;
       }
-      if (tecInput && match.tecnico && !tecInput.value.trim()) {
+      if (tecInput && match.tecnico) {
         tecInput.value = match.tecnico;
       }
     }

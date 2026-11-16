@@ -103,6 +103,43 @@ class DiarioServiceTest extends TestCase
         $this->assertNull($result['item']['tecnico']);
     }
 
+    public function testCreateWithEquipeAutoResolvesTecnicoAndPlaca(): void
+    {
+        $mockTeamRepo = $this->createMock(\App\Api\Repositories\TeamRepository::class);
+        $mockTeamRepo->method('findByNameExact')
+            ->with('Alexandre - Flavio')
+            ->willReturn([
+                'id' => 3,
+                'nome' => 'Alexandre - Flavio',
+                'tecnico' => 'ALEXANDRE DONATO DA SILVA',
+                'placa' => 'TBO-9J41',
+                'ativo' => 1,
+            ]);
+
+        $mockDiarioRepo = $this->createMock(\App\Api\Repositories\DiarioRepository::class);
+        $mockDiarioRepo->expects($this->once())
+            ->method('create')
+            ->with($this->callback(function (array $record) {
+                return $record['equipe'] === 'Alexandre - Flavio'
+                    && $record['tecnico'] === 'ALEXANDRE DONATO DA SILVA'
+                    && $record['placa'] === 'TBO-9J41';
+            }), 1)
+            ->willReturn(101);
+
+        $mockDiarioRepo->method('findById')->willReturn(new \App\Api\Entities\DiarioAtividade([
+            'id' => 101,
+            'equipe' => 'Alexandre - Flavio',
+            'tecnico' => 'ALEXANDRE DONATO DA SILVA',
+            'placa' => 'TBO-9J41',
+        ]));
+
+        $service = new DiarioService($mockDiarioRepo, $mockTeamRepo);
+        $result = $service->create(['equipe' => 'Alexandre - Flavio', 'categoria' => 'preventiva'], ['id' => 1]);
+
+        $this->assertSame('ALEXANDRE DONATO DA SILVA', $result['item']['tecnico']);
+        $this->assertSame('TBO-9J41', $result['item']['placa']);
+    }
+
     public function testCreateWithInvalidTimeFormatThrows(): void
     {
         $user = ['id' => 1, 'role' => 'admin'];

@@ -38,10 +38,14 @@ class DiarioService
     ];
 
     private DiarioRepository $repository;
+    private ?\App\Api\Repositories\TeamRepository $teamRepository;
 
-    public function __construct(?DiarioRepository $repository = null)
-    {
+    public function __construct(
+        ?DiarioRepository $repository = null,
+        ?\App\Api\Repositories\TeamRepository $teamRepository = null
+    ) {
         $this->repository = $repository ?? new DiarioRepository();
+        $this->teamRepository = $teamRepository;
     }
 
     public function listAll(
@@ -94,6 +98,8 @@ class DiarioService
             'placa' => !empty($data['placa']) && $data['placa'] !== 'N/A' ? trim((string) $data['placa']) : null,
             'obs' => !empty($data['obs']) ? trim((string) $data['obs']) : null,
         ];
+
+        $this->autoResolveTeamData($record);
 
         if ($record['data'] !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $record['data'])) {
             throw new \InvalidArgumentException('Formato de data inválido. Use YYYY-MM-DD.');
@@ -242,6 +248,8 @@ class DiarioService
             'obs' => isset($data['obs']) && $data['obs'] !== null && trim((string) $data['obs']) !== '' ? (string) $data['obs'] : null,
         ];
 
+        $this->autoResolveTeamData($record);
+
         if ($record['data'] !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $record['data'])) {
             throw new \InvalidArgumentException('Formato de data inválido. Use YYYY-MM-DD.');
         }
@@ -367,5 +375,25 @@ class DiarioService
     public function lookupOs(string $os): ?string
     {
         return $this->repository->lookupOsObs($os);
+    }
+
+    private function autoResolveTeamData(array &$record): void
+    {
+        if (!empty($record['equipe']) && (empty($record['tecnico']) || empty($record['placa']))) {
+            try {
+                $teamRepo = $this->teamRepository ?? new \App\Api\Repositories\TeamRepository();
+                $team = $teamRepo->findByNameExact($record['equipe']) ?? $teamRepo->findByNameCase($record['equipe']);
+                if ($team) {
+                    if (empty($record['tecnico']) && !empty($team['tecnico'])) {
+                        $record['tecnico'] = $team['tecnico'];
+                    }
+                    if (empty($record['placa']) && !empty($team['placa'])) {
+                        $record['placa'] = $team['placa'];
+                    }
+                }
+            } catch (\Throwable) {
+                // Non-blocking fallback
+            }
+        }
     }
 }

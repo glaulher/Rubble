@@ -531,6 +531,55 @@ describe("diario/list.js unit & integration", function () {
     expect(tecInput.value).toBe('CLAUDIO ROBERTO FERREIRA ROCHA');
   });
 
+  it("overwrites and auto-fills both Técnico and Placa when selecting or typing Equipe even if Técnico already has text", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.setCachedTeams([
+      { id: 4, nome: 'Claudio Roberto - Carlos', tecnico: 'CLAUDIO ROBERTO FERREIRA ROCHA', placa: 'TBO-9J53', ativo: 1 }
+    ]);
+
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
+
+    const tecInput = document.getElementById('diarioModalTecnico');
+    const eqInput = document.getElementById('diarioModalEquipe');
+    const placaInput = document.getElementById('diarioModalPlaca');
+
+    tecInput.value = 'Técnico Anterior Qualquer';
+    placaInput.value = 'OLD-0000';
+
+    eqInput.value = 'Claudio Roberto - Carlos';
+    eqInput.dispatchEvent(new Event('input'));
+    eqInput.dispatchEvent(new Event('blur'));
+
+    expect(tecInput.value).toBe('CLAUDIO ROBERTO FERREIRA ROCHA');
+    expect(placaInput.value).toBe('TBO-9J53');
+  });
+
+  it("auto-fills Técnico and Placa when Equipe is entered as partial name", function () {
+    (0, eval)(mockInfiniteScroll);
+    evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
+
+    globalThis.setCachedTeams([
+      { id: 1, nome: 'Leander - Sidiney', tecnico: 'LEANDER SOARES VIEIRA', placa: 'TBO-9J46', ativo: 1 }
+    ]);
+
+    globalThis.initDiarioList();
+    globalThis.openDiarioModal(null);
+
+    const tecInput = document.getElementById('diarioModalTecnico');
+    const eqInput = document.getElementById('diarioModalEquipe');
+    const placaInput = document.getElementById('diarioModalPlaca');
+
+    eqInput.value = 'Leander';
+    eqInput.dispatchEvent(new Event('input'));
+    eqInput.dispatchEvent(new Event('blur'));
+
+    expect(tecInput.value).toBe('LEANDER SOARES VIEIRA');
+    expect(placaInput.value).toBe('TBO-9J46');
+  });
+
   it("auto-fills Equipe and Técnico when typing or selecting Placa", function () {
     (0, eval)(mockInfiniteScroll);
     evalModule('../public/js/diario/list.js', DIARIO_HELPERS);
