@@ -1,5 +1,18 @@
 -- Migration 083: Backfill tecnico and placa in diario_atividades based on equipes
 
+-- 0. Garantir que as colunas existam (caso a migration 082/081 não tenha sido executada previamente)
+ALTER TABLE `diario_atividades`
+  ADD COLUMN IF NOT EXISTS `tecnico` VARCHAR(100) NULL DEFAULT NULL AFTER `equipe`;
+
+ALTER TABLE `diario_atividades`
+  ADD COLUMN IF NOT EXISTS `placa` VARCHAR(30) NULL DEFAULT NULL AFTER `equipe`;
+
+ALTER TABLE `diario_atividades`
+  ADD INDEX IF NOT EXISTS `idx_diario_tecnico` (`tecnico`);
+
+ALTER TABLE `diario_atividades`
+  ADD INDEX IF NOT EXISTS `idx_diario_placa` (`placa`);
+
 -- 1. Exact match with equipes table
 UPDATE diario_atividades d
 JOIN equipes e ON d.equipe = e.nome
