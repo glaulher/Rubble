@@ -27,6 +27,9 @@ class Database
         }
 
         self::$instance->set_charset('utf8mb4');
+        self::$instance->query("SET time_zone = '-03:00'");
+
+        date_default_timezone_set('America/Sao_Paulo');
 
         return self::$instance;
     }

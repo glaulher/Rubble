@@ -32,6 +32,8 @@ services:
     build: .
     container_name: rubble-app
     env_file: .env
+    environment:
+      - TZ=America/Sao_Paulo
     volumes:
       - os-data:/var/www/html/OS
       - laudo-data:/var/www/html/LAUDO
@@ -87,11 +89,13 @@ services:
   db:
     image: mariadb:11.4
     container_name: rubble-db
+    command: ["--default-time-zone=-03:00"]
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?root password required}
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASS}
+      TZ: America/Sao_Paulo
     volumes:
       - db-data:/var/lib/mysql
       - ./config/schema.sql:/docker-entrypoint-initdb.d/00-schema.sql
@@ -132,6 +136,8 @@ services:
       dockerfile: Dockerfile.cron
     container_name: rubble-cron
     env_file: .env
+    environment:
+      - TZ=America/Sao_Paulo
     volumes:
       - os-data:/var/www/html/OS
       - laudo-data:/var/www/html/LAUDO
