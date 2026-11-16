@@ -179,4 +179,23 @@ class TeamRepositoryTest extends TestCase
         $repository = $this->createRepoWithMockStmt($stmt);
         $repository->delete(1);
     }
+
+    public function testGetActiveTeamsWithTechniciansExecutesAndReturnsRows(): void
+    {
+        $stmt = $this->createMockStmt();
+        $result = $this->createMock(\mysqli_result::class);
+        $rows = [
+            ['id' => 1, 'nome' => 'Alexandre - Flavio', 'tecnico' => 'ALEXANDRE DONATO DA SILVA', 'placa' => 'TBO-9J41'],
+        ];
+        $result->method('fetch_all')->willReturn($rows);
+        $stmt->method('get_result')->willReturn($result);
+        $stmt->expects($this->once())->method('execute');
+        $stmt->expects($this->once())->method('close');
+
+        $repository = $this->createRepoWithMockStmt($stmt);
+        $activeTeams = $repository->getActiveTeamsWithTechnicians();
+
+        $this->assertCount(1, $activeTeams);
+        $this->assertSame('ALEXANDRE DONATO DA SILVA', $activeTeams[0]['tecnico']);
+    }
 }

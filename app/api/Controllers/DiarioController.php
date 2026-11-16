@@ -204,10 +204,46 @@ class DiarioController
             Response::success('Registro excluído com sucesso');
         } catch (\DomainException $e) {
             Response::error($e->getMessage(), 403);
+            return;
         } catch (\InvalidArgumentException | \RuntimeException $e) {
             Response::error($e->getMessage(), 400);
+            return;
         } catch (\Throwable $e) {
             Response::serverError($e);
+            return;
+        }
+    }
+
+    public function generateDaily(): void
+    {
+        try {
+            $body = Request::body();
+            $targetDate = $body['data'] ?? $_GET['data'] ?? null;
+            if ($targetDate !== null) {
+                $targetDate = trim((string) $targetDate);
+                if ($targetDate === '') {
+                    $targetDate = null;
+                }
+            }
+
+            $result = $this->service->generateDailyEntriesForTechnicians($targetDate);
+            Cache::deleteByPrefix('diario_');
+
+            Response::json([
+                'success' => true,
+                'message' => "Linhas geradas com sucesso para {$result['date']}.",
+                'data' => $result,
+            ]);
+            return;
+        } catch (\InvalidArgumentException $e) {
+            Response::error($e->getMessage(), 400);
+            return;
+        } catch (\Exception $e) {
+            Response::error($e->getMessage(), 400);
+            return;
+        } catch (\Throwable $e) {
+            Response::serverError($e);
+            return;
         }
     }
 }

@@ -466,7 +466,13 @@ $router->addRoute('diario', 'GET', function () use ($auth) {
     }
 });
 $router->addRoute('diario', 'POST', function () use ($auth) {
-    (new DiarioController($auth->getUser()))->create();
+    $ctrl = new DiarioController($auth->getUser());
+    $action = $_GET['action'] ?? '';
+    if ($action === 'generate-daily') {
+        $ctrl->generateDaily();
+    } else {
+        $ctrl->create();
+    }
 });
 $router->addRoute('diario', 'PUT', function () use ($auth) {
     $ctrl = new DiarioController($auth->getUser());

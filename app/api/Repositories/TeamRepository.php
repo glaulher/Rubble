@@ -124,4 +124,25 @@ class TeamRepository extends BaseRepository
         $stmt->close();
         return (int) ($row['total'] ?? 0);
     }
+
+    /**
+     * Get active teams with valid technicians (excluding vacancies / EM CONTRATAÇÃO).
+     */
+    public function getActiveTeamsWithTechnicians(): array
+    {
+        $stmt = $this->safePrepare(
+            "SELECT id, nome, tecnico, placa, veiculo, contrato
+             FROM equipes
+             WHERE ativo = 1
+               AND tecnico IS NOT NULL
+               AND TRIM(tecnico) != ''
+               AND UPPER(TRIM(tecnico)) != 'EM CONTRATAÇÃO'
+             ORDER BY nome ASC"
+        );
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $rows   = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        return $rows;
+    }
 }

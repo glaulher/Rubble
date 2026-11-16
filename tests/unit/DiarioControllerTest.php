@@ -211,4 +211,31 @@ class DiarioControllerTest extends TestCase
             $this->assertFalse(AuthService::requireRole($u, 'diario', 'DELETE', null), "Role {$u->role} should NOT have delete access");
         }
     }
+
+    public function testGenerateDailyCallsService(): void
+    {
+        $mockService = $this->createMock(DiarioService::class);
+        $mockService->expects($this->once())
+            ->method('generateDailyEntriesForTechnicians')
+            ->with('2026-11-16')
+            ->willReturn([
+                'date' => '2026-11-16',
+                'total_teams' => 11,
+                'created' => 11,
+                'skipped' => 0,
+                'created_ids' => [1, 2, 3],
+            ]);
+
+        Request::setMockBody(['data' => '2026-11-16']);
+        $controller = new DiarioController(['id' => 1, 'role' => 'admin'], $mockService);
+
+        ob_start();
+        $controller->generateDaily();
+        $out = ob_get_clean();
+
+        $json = json_decode($out, true);
+        $this->assertTrue($json['success']);
+        $this->assertSame(11, $json['data']['created']);
+        $this->assertSame('2026-11-16', $json['data']['date']);
+    }
 }

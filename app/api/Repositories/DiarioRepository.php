@@ -315,6 +315,28 @@ class DiarioRepository extends BaseRepository
         return $res ? (string) $res['obs'] : null;
     }
 
+    public function hasEntryForTechnicianOrTeamOnDate(string $data, string $tecnico, ?string $equipe = null): bool
+    {
+        $sql = "SELECT 1 FROM diario_atividades WHERE data = ? AND (tecnico = ?";
+        $params = [$data, $tecnico];
+        $types = 'ss';
+
+        if ($equipe !== null && trim($equipe) !== '') {
+            $sql .= " OR equipe = ?";
+            $params[] = $equipe;
+            $types .= 's';
+        }
+        $sql .= ") LIMIT 1";
+
+        $stmt = $this->safePrepare($sql);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $exists = $result->fetch_row() !== null;
+        $stmt->close();
+        return $exists;
+    }
+
     private function buildFilterConditions(array $filters): array
     {
         $where = [];

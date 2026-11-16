@@ -439,6 +439,73 @@ class DiarioService
         return $this->repository->lookupOsObs($os);
     }
 
+    public function generateDailyEntriesForTechnicians(?string $targetDate = null): array
+    {
+        $date = $targetDate !== null && trim($targetDate) !== '' ? trim($targetDate) : date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            throw new \InvalidArgumentException('Formato de data inválido. Use YYYY-MM-DD.');
+        }
+
+        $teamRepo = $this->teamRepository ?? new \App\Api\Repositories\TeamRepository();
+        $teams = $teamRepo->getActiveTeamsWithTechnicians();
+
+        $created = 0;
+        $skipped = 0;
+        $createdIds = [];
+
+        foreach ($teams as $team) {
+            $tecnico = trim((string) ($team['tecnico'] ?? ''));
+            $equipe = trim((string) ($team['nome'] ?? ''));
+            $placa = !empty($team['placa']) ? trim((string) $team['placa']) : null;
+
+            if ($tecnico === '') {
+                $skipped++;
+                continue;
+            }
+
+            if ($this->repository->hasEntryForTechnicianOrTeamOnDate($date, $tecnico, $equipe)) {
+                $skipped++;
+                continue;
+            }
+
+            $record = [
+                'data' => $date,
+                'equipe' => $equipe !== '' ? $equipe : null,
+                'tecnico' => $tecnico,
+                'placa' => $placa,
+                'site' => null,
+                'equipamento_id' => null,
+                'localidade' => null,
+                'os' => null,
+                'hora_inicio' => null,
+                'hora_saida' => null,
+                'categoria' => null,
+                'status' => null,
+                'obs' => null,
+            ];
+
+            $newId = $this->repository->create($record, null);
+            if ($newId > 0) {
+                $created++;
+                $createdIds[] = $newId;
+            } else {
+                $skipped++;
+            }
+        }
+
+        if ($created > 0) {
+            \App\Api\Helpers\Cache::deleteByPrefix('diario_');
+        }
+
+        return [
+            'date' => $date,
+            'total_teams' => count($teams),
+            'created' => $created,
+            'skipped' => $skipped,
+            'created_ids' => $createdIds,
+        ];
+    }
+
     private function autoResolveTeamData(array &$record): void
     {
         if (!empty($record['equipe']) && (empty($record['tecnico']) || empty($record['placa']))) {

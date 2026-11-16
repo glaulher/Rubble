@@ -1,3 +1,4 @@
+0 5 * * * php /var/www/html/app/api/Cron/generate_daily_diario.php
 0 8 * * * php /var/www/html/app/api/Cron/check_notification.php
 0 9 * * * php /var/www/html/app/api/Cron/check_pv_approval.php
 0 9 * * * php /var/www/html/app/api/Cron/check_sc_sla.php

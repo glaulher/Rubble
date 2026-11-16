@@ -331,4 +331,26 @@ class DiarioRepositoryTest extends TestCase
         $this->assertNull($this->repo->lookupOsObs('N/A'));
         $this->assertNull($this->repo->lookupOsObs('OS_INEXISTENTE_999999'));
     }
+
+    public function testHasEntryForTechnicianOrTeamOnDate(): void
+    {
+        $testDate = '2026-11-16';
+        $tecnico = 'TECNICO_TESTE_INTEGRACAO';
+        $equipe = 'Equipe Teste Integracao';
+
+        $this->assertFalse($this->repo->hasEntryForTechnicianOrTeamOnDate($testDate, $tecnico, $equipe));
+
+        $id = $this->repo->create([
+            'data' => $testDate,
+            'tecnico' => $tecnico,
+            'equipe' => $equipe,
+        ], null);
+
+        $this->assertGreaterThan(0, $id);
+        $this->assertTrue($this->repo->hasEntryForTechnicianOrTeamOnDate($testDate, $tecnico, $equipe));
+        $this->assertTrue($this->repo->hasEntryForTechnicianOrTeamOnDate($testDate, $tecnico, null));
+        $this->assertTrue($this->repo->hasEntryForTechnicianOrTeamOnDate($testDate, 'Outro Tecnico', $equipe));
+        $this->assertFalse($this->repo->hasEntryForTechnicianOrTeamOnDate($testDate, 'Inexistente', 'Inexistente'));
+        $this->assertFalse($this->repo->hasEntryForTechnicianOrTeamOnDate('2026-11-17', $tecnico, $equipe));
+    }
 }
