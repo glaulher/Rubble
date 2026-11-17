@@ -38,6 +38,8 @@ services:
       - os-data:/var/www/html/OS
       - laudo-data:/var/www/html/LAUDO
       - image-data:/var/www/html/IMAGE
+      - tempo-fechado-data:/var/www/html/tempo_fechado/data:ro
+      - tempo-fechado-ponto:/var/www/html/tempo_fechado/ponto_pdfs:ro
     entrypoint: >
       sh -c "
         mkdir -p /var/www/html/OS /var/www/html/LAUDO /var/www/html/IMAGE &&
@@ -142,6 +144,8 @@ services:
       - os-data:/var/www/html/OS
       - laudo-data:/var/www/html/LAUDO
       - image-data:/var/www/html/IMAGE
+      - tempo-fechado-data:/var/www/html/tempo_fechado/data:ro
+      - tempo-fechado-ponto:/var/www/html/tempo_fechado/ponto_pdfs:ro
     deploy:
       resources:
         limits:

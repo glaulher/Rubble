@@ -17,6 +17,17 @@ class PontoRepository extends BaseRepository
         return $row ?: null;
     }
 
+    public function findColaboradorByNome(string $nome): ?array
+    {
+        $stmt = $this->safePrepare('SELECT * FROM ponto_colaboradores WHERE LOWER(nome) = LOWER(?) LIMIT 1');
+        $stmt->bind_param('s', $nome);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = $res->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
+
     public function upsertColaborador(array $data): int
     {
         $matricula = trim((string) ($data['matricula'] ?? ''));
