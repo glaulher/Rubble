@@ -1,0 +1,415 @@
+<div
+  class="min-h-screen dark-gradient"
+  style="background: linear-gradient(90deg, #b9abd9 0%, #d8e7fd 50%, #fde1f0 100%);"
+>
+  <!-- SUB-HEADER PADRÃO RUBBLE -->
+  <div class="bg-slate-900 text-white shadow-lg">
+    <div class="px-6 py-3 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-0 items-center">
+      <div>
+        <h1 class="text-2xl font-light tracking-[0.1em]">Gestão de Horas</h1>
+        <p class="text-sm text-slate-400/80 mt-0.5">Banco de Horas &amp; Horas Extras</p>
+      </div>
+
+      <div class="text-center">
+        <span
+          id="horasSummaryBadge"
+          class="inline-flex items-center justify-center bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl text-xs font-semibold"
+        >
+          <span id="badgeColabsCount">0</span>
+          <span class="ml-1">colaboradores</span>
+          <span class="mx-2">—</span>
+          <span id="badgeHeTotal">00:00</span>
+          <span class="ml-1">H.E.</span>
+          <span class="mx-2">—</span>
+          <span class="mr-1">Saldo Líquido:</span>
+          <span id="badgeSaldoLiquido" class="font-bold">+00:00</span>
+        </span>
+      </div>
+
+      <div class="text-right flex items-center justify-end gap-2">
+        <button
+          type="button"
+          id="btnToggleUploadPdfs"
+          data-role="admin coordenador gerente administrativo"
+          class="bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span>Subir Folhas PDF</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAINEL EXPANSÍVEL DE UPLOAD DE PDFs -->
+  <div id="panelUploadPdfs" class="hidden max-w-[96rem] mx-auto px-4 sm:px-6 pt-6">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 horas-card">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-800 horas-text">Upload de Espelhos de Ponto (PDFs)</h2>
+          <p class="text-xs text-slate-500 horas-text-sub">Selecione ou arraste os PDFs emitidos pelo relógio de ponto para extração e atualização automática das horas.</p>
+        </div>
+        <button type="button" id="btnCloseUploadPdfs" class="text-slate-400 hover:text-slate-600 p-1">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div
+        id="pdfDropzone"
+        class="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-8 text-center cursor-pointer bg-slate-50 transition horas-dropzone"
+      >
+        <svg class="w-10 h-10 mx-auto text-slate-400 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="12" y1="18" x2="12" y2="12"></line>
+          <line x1="9" y1="15" x2="12" y2="12"></line>
+          <line x1="15" y1="15" x2="12" y2="12"></line>
+        </svg>
+        <p class="text-sm font-medium text-slate-700 horas-text">Arraste os arquivos PDF aqui ou <span class="text-blue-600 underline">clique para selecionar</span></p>
+        <p class="text-xs text-slate-400 mt-1">Suporta múltiplos PDFs (espelhos mensais/quinzenais)</p>
+        <input type="file" id="inputPdfFiles" multiple accept=".pdf" class="hidden" />
+      </div>
+
+      <div id="pdfUploadStatus" class="mt-4 hidden">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1 horas-text">
+          <span id="pdfUploadMessage">Processando...</span>
+          <span id="pdfUploadPercent">0%</span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden horas-progress-bg">
+          <div id="pdfProgressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTEÚDO PRINCIPAL (CONTAINER COM ABAS) -->
+  <main class="max-w-[96rem] mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <!-- NAVEGAÇÃO DAS ABAS -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden horas-card">
+      <div class="flex border-b border-slate-200 px-6 pt-3 bg-slate-50 horas-tab-bar">
+        <button
+          type="button"
+          id="tabBtnBancoHoras"
+          class="horas-tab-btn active px-6 py-3 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 transition flex items-center gap-2"
+          data-tab="banco-horas"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>Banco de Horas</span>
+        </button>
+
+        <button
+          type="button"
+          id="tabBtnHoraExtra"
+          class="horas-tab-btn px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center gap-2"
+          data-tab="hora-extra"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 14 10"></polyline>
+            <path d="M16 14l4-4"></path>
+          </svg>
+          <span>Hora Extra Simplificada</span>
+        </button>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- ABA 1: BANCO DE HORAS                      -->
+      <!-- ========================================== -->
+      <div id="tabContentBancoHoras" class="p-6 space-y-6">
+        <!-- CARDS DE KPIS DO BANCO DE HORAS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm horas-card">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider horas-text-sub">Banco Positivo Total</span>
+            <div class="flex items-baseline justify-between mt-2">
+              <span id="kpiBancoPositivo" class="text-2xl font-bold text-emerald-600">+00:00</span>
+              <span id="kpiColabPositivo" class="text-xs text-slate-500 font-medium horas-text-sub">0 pessoas</span>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm horas-card">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider horas-text-sub">Banco Negativo Total</span>
+            <div class="flex items-baseline justify-between mt-2">
+              <span id="kpiBancoNegativo" class="text-2xl font-bold text-rose-600">-00:00</span>
+              <span id="kpiColabNegativo" class="text-xs text-slate-500 font-medium horas-text-sub">0 pessoas</span>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm horas-card">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider horas-text-sub">Total H.E. Acumulada</span>
+            <div class="flex items-baseline justify-between mt-2">
+              <span id="kpiHeAcumulada" class="text-2xl font-bold text-amber-600">00:00</span>
+              <span class="text-xs text-slate-500 font-medium horas-text-sub">Horas Extras</span>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm horas-card">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider horas-text-sub">Total Ausências</span>
+            <div class="flex items-baseline justify-between mt-2">
+              <span id="kpiAusenciasTotal" class="text-2xl font-bold text-slate-700 horas-text">00:00</span>
+              <span class="text-xs text-slate-500 font-medium horas-text-sub">Faltas / Atrasos</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- FILTROS DO BANCO DE HORAS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1 horas-text-sub">Buscar Colaborador / Função</label>
+            <input
+              type="text"
+              id="filterBhBusca"
+              placeholder="Digite o nome, função ou matrícula..."
+              class="w-full text-sm rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 horas-input"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1 horas-text-sub">Centro de Custo (CC)</label>
+            <select
+              id="filterBhCc"
+              class="w-full text-sm rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 horas-input"
+            >
+              <option value="">Todos os centros de custo</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1 horas-text-sub">Turno</label>
+            <select
+              id="filterBhTurno"
+              class="w-full text-sm rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 horas-input"
+            >
+              <option value="">Todos os turnos</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1 horas-text-sub">Ordenar por Saldo</label>
+            <select
+              id="filterBhOrder"
+              class="w-full text-sm rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 horas-input"
+            >
+              <option value="">Padrão (Nome A-Z)</option>
+              <option value="desc">Maior saldo primeiro</option>
+              <option value="asc">Menor saldo primeiro (mais negativos)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- TABELA DO BANCO DE HORAS -->
+        <div class="overflow-x-auto rounded-xl border border-slate-200 horas-border">
+          <table class="w-full text-left border-collapse text-sm horas-table">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider horas-th-row">
+                <th class="py-3 px-4">CC</th>
+                <th class="py-3 px-4">Colaborador</th>
+                <th class="py-3 px-4">Função</th>
+                <th class="py-3 px-4">Turno</th>
+                <th class="py-3 px-4 text-center">H.E. Total</th>
+                <th class="py-3 px-4 text-center">Dias c/ HE</th>
+                <th class="py-3 px-4 text-center">Ausências</th>
+                <th class="py-3 px-4 text-center">Dias Ausente</th>
+                <th class="py-3 px-4 text-center">Saldo Atual</th>
+                <th class="py-3 px-4">Nome do Gestor</th>
+                <th class="py-3 px-4">Adm</th>
+                <th class="py-3 px-4">Observação</th>
+                <th class="py-3 px-4 text-center">Extrato</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyBancoHoras" class="divide-y divide-slate-200 horas-tbody">
+              <tr>
+                <td colspan="13" class="py-8 text-center text-slate-500 horas-text-sub">Carregando Banco de Horas...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- ABA 2: HORA EXTRA SIMPLIFICADA             -->
+      <!-- ========================================== -->
+      <div id="tabContentHoraExtra" class="p-6 space-y-6 hidden">
+        <!-- CARDS DE KPIS DA HORA EXTRA SIMPLIFICADA -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm horas-card">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider horas-text-sub">Ocorrências de H.E.</span>
+            <div class="flex items-baseline justify-between mt-2">
+              <span id="kpiHeCount" class="text-2xl font-bold text-slate-800 horas-text">0</span>
+              <span id="kpiHeColabsCount" class="text-xs text-slate-500 font-medium horas-text-sub">0 pessoas</span>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm horas-card">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider horas-text-sub">Total Horas Extras</span>
+            <div class="flex items-baseline justify-between mt-2">
+              <span id="kpiHeTotalSimplificada" class="text-2xl font-bold text-amber-600">00:00</span>
+              <span class="text-xs text-slate-500 font-medium horas-text-sub">No período</span>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm horas-card">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider horas-text-sub">Justificadas</span>
+            <div class="flex items-baseline justify-between mt-2">
+              <span id="kpiHeJustificadas" class="text-2xl font-bold text-emerald-600">0</span>
+              <span id="kpiHeTaxaPreenchimento" class="text-xs text-slate-500 font-medium horas-text-sub">0% concluído</span>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm horas-card">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider horas-text-sub">Pendentes</span>
+            <div class="flex items-baseline justify-between mt-2">
+              <span id="kpiHePendentes" class="text-2xl font-bold text-rose-600">0</span>
+              <span class="text-xs text-slate-500 font-medium horas-text-sub">Sem justificativa</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- FILTROS DA HORA EXTRA SIMPLIFICADA -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1 horas-text-sub">Data Início</label>
+            <input
+              type="date"
+              id="filterHeDataInicio"
+              class="w-full text-sm rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 horas-input"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1 horas-text-sub">Data Fim</label>
+            <input
+              type="date"
+              id="filterHeDataFim"
+              class="w-full text-sm rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 horas-input"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1 horas-text-sub">Centro de Custo (CC)</label>
+            <select
+              id="filterHeCc"
+              class="w-full text-sm rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 horas-input"
+            >
+              <option value="">Todos os centros de custo</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1 horas-text-sub">Colaborador</label>
+            <select
+              id="filterHeColaborador"
+              class="w-full text-sm rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 horas-input"
+            >
+              <option value="">Todos os colaboradores</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1 horas-text-sub">Justificativa</label>
+            <select
+              id="filterHeStatusJustificativa"
+              class="w-full text-sm rounded-xl border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 horas-input"
+            >
+              <option value="">Todas</option>
+              <option value="pendente">Apenas Pendentes</option>
+              <option value="preenchida">Apenas Preenchidas</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- TABELA ENXUTA DE HORAS EXTRAS -->
+        <div class="overflow-x-auto rounded-xl border border-slate-200 horas-border">
+          <table class="w-full text-left border-collapse text-sm horas-table">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider horas-th-row">
+                <th class="py-3 px-4">Data</th>
+                <th class="py-3 px-4">Dia</th>
+                <th class="py-3 px-4">Colaborador</th>
+                <th class="py-3 px-4 text-center">Entrada</th>
+                <th class="py-3 px-4 text-center">Saída</th>
+                <th class="py-3 px-4 text-center">Total H.E.</th>
+                <th class="py-3 px-4">Gestor Mediato</th>
+                <th class="py-3 px-4">Adm</th>
+                <th class="py-3 px-4 text-center">Sobreaviso</th>
+                <th class="py-3 px-4">Justificativa</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyHoraExtra" class="divide-y divide-slate-200 horas-tbody">
+              <tr>
+                <td colspan="10" class="py-8 text-center text-slate-500 horas-text-sub">Carregando Horas Extras...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL DE EXTRATO DO COLABORADOR -->
+  <div id="modalExtratoBancoHoras" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden horas-card">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 horas-tab-bar">
+        <div>
+          <h3 id="extratoColabNome" class="text-lg font-bold text-slate-800 horas-text">Extrato de Banco de Horas</h3>
+          <p id="extratoColabInfo" class="text-xs text-slate-500 horas-text-sub">Detalhamento dia a dia das batidas e movimentações</p>
+        </div>
+        <button type="button" id="btnCloseModalExtrato" class="text-slate-400 hover:text-slate-600 p-1">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-4">
+        <div id="extratoResumoBox" class="flex gap-4 text-xs font-semibold text-slate-600 bg-slate-50 p-3 rounded-xl horas-bg-box horas-text">
+          <span>Total de dias: <strong id="extratoTotalDias">0</strong></span>
+          <span>•</span>
+          <span>H.E. Total: <strong id="extratoHeTotal" class="text-amber-600">00:00</strong></span>
+          <span>•</span>
+          <span>Ausências: <strong id="extratoAbsentTotal" class="text-rose-600">00:00</strong></span>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-200 horas-border">
+          <table class="w-full text-left border-collapse text-xs horas-table">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider horas-th-row">
+                <th class="py-2 px-3">Data</th>
+                <th class="py-2 px-3">Dia</th>
+                <th class="py-2 px-3 text-center">Entrada</th>
+                <th class="py-2 px-3 text-center">Saída</th>
+                <th class="py-2 px-3 text-center">H.E.</th>
+                <th class="py-2 px-3 text-center">Ausência</th>
+                <th class="py-2 px-3">Observação</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyExtratoDetalhe" class="divide-y divide-slate-200 horas-tbody">
+              <tr>
+                <td colspan="7" class="py-4 text-center text-slate-400">Carregando detalhes...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="px-6 py-3 border-t border-slate-200 bg-slate-50 flex justify-end horas-tab-bar">
+        <button
+          type="button"
+          id="btnFecharModalExtratoRodape"
+          class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-sm px-4 py-2 rounded-xl transition"
+        >
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

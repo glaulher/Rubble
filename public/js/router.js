@@ -30,8 +30,9 @@ import { initPreditivaParse } from '/public/js/preditiva-parse/preditiva-parse.j
 import { initDiarioList } from '/public/js/diario/list.js?v=69';
 import { initTeams } from '/public/js/teams/list.js';
 import { initPublicSign } from '/public/js/termo/public-sign.js?v=32';
+import { initHoras } from '/public/js/horas/horas-ui.js?v=70';
 
-const VIEW_VERSION = 69;
+const VIEW_VERSION = 70;
 
 export async function loadPage(url) {
   try {
@@ -248,6 +249,13 @@ export async function router() {
     |--------------------------------------------------------------------------
     */
     html = await loadPage("/app/Views/preditiva-parse/index.html?v=" + VIEW_VERSION);
+  } else if (hash === "#/horas" || hash === "#horas" || hash.startsWith("#/horas?") || hash.startsWith("#horas?")) {
+    /*
+    |--------------------------------------------------------------------------
+    | GESTÃO DE HORAS (BANCO DE HORAS & HORAS EXTRAS)
+    |--------------------------------------------------------------------------
+    */
+    html = await loadPage("/app/Views/horas/index.html?v=" + VIEW_VERSION);
   } else if (hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm")) {
     /*
     |--------------------------------------------------------------------------
@@ -362,6 +370,8 @@ export async function router() {
       initPdfAudit();
     } else if (hash === "#/preditiva-parse" || hash.startsWith("#/preditiva-parse")) {
       initPreditivaParse();
+    } else if (hash === "#/horas" || hash === "#horas" || hash.startsWith("#/horas?") || hash.startsWith("#horas?")) {
+      initHoras();
     } else if (hash.startsWith("#/inventoryForm") || hash.startsWith("#inventoryForm")) {
       loadInventoryForm();
     } else if (hash === "#/inventory" || hash === "#inventory" || hash.startsWith("#/inventory?") || hash.startsWith("#inventory?")) {

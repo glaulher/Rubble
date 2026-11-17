@@ -615,3 +615,82 @@ button:disabled { cursor: not-allowed; }
 .dark #estoqueTable tbody tr.hover\:bg-slate-100:hover {
   background-color: #1e2536 !important;
 }
+
+/* ==========================================================================
+   Gestão de Horas (Dark Mode Overrides - Rubble Standard)
+   ========================================================================== */
+.dark .horas-card {
+  background-color: #1a1f2e !important;
+  border-color: #3b4459 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark .horas-tab-bar {
+  background-color: #151924 !important;
+  border-color: #3b4459 !important;
+}
+
+.dark .horas-tab-btn:not(.active) {
+  color: #94a3b8 !important;
+}
+
+.dark .horas-tab-btn:not(.active):hover {
+  color: #f1f5f9 !important;
+}
+
+.dark .horas-text {
+  color: #f1f5f9 !important;
+}
+
+.dark .horas-text-sub {
+  color: #94a3b8 !important;
+}
+
+.dark .horas-input {
+  background-color: #161b26 !important;
+  border-color: #3b4459 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark .horas-input::placeholder {
+  color: #64748b !important;
+}
+
+.dark .horas-dropzone {
+  background-color: #151924 !important;
+  border-color: #3b4459 !important;
+}
+
+.dark .horas-dropzone:hover {
+  border-color: #3b82f6 !important;
+  background-color: rgba(30, 58, 138, 0.2) !important;
+}
+
+.dark .horas-border {
+  border-color: #3b4459 !important;
+}
+
+.dark .horas-th-row {
+  background-color: #151924 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark .horas-tbody {
+  background-color: #1a1f2e !important;
+  border-color: #3b4459 !important;
+}
+
+.dark .horas-tr-row:hover {
+  background-color: #1e2536 !important;
+}
+
+.dark .horas-bg-box {
+  background-color: #151924 !important;
+  border-color: #3b4459 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark .horas-progress-bg {
+  background-color: #334155 !important;
+}
+

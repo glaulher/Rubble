@@ -615,6 +615,35 @@ $router->addRoute('preditiva-parse', 'POST', function () {
     (new \App\Api\Controllers\PreditivaParseController())->parse();
 });
 
+// Gestão de Horas e Ponto
+$router->addRoute('horas', 'GET', function () {
+    $action = $_GET['action'] ?? 'banco';
+    $controller = new \App\Api\Controllers\PontoController();
+    if ($action === 'banco') {
+        $controller->getBancoHoras();
+    } elseif ($action === 'extrato') {
+        $controller->getExtrato();
+    } elseif ($action === 'he-simplificada') {
+        $controller->getHorasExtrasSimplificadas();
+    } elseif ($action === 'filtros') {
+        $controller->getFilterOptions();
+    } else {
+        \App\Api\Helpers\Response::error('Ação não encontrada', 404);
+    }
+})->addRoute('horas', 'POST', function () {
+    $action = $_GET['action'] ?? '';
+    $controller = new \App\Api\Controllers\PontoController();
+    if ($action === 'anotacao-he') {
+        $controller->saveAnotacaoHe();
+    } elseif ($action === 'anotacao-bh') {
+        $controller->saveAnotacaoBh();
+    } elseif ($action === 'upload-pdfs') {
+        $controller->uploadPdfs();
+    } else {
+        \App\Api\Helpers\Response::error('Ação não encontrada', 404);
+    }
+});
+
 // Dispatch
 try {
     $router->dispatch($route, $method);

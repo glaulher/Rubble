@@ -22,7 +22,7 @@
     <link rel="icon" type="image/png" href="/image/Monster.png" />
 
     <link rel="stylesheet" href="/public/css/fonts.css" />
-    <link rel="stylesheet" href="/public/css/default.css?v=25" />
+    <link rel="stylesheet" href="/public/css/default.css?v=26" />
 
     <script>
   (function() {
@@ -655,16 +655,28 @@
             class="hidden group-hover:block absolute left-full top-0 bg-slate-900 text-white rounded-xl shadow-lg border border-slate-600 z-50 py-2 px-1 min-w-[210px]"
           >
             <a
+              href="#/horas"
+              id="horasLink"
+              data-role="admin coordenador gerente administrativo"
+              class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white text-sm whitespace-nowrap"
+            >
+              <svg class="w-4 h-4 shrink-0 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span class="font-medium text-white">Gestão de Horas</span>
+            </a>
+            <a
               href="#"
               id="tempoFechadoLink"
               data-role="admin coordenador gerente administrativo"
               class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white text-sm whitespace-nowrap"
             >
-              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="w-4 h-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
               </svg>
-              <span>Tempo Fechado</span>
+              <span class="text-xs text-slate-400">Tempo Fechado (Legado)</span>
             </a>
             <a
               href="#"
@@ -845,7 +857,7 @@
     <script src="/public/js/lib/chart.umd.min.js?v=1" defer></script>
     <script src="/public/js/lib/html2canvas.min.js?v=1" defer></script>
     <script src="/public/js/lib/jspdf.umd.min.js?v=1" defer></script>
-    <script src="/public/js/main.js?v=46" type="module"></script>
+    <script src="/public/js/main.js?v=47" type="module"></script>
 
     <!-- TOAST -->
     <div id="toast" class="fixed top-[18%] right-6 z-[999999] hidden">
