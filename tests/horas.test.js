@@ -81,7 +81,7 @@ describe('Gestão de Horas — View, Router and Sidebar Integration', () => {
     expect(code).toContain('heScrollContainer');
   });
 
-  it('buildBhQuery and buildHeQuery serialize limit and offset parameters correctly', () => {
+  it('buildBhQuery and buildHeQuery serialize limit and offset parameters correctly with standard 20 items per page', () => {
     globalThis.apiFetch = () => Promise.resolve({ ok: true, json: () => ({}) });
     globalThis.getUser = () => ({ name: 'Test' });
     globalThis.escapeHtml = (s) => (s ? String(s) : '');
@@ -95,14 +95,24 @@ describe('Gestão de Horas — View, Router and Sidebar Integration', () => {
 
     evalModule('../public/js/horas/horas-ui.js', '');
 
-    const bhQuery = globalThis.buildBhQuery(0, 30);
-    expect(bhQuery.get('action')).toBe('banco');
-    expect(bhQuery.get('limit')).toBe('30');
-    expect(bhQuery.get('offset')).toBe('0');
+    // Default limit should be 20 items per page matching Rubble convention
+    const bhDefaultQuery = globalThis.buildBhQuery();
+    expect(bhDefaultQuery.get('action')).toBe('banco');
+    expect(bhDefaultQuery.get('limit')).toBe('20');
+    expect(bhDefaultQuery.get('offset')).toBe('0');
 
-    const heQuery = globalThis.buildHeQuery(60, 30);
-    expect(heQuery.get('action')).toBe('he-simplificada');
-    expect(heQuery.get('limit')).toBe('30');
-    expect(heQuery.get('offset')).toBe('60');
+    const heDefaultQuery = globalThis.buildHeQuery();
+    expect(heDefaultQuery.get('action')).toBe('he-simplificada');
+    expect(heDefaultQuery.get('limit')).toBe('20');
+    expect(heDefaultQuery.get('offset')).toBe('0');
+
+    // Specific pagination offsets
+    const bhQuery = globalThis.buildBhQuery(20, 20);
+    expect(bhQuery.get('offset')).toBe('20');
+    expect(bhQuery.get('limit')).toBe('20');
+
+    const heQuery = globalThis.buildHeQuery(40, 20);
+    expect(heQuery.get('offset')).toBe('40');
+    expect(heQuery.get('limit')).toBe('20');
   });
 });

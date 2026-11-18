@@ -5,7 +5,7 @@ import { createInfiniteScroll, debounce } from '/public/js/components/infinite-s
 let activeTab = 'banco-horas';
 let _bhScroll = null;
 let _heScroll = null;
-const PAGE_LIMIT = 30;
+const PAGE_LIMIT = 20;
 
 export async function initHoras() {
   setupTabs();
