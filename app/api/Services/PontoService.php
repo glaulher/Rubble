@@ -181,10 +181,19 @@ class PontoService
         ];
     }
 
-    public function getBancoHoras(?string $cc = null, ?string $busca = null, ?string $turno = null, ?string $orderSaldo = null): array
-    {
+    public function getBancoHoras(
+        ?string $cc = null,
+        ?string $busca = null,
+        ?string $turno = null,
+        ?string $orderSaldo = null,
+        ?int $limit = null,
+        int $offset = 0
+    ): array {
         $rows = $this->repo->listBancoHoras($cc, $busca, $turno, $orderSaldo);
         $kpis = $this->calculateKpisBancoHoras($rows);
+        $total = count($rows);
+
+        $sliced = ($limit !== null && $limit > 0) ? array_slice($rows, $offset, $limit) : $rows;
 
         // Format times for display
         $formatted = array_map(function ($r) {
@@ -193,11 +202,12 @@ class PontoService
             $saldoMin = (int) ($r['saldo_atual_min'] ?? 0);
             $r['saldo_formatado'] = ($saldoMin > 0 ? '+' : '') . $this->minutesToTime($saldoMin);
             return $r;
-        }, $rows);
+        }, $sliced);
 
         return [
             'kpis' => $kpis,
             'dados' => $formatted,
+            'total' => $total,
         ];
     }
 
@@ -245,7 +255,9 @@ class PontoService
         ?string $cc = null,
         ?int $colaboradorId = null,
         ?string $busca = null,
-        ?string $statusJustificativa = null
+        ?string $statusJustificativa = null,
+        ?int $limit = null,
+        int $offset = 0
     ): array {
         $rows = $this->repo->listHorasExtrasSimplificadas(
             $dataInicio,
@@ -257,6 +269,9 @@ class PontoService
         );
 
         $kpis = $this->calculateKpisHorasExtras($rows);
+        $total = count($rows);
+
+        $sliced = ($limit !== null && $limit > 0) ? array_slice($rows, $offset, $limit) : $rows;
 
         $formatted = array_map(function ($r) {
             $r['dia_abreviado'] = $this->abbreviateDayOfWeek((string) ($r['dia_semana'] ?? ''), (string) ($r['data'] ?? ''));
@@ -265,11 +280,12 @@ class PontoService
             $r['he_formatado'] = $this->minutesToTime((int) ($r['he_min'] ?? 0));
             $r['data_formatada'] = date('d/m/Y', strtotime((string) $r['data']));
             return $r;
-        }, $rows);
+        }, $sliced);
 
         return [
             'kpis' => $kpis,
             'dados' => $formatted,
+            'total' => $total,
         ];
     }
 

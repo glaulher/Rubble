@@ -1,8 +1,11 @@
 import { apiFetch, getUser } from '/public/js/core/auth.js';
 import { escapeHtml } from '/public/js/core/utils.js';
+import { createInfiniteScroll, debounce } from '/public/js/components/infinite-scroll.js';
 
 let activeTab = 'banco-horas';
-let debounceTimer = null;
+let _bhScroll = null;
+let _heScroll = null;
+const PAGE_LIMIT = 30;
 
 export async function initHoras() {
   setupTabs();
@@ -15,6 +18,17 @@ export async function initHoras() {
   loadCurrentTab();
 }
 
+export function destroyHoras() {
+  if (_bhScroll) {
+    _bhScroll.destroy();
+    _bhScroll = null;
+  }
+  if (_heScroll) {
+    _heScroll.destroy();
+    _heScroll = null;
+  }
+}
+
 function setupTabs() {
   const btnBh = document.getElementById('tabBtnBancoHoras');
   const btnHe = document.getElementById('tabBtnHoraExtra');
@@ -23,6 +37,7 @@ function setupTabs() {
 
   if (btnBh) {
     btnBh.addEventListener('click', () => {
+      if (activeTab === 'banco-horas') return;
       activeTab = 'banco-horas';
       btnBh.classList.add('active', 'border-blue-600', 'text-blue-600');
       btnBh.classList.remove('border-transparent', 'text-slate-500');
@@ -37,6 +52,7 @@ function setupTabs() {
 
   if (btnHe) {
     btnHe.addEventListener('click', () => {
+      if (activeTab === 'hora-extra') return;
       activeTab = 'hora-extra';
       btnHe.classList.add('active', 'border-blue-600', 'text-blue-600');
       btnHe.classList.remove('border-transparent', 'text-slate-500');
@@ -147,16 +163,14 @@ async function handlePdfUpload(files) {
 }
 
 function setupFilters() {
-  // Banco de Horas filters
   const bhBusca = document.getElementById('filterBhBusca');
   const bhCc = document.getElementById('filterBhCc');
   const bhTurno = document.getElementById('filterBhTurno');
   const bhOrder = document.getElementById('filterBhOrder');
 
-  const triggerBhFilter = () => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => loadBancoHoras(), 250);
-  };
+  const triggerBhFilter = debounce(() => {
+    loadBancoHoras();
+  }, 250);
 
   if (bhBusca) bhBusca.addEventListener('input', triggerBhFilter);
   if (bhCc) bhCc.addEventListener('change', triggerBhFilter);
@@ -170,10 +184,9 @@ function setupFilters() {
   const heColab = document.getElementById('filterHeColaborador');
   const heStatus = document.getElementById('filterHeStatusJustificativa');
 
-  const triggerHeFilter = () => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => loadHoraExtraSimplificada(), 250);
-  };
+  const triggerHeFilter = debounce(() => {
+    loadHoraExtraSimplificada();
+  }, 250);
 
   if (heInicio) heInicio.addEventListener('change', triggerHeFilter);
   if (heFim) heFim.addEventListener('change', triggerHeFilter);
@@ -233,35 +246,184 @@ function loadCurrentTab() {
   }
 }
 
-async function loadBancoHoras() {
-  const tbody = document.getElementById('tbodyBancoHoras');
-  if (!tbody) return;
-
-  const busca = document.getElementById('filterBhBusca')?.value || '';
+export function buildBhQuery(offset = 0, limit = PAGE_LIMIT) {
+  const busca = document.getElementById('filterBhBusca')?.value.trim() || '';
   const cc = document.getElementById('filterBhCc')?.value || '';
   const turno = document.getElementById('filterBhTurno')?.value || '';
   const order = document.getElementById('filterBhOrder')?.value || '';
 
   const params = new URLSearchParams();
+  params.set('route', 'horas');
   params.set('action', 'banco');
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
   if (busca) params.set('busca', busca);
   if (cc) params.set('cc', cc);
   if (turno) params.set('turno', turno);
   if (order) params.set('order_saldo', order);
+  return params;
+}
 
-  try {
-    const resp = await apiFetch(`/app/api/index.php?route=horas&${params.toString()}`);
-    if (!resp.ok) {
-      tbody.innerHTML = '<tr><td colspan="13" class="py-6 text-center text-rose-500">Erro ao carregar dados do banco de horas.</td></tr>';
-      return;
-    }
-    const json = await resp.json();
-    const data = json.data || json;
+export function buildBhFilterHash() {
+  const busca = document.getElementById('filterBhBusca')?.value.trim() || '';
+  const cc = document.getElementById('filterBhCc')?.value || '';
+  const turno = document.getElementById('filterBhTurno')?.value || '';
+  const order = document.getElementById('filterBhOrder')?.value || '';
+  return `${busca}|${cc}|${turno}|${order}`;
+}
 
-    renderKpisBancoHoras(data.kpis || {});
-    renderTableBancoHoras(data.dados || []);
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="13" class="py-6 text-center text-rose-500">Falha na requisição: ${escapeHtml(err.message)}</td></tr>`;
+export function setupBhInfiniteScroll() {
+  if (_bhScroll) {
+    _bhScroll.destroy();
+    _bhScroll = null;
+  }
+
+  const sentinel = document.getElementById('bhSentinel');
+  if (!sentinel) return;
+
+  _bhScroll = createInfiniteScroll({
+    sentinelId: 'bhSentinel',
+    scrollContainerId: 'bhScrollContainer',
+    limit: PAGE_LIMIT,
+    timeout: 15000,
+    fetchFn: async (params, opts) => {
+      const q = buildBhQuery(params.offset, params.limit);
+      const resp = await apiFetch(`/app/api/index.php?${q.toString()}`, { signal: opts.signal });
+      if (!resp.ok) {
+        throw new Error('Falha ao carregar dados do banco de horas');
+      }
+      const json = await resp.json();
+      const res = json.data || json;
+      if (res.kpis) {
+        renderKpisBancoHoras(res.kpis);
+      }
+      return {
+        data: res.dados || [],
+        total: res.total || 0,
+      };
+    },
+    renderFn: (items) => {
+      renderTableBancoHoras(items, true);
+    },
+    renderFullFn: (items) => {
+      renderTableBancoHoras(items, false);
+    },
+    getFilterHash: () => {
+      return buildBhFilterHash();
+    },
+    onError: (err) => {
+      console.error('Erro no scroll de Banco de Horas:', err);
+      const tbody = document.getElementById('tbodyBancoHoras');
+      if (tbody && (!_bhScroll || _bhScroll.getState().data.length === 0)) {
+        tbody.innerHTML = `<tr><td colspan="13" class="py-6 text-center text-rose-500">Falha ao carregar dados: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    },
+  });
+
+  _bhScroll.init();
+}
+
+export function loadBancoHoras() {
+  const tbody = document.getElementById('tbodyBancoHoras');
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="13" class="py-8 text-center text-slate-500 horas-text-sub">Carregando Banco de Horas...</td></tr>';
+  }
+  if (_bhScroll) {
+    _bhScroll.reset().init();
+  } else {
+    setupBhInfiniteScroll();
+  }
+}
+
+export function buildHeQuery(offset = 0, limit = PAGE_LIMIT) {
+  const dataInicio = document.getElementById('filterHeDataInicio')?.value || '';
+  const dataFim = document.getElementById('filterHeDataFim')?.value || '';
+  const cc = document.getElementById('filterHeCc')?.value || '';
+  const colabId = document.getElementById('filterHeColaborador')?.value || '';
+  const statusJust = document.getElementById('filterHeStatusJustificativa')?.value || '';
+
+  const params = new URLSearchParams();
+  params.set('route', 'horas');
+  params.set('action', 'he-simplificada');
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  if (dataInicio) params.set('data_inicio', dataInicio);
+  if (dataFim) params.set('data_fim', dataFim);
+  if (cc) params.set('cc', cc);
+  if (colabId) params.set('colaborador_id', colabId);
+  if (statusJust) params.set('status_justificativa', statusJust);
+  return params;
+}
+
+export function buildHeFilterHash() {
+  const dataInicio = document.getElementById('filterHeDataInicio')?.value || '';
+  const dataFim = document.getElementById('filterHeDataFim')?.value || '';
+  const cc = document.getElementById('filterHeCc')?.value || '';
+  const colabId = document.getElementById('filterHeColaborador')?.value || '';
+  const statusJust = document.getElementById('filterHeStatusJustificativa')?.value || '';
+  return `${dataInicio}|${dataFim}|${cc}|${colabId}|${statusJust}`;
+}
+
+export function setupHeInfiniteScroll() {
+  if (_heScroll) {
+    _heScroll.destroy();
+    _heScroll = null;
+  }
+
+  const sentinel = document.getElementById('heSentinel');
+  if (!sentinel) return;
+
+  _heScroll = createInfiniteScroll({
+    sentinelId: 'heSentinel',
+    scrollContainerId: 'heScrollContainer',
+    limit: PAGE_LIMIT,
+    timeout: 15000,
+    fetchFn: async (params, opts) => {
+      const q = buildHeQuery(params.offset, params.limit);
+      const resp = await apiFetch(`/app/api/index.php?${q.toString()}`, { signal: opts.signal });
+      if (!resp.ok) {
+        throw new Error('Falha ao carregar horas extras');
+      }
+      const json = await resp.json();
+      const res = json.data || json;
+      if (res.kpis) {
+        renderKpisHorasExtras(res.kpis);
+      }
+      return {
+        data: res.dados || [],
+        total: res.total || 0,
+      };
+    },
+    renderFn: (items) => {
+      renderTableHoraExtra(items, true);
+    },
+    renderFullFn: (items) => {
+      renderTableHoraExtra(items, false);
+    },
+    getFilterHash: () => {
+      return buildHeFilterHash();
+    },
+    onError: (err) => {
+      console.error('Erro no scroll de Horas Extras:', err);
+      const tbody = document.getElementById('tbodyHoraExtra');
+      if (tbody && (!_heScroll || _heScroll.getState().data.length === 0)) {
+        tbody.innerHTML = `<tr><td colspan="10" class="py-6 text-center text-rose-500">Falha ao carregar dados: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    },
+  });
+
+  _heScroll.init();
+}
+
+export function loadHoraExtraSimplificada() {
+  const tbody = document.getElementById('tbodyHoraExtra');
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center text-slate-500 horas-text-sub">Carregando Horas Extras...</td></tr>';
+  }
+  if (_heScroll) {
+    _heScroll.reset().init();
+  } else {
+    setupHeInfiniteScroll();
   }
 }
 
@@ -283,16 +445,23 @@ function renderKpisBancoHoras(kpis) {
   setEl('kpiAusenciasTotal', kpis.absent_total || '00:00');
 }
 
-function renderTableBancoHoras(rows) {
+export function renderTableBancoHoras(rows, append = false) {
   const tbody = document.getElementById('tbodyBancoHoras');
   if (!tbody) return;
 
+  const isFirstBatch = !append || (_bhScroll && _bhScroll.getState().page <= 1);
+  if (isFirstBatch) {
+    tbody.innerHTML = '';
+  }
+
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="13" class="py-8 text-center text-slate-500 horas-text-sub">Nenhum colaborador encontrado para os filtros selecionados.</td></tr>';
+    if (isFirstBatch) {
+      tbody.innerHTML = '<tr><td colspan="13" class="py-8 text-center text-slate-500 horas-text-sub">Nenhum colaborador encontrado para os filtros selecionados.</td></tr>';
+    }
     return;
   }
 
-  tbody.innerHTML = rows
+  const html = rows
     .map((r) => {
       const saldoMin = parseInt(r.saldo_atual_min, 10) || 0;
       const saldoClass =
@@ -364,7 +533,7 @@ function renderTableBancoHoras(rows) {
         <td class="py-3 px-4 text-center">
           <button
             type="button"
-            class="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-lg transition"
+            class="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-lg transition cursor-pointer"
             title="Ver Extrato"
             data-action="open-extrato"
             data-colab-id="${r.colaborador_id}"
@@ -379,40 +548,8 @@ function renderTableBancoHoras(rows) {
     `;
     })
     .join('');
-}
 
-async function loadHoraExtraSimplificada() {
-  const tbody = document.getElementById('tbodyHoraExtra');
-  if (!tbody) return;
-
-  const dataInicio = document.getElementById('filterHeDataInicio')?.value || '';
-  const dataFim = document.getElementById('filterHeDataFim')?.value || '';
-  const cc = document.getElementById('filterHeCc')?.value || '';
-  const colabId = document.getElementById('filterHeColaborador')?.value || '';
-  const statusJust = document.getElementById('filterHeStatusJustificativa')?.value || '';
-
-  const params = new URLSearchParams();
-  params.set('action', 'he-simplificada');
-  if (dataInicio) params.set('data_inicio', dataInicio);
-  if (dataFim) params.set('data_fim', dataFim);
-  if (cc) params.set('cc', cc);
-  if (colabId) params.set('colaborador_id', colabId);
-  if (statusJust) params.set('status_justificativa', statusJust);
-
-  try {
-    const resp = await apiFetch(`/app/api/index.php?route=horas&${params.toString()}`);
-    if (!resp.ok) {
-      tbody.innerHTML = '<tr><td colspan="10" class="py-6 text-center text-rose-500">Erro ao carregar horas extras.</td></tr>';
-      return;
-    }
-    const json = await resp.json();
-    const data = json.data || json;
-
-    renderKpisHorasExtras(data.kpis || {});
-    renderTableHoraExtra(data.dados || []);
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="10" class="py-6 text-center text-rose-500">Falha na requisição: ${escapeHtml(err.message)}</td></tr>`;
-  }
+  tbody.insertAdjacentHTML('beforeend', html);
 }
 
 function renderKpisHorasExtras(kpis) {
@@ -429,16 +566,23 @@ function renderKpisHorasExtras(kpis) {
   setEl('kpiHePendentes', kpis.justificativas_pendentes || 0);
 }
 
-function renderTableHoraExtra(rows) {
+export function renderTableHoraExtra(rows, append = false) {
   const tbody = document.getElementById('tbodyHoraExtra');
   if (!tbody) return;
 
+  const isFirstBatch = !append || (_heScroll && _heScroll.getState().page <= 1);
+  if (isFirstBatch) {
+    tbody.innerHTML = '';
+  }
+
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center text-slate-500 horas-text-sub">Nenhuma hora extra encontrada para os filtros selecionados.</td></tr>';
+    if (isFirstBatch) {
+      tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center text-slate-500 horas-text-sub">Nenhuma hora extra encontrada para os filtros selecionados.</td></tr>';
+    }
     return;
   }
 
-  tbody.innerHTML = rows
+  const html = rows
     .map((r) => {
       const sobreaviso = r.sobreaviso || '';
       return `
@@ -508,6 +652,8 @@ function renderTableHoraExtra(rows) {
     `;
     })
     .join('');
+
+  tbody.insertAdjacentHTML('beforeend', html);
 }
 
 function setupEventDelegation() {
@@ -540,7 +686,6 @@ function setupEventDelegation() {
 async function handleSaveAnotacaoBh(inputEl) {
   const colabId = parseInt(inputEl.getAttribute('data-colab-id'), 10);
   const field = inputEl.getAttribute('data-field');
-  const val = inputEl.value;
 
   if (!colabId || !field) return;
 

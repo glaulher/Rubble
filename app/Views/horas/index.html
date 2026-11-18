@@ -206,10 +206,10 @@
         </div>
 
         <!-- TABELA DO BANCO DE HORAS -->
-        <div class="overflow-x-auto rounded-xl border border-slate-200 horas-border">
+        <div id="bhScrollContainer" class="max-h-[70vh] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 horas-border">
           <table class="w-full text-left border-collapse text-sm horas-table">
-            <thead>
-              <tr class="bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider horas-th-row">
+            <thead class="sticky top-0 z-10 bg-slate-100 shadow-sm">
+              <tr class="text-slate-700 text-xs font-bold uppercase tracking-wider horas-th-row">
                 <th class="py-3 px-4">CC</th>
                 <th class="py-3 px-4">Colaborador</th>
                 <th class="py-3 px-4">Função</th>
@@ -231,6 +231,7 @@
               </tr>
             </tbody>
           </table>
+          <div id="bhSentinel" class="h-4"></div>
         </div>
       </div>
 
@@ -327,10 +328,10 @@
         </div>
 
         <!-- TABELA ENXUTA DE HORAS EXTRAS -->
-        <div class="overflow-x-auto rounded-xl border border-slate-200 horas-border">
+        <div id="heScrollContainer" class="max-h-[70vh] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200 horas-border">
           <table class="w-full text-left border-collapse text-sm horas-table">
-            <thead>
-              <tr class="bg-slate-100 text-slate-700 text-xs font-bold uppercase tracking-wider horas-th-row">
+            <thead class="sticky top-0 z-10 bg-slate-100 shadow-sm">
+              <tr class="text-slate-700 text-xs font-bold uppercase tracking-wider horas-th-row">
                 <th class="py-3 px-4">Data</th>
                 <th class="py-3 px-4">Dia</th>
                 <th class="py-3 px-4">Colaborador</th>
@@ -349,6 +350,7 @@
               </tr>
             </tbody>
           </table>
+          <div id="heSentinel" class="h-4"></div>
         </div>
       </div>
     </div>

@@ -36,6 +36,47 @@ class PontoRepository extends BaseRepository
         $funcao = isset($data['funcao']) ? trim((string) $data['funcao']) : null;
         $turno = isset($data['turno']) ? trim((string) $data['turno']) : null;
 
+        if ($nome === '') {
+            return 0;
+        }
+
+        // 1. Busca colaborador existente: por matrícula (se fornecida e não vazia) ou por nome
+        $existing = null;
+        if ($matricula !== '') {
+            $existing = $this->findColaboradorByMatricula($matricula);
+        }
+        if (!$existing) {
+            $existing = $this->findColaboradorByNome($nome);
+        }
+
+        if ($existing) {
+            $id = (int) $existing['id'];
+            $targetMatricula = $existing['matricula'];
+
+            // Se a matrícula existente era gerada (TF_...) e agora recebemos uma matrícula real, atualiza
+            if (str_starts_with($targetMatricula, 'TF_') && $matricula !== '' && !str_starts_with($matricula, 'TF_')) {
+                $targetMatricula = $matricula;
+            }
+
+            $sql = 'UPDATE ponto_colaboradores SET
+                        matricula = ?,
+                        nome = ?,
+                        cc = COALESCE(?, cc),
+                        funcao = COALESCE(?, funcao),
+                        turno = COALESCE(?, turno)
+                    WHERE id = ?';
+            $stmt = $this->safePrepare($sql);
+            $stmt->bind_param('sssssi', $targetMatricula, $nome, $cc, $funcao, $turno, $id);
+            $stmt->execute();
+            $stmt->close();
+            return $id;
+        }
+
+        // 2. Colaborador novo: gera matrícula se vazia
+        if ($matricula === '') {
+            $matricula = 'TF_' . substr(md5($nome), 0, 8);
+        }
+
         $sql = 'INSERT INTO ponto_colaboradores (matricula, nome, cc, funcao, turno)
                 VALUES (?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
@@ -51,8 +92,11 @@ class PontoRepository extends BaseRepository
         $stmt->close();
 
         if ($id === 0) {
-            $existing = $this->findColaboradorByMatricula($matricula);
-            return $existing ? (int) $existing['id'] : 0;
+            $found = $this->findColaboradorByMatricula($matricula);
+            if (!$found) {
+                $found = $this->findColaboradorByNome($nome);
+            }
+            return $found ? (int) $found['id'] : 0;
         }
 
         return $id;
@@ -123,6 +167,17 @@ class PontoRepository extends BaseRepository
         $stmt->execute();
         $id = (int) $this->conn->insert_id;
         $stmt->close();
+
+        if ($id === 0) {
+            $stmtFind = $this->safePrepare('SELECT id FROM ponto_registros WHERE colaborador_id = ? AND data = ? LIMIT 1');
+            $stmtFind->bind_param('is', $colabId, $dataRef);
+            $stmtFind->execute();
+            $resFind = $stmtFind->get_result();
+            $rowFind = $resFind->fetch_assoc();
+            $stmtFind->close();
+            return $rowFind ? (int) $rowFind['id'] : 0;
+        }
+
         return $id;
     }
 
@@ -185,10 +240,10 @@ class PontoRepository extends BaseRepository
                 (colaborador_id, data, nome_gestor, adm_responsavel, sobreaviso, justificativa, updated_by)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
-                    nome_gestor = VALUES(nome_gestor),
-                    adm_responsavel = VALUES(adm_responsavel),
-                    sobreaviso = VALUES(sobreaviso),
-                    justificativa = VALUES(justificativa),
+                    nome_gestor = COALESCE(NULLIF(VALUES(nome_gestor), ""), nome_gestor),
+                    adm_responsavel = COALESCE(NULLIF(VALUES(adm_responsavel), ""), adm_responsavel),
+                    sobreaviso = CASE WHEN VALUES(sobreaviso) != "" THEN VALUES(sobreaviso) ELSE sobreaviso END,
+                    justificativa = COALESCE(NULLIF(VALUES(justificativa), ""), justificativa),
                     updated_by = VALUES(updated_by)';
 
         $stmt = $this->safePrepare($sql);
@@ -202,9 +257,9 @@ class PontoRepository extends BaseRepository
         $sql = 'INSERT INTO ponto_banco_horas (colaborador_id, ciclo_inicio, nome_gestor, adm_responsavel, observacao)
                 VALUES (?, "1970-01-01", ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
-                    nome_gestor = VALUES(nome_gestor),
-                    adm_responsavel = VALUES(adm_responsavel),
-                    observacao = VALUES(observacao)';
+                    nome_gestor = COALESCE(NULLIF(VALUES(nome_gestor), ""), nome_gestor),
+                    adm_responsavel = COALESCE(NULLIF(VALUES(adm_responsavel), ""), adm_responsavel),
+                    observacao = COALESCE(NULLIF(VALUES(observacao), ""), observacao)';
 
         $stmt = $this->safePrepare($sql);
         $stmt->bind_param('isss', $colaboradorId, $gestor, $adm, $observacao);

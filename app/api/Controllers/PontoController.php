@@ -24,8 +24,10 @@ class PontoController
             $busca = isset($_GET['busca']) && trim((string) $_GET['busca']) !== '' ? trim((string) $_GET['busca']) : null;
             $turno = isset($_GET['turno']) && trim((string) $_GET['turno']) !== '' ? trim((string) $_GET['turno']) : null;
             $orderSaldo = isset($_GET['order_saldo']) && trim((string) $_GET['order_saldo']) !== '' ? trim((string) $_GET['order_saldo']) : null;
+            $limit = isset($_GET['limit']) && (int) $_GET['limit'] > 0 ? (int) $_GET['limit'] : null;
+            $offset = isset($_GET['offset']) && (int) $_GET['offset'] >= 0 ? (int) $_GET['offset'] : 0;
 
-            $result = $this->service->getBancoHoras($cc, $busca, $turno, $orderSaldo);
+            $result = $this->service->getBancoHoras($cc, $busca, $turno, $orderSaldo, $limit, $offset);
             Response::json($result);
             return;
         } catch (\Exception $e) {
@@ -70,6 +72,8 @@ class PontoController
             $colaboradorId = isset($_GET['colaborador_id']) && (int) $_GET['colaborador_id'] > 0 ? (int) $_GET['colaborador_id'] : null;
             $busca = isset($_GET['busca']) && trim((string) $_GET['busca']) !== '' ? trim((string) $_GET['busca']) : null;
             $statusJustificativa = isset($_GET['status_justificativa']) && trim((string) $_GET['status_justificativa']) !== '' ? trim((string) $_GET['status_justificativa']) : null;
+            $limit = isset($_GET['limit']) && (int) $_GET['limit'] > 0 ? (int) $_GET['limit'] : null;
+            $offset = isset($_GET['offset']) && (int) $_GET['offset'] >= 0 ? (int) $_GET['offset'] : 0;
 
             $result = $this->service->getHorasExtrasSimplificadas(
                 $dataInicio,
@@ -77,7 +81,9 @@ class PontoController
                 $cc,
                 $colaboradorId,
                 $busca,
-                $statusJustificativa
+                $statusJustificativa,
+                $limit,
+                $offset
             );
             Response::json($result);
             return;

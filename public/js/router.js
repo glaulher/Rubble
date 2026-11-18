@@ -32,7 +32,7 @@ import { initTeams } from '/public/js/teams/list.js';
 import { initPublicSign } from '/public/js/termo/public-sign.js?v=32';
 import { initHoras } from '/public/js/horas/horas-ui.js?v=70';
 
-const VIEW_VERSION = 70;
+const VIEW_VERSION = 71;
 
 export async function loadPage(url) {
   try {

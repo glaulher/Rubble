@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import fs from 'fs';
 import path from 'path';
+import { evalModule } from './helpers/eval-module.js';
 
 describe('Gestão de Horas — View, Router and Sidebar Integration', () => {
   const indexHtmlPath = path.resolve(__dirname, '../index.html');
@@ -56,10 +57,52 @@ describe('Gestão de Horas — View, Router and Sidebar Integration', () => {
     expect(view).not.toMatch(/\bdark:[a-zA-Z0-9_-]+/);
   });
 
-  it('horas-ui.js exists and exports initHoras', () => {
+  it('view contains infinite scroll sentinels and containers for both Banco de Horas and Hora Extra', () => {
+    const view = fs.readFileSync(viewHtmlPath, 'utf-8');
+    expect(view).toContain('id="bhSentinel"');
+    expect(view).toContain('id="heSentinel"');
+    expect(view).toContain('id="bhScrollContainer"');
+    expect(view).toContain('id="heScrollContainer"');
+  });
+
+  it('horas-ui.js exists and exports initHoras, loadBancoHoras, loadHoraExtraSimplificada', () => {
     const code = fs.readFileSync(horasUiJsPath, 'utf-8');
     expect(code).toContain('export async function initHoras');
     expect(code).toContain('loadBancoHoras');
     expect(code).toContain('loadHoraExtraSimplificada');
+  });
+
+  it('horas-ui.js imports and uses createInfiniteScroll for both tabs', () => {
+    const code = fs.readFileSync(horasUiJsPath, 'utf-8');
+    expect(code).toContain('createInfiniteScroll');
+    expect(code).toContain('bhSentinel');
+    expect(code).toContain('heSentinel');
+    expect(code).toContain('bhScrollContainer');
+    expect(code).toContain('heScrollContainer');
+  });
+
+  it('buildBhQuery and buildHeQuery serialize limit and offset parameters correctly', () => {
+    globalThis.apiFetch = () => Promise.resolve({ ok: true, json: () => ({}) });
+    globalThis.getUser = () => ({ name: 'Test' });
+    globalThis.escapeHtml = (s) => (s ? String(s) : '');
+    globalThis.createInfiniteScroll = (cfg) => ({
+      init: () => {},
+      reset: () => ({ init: () => {} }),
+      destroy: () => {},
+      getState: () => ({ page: 1, data: [] }),
+    });
+    globalThis.debounce = (fn) => fn;
+
+    evalModule('../public/js/horas/horas-ui.js', '');
+
+    const bhQuery = globalThis.buildBhQuery(0, 30);
+    expect(bhQuery.get('action')).toBe('banco');
+    expect(bhQuery.get('limit')).toBe('30');
+    expect(bhQuery.get('offset')).toBe('0');
+
+    const heQuery = globalThis.buildHeQuery(60, 30);
+    expect(heQuery.get('action')).toBe('he-simplificada');
+    expect(heQuery.get('limit')).toBe('30');
+    expect(heQuery.get('offset')).toBe('60');
   });
 });
